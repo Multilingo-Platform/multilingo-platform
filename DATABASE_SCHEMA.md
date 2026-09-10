@@ -14,7 +14,7 @@ Lưu thông tin tài khoản và kiểm soát giới hạn tính năng AI.
 | `id` | UUID (PK) | Khóa chính người dùng |
 | `email` | VARCHAR | Unique, Tài khoản đăng nhập |
 | `password_hash` | VARCHAR | Mật khẩu mã hóa |
-| `role` | VARCHAR | Phân quyền (ROLE_USER, ROLE_ADMIN) |
+| `role_id` | UUID (FK) | Liên kết bảng `roles` (1 User có 1 Role) |
 | `native_language` | VARCHAR | Ngôn ngữ mẹ đẻ (VD: `vi`, `en`) |
 | `target_language` | VARCHAR | Ngôn ngữ muốn học/thi (VD: `en`, `vi`) |
 | `subscription_tier` | VARCHAR | Hạng tài khoản (FREE, PREMIUM) |
@@ -136,3 +136,64 @@ Hỗ trợ tính năng tra từ điển và ôn tập lặp lại ngắt quãng.
 | `ease_factor` | NUMERIC | Hệ số độ khó (Phục vụ thuật toán SRS) |
 | `interval_days` | INT | Chu kỳ ngày nhắc ôn tập |
 | `next_review_date` | TIMESTAMP | Lịch nhắc ôn tập cụ thể |
+
+---
+
+## CỤM 5: Vận hành, Phân quyền & Bổ trợ (Operations, Auth & Utilities)
+Các bảng cần thiết để xây dựng một hệ thống hoàn chỉnh chạy thực tế (Production-ready), phục vụ bảo mật, theo dõi và tương tác.
+
+### Bảng `roles` (Vai trò)
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | UUID (PK) | Khóa chính |
+| `name` | VARCHAR | Tên Role (VD: `ADMIN`, `USER`, `EDITOR`) |
+| `description` | TEXT | Mô tả chi tiết |
+
+### Bảng `permissions` (Quyền hạn chi tiết)
+Chứa các quyền nhỏ và cụ thể (VD: `CREATE_EXAM`, `DELETE_USER`, `VIEW_REPORTS`).
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | UUID (PK) | Khóa chính |
+| `action_code` | VARCHAR | Mã quyền hạn (VD: `CREATE_EXAM`) |
+| `module` | VARCHAR | Thuộc tính năng nào (VD: `EXAM`, `USER`, `BILLING`) |
+
+### Bảng `role_permissions` (Phân quyền Role - Permission)
+Một Role có nhiều Permission, và một Permission có thể thuộc nhiều Role.
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `role_id` | UUID (FK) | Liên kết bảng `roles` |
+| `permission_id` | UUID (FK) | Liên kết bảng `permissions` |
+
+### Bảng `refresh_tokens` (Quản lý Phiên đăng nhập)
+Hỗ trợ bảo mật JWT, cho phép user duy trì đăng nhập hoặc bị Admin "kick" từ xa.
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | UUID (PK) | Khóa chính |
+| `user_id` | UUID (FK) | Liên kết bảng `users` |
+| `token` | VARCHAR | Chuỗi Refresh Token |
+| `expires_at` | TIMESTAMP | Thời gian hết hạn |
+| `is_revoked` | BOOLEAN | Trạng thái thu hồi (Nếu true -> Bắt đăng nhập lại) |
+
+### Bảng `notifications` (Thông báo Hệ thống)
+Dùng để gửi thông báo nhắc nhở học tập, thông báo hết hạn Premium, nhắc nhở Flashcard v.v.
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | UUID (PK) | Khóa chính |
+| `user_id` | UUID (FK) | Gửi cho ai |
+| `title` | VARCHAR | Tiêu đề thông báo |
+| `content` | TEXT | Nội dung chi tiết |
+| `is_read` | BOOLEAN | Trạng thái đã đọc |
+| `created_at` | TIMESTAMP | Thời điểm tạo |
+
+### Bảng `audit_logs` (Nhật ký Hệ thống)
+Ghi vết các hành động quan trọng để Admin dễ dàng debug hoặc truy vết bảo mật (Ví dụ: Ai vừa xóa đề thi A?).
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | UUID (PK) | Khóa chính |
+| `user_id` | UUID (FK) | Người thực hiện hành động |
+| `action` | VARCHAR | Hành động (VD: `DELETE_EXAM`, `UPDATE_QUOTA`) |
+| `entity_type` | VARCHAR | Đối tượng bị tác động (VD: `EXAM`, `USER`) |
+| `entity_id` | VARCHAR | ID của đối tượng |
+| `details` | JSONB | Data chi tiết (Lưu JSONB để linh hoạt) |
+| `ip_address` | VARCHAR | IP thực hiện |
+| `created_at` | TIMESTAMP | Thời gian thực hiện |
