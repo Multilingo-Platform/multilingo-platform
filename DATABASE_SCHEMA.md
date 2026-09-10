@@ -15,6 +15,8 @@ Lưu thông tin tài khoản và kiểm soát giới hạn tính năng AI.
 | `email` | VARCHAR | Unique, Tài khoản đăng nhập |
 | `password_hash` | VARCHAR | Mật khẩu mã hóa |
 | `role` | VARCHAR | Phân quyền (ROLE_USER, ROLE_ADMIN) |
+| `native_language` | VARCHAR | Ngôn ngữ mẹ đẻ (VD: `vi`, `en`) |
+| `target_language` | VARCHAR | Ngôn ngữ muốn học/thi (VD: `en`, `vi`) |
 | `subscription_tier` | VARCHAR | Hạng tài khoản (FREE, PREMIUM) |
 | `premium_expires_at` | TIMESTAMP | Thời gian hết hạn gói Premium |
 
@@ -57,6 +59,7 @@ Chứa cấu trúc đề thi đa cấp bậc (Exam -> Section -> Part), áp dụ
 | `id` | VARCHAR (PK) | Mã đề nguyên khối (VD: `cam-18-test-1`) |
 | `title` | VARCHAR | Tên đề hiển thị |
 | `type` | VARCHAR | Loại chứng chỉ (IELTS, TOEIC, VNLTV) |
+| `exam_language` | VARCHAR | Ngôn ngữ của đề thi (VD: `en`, `vi`) |
 | `is_published` | BOOLEAN | Trạng thái hiển thị với học viên |
 | `created_at`, `updated_at`| TIMESTAMP | Thời gian tạo và cập nhật |
 
@@ -114,10 +117,11 @@ Hỗ trợ tính năng tra từ điển và ôn tập lặp lại ngắt quãng.
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
 | `id` | UUID (PK) | Khóa chính |
-| `word` | VARCHAR | Từ vựng (UNIQUE - Duy nhất 1 bản ghi trên hệ thống) |
+| `word` | VARCHAR | Từ vựng |
+| `language_code` | VARCHAR | Ngôn ngữ của từ (VD: `en`, `vi`) |
 | `phonetic` | VARCHAR | Phiên âm (IPA) |
 | `pos` | VARCHAR | Từ loại (Danh từ, động từ...) |
-| `default_meaning` | TEXT | Nghĩa mặc định lấy từ từ điển hệ thống |
+| `default_meaning` | **JSONB** | Nghĩa mặc định đa ngôn ngữ (VD: `{"vi": "Quả táo", "en": "A fruit"}`) |
 
 ### Bảng `user_flashcards` (Dữ liệu cá nhân hóa)
 | Cột | Kiểu dữ liệu | Ghi chú |
