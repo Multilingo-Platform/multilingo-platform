@@ -1,68 +1,47 @@
 # DANH SÁCH TỔNG HỢP CHỨC NĂNG (FEATURE LIST)
-*Dự án: Multilingo - Nền tảng Thi thử và Đánh giá năng lực Đa ngôn ngữ*
+*Dự án: Hệ thống Nền tảng Thi thử và Đánh giá Ngoại ngữ Multilingo*
 
-Dựa trên thiết kế Cơ sở dữ liệu và yêu cầu hệ thống, dưới đây là toàn bộ các chức năng được phân tách rõ ràng cho 2 nhóm đối tượng: Học viên (User) và Quản trị viên (Admin).
+Dựa trên biểu đồ Phân rã Chức năng (FDD) mà bạn thiết kế, dưới đây là chi tiết các chức năng của hệ thống được chia thành 6 phân hệ lớn chuẩn xác nhất:
 
----
+## 1. Phân hệ Quản lý xác thực và hồ sơ người dùng
+- **1.1 Đăng ký tài khoản:** Cho phép người dùng mới tạo tài khoản qua Email hoặc Google.
+- **1.2 Đăng nhập hệ thống:** Đăng nhập an toàn với JWT (JSON Web Token).
+- **1.3 Đăng xuất hệ thống:** Hủy phiên làm việc an toàn khỏi các thiết bị.
+- **1.4 Đặt lại mật khẩu:** Hỗ trợ người dùng lấy lại mật khẩu qua Email.
+- **1.5 Cập nhật hồ sơ cá nhân:** Chỉnh sửa thông tin cá nhân, ảnh đại diện.
+- **1.6 Thiết lập mục tiêu học tập:** Cài đặt ngôn ngữ mẹ đẻ (Native) và ngôn ngữ mục tiêu (Target) trong quá trình Onboarding.
 
-## 👨‍🎓 PHÍA NGƯỜI DÙNG (USER / STUDENT)
+## 2. Phân hệ Thi thử và đánh giá năng lực ngoại ngữ
+- **2.1 Tìm kiếm và lọc đề thi:** Tìm đề thi theo kỹ năng, loại chứng chỉ (IELTS, TOEIC, VNLTV).
+- **2.2 Thực hiện bài thi thử:** Cung cấp môi trường làm bài thi thực tế (Mock Test) đa phương tiện với thời gian đếm ngược.
+- **2.3 Luyện tập:** Chế độ làm bài không áp lực thời gian, được phép làm lại.
+- **2.4 Xem kết quả và giải thích bài thi:** Nhận điểm số tự động (Reading/Listening) và phản hồi/chấm điểm chi tiết từ AI (Writing/Speaking).
 
-### 1. Quản lý Tài khoản & Cá nhân hóa (Onboarding)
-- **Đăng ký / Đăng nhập:** Đăng nhập qua Email/Password hoặc Google (Hỗ trợ JWT Refresh Token).
-- **Thiết lập Ngôn ngữ (Onboarding):** Khai báo `Ngôn ngữ mẹ đẻ` (Native) và `Ngôn ngữ muốn học` (Target) để cá nhân hóa giao diện và nội dung.
-- **Quản lý Hồ sơ:** Xem/Sửa thông tin cá nhân, đổi mật khẩu.
+## 3. Phân hệ Tra cứu từ điển và ôn tập từ vựng
+- **3.1 Tra cứu từ điển đa ngôn ngữ:** Tính năng bôi đen (Highlight) chữ trong bài đọc để dịch nghĩa tại chỗ bằng popup.
+- **3.2 Quản lý sổ tay Flashcard cá nhân:** Lưu từ vựng khó cùng với câu ngữ cảnh vào sổ tay cá nhân.
+- **3.3 Ôn tập từ vựng lặp lại ngắt quãng:** Thuật toán SRS (Spaced Repetition System) nhắc nhở học viên ôn lại thẻ từ vựng mỗi ngày.
 
-### 2. Thi thử & Luyện tập (Mock Test & Practice)
-- **Thư viện Đề thi:** Duyệt danh sách đề thi (IELTS, TOEIC, VNLTV) được lọc tự động theo `Target Language` của user.
-- **Làm bài thi (Exam Engine):** 
-  - Giao diện làm bài thi đa phương tiện (Nghe Audio, Đọc Text).
-  - Chọn chế độ: Thi thật (Mock Test - đếm ngược thời gian) hoặc Luyện tập (Practice).
-- **Nộp bài & Chấm điểm Tự động:** Chấm điểm trắc nghiệm tức thì (Reading, Listening).
-- **Chấm điểm AI (AI Grading):** Tích hợp AI để chấm và nhận xét chi tiết phần Writing/Speaking (chỉ ra lỗi Ngữ pháp, Từ vựng).
+## 4. Phân hệ Quản lý gói cước và thanh toán dịch vụ
+- **4.1 Tra cứu thông tin gói Premium:** Hiển thị đặc quyền của các gói nâng cấp hạn mức AI.
+- **4.2 Mua và thanh toán gói cước:** Tích hợp cổng thanh toán trực tuyến như VNPAY, MOMO.
+- **4.3 Xem lịch sử thanh toán và hóa đơn:** Quản lý lịch sử nạp tiền và kiểm tra trạng thái giao dịch.
 
-### 3. Công cụ Hỗ trợ Làm bài & Sổ tay Từ vựng
-- **Highlight & Tra từ tại chỗ:** Khi bôi đen (select text) một cụm từ hoặc một đoạn văn bản trong bài đọc, hệ thống sẽ hiện ra thanh công cụ mini (Popup Toolbar) với 2 tùy chọn:
-  - **Highlight (Tô sáng):** Giúp học viên đánh dấu từ khóa (Keywords) quan trọng để tìm đáp án dễ hơn.
-  - **Tra từ điển:** Dịch nghĩa từ/cụm từ đó ra ngôn ngữ mẹ đẻ của user (có tích hợp AI để hiểu ngữ cảnh của câu).
-- **Lưu Flashcard:** Lưu từ vựng kèm ngữ cảnh (câu chứa từ đó) vào sổ tay cá nhân.
-- **Ôn tập Thuật toán (Spaced Repetition):** Học và ôn tập từ vựng mỗi ngày dựa trên thuật toán lặp lại ngắt quãng (SRS).
-
-### 4. Thống kê & Phân tích (Analytics)
-- **Lịch sử làm bài:** Xem lại các bài đã nộp, đáp án đúng/sai và nhận xét của AI.
-- **Biểu đồ Năng lực:** Vẽ biểu đồ Radar phân tích điểm mạnh/yếu theo từng dạng câu hỏi (Matching, True/False/Not Given...).
-
-### 5. Thanh toán & Gói cước (Subscriptions)
-- **Nâng cấp Premium:** Thanh toán qua cổng VNPAY/MOMO để mua gói cước (30 ngày, 90 ngày...).
-- **Quản lý Hạn mức AI:** Xem số lượt chấm AI / Tra từ AI còn lại trong tuần (`user_quotas`).
-
-### 6. Tương tác hệ thống
-- Nhận thông báo (Push Notifications) nhắc nhở học Flashcard, báo sắp hết hạn Premium, v.v.
+## 5. Phân hệ Thống kê và theo dõi tiến độ học tập
+- **5.1 Theo dõi thời lượng và chuỗi ngày học:** Ghi nhận số phút online, số lượng flashcard đã học và chuỗi ngày chăm chỉ (Streak).
+- **5.2 Xem phân tích biểu đồ năng lực:** Vẽ biểu đồ hình nhện (Radar Chart) so sánh điểm mạnh/yếu của các dạng câu hỏi hoặc từng kỹ năng.
 
 ---
 
-## 👨‍💻 PHÍA QUẢN TRỊ VIÊN (ADMIN)
-
-### 1. Quản lý Đề thi & Ngân hàng Câu hỏi (Exam Management)
-- **CRUD Đề thi:** Tạo mới, Sửa, Xóa, Ẩn/Hiện các đề thi (IELTS, TOEIC, VNLTV).
-- **Tạo Cấu trúc Đề:** Thiết lập các Kỹ năng (Sections) và Phần thi (Parts).
-- **Upload Media:** Tải trực tiếp file Audio/Image lên Cloudinary/Firebase và nhúng URL vào đề thi.
-- **Soạn thảo Nội dung (JSONB):** Xây dựng câu hỏi, đáp án, và các options thông qua trình soạn thảo linh hoạt.
-
-### 2. Quản lý Người dùng & Phân quyền (User & RBAC)
-- **Danh sách User:** Xem, Tìm kiếm, Lọc danh sách học viên.
-- **Quản lý Quyền (Roles):** Gán vai trò (Role) cho tài khoản (VD: Biến User thành Admin hoặc Content Editor).
-- **Cấp quyền chi tiết (Permissions):** Tùy chỉnh các quyền nhỏ gọn (VD: Cấp quyền `CREATE_EXAM` cho một nhóm Editor).
-- **Khóa/Xóa tài khoản:** Ban/Block người dùng vi phạm hoặc thu hồi Token (Kick user).
-
-### 3. Quản lý Từ điển Hệ thống (Global Dictionary)
-- Quản lý kho từ vựng chung của nền tảng (Thêm/Sửa từ, phiên âm, định nghĩa mặc định đa ngôn ngữ).
-
-### 4. Quản lý Tài chính & Gói cước (Billing & Plans)
-- **CRUD Gói cước:** Tạo các gói Premium (Ví dụ: Gói 1 tháng 100k, Gói 6 tháng 500k).
-- **Quản lý Giao dịch:** Theo dõi các hóa đơn thanh toán từ VNPAY/MOMO, đối soát trạng thái (Thành công/Thất bại).
-- **Cấp Quota thủ công:** Reset hoặc tặng thêm lượt dùng AI cho một User cụ thể.
-
-### 5. Quản trị Hệ thống (System Operations)
-- **Gửi Thông báo:** Gửi thông báo (Notifications) hàng loạt cho tất cả hoặc một nhóm User cụ thể.
-- **Nhật ký Hoạt động (Audit Logs):** Truy vết lịch sử thao tác của các Admin/Editor khác (Phòng ngừa rủi ro phá hoại dữ liệu).
-- **Thống kê Tổng quan (Dashboard):** Xem doanh thu, số lượng người đăng ký mới, số bài test được làm trong ngày.
+## 6. Phân hệ Quản trị hệ thống và nội dung học liệu (Dành cho Admin)
+- **6.1 Quản lý ngân hàng đề thi:** Thao tác thêm, sửa, xóa cấu trúc đề thi, section, phần thi.
+- **6.2 Quản lý tệp đa phương tiện:** Upload và quản lý kho Audio/Hình ảnh tập trung.
+- **6.3 Quản lý người dùng và phân quyền:**
+  - Gán quyền (Role) và phân quyền chi tiết (Permissions).
+  - *Theo dõi phiên đăng nhập:* Hiển thị lần đăng nhập cuối cùng (Last Login), địa chỉ IP, và thiết bị truy cập của User.
+  - *Phân tích hành vi cá nhân:* Xem chi tiết tiến trình của một User cụ thể (đã làm đề nào, thời lượng học ra sao).
+- **6.4 Quản lý gói cước và doanh thu:** Thiết lập bảng giá các gói Premium, duyệt và thống kê doanh thu.
+- **6.5 Quản trị dữ liệu và kiểm toán hệ thống:**
+  - *Nhật ký hoạt động (Audit Logs):* Lưu vết toàn bộ thao tác xóa/sửa hệ thống của các Admin khác và hành động của User.
+  - *Dashboard Thống kê:* Báo cáo tổng quan số lượng User hoạt động (DAU/MAU) và tỷ lệ chuyển đổi.
+  - *Giám sát gian lận:* Phát hiện IP bất thường, cảnh báo chia sẻ tài khoản.
