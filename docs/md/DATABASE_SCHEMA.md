@@ -15,6 +15,8 @@ Lưu thông tin tài khoản và kiểm soát giới hạn tính năng AI.
 | `email` | VARCHAR | Unique, Tài khoản đăng nhập |
 | `password_hash` | VARCHAR | Mật khẩu mã hóa |
 | `role_id` | UUID (FK) | Liên kết bảng `roles` (1 User có 1 Role) |
+| `last_login_at` | TIMESTAMP | Thời điểm Online cuối cùng |
+| `last_login_ip` | VARCHAR | IP truy cập cuối cùng (Giúp Admin xem nhanh) |
 | `native_language` | VARCHAR | Ngôn ngữ mẹ đẻ (VD: `vi`, `en`) |
 | `target_language` | VARCHAR | Ngôn ngữ muốn học/thi (VD: `en`, `vi`) |
 | `subscription_tier` | VARCHAR | Hạng tài khoản (FREE, PREMIUM) |
@@ -171,6 +173,8 @@ Hỗ trợ bảo mật JWT, cho phép user duy trì đăng nhập hoặc bị Ad
 | `id` | UUID (PK) | Khóa chính |
 | `user_id` | UUID (FK) | Liên kết bảng `users` |
 | `token` | VARCHAR | Chuỗi Refresh Token |
+| `device_info` | VARCHAR | Thiết bị đang sử dụng Token này (Mobile, PC) |
+| `ip_address` | VARCHAR | Địa chỉ IP của thiết bị |
 | `expires_at` | TIMESTAMP | Thời gian hết hạn |
 | `is_revoked` | BOOLEAN | Trạng thái thu hồi (Nếu true -> Bắt đăng nhập lại) |
 
@@ -197,3 +201,40 @@ Ghi vết các hành động quan trọng để Admin dễ dàng debug hoặc tr
 | `details` | JSONB | Data chi tiết (Lưu JSONB để linh hoạt) |
 | `ip_address` | VARCHAR | IP thực hiện |
 | `created_at` | TIMESTAMP | Thời gian thực hiện |
+
+---
+
+## CỤM 6: Giám sát và Thống kê (Tracking & Analytics)
+Hỗ trợ Admin theo dõi sâu sát hành vi người dùng, phát hiện gian lận và hiển thị Dashboard tổng quan.
+
+### Bảng `user_study_stats` (Thống kê Tổng quan của Cá nhân)
+Lưu trữ thông tin để xếp hạng (Top Users) và Gamification (Mức độ chăm chỉ).
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `user_id` | UUID (PK, FK) | Liên kết `users` |
+| `current_streak` | INT | Chuỗi ngày học liên tiếp hiện tại |
+| `highest_streak` | INT | Chuỗi kỷ lục |
+| `total_learning_minutes`| INT | Tổng số phút đã học trên hệ thống |
+| `last_study_date` | DATE | Ngày học gần nhất (Dùng để tính Streak) |
+
+### Bảng `daily_study_logs` (Nhật ký Học tập Hàng ngày)
+Để Admin có thể vẽ biểu đồ thời lượng học trong tuần/tháng và tính Tỷ lệ ôn tập đúng hạn.
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | UUID (PK) | Khóa chính |
+| `user_id` | UUID (FK) | Liên kết `users` |
+| `study_date` | DATE | Ngày học |
+| `learning_minutes`| INT | Số phút học trong ngày đó |
+| `flashcards_due` | INT | Số lượng thẻ Flashcard TỚI HẠN cần ôn trong ngày |
+| `flashcards_reviewed`| INT | Số lượng thẻ Flashcard THỰC TẾ đã ôn tập |
+
+### Bảng `login_history` (Lịch sử Phiên đăng nhập)
+Giúp Admin theo dõi chi tiết toàn bộ lịch sử thiết bị để Cảnh báo "Chia sẻ tài khoản".
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | UUID (PK) | Khóa chính |
+| `user_id` | UUID (FK) | Liên kết `users` |
+| `ip_address` | VARCHAR | IP đăng nhập |
+| `device_info` | VARCHAR | Thông tin thiết bị (VD: Chrome on Windows) |
+| `login_time` | TIMESTAMP | Thời điểm đăng nhập |
+| `status` | VARCHAR | SUCCESS, FAILED (Nhập sai pass) |
