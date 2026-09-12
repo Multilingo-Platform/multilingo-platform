@@ -37,7 +37,6 @@ Dựa vào sơ đồ Use Case của bạn, các chức năng được gom lại 
 
 ### Nhóm Use Case của Quản trị viên (Admin)
 *(Các Use Case này đều `<<include>>` Đăng nhập)*
-- **Quản lý tài khoản:** Thay đổi thông tin hồ sơ Admin.
 - **Quản trị người dùng và phân quyền:** Cấp quyền (Role), mở/khóa tài khoản.
 - **Theo dõi hành vi người dùng (Tracking):** Xem Last Login, theo dõi tiến trình học tập, địa chỉ IP.
 - **Kiểm toán hệ thống (Audit Logs):** Xem nhật ký hệ thống, thống kê người dùng (DAU/MAU) và phát hiện gian lận.
@@ -123,7 +122,6 @@ rectangle "Hệ thống Đánh giá Ngoại ngữ Multilingo" {
   usecase "Theo dõi hành vi người dùng" as A_Tracking
   usecase "Kiểm toán hệ thống" as A_Audit
   usecase "Quản lý ngân hàng đề thi" as A_ExamMgmt
-  usecase "Quản lý tài khoản" as A_Account
   usecase "Quản lí đơn nâng cấp tài khoản Premium" as A_Upgrade
   
   ' Admin Links

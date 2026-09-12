@@ -53,7 +53,7 @@ skinparam node {
 *** 5.2 Xem phân tích biểu đồ năng lực
 ** 6. Quản trị hệ thống và nội dung học liệu
 *** 6.1 Quản lý ngân hàng đề thi
-*** 6.2 Quản lý tệp đa phương tiện
+*** 6.2 Theo dõi hành vi người dùng
 *** 6.3 Quản lý người dùng và phân quyền
 *** 6.4 Quản lý gói cước và doanh thu
 *** 6.5 Quản trị dữ liệu và kiểm toán hệ thống
@@ -91,7 +91,7 @@ Bên cạnh hình ảnh, bạn có thể copy dàn ý dưới đây vào file Wo
     - 5.2 Xem phân tích biểu đồ năng lực
   - **6. Quản trị hệ thống và nội dung học liệu**
     - 6.1 Quản lý ngân hàng đề thi
-    - 6.2 Quản lý tệp đa phương tiện
+    - 6.2 Theo dõi hành vi người dùng
     - 6.3 Quản lý người dùng và phân quyền *(Gộp chức năng cấp quyền, xem Last Login, và phân tích hành vi từng cá nhân)*
     - 6.4 Quản lý gói cước và doanh thu
     - 6.5 Quản trị dữ liệu và kiểm toán hệ thống *(Gộp Audit Logs, Dashboard thống kê hệ thống, Giám sát gian lận)*
