@@ -1,30 +1,24 @@
 package com.multilingo.backend.entity;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.multilingo.backend.common.base.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.util.UUID;
 
 @Entity
 @Table(name = "exam_parts")
 @Data
+@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ExamPart {
+public class ExamPart extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
-    // Tạm thời để sectionId dạng chuỗi cho test (Đáng lẽ phải là @ManyToOne)
     @Column(name = "section_id")
-    private String sectionId;
+    private Integer sectionId;
 
     @Column(name = "part_number")
     private Integer partNumber;

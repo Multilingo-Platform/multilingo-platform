@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExamPartDto {
-    private String sectionId;
+    private Integer sectionId;
     private Integer partNumber;
     private Object contentData; // Dữ liệu JSON gửi từ Frontend
 }

@@ -1,5 +1,6 @@
 package com.multilingo.backend.controller;
 
+import com.multilingo.backend.common.dto.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,10 +14,10 @@ import java.util.Map;
 public class TestController {
 
     @GetMapping("/hello")
-    public ResponseEntity<Map<String, String>> sayHello() {
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Hello from Spring Boot Backend!");
-        response.put("status", "success");
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<Map<String, String>>> sayHello() {
+        Map<String, String> data = new HashMap<>();
+        data.put("message", "Hello from Spring Boot Backend!");
+        data.put("status", "success");
+        return ResponseEntity.ok(ApiResponse.success("Hello API", data));
     }
 }
