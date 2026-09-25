@@ -72,7 +72,7 @@ const AudioUploader: React.FC = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:8080/api/test/upload-audio', {
+      const response = await fetch('/api/test/upload-audio', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
