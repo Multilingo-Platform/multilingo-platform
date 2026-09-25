@@ -1,0 +1,26 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Build and Temp Directories
+**/target/
+**/node_modules/
+**/dist/
+**/build/
+*.log
+*.tmp
+
+# Environment Files
+.env
+.env.local
+.env.*.local
