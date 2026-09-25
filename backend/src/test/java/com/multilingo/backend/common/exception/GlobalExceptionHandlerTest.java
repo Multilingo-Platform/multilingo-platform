@@ -101,4 +101,28 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.message").value(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage()))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
+
+    @Test
+    @DisplayName("HttpRequestMethodNotSupportedException should return 405 with method details")
+    void shouldHandleMethodNotSupportedException() throws Exception {
+        mockMvc.perform(post("/test-api/app-exception"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(405))
+                .andExpect(jsonPath("$.message", containsString("POST")))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("HttpMessageNotReadableException should return 400 for malformed json body")
+    void shouldHandleMalformedJsonException() throws Exception {
+        mockMvc.perform(post("/test-api/validation-exception")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("invalid-json{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
 }
