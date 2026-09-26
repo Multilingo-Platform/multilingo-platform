@@ -20,7 +20,7 @@ Khi bạn mở dự án Multilingo, AI Agent sẽ **tự động** nạp toàn b
 | :--- | :--- | :--- |
 | **Quy tắc cốt lõi** | `GEMINI.md` | Phương pháp luận Superpowers + Tiêu chuẩn Base Architecture |
 | **Rules chi tiết (4)** | `.agents/rules/*.md` | Quy chuẩn Backend, Frontend, Docker & Git Rebase/Force-push |
-| **Bộ kỹ năng Superpowers (11)** | `.agents/skills/<skill>/` | `brainstorming`, `writing-plans`, `test-driven-development`, `executing-plans`, `verification-before-completion`, `systematic-debugging`, `subagent-driven-development`, `using-superpowers`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch` |
+| **Bộ kỹ năng Superpowers (12)** | `.agents/skills/<skill>/` | `brainstorming`, `acceptance-criteria-and-test-design`, `writing-plans`, `test-driven-development`, `executing-plans`, `verification-before-completion`, `systematic-debugging`, `subagent-driven-development`, `using-superpowers`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch` |
 | **Kỹ năng riêng Multilingo (3)** | `.agents/skills/<skill>/` | `multilingo-feature-development`, `multilingo-crud-generator`, `multilingo-debugging` |
 
 > 🎉 **ĐẶC BIỆT DÀNH CHO TEAM:** Toàn bộ bộ kỹ năng **Superpowers** đã được tích hợp sẵn **100% bên trong thư mục `.agents/skills/`** của repository. Bất kỳ thành viên nào chỉ cần `git clone` về là AI Agent có đầy đủ quy trình làm việc chuẩn ngay lập tức, **KHÔNG CẦN CÀI ĐẶT THÊM BẤT KỲ CÁI GÌ**!
@@ -37,22 +37,27 @@ Khi bạn mở dự án Multilingo, AI Agent sẽ **tự động** nạp toàn b
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │   ĐÃ CÓ Đặc tả (docs/DacTa/)?                              │
-│     ├── CÓ  ──→ Bước 2: Lập Kế hoạch (Plans)                │
+│     ├── CÓ  ──→ Bước 2: Thiết kế AC & Test Cases            │
 │     └── CHƯA ──→ Bước 1: Viết Đặc tả trước                  │
 │                                                              │
 │   Bước 1: Viết Đặc tả (Spec/Use Case)                       │
 │     → Yêu cầu AI brainstorming + viết spec                   │
 │     → Review & duyệt spec                                    │
 │                                                              │
-│   Bước 2: Lập Kế hoạch chia nhỏ Task (Plans)                │
+│   Bước 2: Thiết kế AC & Test Cases                          │
+│     → acceptance-criteria-and-test-design                   │
+│     → AC (Gherkin/Checklist) + Ma trận 6 khía cạnh test     │
+│                                                              │
+│   Bước 3: Lập Kế hoạch chia nhỏ Task (Plans)                │
 │     → AI tạo plan tại docs/superpowers/plans/                │
 │     → Review & duyệt plan                                    │
 │                                                              │
-│   Bước 3: Triển khai từng Task (TDD)                         │
+│   Bước 4: Triển khai từng Task (TDD)                         │
 │     → AI code theo TDD: Test trước → Code sau                │
 │     → Mỗi task xong → chạy test xác nhận                     │
 │                                                              │
-│   Bước 4: Nghiệm thu                                        │
+│   Bước 5: Nghiệm thu                                        │
+│     → Đối chiếu bảng Test Cases & AC                         │
 │     → mvn clean test PASS 100%                               │
 │     → npm run lint && npm run build PASS                      │
 │                                                              │
@@ -102,9 +107,10 @@ Tôi muốn triển khai Use Case UC11 - Tra cứu Từ điển.
 Đặc tả đầy đủ tại @[docs/DacTa/AD_UC11_TRA_CUU_TU_DIEN.md].
 Áp dụng quy trình Superpowers theo @[GEMINI.md]:
 1. Brainstorming đối soát đặc tả
-2. Lập kế hoạch chia nhỏ task
-3. Triển khai TDD
-4. Nghiệm thu mvn clean test
+2. Thiết kế tiêu chí nghiệm thu & ma trận test cases
+3. Lập kế hoạch chia nhỏ task
+4. Triển khai TDD
+5. Nghiệm thu mvn clean test
 Bắt đầu bước 1 ngay.
 ```
 
@@ -197,6 +203,7 @@ cd frontend && npm run lint && npm run build
 | :--- | :--- |
 | Phát triển Use Case mới | "Triển khai UC... theo quy trình Superpowers @[GEMINI.md]" |
 | Tính năng chưa có spec | "Brainstorming và viết đặc tả cho tính năng..." |
+| Thiết kế AC & Test Cases | "Thiết kế Tiêu chí nghiệm thu & Ma trận Test Cases cho..." |
 | Tạo CRUD nhanh | "Tạo bộ CRUD cho bảng ... theo quy chuẩn Base Architecture" |
 | Sửa lỗi | "[Paste error] Phân tích root cause và sửa" |
 | Kiểm tra kiến trúc | "Kiểm tra cấu trúc module ... có tuân thủ @[GEMINI.md] không" |

@@ -2,7 +2,8 @@
 
 ## 1. Phương pháp luận phát triển (Superpowers)
 - **Feature mới:** Bắt buộc dùng `brainstorming` đối soát tài liệu trong `docs/DacTa/`. Nếu tính năng **chưa có đặc tả**, BẮT BUỘC viết Spec tại `docs/superpowers/specs/<tên-tính-năng>.md` và được duyệt trước khi lập kế hoạch.
-- **Kế hoạch:** Bắt buộc dùng `writing-plans` chia nhỏ task vào `docs/superpowers/plans/` (mỗi task 2–5 phút).
+- **Tiêu chí nghiệm thu & Test Design:** Dùng `acceptance-criteria-and-test-design` chuẩn hóa AC (Gherkin/Checklist) và ma trận Test Cases (Happy Path, Boundary, Edge cases, Security, UI/UX) trước khi lập kế hoạch.
+- **Kế hoạch:** Bắt buộc dùng `writing-plans` chia nhỏ task vào `docs/superpowers/plans/` (mỗi task 2–5 phút) dựa trên AC và Test Cases đã thiết kế.
 - **Triển khai:** Bắt buộc tuân thủ `test-driven-development` (TDD: Red-Green-Refactor).
 - **Hoàn thành:** Bắt buộc chạy `mvn clean test` và chứng minh log PASS (`verification-before-completion`).
 - **Git Workflow:** Bắt buộc dùng `git rebase develop` đồng bộ nhánh; chỉ dùng `git push --force-with-lease` trên nhánh cá nhân.
