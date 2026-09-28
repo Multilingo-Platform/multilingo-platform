@@ -1,0 +1,23 @@
+{
+  "part_title": "Writing Task 2: Academic Essay",
+  "instruction": "You should spend about 40 minutes on this task. Write at least 250 words.",
+  "shared_media": null,
+  "question_groups": [
+    {
+      "group_id": "wg-01",
+      "context_html": null,
+      "questions": [
+        {
+          "question_id": "wri-q1",
+          "question_number": 1,
+          "question_type": "ESSAY",
+          "question_text": "Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree? Give reasons for your answer and include any relevant examples from your own knowledge or experience.",
+          "options": null,
+          "correct_answer": null,
+          "explanation": "This essay prompt requires assessment across 4 IELTS criteria: Task Achievement, Coherence & Cohesion, Lexical Resource, and Grammatical Range & Accuracy.",
+          "explanation_vi": "Đề bài nghị luận xã hội yêu cầu chấm điểm qua AI Gemini theo 4 tiêu chí chuẩn IELTS."
+        }
+      ]
+    }
+  ]
+}

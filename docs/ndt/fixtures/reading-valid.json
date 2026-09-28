@@ -1,0 +1,56 @@
+{
+  "part_title": "Reading Passage 1: The History of the Bicycle",
+  "instruction": "Read the passage and answer questions 1 to 5.",
+  "shared_media": null,
+  "question_groups": [
+    {
+      "group_id": "rg-01",
+      "context_html": "<article><h2>The Evolution of Bicycles</h2><p>The early ancestor of the modern bicycle was invented in Germany in 1817 by Baron Karl von Drais. Known as the Draisine or hobby horse, it lacked pedals and riders propelled themselves by pushing their feet against the ground. In the 1860s, pedals were added directly to the front wheel, creating the 'velocipede' or 'boneshaker'. Later, the high-wheeler (penny-farthing) became popular despite being dangerous. Finally, in 1885, the safety bicycle with equal-sized wheels and a chain drive was introduced by John Kemp Starley.</p></article>",
+      "questions": [
+        {
+          "question_id": "read-q1",
+          "question_number": 1,
+          "question_type": "SINGLE_CHOICE",
+          "question_text": "Who invented the Draisine in 1817?",
+          "options": [
+            { "id": "A", "text": "Baron Karl von Drais" },
+            { "id": "B", "text": "John Kemp Starley" },
+            { "id": "C", "text": "Thomas Edison" },
+            { "id": "D", "text": "Alexander Bell" }
+          ],
+          "correct_answer": "A",
+          "explanation": "The passage states that Baron Karl von Drais invented the Draisine in Germany in 1817.",
+          "explanation_vi": "Đoạn văn nêu rõ Nam tước Karl von Drais phát minh ra Draisine năm 1817 tại Đức."
+        },
+        {
+          "question_id": "read-q2",
+          "question_number": 2,
+          "question_type": "TRUE_FALSE_NOT_GIVEN",
+          "question_text": "The Draisine had pedals attached to its front wheel.",
+          "options": [
+            { "id": "TRUE", "text": "True" },
+            { "id": "FALSE", "text": "False" },
+            { "id": "NOT_GIVEN", "text": "Not Given" }
+          ],
+          "correct_answer": "FALSE",
+          "explanation": "The text states the Draisine 'lacked pedals' and pedals were only added in the 1860s.",
+          "explanation_vi": "Đoạn văn nêu rõ Draisine 'không có bàn đạp', mãi đến thập niên 1860 bàn đạp mới được thêm vào."
+        },
+        {
+          "question_id": "read-q3",
+          "question_number": 3,
+          "question_type": "FILL_IN_THE_BLANK",
+          "question_text": "In 1885, the safety bicycle was introduced by ___.",
+          "options": null,
+          "correct_answer": [
+            "John Kemp Starley",
+            "Starley",
+            "John Starley"
+          ],
+          "explanation": "The passage confirms John Kemp Starley introduced the safety bicycle in 1885.",
+          "explanation_vi": "Đoạn văn xác nhận John Kemp Starley đã giới thiệu xe đạp an toàn vào năm 1885."
+        }
+      ]
+    }
+  ]
+}

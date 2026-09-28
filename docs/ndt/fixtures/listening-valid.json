@@ -1,0 +1,43 @@
+{
+  "part_title": "Listening Section 1: Library Membership Application",
+  "instruction": "Listen to the recording and answer questions 1 to 4.",
+  "shared_media": {
+    "type": "AUDIO",
+    "url": "/media/listening/cam18-section1.mp3"
+  },
+  "question_groups": [
+    {
+      "group_id": "lg-01",
+      "context_html": "<p>Complete the form below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.</p>",
+      "questions": [
+        {
+          "question_id": "lis-q1",
+          "question_number": 1,
+          "question_type": "FILL_IN_THE_BLANK",
+          "question_text": "Applicant Name: Peter ___",
+          "options": null,
+          "correct_answer": [
+            "Wright",
+            "wright"
+          ],
+          "explanation": "Peter spells his last name W-R-I-G-H-T at 00:28.",
+          "explanation_vi": "Peter đánh vần họ của mình là W-R-I-G-H-T ở giây 28."
+        },
+        {
+          "question_id": "lis-q2",
+          "question_number": 2,
+          "question_type": "SINGLE_CHOICE",
+          "question_text": "How many books can a new member borrow at one time?",
+          "options": [
+            { "id": "A", "text": "4 books" },
+            { "id": "B", "text": "6 books" },
+            { "id": "C", "text": "8 books" }
+          ],
+          "correct_answer": "B",
+          "explanation": "The librarian explicitly mentions 'up to six books' for standard members.",
+          "explanation_vi": "Thủ thư nêu rõ 'tối đa 6 cuốn sách' cho hội viên tiêu chuẩn."
+        }
+      ]
+    }
+  ]
+}
