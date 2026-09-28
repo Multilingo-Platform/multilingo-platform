@@ -12,7 +12,7 @@ Các lựa chọn đã thống nhất:
 - Dùng fixture và người dùng giả lập trong dev/test khi TV1, TV2 chưa sẵn sàng. Tích hợp thật là điều kiện nghiệm thu cuối.
 - Chấm điểm khách quan bằng số câu đúng và tỷ lệ chính xác trước. Chưa tự đặt bảng quy đổi IELTS/TOEIC/VNLTV.
 - Mock Test toàn đề dùng tổng thời lượng các Section; một kỹ năng dùng thời lượng Section; một Part dùng thời lượng riêng của Part.
-- Giữ stack thực tế của repo: Java 21, Spring Boot 4.1.0, PostgreSQL 16, React 19 và TypeScript 6.
+- Giữ stack thực tế của repo: Java 21, Spring Boot 3.3.4, PostgreSQL 16, React 19 và TypeScript 6.
 
 **Hiện trạng đã kiểm tra:** frontend build thành công; backend compile thành công nhưng có cảnh báo trùng Maven plugin. Backend mới có API demo cho ExamPart, chưa có phiên thi, chấm điểm hoặc Gemini. Màn hình thi và kết quả trong web-ui dùng dữ liệu mẫu. Chưa chạy integration test với database.
 
