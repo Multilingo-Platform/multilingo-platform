@@ -1,0 +1,1004 @@
+<mxfile host="app.diagrams.net" agent="Codex" compressed="false" pages="8">
+  <diagram id="sd-uc08" name="SD-UC08">
+    <mxGraphModel dx="2710" dy="1308" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1280" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc08-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC08 — Thực hiện bài thi / Luyện tập" vertex="1">
+          <mxGeometry height="44" width="1089" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-frame-mode" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=0;pointerEvents=0;fillColor=#f1f5f9;swimlaneFillColor=none;strokeColor=#94a3b8;strokeWidth=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=5;width=65;height=30;fontFamily=Arial;fontSize=14;fontStyle=1;container=1;collapsible=0;" value="alt" vertex="1">
+          <mxGeometry height="330" width="1089" x="40" y="685" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-frame-mode-guard-0" connectable="0" parent="sd-uc08-frame-mode" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=14;fontColor=#475569;spacing=2;" value="[mode = MOCK_TEST]" vertex="1">
+          <mxGeometry height="32" width="170" x="120" y="5" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-frame-mode-guard-1" connectable="0" parent="sd-uc08-frame-mode" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=14;fontColor=#475569;spacing=2;" value="[mode = PRACTICE]" vertex="1">
+          <mxGeometry height="32" width="158" x="120" y="185" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-frame-mode-separator-0" edge="1" parent="1" source="sd-uc08-frame-mode" style="edgeStyle=none;html=0;endArrow=none;startArrow=none;dashed=1;dashPattern=5 4;strokeColor=#94a3b8;exitX=0;exitY=0.5454545454545454;exitPerimeter=0;entryX=1;entryY=0.5454545454545454;entryPerimeter=0;" target="sd-uc08-frame-mode" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=112;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1020" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-student-name" connectable="0" parent="sd-uc08-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dQQjWKvk4fOpU-Lb8WCV-1" parent="sd-uc08-lifeline-student" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="820" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1020" width="184" x="318" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-view-name" connectable="0" parent="sd-uc08-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="ExamWorkspaceView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-act-view-main" parent="sd-uc08-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="820" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-act-mock-render" parent="sd-uc08-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="718" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-act-practice-render" parent="sd-uc08-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="878" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-controller" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1020" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-controller-name" connectable="0" parent="sd-uc08-lifeline-controller" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="TestController" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-act-controller-main" parent="sd-uc08-lifeline-controller" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="325" width="12" x="86" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqEntity;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1020" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-lifeline-db-name" connectable="0" parent="sd-uc08-lifeline-db" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="PostgreSQL" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-act-db-create" parent="sd-uc08-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-act-db-load" parent="sd-uc08-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-msg-1" edge="1" parent="1" source="sd-uc08-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.14705882352941177;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-view-main" value="Chọn đề và chế độ">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-2" edge="1" parent="1" source="sd-uc08-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.07926829268292683;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-controller-main" value="startTest(examId,&#xa;scope, mode)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-3" edge="1" parent="1" source="sd-uc08-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.2;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-db-create" value="Tạo test_attempts&#xa;status = IN_PROGRESS">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-4" edge="1" parent="1" source="sd-uc08-act-db-create" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.4;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-controller-main" value="attemptId">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-5" edge="1" parent="1" source="sd-uc08-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.6;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-db-load" value="Lấy nội dung đề&#xa;exam_parts.content_data">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-6" edge="1" parent="1" source="sd-uc08-act-db-load" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-controller-main" value="Nội dung đề thi">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-7" edge="1" parent="1" source="sd-uc08-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.47560975609756095;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-view-main" value="Phiên thi và nội dung đề">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-8" edge="1" parent="1" source="sd-uc08-act-view-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.6585365853658537;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-mock-render" value="Render Mock Test,&#xa;bật đếm ngược">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-40" as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="790" />
+              <mxPoint x="510" y="818" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-9" edge="1" parent="1" source="sd-uc08-act-view-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.8536585365853658;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-act-practice-render" value="Render phần luyện tập&#xa;(theo scope đã chọn)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-40" as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="950" />
+              <mxPoint x="510" y="978" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-msg-10" edge="1" parent="1" source="sd-uc08-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.9509803921568627;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-lifeline-student" value="Giao diện làm bài">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sd-uc08-1" name="SD-UC08.1">
+    <mxGraphModel dx="2323" dy="1121" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1155" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc08-1-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC08.1 — Highlight văn bản bài đọc" vertex="1">
+          <mxGeometry height="44" width="1089" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="895" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-student-name" connectable="0" parent="sd-uc08-1-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="62" as="geometry" />
+        </mxCell>
+        <mxCell id="ma0H_1REuvj3396FLbC7-1" parent="sd-uc08-1-lifeline-student" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="690" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="895" width="184" x="318" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-view-name" connectable="0" parent="sd-uc08-1-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="ReadingPassageView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-act-select-view" parent="sd-uc08-1-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="195" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-act-highlight-view" parent="sd-uc08-1-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="410" width="12" x="86" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-handler" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="895" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-handler-name" connectable="0" parent="sd-uc08-1-lifeline-handler" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="DOM Handler" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-act-select-handler" parent="sd-uc08-1-lifeline-handler" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-act-highlight-handler" parent="sd-uc08-1-lifeline-handler" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="280" width="12" x="86" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-act-mark" parent="sd-uc08-1-lifeline-handler" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="588" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-state" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqEntity;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="895" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-lifeline-state-name" connectable="0" parent="sd-uc08-1-lifeline-state" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="LocalState" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-act-save-state" parent="sd-uc08-1-lifeline-state" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="645" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-1" edge="1" parent="1" source="sd-uc08-1-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.16759776536312848;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-select-view" value="Bôi đen đoạn văn">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-2" edge="1" parent="1" source="sd-uc08-1-act-select-view" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.3333333333333333;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-select-handler" value="Bắt sự kiện DOM">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-3" edge="1" parent="1" source="sd-uc08-1-act-select-handler" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.6666666666666666;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-select-view" value="Đoạn văn được chọn">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-4" edge="1" parent="1" source="sd-uc08-1-act-select-view" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.3854748603351955;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-lifeline-student" value="Đoạn văn đã chọn">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-5" edge="1" parent="1" source="sd-uc08-1-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.48044692737430167;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-highlight-view" value="Bấm nút Highlight">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-6" edge="1" parent="1" source="sd-uc08-1-act-highlight-view" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.15853658536585366;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-highlight-handler" value="Xử lý Highlight">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-7" edge="1" parent="1" source="sd-uc08-1-act-highlight-handler" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.23214285714285715;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-mark" value="Gán thẻ &lt;mark&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="770" y="660" />
+              <mxPoint x="770" y="688" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-8" edge="1" parent="1" source="sd-uc08-1-act-highlight-handler" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.5357142857142857;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-save-state" value="Lưu tọa độ highlight">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-9" edge="1" parent="1" source="sd-uc08-1-act-save-state" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.7678571428571429;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-highlight-handler" value="Đã lưu">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-10" edge="1" parent="1" source="sd-uc08-1-act-highlight-handler" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8414634146341463;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-act-highlight-view" value="Đoạn văn đã đánh dấu">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-1-msg-11" edge="1" parent="1" source="sd-uc08-1-act-highlight-view" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.9385474860335196;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-1-lifeline-student" value="Hiển thị màu vàng">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sd-uc08-4" name="SD-UC08.4">
+    <mxGraphModel dx="2710" dy="1308" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1340" pageHeight="1235" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc08-4-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC08.4 — Lấy AI Writing Hints" vertex="1">
+          <mxGeometry height="44" width="1260" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-frame-hints" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=0;pointerEvents=0;fillColor=#f1f5f9;swimlaneFillColor=none;strokeColor=#94a3b8;strokeWidth=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=5;width=65;height=30;fontFamily=Arial;fontSize=14;fontStyle=1;container=1;collapsible=0;" value="opt" vertex="1">
+          <mxGeometry height="785" width="1260" x="40" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=112;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="975" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-student-name" connectable="0" parent="sd-uc08-4-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="74" as="geometry" />
+        </mxCell>
+        <mxCell id="AGE3K9yOrI96Sd6h3Pl8-1" parent="sd-uc08-4-lifeline-student" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="635" width="12" x="82" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="975" width="184" x="318" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-view-name" connectable="0" parent="sd-uc08-4-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="WritingEditorView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-act-view-main" parent="sd-uc08-4-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="635" width="12" x="86" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-frame-hints-guard-0" connectable="0" parent="sd-uc08-4-lifeline-view" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=14;fontColor=#475569;spacing=2;" value="[Học viên yêu cầu gợi ý khi luyện Writing]" vertex="1">
+          <mxGeometry height="32" width="300" x="-168" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-controller" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="975" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-controller-name" connectable="0" parent="sd-uc08-4-lifeline-controller" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="AIController" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-act-controller-main" parent="sd-uc08-4-lifeline-controller" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="505" width="12" x="86" y="295" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-service" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="975" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-service-name" connectable="0" parent="sd-uc08-4-lifeline-service" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="GeminiAIService" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-act-service-main" parent="sd-uc08-4-lifeline-service" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="375" width="12" x="86" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-act-prompt" parent="sd-uc08-4-lifeline-service" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="453" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-api" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="975" width="184" x="1098" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-lifeline-api-name" connectable="0" parent="sd-uc08-4-lifeline-api" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="Gemini API" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-act-api-main" parent="sd-uc08-4-lifeline-api" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-1" edge="1" parent="1" source="sd-uc08-4-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.2358974358974359;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-view-main" value="Bấm Gợi ý AI Hints">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-2" edge="1" parent="1" source="sd-uc08-4-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.10236220472440945;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-controller-main" value="getHints()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-3" edge="1" parent="1" source="sd-uc08-4-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.12871287128712872;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-service-main" value="Yêu cầu Writing Hints">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-4" edge="1" parent="1" source="sd-uc08-4-act-service-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.17333333333333334;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-prompt" value="Tạo prompt từ đề bài">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="525" />
+              <mxPoint x="1030" y="553" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-5" edge="1" parent="1" source="sd-uc08-4-act-service-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.48;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-api-main" value="Gửi đề bài / prompt">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-6" edge="1" parent="1" source="sd-uc08-4-act-api-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.6533333333333333;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-service-main" value="JSON: dàn ý,&#xa;5–10 từ vựng">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-7" edge="1" parent="1" source="sd-uc08-4-act-service-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8712871287128713;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-controller-main" value="Dàn ý và từ vựng">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-8" edge="1" parent="1" source="sd-uc08-4-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8976377952755905;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-act-view-main" value="Writing Hints">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-msg-9" edge="1" parent="1" source="sd-uc08-4-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.8871794871794871;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-4-lifeline-student" value="Hiển thị Sidebar">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-4-note" connectable="0" parent="1" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=12;fontColor=#64748b;spacing=4;" value="Bối cảnh: đang luyện viết Writing. JSON Hints gồm dàn ý và 5–10 từ vựng theo chủ đề; hiển thị ở Sidebar." vertex="1">
+          <mxGeometry height="70" width="1240" x="50" y="1110" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sd-uc08-5" name="SD-UC08.5">
+    <mxGraphModel dx="2323" dy="1121" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1340" pageHeight="1130" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc08-5-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC08.5 — Tự động thu bài khi hết giờ" vertex="1">
+          <mxGeometry height="44" width="1260" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=112;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="870" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-student-name" connectable="0" parent="sd-uc08-5-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="62" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="870" width="184" x="318" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-view-name" connectable="0" parent="sd-uc08-5-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="ExamView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-act-view-main" parent="sd-uc08-5-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="660" width="12" x="86" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-act-lock" parent="sd-uc08-5-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="263" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-act-collect" parent="sd-uc08-5-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="338" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-timer" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="870" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-timer-name" connectable="0" parent="sd-uc08-5-lifeline-timer" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="CountdownTimer" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-act-timer-main" parent="sd-uc08-5-lifeline-timer" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="35" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-controller" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="870" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-controller-name" connectable="0" parent="sd-uc08-5-lifeline-controller" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="TestController" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-act-controller-main" parent="sd-uc08-5-lifeline-controller" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="350" width="12" x="86" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqEntity;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="870" width="184" x="1098" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-lifeline-db-name" connectable="0" parent="sd-uc08-5-lifeline-db" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="PostgreSQL" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-act-db-answers" parent="sd-uc08-5-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="70" width="12" x="86" y="455" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-act-db-complete" parent="sd-uc08-5-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="70" width="12" x="86" y="595" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-1" edge="1" parent="1" source="sd-uc08-5-act-timer-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=0.5714285714285714;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-view-main" value="timeExpired (00:00)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-2" edge="1" parent="1" source="sd-uc08-5-act-view-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.09848484848484848;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-lock" value="Khóa thao tác nhập liệu">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="335" />
+              <mxPoint x="510" y="363" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-3" edge="1" parent="1" source="sd-uc08-5-act-view-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.21212121212121213;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-collect" value="Thu thập user_answers">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="410" />
+              <mxPoint x="510" y="438" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-4" edge="1" parent="1" source="sd-uc08-5-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.32575757575757575;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-controller-main" value="submitTest()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-130" y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-5" edge="1" parent="1" source="sd-uc08-5-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.2;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-db-answers" value="Lưu user_answers&#xa;attempt_answers">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-6" edge="1" parent="1" source="sd-uc08-5-act-db-answers" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.4;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-controller-main" value="Đã lưu bài nộp">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-7" edge="1" parent="1" source="sd-uc08-5-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.6;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-db-complete" value="UPDATE test_attempts&#xa;status = COMPLETED">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-8" edge="1" parent="1" source="sd-uc08-5-act-db-complete" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-controller-main" value="Đã cập nhật">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-9" edge="1" parent="1" source="sd-uc08-5-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8560606060606061;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-act-view-main" value="Xác nhận thu bài">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-130" y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc08-5-msg-10" edge="1" parent="1" source="sd-uc08-5-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=0.9621212121212122;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.9252873563218391;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc08-5-lifeline-student" value="Bài thi đã được thu">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sd-uc09" name="SD-UC09">
+    <mxGraphModel dx="4065" dy="1963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1340" pageHeight="1620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc09-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC09 — Chấm trắc nghiệm tự động (UC09, UC09.1)" vertex="1">
+          <mxGeometry height="44" width="1260" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-frame-questions" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=0;pointerEvents=0;fillColor=#f1f5f9;swimlaneFillColor=none;strokeColor=#94a3b8;strokeWidth=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=5;width=65;height=30;fontFamily=Arial;fontSize=14;fontStyle=1;container=1;collapsible=0;" value="loop" vertex="1">
+          <mxGeometry height="450" width="1260" x="40" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-frame-questions-guard-0" connectable="0" parent="sd-uc09-frame-questions" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=14;fontColor=#475569;spacing=2;" value="[Với từng câu trả lời trong user_answers]" vertex="1">
+          <mxGeometry height="32" width="1160" x="116" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-frame-correctness" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=0;pointerEvents=0;fillColor=#f1f5f9;swimlaneFillColor=none;strokeColor=#94a3b8;strokeWidth=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=5;width=65;height=30;fontFamily=Arial;fontSize=14;fontStyle=1;container=1;collapsible=0;" value="alt" vertex="1">
+          <mxGeometry height="270" width="1228" x="56" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-frame-correctness-guard-0" connectable="0" parent="sd-uc09-frame-correctness" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=14;fontColor=#475569;spacing=2;" value="[Khớp correct_answer]" vertex="1">
+          <mxGeometry height="32" width="1128" x="104" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-frame-correctness-guard-1" connectable="0" parent="sd-uc09-frame-correctness" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=14;fontColor=#475569;spacing=2;" value="[Không khớp correct_answer]" vertex="1">
+          <mxGeometry height="32" width="1128" x="104" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-frame-correctness-separator-0" edge="1" parent="1" source="sd-uc09-frame-correctness" style="edgeStyle=none;html=0;endArrow=none;startArrow=none;dashed=1;dashPattern=5 4;strokeColor=#94a3b8;exitX=0;exitY=0.5370370370370371;exitPerimeter=0;entryX=1;entryY=0.5370370370370371;entryPerimeter=0;" target="sd-uc09-frame-correctness" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=112;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1360" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-student-name" connectable="0" parent="sd-uc09-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="74" as="geometry" />
+        </mxCell>
+        <mxCell id="EWePN05iOo1yrDBE4NKT-1" parent="sd-uc09-lifeline-student" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="1150" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1360" width="184" x="334" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-view-name" connectable="0" parent="sd-uc09-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="ExamWorkspaceView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-view-main" parent="sd-uc09-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="1150" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-controller" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1360" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-controller-name" connectable="0" parent="sd-uc09-lifeline-controller" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="TestController" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-controller-main" parent="sd-uc09-lifeline-controller" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="1020" width="12" x="86" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-engine" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1360" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-engine-name" connectable="0" parent="sd-uc09-lifeline-engine" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="GradingEngine" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-engine-main" parent="sd-uc09-lifeline-engine" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="890" width="12" x="86" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-compare" parent="sd-uc09-lifeline-engine" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="578" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-true" parent="sd-uc09-lifeline-engine" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="738" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-false" parent="sd-uc09-lifeline-engine" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="858" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-score" parent="sd-uc09-lifeline-engine" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="1113" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqEntity;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="1360" width="184" x="1098" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-lifeline-db-name" connectable="0" parent="sd-uc09-lifeline-db" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="PostgreSQL" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-db-keys" parent="sd-uc09-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-act-db-flags" parent="sd-uc09-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="960" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-msg-1" edge="1" parent="1" source="sd-uc09-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.11029411764705882;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-view-main" value="Nộp bài">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-2" edge="1" parent="1" source="sd-uc09-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.05652173913043478;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-controller-main" value="submitTest()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-3" edge="1" parent="1" source="sd-uc09-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.06372549019607843;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-engine-main" value="Chấm Reading / Listening">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-4" edge="1" parent="1" source="sd-uc09-act-engine-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.07303370786516854;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-db-keys" value="Lấy correct_answer&#xa;exam_parts.content_data">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-5" edge="1" parent="1" source="sd-uc09-act-db-keys" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.14606741573033707;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-engine-main" value="correct_answer">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-6" edge="1" parent="1" source="sd-uc09-act-engine-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.30337078651685395;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-compare" value="Chuẩn hóa và so khớp">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="650" />
+              <mxPoint x="1030" y="678" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-7" edge="1" parent="1" source="sd-uc09-act-engine-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.48314606741573035;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-true" value="is_correct_flags[q] = true">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="810" />
+              <mxPoint x="1030" y="838" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-8" edge="1" parent="1" source="sd-uc09-act-engine-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.6179775280898876;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-false" value="is_correct_flags[q] = false">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="930" />
+              <mxPoint x="1030" y="958" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-9" edge="1" parent="1" source="sd-uc09-act-engine-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.7640449438202247;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-db-flags" value="Lưu is_correct_flags&#xa;attempt_answers">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-10" edge="1" parent="1" source="sd-uc09-act-db-flags" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8370786516853933;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-engine-main" value="Đã lưu">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-11" edge="1" parent="1" source="sd-uc09-act-engine-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.9044943820224719;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-score" value="Tính điểm tổng">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="1185" />
+              <mxPoint x="1030" y="1213" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-12" edge="1" parent="1" source="sd-uc09-act-engine-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.9362745098039216;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-controller-main" value="Điểm và is_correct_flags">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-13" edge="1" parent="1" source="sd-uc09-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.9434782608695652;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-act-view-main" value="Kết quả chấm bài">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-msg-14" edge="1" parent="1" source="sd-uc09-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.9558823529411765;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-lifeline-student" value="Hiển thị điểm">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sd-uc09-2" name="SD-UC09.2">
+    <mxGraphModel dx="4065" dy="1963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1250" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc09-2-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC09.2 — Chấm điểm Writing bằng Gemini AI" vertex="1">
+          <mxGeometry height="44" width="1520" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=112;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="990" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-student-name" connectable="0" parent="sd-uc09-2-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="74" as="geometry" />
+        </mxCell>
+        <mxCell id="nKTKZHj7m_vfcmD6G3zm-1" parent="sd-uc09-2-lifeline-student" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="770" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="990" width="184" x="318" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-view-name" connectable="0" parent="sd-uc09-2-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="WritingEditorView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-act-view-main" parent="sd-uc09-2-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="770" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-controller" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="990" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-controller-name" connectable="0" parent="sd-uc09-2-lifeline-controller" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="TestController" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-act-controller-main" parent="sd-uc09-2-lifeline-controller" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="640" width="12" x="86" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-service" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="990" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-service-name" connectable="0" parent="sd-uc09-2-lifeline-service" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="GeminiAIService" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-act-service-main" parent="sd-uc09-2-lifeline-service" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="510" width="12" x="86" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-act-prompt" parent="sd-uc09-2-lifeline-service" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="373" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-act-parse" parent="sd-uc09-2-lifeline-service" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="603" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqEntity;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="990" width="184" x="1098" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-db-name" connectable="0" parent="sd-uc09-2-lifeline-db" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="PostgreSQL" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-act-db-feedback" parent="sd-uc09-2-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-api" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="990" width="184" x="1317" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-lifeline-api-name" connectable="0" parent="sd-uc09-2-lifeline-api" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="Gemini 3.6 Flash API" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-act-api-main" parent="sd-uc09-2-lifeline-api" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="70" width="12" x="86" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-1" edge="1" parent="1" source="sd-uc09-2-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.15151515151515152;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-view-main" value="Nộp bài Writing">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-2" edge="1" parent="1" source="sd-uc09-2-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.08441558441558442;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-controller-main" value="submitTest()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-3" edge="1" parent="1" source="sd-uc09-2-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.1015625;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-service-main" value="gradeWriting()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-4" edge="1" parent="1" source="sd-uc09-2-act-service-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.12745098039215685;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-prompt" value="Xây dựng prompt&#xa;(4 tiêu chí)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-40" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="445" />
+              <mxPoint x="1030" y="473" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-5" edge="1" parent="1" source="sd-uc09-2-act-service-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.29411764705882354;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-api-main" value="Gửi bài viết và tiêu chí">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-130" y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-6" edge="1" parent="1" source="sd-uc09-2-act-api-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.43137254901960786;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-service-main" value="JSON: điểm, nhận xét,&#xa;câu viết lại">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-130" y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-7" edge="1" parent="1" source="sd-uc09-2-act-service-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.5784313725490197;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-parse" value="Parse JSON phản hồi">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="1030" y="675" />
+              <mxPoint x="1030" y="703" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-8" edge="1" parent="1" source="sd-uc09-2-act-service-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.7450980392156863;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-db-feedback" value="Lưu ai_feedback&#xa;attempt_answers">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-9" edge="1" parent="1" source="sd-uc09-2-act-db-feedback" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8725490196078431;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-service-main" value="Đã lưu">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-10" edge="1" parent="1" source="sd-uc09-2-act-service-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8984375;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-controller-main" value="ai_feedback">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-11" edge="1" parent="1" source="sd-uc09-2-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.9155844155844156;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-act-view-main" value="Kết quả chấm Writing">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc09-2-msg-12" edge="1" parent="1" source="sd-uc09-2-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.9292929292929293;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc09-2-lifeline-student" value="Hiển thị nhận xét AI">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sd-uc10" name="SD-UC10">
+    <mxGraphModel dx="2710" dy="1308" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1230" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc10-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC10 — Xem kết quả &amp; Lời giải chi tiết (UC10, UC10.1)" vertex="1">
+          <mxGeometry height="44" width="1089" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-frame-explanations" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=0;pointerEvents=0;fillColor=#f1f5f9;swimlaneFillColor=none;strokeColor=#94a3b8;strokeWidth=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=5;width=65;height=30;fontFamily=Arial;fontSize=14;fontStyle=1;container=1;collapsible=0;" value="opt" vertex="1">
+          <mxGeometry height="275" width="1089" x="40" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-frame-explanations-guard-0" connectable="0" parent="sd-uc10-frame-explanations" style="text;html=0;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=14;fontColor=#475569;spacing=2;" value="[Học viên chọn xem chi tiết từng câu]" vertex="1">
+          <mxGeometry height="32" width="264" x="119" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=112;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="970" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-student-name" connectable="0" parent="sd-uc10-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="74" as="geometry" />
+        </mxCell>
+        <mxCell id="lu8oUoeQbbHlcsOwVlXz-1" parent="sd-uc10-lifeline-student" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="735" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="970" width="184" x="318" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-view-name" connectable="0" parent="sd-uc10-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="ResultView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-act-view-main" parent="sd-uc10-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="455" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-act-view-detail" parent="sd-uc10-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="155" width="12" x="86" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-act-expand" parent="sd-uc10-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="823" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-controller" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="970" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-controller-name" connectable="0" parent="sd-uc10-lifeline-controller" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="TestController" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-act-controller-main" parent="sd-uc10-lifeline-controller" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="325" width="12" x="86" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqEntity;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="970" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-lifeline-db-name" connectable="0" parent="sd-uc10-lifeline-db" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="PostgreSQL" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-act-db-result" parent="sd-uc10-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-act-db-explain" parent="sd-uc10-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-msg-1" edge="1" parent="1" source="sd-uc10-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.15463917525773196;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-view-main" value="Mở kết quả bài thi">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-2" edge="1" parent="1" source="sd-uc10-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.14285714285714285;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-controller-main" value="getTestResult()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-3" edge="1" parent="1" source="sd-uc10-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.2;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-db-result" value="Đọc test_attempts,&#xa;attempt_answers">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-4" edge="1" parent="1" source="sd-uc10-act-db-result" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.4;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-controller-main" value="Điểm và câu trả lời&#xa;đã chấm">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-5" edge="1" parent="1" source="sd-uc10-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.6;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-db-explain" value="Đọc lời giải, bản dịch&#xa;exam_parts.content_data">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-6" edge="1" parent="1" source="sd-uc10-act-db-explain" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-controller-main" value="Lời giải và bản dịch">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-7" edge="1" parent="1" source="sd-uc10-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.8571428571428571;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-view-main" value="Bảng điểm và chi tiết">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-8" edge="1" parent="1" source="sd-uc10-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.6237113402061856;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-lifeline-student" value="Hiển thị bảng điểm">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-9" edge="1" parent="1" source="sd-uc10-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.7525773195876289;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-view-detail" value="Chọn xem giải thích">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-10" edge="1" parent="1" source="sd-uc10-act-view-detail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.41935483870967744;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-act-expand" value="Đưa ra Đúng/Sai,&#xa;lời giải và bản dịch">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-40" as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="895" />
+              <mxPoint x="510" y="923" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-msg-11" edge="1" parent="1" source="sd-uc10-act-view-detail" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.9123711340206185;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-lifeline-student" value="Hiển thị chi tiết từng câu">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="sd-uc10-2" name="SD-UC10.2">
+    <mxGraphModel dx="1807" dy="872" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd-uc10-2-title" parent="1" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontStyle=1;fontColor=#1e293b;whiteSpace=wrap;" value="SD-UC10.2 — Xem nhận xét AI &amp; Diff-View sửa lỗi" vertex="1">
+          <mxGeometry height="44" width="1089" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-student" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=112;participant=seqActorStick;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#ffffff;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="640" width="184" x="58" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-student-name" connectable="0" parent="sd-uc10-2-lifeline-student" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=0;" value="User" vertex="1">
+          <mxGeometry height="36" width="184" y="74" as="geometry" />
+        </mxCell>
+        <mxCell id="MufJ_eauE1anGj-Nfz85-1" parent="sd-uc10-2-lifeline-student" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="425" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-view" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqBoundary;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="640" width="184" x="318" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-view-name" connectable="0" parent="sd-uc10-2-lifeline-view" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="ResultView" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-act-view-main" parent="sd-uc10-2-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="425" width="12" x="86" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-act-diff" parent="sd-uc10-2-lifeline-view" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="20" width="12" x="93" y="508" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-controller" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqControl;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="640" width="184" x="578" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-controller-name" connectable="0" parent="sd-uc10-2-lifeline-controller" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="TestController" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-act-controller-main" parent="sd-uc10-2-lifeline-controller" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="195" width="12" x="86" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-db" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;size=100;participant=seqEntity;whiteSpace=wrap;html=0;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;lifelineDashed=1;fillColor=#f1f5f9;strokeColor=#64748b;strokeWidth=1.1;fontFamily=Arial;fontSize=14;align=center;verticalAlign=middle;spacing=6;" value="" vertex="1">
+          <mxGeometry height="640" width="184" x="838" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-lifeline-db-name" connectable="0" parent="sd-uc10-2-lifeline-db" style="text;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#1e293b;spacing=2;" value="PostgreSQL" vertex="1">
+          <mxGeometry height="44" width="184" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-act-db-feedback" parent="sd-uc10-2-lifeline-db" style="shape=rectangle;html=0;fillColor=#dbeafe;strokeColor=#64748b;strokeWidth=1;outlineConnect=0;" value="" vertex="1">
+          <mxGeometry height="65" width="12" x="86" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="sd-uc10-2-msg-1" edge="1" parent="1" source="sd-uc10-2-lifeline-student" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0.5;exitY=0.234375;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-2-act-view-main" value="Mở tab Writing">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-2-msg-2" edge="1" parent="1" source="sd-uc10-2-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.15294117647058825;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-2-act-controller-main" value="getAIFeedback()">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-2-msg-3" edge="1" parent="1" source="sd-uc10-2-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.3333333333333333;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-2-act-db-feedback" value="Đọc ai_feedback&#xa;attempt_answers">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-2-msg-4" edge="1" parent="1" source="sd-uc10-2-act-db-feedback" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.6666666666666666;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-2-act-controller-main" value="ai_feedback">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-2-msg-5" edge="1" parent="1" source="sd-uc10-2-act-controller-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0.611764705882353;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-2-act-view-main" value="Điểm 4 tiêu chí,&#xa;nhận xét và câu sửa">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-2-msg-6" edge="1" parent="1" source="sd-uc10-2-act-view-main" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;startArrow=none;strokeColor=#334155;strokeWidth=1.2;dashed=0;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=1;exitY=0.7764705882352941;exitPerimeter=0;exitDx=0;exitDy=0;entryX=1;entryY=0;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-2-act-diff" value="Render Diff-View">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="-31" as="offset" />
+            <Array as="points">
+              <mxPoint x="510" y="580" />
+              <mxPoint x="510" y="608" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd-uc10-2-msg-7" edge="1" parent="1" source="sd-uc10-2-act-view-main" style="edgeStyle=none;rounded=0;html=0;endArrow=open;endFill=0;startArrow=none;strokeColor=#64748b;strokeWidth=1.2;dashed=1;dashPattern=6 4;fontFamily=Arial;fontSize=14;fontColor=#1e293b;whiteSpace=wrap;labelWidth=230;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;spacing=2;exitX=0;exitY=1;exitPerimeter=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.8984375;entryPerimeter=0;entryDx=0;entryDy=0;" target="sd-uc10-2-lifeline-student" value="Hiển thị điểm, nhận xét&#xa;và Diff-View">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
