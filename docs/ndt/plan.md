@@ -12,7 +12,7 @@ Các lựa chọn đã thống nhất:
 - Dùng fixture và người dùng giả lập trong dev/test khi TV1, TV2 chưa sẵn sàng. Tích hợp thật là điều kiện nghiệm thu cuối.
 - Chấm điểm khách quan bằng số câu đúng và tỷ lệ chính xác trước. Chưa tự đặt bảng quy đổi IELTS/TOEIC/VNLTV.
 - Mock Test toàn đề dùng tổng thời lượng các Section; một kỹ năng dùng thời lượng Section; một Part dùng thời lượng riêng của Part.
-- Giữ stack thực tế của repo: Java 21, Spring Boot, PostgreSQL, React và TypeScript.
+- Giữ stack thực tế của repo: Java 21, Spring Boot 4.1.0, PostgreSQL 16, React 19 và TypeScript 6.
 
 **Hiện trạng đã kiểm tra:** frontend build thành công; backend compile thành công nhưng có cảnh báo trùng Maven plugin. Backend mới có API demo cho ExamPart, chưa có phiên thi, chấm điểm hoặc Gemini. Màn hình thi và kết quả trong web-ui dùng dữ liệu mẫu. Chưa chạy integration test với database.
 
@@ -58,6 +58,10 @@ Task chỉ chuyển sang DONE khi đạt tiêu chí nghiệm thu. Việc UI hi�
 - Các thay đổi schema cần thiết phải có migration và ghi rõ lý do, gồm snapshot đề, deadline, kiểm soát phiên bản đáp án và dữ liệu điều phối chấm Writing.
 - Production dùng thông tin xác thực của TV1; fixture identity chỉ hoạt động trong profile dev/test.
 
+### Phối hợp liên module
+
+Mọi thay đổi nằm ngoài phạm vi code riêng của TV3 (ví dụ: `pom.xml`, `application.properties`, `docker-compose.yml`, `SecurityConfig.java` hoặc Entity/DTO của TV khác) đều **bắt buộc phải xin phép trưởng nhóm hoặc thành viên sở hữu trước khi thực hiện**. Trong dev/test, TV3 dùng fixture và mock; không tự ý sửa code chung để phục vụ module mình.
+
 Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 
 | API | Trách nhiệm |
@@ -76,26 +80,44 @@ Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 
 ## 3. Nội dung từng file sprint
 
+### Milestone 00 — Đồng bộ Contract liên module (Trước Sprint 00)
+
+**Mục tiêu:** Thống nhất các hợp đồng dữ liệu với TV1 và TV2 TRƯỚC khi TV3 tạo fixture, đảm bảo tích hợp Sprint 11 không bị lỗi format.  
+**Đầu ra:** Tài liệu contract dùng chung trong `docs/contracts/`.
+
+| ID | Hành động | Phối hợp với | Trạng thái |
+|---|---|---|---|
+| M00-01 | Thống nhất JSON schema `content_data` của `exam_parts`: danh sách loại câu hỏi (MCQ, Fill-in, Matching, T/F/NG, Essay…), format đáp án chuẩn `correct_answer`, format lời giải, audio URL convention. Ghi vào `docs/contracts/content-data-schema.md`. | **TV2** | TODO |
+| M00-02 | Xác nhận cấu trúc Entity cây đề: `Exam`, `ExamSection`, `ExamPart` gồm các cột, kiểu dữ liệu, quan hệ FK. Đặc biệt xác nhận `duration_minutes` ở cấp nào (Section hay Part). | **TV2** | TODO |
+| M00-03 | Xác nhận JWT token structure và cách lấy `userId` từ Spring Security Context. Xác nhận interface kiểm tra `subscription_tier` (FREE/PREMIUM). | **TV1** | TODO |
+| M00-04 | Quyết định timezone convention toàn dự án: giữ `Asia/Ho_Chi_Minh` hay chuyển lưu trữ UTC. Nếu giữ ICT, TV3 sẽ dùng ICT trong schema của mình. | **Toàn nhóm** | TODO |
+| M00-05 | Xác nhận interface đọc `user_quotas` để kiểm tra hạn mức AI. Bảng `user_quotas` do TV4 sở hữu. | **TV4** | TODO |
+
+**Kết thúc milestone:** Có ít nhất file `docs/contracts/content-data-schema.md` được TV2 xác nhận. Các quyết định M00-03, M00-04, M00-05 được ghi nhận (có thể trong file này hoặc meeting notes).
+
+---
+
 ### Sprint 00 — Nền tảng và contract
 
 **File:** `docs/ndt/00-foundation-and-contracts.md`  
 **Đầu ra:** môi trường phát triển rõ ràng, contract TV3 và bộ fixture thống nhất.  
-**Phụ thuộc:** không có.
+**Phụ thuộc:** Milestone 00 (ít nhất M00-01 phải DONE).
 
 | ID | Task nhỏ và tiêu chí nghiệm thu |
 |---|---|
 | S00-01 | Ghi baseline build, cấu hình và thay đổi hiện có; xác định phần nào chưa được kiểm thử. |
-| S00-02 | Hợp nhất khai báo Maven plugin trùng, bảo toàn cấu hình đang có; backend compile không còn cảnh báo trùng plugin. |
-| S00-03 | Tách cấu hình database theo môi trường; chạy local với PostgreSQL ở đúng cổng Compose cung cấp. |
-| S00-04 | Thống nhất sử dụng UTC cho dữ liệu thời gian; có kiểm tra round-trip thời gian qua API. |
-| S00-05 | Viết contract cây đề và danh sách loại câu hỏi; ghi rõ cách chuẩn hóa ESSAY/WRITING_ESSAY và audio. |
+| S00-02 | ⚠️ **CẦN XIN PHÉP NHÓM** — Hợp nhất khai báo Maven plugin trùng trong `pom.xml`, bảo toàn cấu hình đang có; backend compile không còn cảnh báo trùng plugin. |
+| S00-03 | ⚠️ **CẦN XIN PHÉP NHÓM** — Tách cấu hình database theo môi trường (thêm `application-dev.properties`, `application-test.properties`); chạy local với PostgreSQL ở đúng cổng Compose cung cấp. |
+| S00-04 | ⚠️ **CẦN XIN PHÉP NHÓM** — Thống nhất timezone cho dữ liệu thời gian theo quyết định M00-04; có kiểm tra round-trip thời gian qua API. |
+| S00-05 | Viết contract cây đề và danh sách loại câu hỏi **dựa trên kết quả M00-01**; ghi rõ cách chuẩn hóa ESSAY/WRITING_ESSAY và audio. |
 | S00-06 | Viết contract câu trả lời, flags và thống kê; có ví dụ câu đúng, sai, bỏ trống và chọn nhiều đáp án. |
 | S00-07 | Viết contract API, response lỗi và ownership; xác định rõ trường client được gửi. |
 | S00-08 | Viết bảng chuyển trạng thái, quy tắc timer và điểm; ghi nhận điểm khác nhau giữa tài liệu và diagram hiện có. |
-| S00-09 | Tạo fixture Reading hợp lệ và fixture có lỗi cấu trúc để kiểm thử validation. |
-| S00-10 | Tạo fixture Listening và Writing, gồm thời lượng Part và các định dạng media cần dùng. |
+| S00-09 | Tạo fixture Reading hợp lệ và fixture có lỗi cấu trúc để kiểm thử validation. Fixture phải tuân theo schema M00-01. |
+| S00-10 | Tạo fixture Listening và Writing, gồm thời lượng Part và các định dạng media cần dùng. Fixture phải tuân theo schema M00-01. |
 | S00-11 | Thiết lập unit/component test frontend; một test mẫu chạy được trong lệnh kiểm tra. |
 | S00-12 | Thiết lập integration test PostgreSQL độc lập bằng Testcontainers; không sử dụng database làm việc của thành viên. |
+| S00-13 | Xác định package structure riêng cho TV3: Backend đặt trong `com.multilingo.backend.exam.*` (hoặc tương đương), Frontend đặt trong `src/features/exam/*`. Tạo thư mục và README mô tả cấu trúc. |
 
 **Kết thúc sprint:** contract có ví dụ request/response, fixture dùng thống nhất cho frontend và backend, môi trường test chạy độc lập.
 
@@ -255,17 +277,18 @@ Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 
 **File:** `docs/ndt/08-writing-editor-and-hints.md`  
 **Đầu ra:** học viên viết bài và nhận dàn ý, từ vựng từ Gemini.  
-**Phụ thuộc:** Sprint 07.
+**Phụ thuộc:** Sprint 07.  
+**Lưu ý dependency:** Sprint này cần thêm Gemini SDK dependency vào `pom.xml` (ví dụ `google-cloud-vertexai` hoặc Google AI Java SDK). Đây là file dùng chung — ⚠️ **CẦN XIN PHÉP NHÓM** trước khi thêm.
 
 | ID | Task nhỏ và tiêu chí nghiệm thu |
 |---|---|
 | S08-01 | Hoàn thiện editor Writing với word count; nội dung dùng chung cơ chế lưu nháp. |
-| S08-02 | Tạo cấu hình Gemini ở backend; API key không xuất hiện trong bundle frontend hoặc log. |
+| S08-02 | ⚠️ **CẦN XIN PHÉP NHÓM** — Thêm Gemini SDK dependency vào `pom.xml`. Tạo cấu hình Gemini ở backend; API key không xuất hiện trong bundle frontend hoặc log. |
 | S08-03 | Tạo Gemini client với model cấu hình được, timeout và giới hạn kích thước phản hồi. |
 | S08-04 | Tạo prompt Hints lấy đề từ snapshot; yêu cầu dàn ý và 5–10 từ vựng. |
 | S08-05 | Tạo DTO/parser Hints; phản hồi sai cấu trúc bị từ chối có kiểm soát. |
 | S08-06 | Implement API Hints chỉ cho Practice Writing còn hoạt động và đúng chủ sở hữu. |
-| S08-07 | Tạo điểm tích hợp entitlement/quota với TV1; fixture chỉ hoạt động trong dev/test. |
+| S08-07 | Tạo điểm tích hợp entitlement/quota với TV1 (theo kết quả M00-05); fixture chỉ hoạt động trong dev/test. |
 | S08-08 | Tạo sidebar Hints với trạng thái tải, thành công, hết hạn mức và lỗi dịch vụ. |
 | S08-09 | Xử lý thử lại có giới hạn; lỗi Hints không làm mất nội dung bài viết. |
 | S08-10 | Test bằng Gemini giả lập; xác nhận Hints không ghi vào ai_feedback chấm bài. |
@@ -350,4 +373,15 @@ Các nhóm kiểm thử bắt buộc:
 - **AI:** dùng phản hồi giả lập cho test tự động; smoke test Gemini thật là bước riêng, ghi rõ model và kết quả.
 - **E2E:** Mock, Practice, ba scope, tải lại trang, mất mạng, hết giờ, nộp đồng thời và AI chấm lỗi.
 
-Bộ tài liệu cuối cùng gồm **12 file, 126 task**, với checklist, phụ thuộc và nghiệm thu theo từng sprint. Sau khi kế hoạch được duyệt, triển khai từng sprint và đối chiếu đầu ra trước khi chuyển sang sprint tiếp theo.
+Bộ tài liệu cuối cùng gồm **1 Milestone + 12 Sprint, ~132 task**, với checklist, phụ thuộc và nghiệm thu theo từng sprint. Sau khi kế hoạch được duyệt, triển khai từng sprint và đối chiếu đầu ra trước khi chuyển sang sprint tiếp theo.
+
+## 5. Danh sách task cần xin phép nhóm trước khi thực hiện
+
+Các task dưới đây can thiệp vào file/cấu hình dùng chung cho toàn bộ dự án. TV3 **KHÔNG được tự ý thực hiện** mà phải được sự đồng ý của trưởng nhóm hoặc thành viên sở hữu file.
+
+| Task | Nội dung | File bị ảnh hưởng |
+|---|---|---|
+| S00-02 | Gộp Maven plugin trùng | `backend/pom.xml` |
+| S00-03 | Tách profile database | `backend/src/main/resources/application.properties` |
+| S00-04 | Timezone convention | `docker-compose.yml`, `pom.xml` (JVM args) |
+| S08-02 | Thêm Gemini SDK dependency | `backend/pom.xml` |
