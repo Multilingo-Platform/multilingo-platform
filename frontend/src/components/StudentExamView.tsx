@@ -9,7 +9,7 @@ const StudentExamView: React.FC = () => {
     // Fetch dữ liệu đề thi mới nhất từ Spring Boot
     const fetchExamData = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/test/latest-part');
+        const response = await fetch('/api/test/latest-part');
         if (!response.ok) {
           throw new Error('Không tìm thấy dữ liệu đề thi nào. Bạn đã upload từ phía Admin chưa?');
         }

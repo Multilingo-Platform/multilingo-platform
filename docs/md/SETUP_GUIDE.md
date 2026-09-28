@@ -28,9 +28,9 @@ Dự án sử dụng Docker để quản lý cơ sở dữ liệu giúp bạn kh
 1. Khởi động Docker Desktop trên máy tính.
 2. Mở Terminal tại thư mục gốc của dự án (`multilingo-platform`) và chạy lệnh:
    ```bash
-   docker-compose up -d
+   docker compose up -d postgres_db redis_cache
    ```
-   *(Docker sẽ tự động tải và khởi chạy PostgreSQL ở cổng `5433` và Redis ở cổng `6379`)*
+   *(Docker sẽ tự động tải và khởi chạy PostgreSQL ở cổng `5434` và Redis ở cổng `6379`)*
 
 ---
 
@@ -39,9 +39,9 @@ Dự án sử dụng Docker để quản lý cơ sở dữ liệu giúp bạn kh
    ```bash
    cd backend
    ```
-2. Khởi động Backend bằng Maven:
+2. Khởi động Backend bằng Maven Wrapper:
    ```bash
-   mvn spring-boot:run
+   ./mvnw spring-boot:run
    ```
 👉 Backend sẽ chạy ở địa chỉ: `http://localhost:8080` (API test: `http://localhost:8080/api/test/hello`). Nó sẽ tự động kết nối vào Database và Redis đang chạy trên Docker.
 
@@ -67,9 +67,16 @@ Dự án sử dụng Docker để quản lý cơ sở dữ liệu giúp bạn kh
 ## 6. Kết nối Database (Dành cho pgAdmin / DBeaver / DataGrip)
 Nếu bạn muốn xem cấu trúc các bảng hoặc dữ liệu, hãy kết nối phần mềm quản lý Database với thông tin sau:
 - **Host:** `localhost`
-- **Port:** `5433`
+- **Port:** `5434`
 - **Database:** `multilingodb`
 - **Username:** `postgres`
 - **Password:** `postgres`
+
+---
+
+## 7. Quy chuẩn lập trình & Phương pháp luận Superpowers
+Trước khi viết mã tính năng mới, bắt buộc đọc kỹ:
+* [Tài liệu Quy chuẩn Phát triển cho Team (`docs/TEAM_DEVELOPMENT_GUIDE.md`)](../TEAM_DEVELOPMENT_GUIDE.md)
+* [Quy tắc kiến trúc cốt lõi (`GEMINI.md`)](../../GEMINI.md)
 
 Chúc bạn làm việc hiệu quả và đóng góp được nhiều code chất lượng cho dự án! 🚀
