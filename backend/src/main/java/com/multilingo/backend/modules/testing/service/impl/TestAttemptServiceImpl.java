@@ -40,14 +40,15 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Exam not found: " + request.getExamId()));
 
+        Instant now = Instant.now();
+
         // 2. Validate mode/scope constraints
-        Instant deadline = computeDeadline(exam, request);
+        Instant deadline = computeDeadline(exam, request, now);
 
         // 3. Build server-side exam snapshot (safe — no correct answers)
         Map<String, Object> snapshot = buildExamSnapshot(exam);
 
         // 4. Persist attempt
-        Instant now = Instant.now();
         TestAttempt attempt = TestAttempt.builder()
                 .userId(userId)
                 .examId(request.getExamId())
@@ -84,7 +85,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
      * MOCK_TEST + FULL_EXAM → startTime + exam.durationMinutes (must not be null).
      * MOCK_TEST + SINGLE_SKILL/PART → startTime + relevant section/part duration.
      */
-    private Instant computeDeadline(ExamFixture exam, CreateAttemptRequest request) {
+    private Instant computeDeadline(ExamFixture exam, CreateAttemptRequest request, Instant startTime) {
         if (request.getTestMode() == TestMode.PRACTICE) {
             return null;
         }
@@ -94,7 +95,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             throw new AppException(ErrorCode.INVALID_REQUEST,
                     "Cannot create MOCK_TEST attempt: exam has no configured duration");
         }
-        return Instant.now().plus(durationMinutes, ChronoUnit.MINUTES);
+        return startTime.plus(durationMinutes, ChronoUnit.MINUTES);
     }
 
     private Integer resolveDuration(ExamFixture exam, CreateAttemptRequest request) {

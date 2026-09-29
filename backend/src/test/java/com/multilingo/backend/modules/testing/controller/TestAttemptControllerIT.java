@@ -111,6 +111,12 @@ class TestAttemptControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.attemptId").value(attemptId))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
+
+        // Verify standard RESTful endpoint /api/v1/attempts/{id} also works
+        mockMvc.perform(get("/api/v1/attempts/{id}", attemptId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.attemptId").value(attemptId))
+                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
     }
 
     @Test
