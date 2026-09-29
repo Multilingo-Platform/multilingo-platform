@@ -15,8 +15,10 @@ export interface CreateAttemptRequest {
 export interface WorkspaceResponse {
   attempt_id: number;
   status: AttemptStatus;
-  workspace: ExamSnapshot;      // Snapshot không có correct_answer
-  deadline: string | null;      // ISO 8601 UTC
+  test_scope: TestScope;
+  test_mode: TestMode;
+  deadline: string | null;      // ISO-8601 UTC Instant; null for PRACTICE
+  exam_snapshot: ExamSnapshot;  // Snapshot does NOT contain correct_answer
   version: number;
   saved_answers: PartAnswers[];
 }

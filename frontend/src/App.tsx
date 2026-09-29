@@ -3,6 +3,8 @@ import { Routes, Route, Link } from 'react-router-dom';
 import axiosClient from './api/axiosClient';
 import AudioUploader from './components/AudioUploader';
 import StudentExamView from './components/StudentExamView';
+import ExamStartPage from './features/exam/pages/ExamStartPage';
+import WorkspacePage from './features/exam/pages/WorkspacePage';
 
 function App() {
   const [backendMessage, setBackendMessage] = useState<string>('Loading from backend...');
@@ -44,6 +46,8 @@ function App() {
           <Route path="/" element={<div className="text-gray-400 text-sm text-center">Home Route Active</div>} />
           <Route path="/test-audio" element={<AudioUploader />} />
           <Route path="/test-student" element={<StudentExamView />} />
+          <Route path="/exams/:examId/start" element={<ExamStartPage />} />
+          <Route path="/attempts/:attemptId" element={<WorkspacePage />} />
         </Routes>
       </div>
     </div>
