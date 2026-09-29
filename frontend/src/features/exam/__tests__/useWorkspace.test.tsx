@@ -59,4 +59,22 @@ describe('useWorkspace', () => {
     expect(result.current.workspace).toEqual(mockWorkspace);
     expect(spy).toHaveBeenCalledTimes(2);
   });
+
+  it('REGRESSION: retry does not dispatch clearAnswers during re-fetch cycle', async () => {
+    // If clearAnswers fires on retry, Redux answers are wiped mid-flight.
+    // This verifies that attemptId in store remains set after retry resolves.
+    vi.spyOn(attemptApi, 'getWorkspace')
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValueOnce(mockWorkspace);
+    const store = configureStore({ reducer: { answers: answerReducer } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <Provider store={store}>{children}</Provider>
+    );
+    const { result } = renderHook(() => useWorkspace(5), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => { result.current.retry(); });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    // After retry succeeds, Redux should be hydrated (attemptId set, not null from clearAnswers)
+    expect(store.getState().answers.attemptId).toBe(5);
+  });
 });
