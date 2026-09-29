@@ -1,8 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
+import answerReducer from '../features/exam/store/answerSlice';
 
 export const store = configureStore({
   reducer: {
-    // Add reducers here later
+    answers: answerReducer,
   },
 });
 
