@@ -1,0 +1,208 @@
+[
+  {
+    "part_title": "Part 1: Photographs",
+    "instruction": "Listen to the four statements and select the one that best describes the picture.",
+    "shared_audio": null,
+    "shared_media": null,
+    "content_html": "<p><strong>Directions:</strong> For each question in this part, you will hear four statements about a picture. The statements will not be printed in your test book. Choose the statement that best describes what you see in the picture.</p>",
+    "question_groups": [
+      {
+        "group_id": "toeic-list-p1-01",
+        "instruction": null,
+        "content_html": null,
+        "shared_audio": {
+          "url": "https://your-cloud-storage.com/audio/toeic-part1-q1.mp3",
+          "duration_seconds": 25
+        },
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_001",
+            "type": "SINGLE_CHOICE",
+            "question_text": "1.",
+            "media": {
+              "type": "image",
+              "url": "https://your-cloud-storage.com/images/toeic-p1-meeting.jpg",
+              "display_config": {
+                "size_preset": "medium",
+                "alignment": "center"
+              }
+            },
+            "options": [
+              { "id": "A", "text": "(A)" },
+              { "id": "B", "text": "(B)" },
+              { "id": "C", "text": "(C)" },
+              { "id": "D", "text": "(D)" }
+            ],
+            "correct_answer": "B",
+            "explanation": "Audio script: (A) They are moving some chairs. (B) A presentation is being given. (C) They are leaving the room. (D) They are pouring coffee.\n\nTrong ảnh có một người đang thuyết trình bằng máy chiếu - Chọn (B).",
+            "ai_prompt_context": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "part_title": "Part 2: Question-Response",
+    "instruction": "Listen to the question and the three responses. Choose the best response.",
+    "shared_audio": null,
+    "shared_media": null,
+    "content_html": "<p><strong>Directions:</strong> You will hear a question or statement and three responses spoken in English. They will not be printed in your test book. Select the best response.</p>",
+    "question_groups": [
+      {
+        "group_id": "toeic-list-p2-01",
+        "instruction": null,
+        "content_html": null,
+        "shared_audio": {
+          "url": "https://your-cloud-storage.com/audio/toeic-part2-q7.mp3",
+          "duration_seconds": 15
+        },
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_007",
+            "type": "SINGLE_CHOICE",
+            "question_text": "7. Mark your answer on your screen.",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "(A)" },
+              { "id": "B", "text": "(B)" },
+              { "id": "C", "text": "(C)" }
+            ],
+            "correct_answer": "A",
+            "explanation": "Audio script:\nQ: When is the budget report due?\n(A) By Friday afternoon.\n(B) Mr. Smith's office.\n(C) Yes, it is very expensive.\n\nCâu hỏi 'When' (Khi nào) - Đáp án chỉ thời gian 'By Friday afternoon' (Trước chiều thứ Sáu) là chính xác.",
+            "ai_prompt_context": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "part_title": "Part 3: Conversations (Standard & Graphic)",
+    "instruction": "Listen to the conversation and answer the questions.",
+    "shared_audio": null,
+    "shared_media": null,
+    "content_html": null,
+    "question_groups": [
+      {
+        "group_id": "toeic-list-p3-standard-01",
+        "instruction": "Questions 32-34 refer to the following conversation.",
+        "content_html": null,
+        "shared_audio": {
+          "url": "https://your-cloud-storage.com/audio/toeic-part3-q32-34.mp3",
+          "duration_seconds": 45
+        },
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_032",
+            "type": "SINGLE_CHOICE",
+            "question_text": "32. Where are the speakers?",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "At a hotel" },
+              { "id": "B", "text": "At an airport" },
+              { "id": "C", "text": "At a restaurant" },
+              { "id": "D", "text": "At a train station" }
+            ],
+            "correct_answer": "B",
+            "explanation": "Audio có nhắc đến các từ khóa 'flight', 'boarding gate', 'luggage'.",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "toeic-list-p3-graphic-01",
+        "instruction": "Questions 62-64 refer to the following conversation and schedule.",
+        "content_html": null,
+        "shared_audio": {
+          "url": "https://your-cloud-storage.com/audio/toeic-part3-q62-64.mp3",
+          "duration_seconds": 55
+        },
+        "shared_media": {
+          "type": "image",
+          "url": "https://your-cloud-storage.com/images/toeic-flight-schedule.png",
+          "display_config": {
+            "size_preset": "medium",
+            "alignment": "center"
+          }
+        },
+        "questions": [
+          {
+            "question_id": "q_062",
+            "type": "SINGLE_CHOICE",
+            "question_text": "62. Why is the man apologizing?",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "A flight is delayed." },
+              { "id": "B", "text": "A ticket is lost." },
+              { "id": "C", "text": "A machine is broken." },
+              { "id": "D", "text": "A store is closed." }
+            ],
+            "correct_answer": "A",
+            "explanation": "Người nam nói 'I apologize, but your flight to Tokyo has been delayed due to bad weather'.",
+            "ai_prompt_context": null
+          },
+          {
+            "question_id": "q_063",
+            "type": "SINGLE_CHOICE",
+            "question_text": "63. Look at the graphic. Which gate should the woman go to?",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "Gate 12" },
+              { "id": "B", "text": "Gate 14" },
+              { "id": "C", "text": "Gate 16" },
+              { "id": "D", "text": "Gate 18" }
+            ],
+            "correct_answer": "C",
+            "explanation": "Dạng bài kết hợp hình ảnh (Graphic): Trong audio người phụ nữ nói cô ấy đi chuyến bay tới 'Tokyo'. Đối chiếu lên hình ảnh lịch trình, chuyến bay đi Tokyo khởi hành tại 'Gate 16'.",
+            "ai_prompt_context": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "part_title": "Part 4: Talks (With Graphic)",
+    "instruction": "Listen to the talk and answer the questions.",
+    "shared_audio": null,
+    "shared_media": null,
+    "content_html": null,
+    "question_groups": [
+      {
+        "group_id": "toeic-list-p4-graphic-01",
+        "instruction": "Questions 98-100 refer to the following excerpt from a meeting and pie chart.",
+        "content_html": null,
+        "shared_audio": {
+          "url": "https://your-cloud-storage.com/audio/toeic-part4-q98-100.mp3",
+          "duration_seconds": 60
+        },
+        "shared_media": {
+          "type": "image",
+          "url": "https://your-cloud-storage.com/images/toeic-pie-chart-budget.png",
+          "display_config": {
+            "size_preset": "large",
+            "alignment": "center"
+          }
+        },
+        "questions": [
+          {
+            "question_id": "q_098",
+            "type": "SINGLE_CHOICE",
+            "question_text": "98. Look at the graphic. Which department will receive the most funding next year?",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "Marketing" },
+              { "id": "B", "text": "Research and Development" },
+              { "id": "C", "text": "Human Resources" },
+              { "id": "D", "text": "Maintenance" }
+            ],
+            "correct_answer": "B",
+            "explanation": "Audio nhắc đến 'The department taking up the largest slice of our budget pie...'. Nhìn vào biểu đồ tròn, phần lớn nhất (45%) thuộc về Research and Development.",
+            "ai_prompt_context": null
+          }
+        ]
+      }
+    ]
+  }
+]
