@@ -83,4 +83,14 @@ describe('answerSlice', () => {
     expect(ids).toContain('q_003');
     expect(ids).not.toContain('q_002');
   });
+
+  it('REGRESSION: selectAnsweredQuestionIds returns same reference when state unchanged', () => {
+    const store = makeStore();
+    store.dispatch(setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+    store.dispatch(setAnswer({ partId: 1, questionId: 'q_001', value: 'A' }));
+    const first = selectAnsweredQuestionIds(store.getState(), 1);
+    // Call again with same state — should be referentially identical (memoized)
+    const second = selectAnsweredQuestionIds(store.getState(), 1);
+    expect(first).toBe(second); // strict reference equality — fails without createSelector
+  });
 });

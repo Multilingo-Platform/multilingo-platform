@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createSelector, PayloadAction } from '@reduxjs/toolkit';
 import type { AnswerValue, PartAnswers } from '../types/answer.types';
 
 interface AnswerState {
@@ -62,12 +62,19 @@ export function selectAnswer(state: RootLike, partId: number, questionId: string
   return state.answers.answers?.[partId]?.[questionId] ?? null;
 }
 
-export function selectAnsweredQuestionIds(state: RootLike, partId: number): string[] {
-  const partAnswers = state.answers.answers?.[partId];
-  if (!partAnswers) return [];
-  return Object.entries(partAnswers)
-    .filter(([, v]) => v !== null && v !== undefined)
-    .map(([k]) => k);
-}
+/**
+ * Memoized selector — returns the same array reference when answers for
+ * this partId haven't changed, preventing unnecessary QuestionPalette re-renders.
+ */
+export const selectAnsweredQuestionIds = createSelector(
+  [(state: RootLike) => state.answers.answers, (_: RootLike, partId: number) => partId],
+  (answers, partId): string[] => {
+    const partAnswers = answers[partId];
+    if (!partAnswers) return [];
+    return Object.entries(partAnswers)
+      .filter(([, v]) => v !== null && v !== undefined)
+      .map(([k]) => k);
+  }
+);
 
 export default answerSlice.reducer;
