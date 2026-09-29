@@ -4,6 +4,8 @@ import './App.css';
 import axiosClient from './api/axiosClient';
 import AudioUploader from './components/AudioUploader';
 import StudentExamView from './components/StudentExamView';
+import ExamStartPage from './features/exam/pages/ExamStartPage';
+import WorkspacePage from './features/exam/pages/WorkspacePage';
 
 // --- MEMBER 2 PAGES & LAYOUTS ---
 import UserLayout from './layouts/UserLayout';
@@ -71,6 +73,10 @@ function App() {
           <Route path="dashboard" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng Admin Dashboard</h1></div>} />
           <Route path="users" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng Quản lý Người dùng</h1></div>} />
         </Route>
+
+        {/* --- CBT EXAM ROUTES --- */}
+        <Route path="/exams/:examId/start" element={<ExamStartPage />} />
+        <Route path="/attempts/:attemptId" element={<WorkspacePage />} />
       </Routes>
     </>
   );
