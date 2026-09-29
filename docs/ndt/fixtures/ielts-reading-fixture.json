@@ -1,0 +1,197 @@
+[
+  {
+    "part_title": "IELTS Academic Reading - Passage 1: The History of Bicycles",
+    "instruction": "Read the passage and answer Questions 1-9.",
+    "shared_audio": null,
+    "shared_media": null,
+    "content_html": "<div class='reading-passage'><h2>The History of Bicycles</h2><p><strong>A.</strong> The bicycle is a classic invention...</p><p><strong>B.</strong> In the 1890s, the safety bicycle...</p><p><strong>C.</strong> Modern materials have changed...</p></div>",
+    "question_groups": [
+      {
+        "group_id": "reading-tfng-01",
+        "instruction": "Do the following statements agree with the information given in Reading Passage 1? Choose TRUE, FALSE, or NOT GIVEN.",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_001",
+            "type": "TRUE_FALSE_NOT_GIVEN",
+            "question_text": "1. The first bicycles were made entirely of wood.",
+            "media": null,
+            "options": [
+              { "id": "TRUE", "text": "TRUE" },
+              { "id": "FALSE", "text": "FALSE" },
+              { "id": "NOT GIVEN", "text": "NOT GIVEN" }
+            ],
+            "correct_answer": "TRUE",
+            "explanation": "Đoạn A có câu: 'The earliest models were constructed strictly from timber.' (timber = wood).",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "reading-yynn-01",
+        "instruction": "Do the following statements agree with the views of the writer? Choose YES, NO, or NOT GIVEN.",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_002",
+            "type": "YES_NO_NOT_GIVEN",
+            "question_text": "2. The invention of the safety bicycle was the most important development in cycling history.",
+            "media": null,
+            "options": [
+              { "id": "YES", "text": "YES" },
+              { "id": "NO", "text": "NO" },
+              { "id": "NOT GIVEN", "text": "NOT GIVEN" }
+            ],
+            "correct_answer": "NOT GIVEN",
+            "explanation": "Tác giả có nhắc đến 'safety bicycle' ở đoạn B nhưng không hề khẳng định đây là bước phát triển 'quan trọng nhất' (most important).",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "reading-mcq-single-01",
+        "instruction": "Choose the correct letter, A, B, C, or D.",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_003",
+            "type": "SINGLE_CHOICE",
+            "question_text": "3. What is the writer's main purpose in the second paragraph?",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "To explain how bicycles became faster." },
+              { "id": "B", "text": "To describe the social impact of cycling." },
+              { "id": "C", "text": "To detail the mechanical flaws of early models." },
+              { "id": "D", "text": "To compare different manufacturing materials." }
+            ],
+            "correct_answer": "B",
+            "explanation": "Đoạn B tập trung vào việc xe đạp đã giúp thay đổi phong cách ăn mặc và sự tự do đi lại của phụ nữ (social impact).",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "reading-mcq-multi-01",
+        "instruction": "Choose TWO letters, A-E. Which TWO advantages of modern bicycles are mentioned?",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_004",
+            "type": "MULTIPLE_CHOICE",
+            "question_text": "4-5. Choose two advantages.",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "They are cheaper to produce." },
+              { "id": "B", "text": "They are significantly lighter." },
+              { "id": "C", "text": "They require less maintenance." },
+              { "id": "D", "text": "They fold up for easy storage." },
+              { "id": "E", "text": "They have more gears." }
+            ],
+            "correct_answer": ["B", "E"],
+            "explanation": "Đoạn C đề cập đến 'carbon frames reducing weight' (B) và 'advanced gearing systems' (E).",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "reading-matching-headings-01",
+        "instruction": "Choose the correct heading for each paragraph from the list of headings below.",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_006",
+            "type": "MATCHING_HEADINGS",
+            "question_text": "6. Paragraph A",
+            "media": null,
+            "options": [
+              { "id": "i", "text": "A temporary decline" },
+              { "id": "ii", "text": "The structural evolution" },
+              { "id": "iii", "text": "The birth of the bicycle" }
+            ],
+            "correct_answer": "iii",
+            "explanation": "Đoạn A nói về sự ra đời của nguyên mẫu đầu tiên.",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "reading-matching-features-01",
+        "instruction": "Look at the following statements and the list of researchers below. Match each statement with the correct researcher, A, B, or C.",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_007",
+            "type": "MATCHING_FEATURES",
+            "question_text": "7. Argued that bicycles paved the way for automobile mechanics.",
+            "media": null,
+            "options": [
+              { "id": "A", "text": "John Boyd Dunlop" },
+              { "id": "B", "text": "J.K. Starley" },
+              { "id": "C", "text": "Pierre Michaux" }
+            ],
+            "correct_answer": "B",
+            "explanation": "Trong đoạn C, J.K. Starley đã chỉ ra rằng công nghệ ổ bi và xích xe đạp là tiền đề cho ô tô.",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "reading-fill-blanks-01",
+        "instruction": "Complete the summary below. Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": null,
+        "questions": [
+          {
+            "question_id": "q_008",
+            "type": "FILL_IN_THE_BLANK",
+            "question_text": "The early version of the bicycle was known as a [___8___] because of its rough ride.",
+            "media": null,
+            "options": null,
+            "correct_answer": ["boneshaker", "bone shaker"],
+            "explanation": "Đoạn A: 'It earned the nickname boneshaker due to its stiff wooden wheels'.",
+            "ai_prompt_context": null
+          }
+        ]
+      },
+      {
+        "group_id": "reading-diagram-labeling-01",
+        "instruction": "Label the diagram below. Choose NO MORE THAN ONE WORD from the passage for each answer.",
+        "content_html": null,
+        "shared_audio": null,
+        "shared_media": {
+          "type": "image",
+          "url": "https://your-cloud-storage.com/images/bicycle-diagram.png",
+          "display_config": {
+            "size_preset": "large",
+            "alignment": "center"
+          }
+        },
+        "questions": [
+          {
+            "question_id": "q_009",
+            "type": "DIAGRAM_LABELING",
+            "question_text": "9. The central frame component: [___9___]",
+            "media": null,
+            "options": null,
+            "correct_answer": ["diamond", "diamond frame"],
+            "explanation": "Sơ đồ chỉ vào khung xe, trong bài có nhắc đến 'diamond frame'.",
+            "ai_prompt_context": null
+          }
+        ]
+      }
+    ]
+  }
+]
