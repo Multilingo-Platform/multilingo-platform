@@ -23,6 +23,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/health", "/api/test/**").permitAll()
+                // TODO: Replace permitAll with JWT auth when TV1 authentication module is ready
+                .requestMatchers("/api/v1/attempts/**").permitAll()
                 .anyRequest().authenticated()
             );
 
