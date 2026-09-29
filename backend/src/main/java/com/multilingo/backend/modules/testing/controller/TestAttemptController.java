@@ -38,7 +38,7 @@ public class TestAttemptController {
      *
      * @return 200 OK with WorkspaceResponse
      */
-    @GetMapping("/{id}/workspace")
+    @GetMapping({"/{id}", "/{id}/workspace"})
     public ResponseEntity<ApiResponse<WorkspaceResponse>> getWorkspace(
             @PathVariable Integer id) {
         WorkspaceResponse workspace = testAttemptService.getAttemptWorkspace(id);
