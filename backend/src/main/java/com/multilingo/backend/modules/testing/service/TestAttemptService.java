@@ -1,6 +1,8 @@
 package com.multilingo.backend.modules.testing.service;
 
+import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 
 public interface TestAttemptService {
@@ -23,4 +25,16 @@ public interface TestAttemptService {
      * @throws AppException(FORBIDDEN) if attemptId exists but belongs to another user (or doesn't exist)
      */
     WorkspaceResponse getAttemptWorkspace(Integer attemptId);
+
+    /**
+     * Autosaves draft answers for an attempt.
+     * Upserts answers into attempt_answers table per partId.
+     */
+    void autosaveAnswers(Integer attemptId, AutosaveAnswersRequest request);
+
+    /**
+     * Submits an attempt.
+     * Idempotent: if already completed, returns existing result.
+     */
+    SubmitResultResponse submitAttempt(Integer attemptId, AutosaveAnswersRequest request);
 }
