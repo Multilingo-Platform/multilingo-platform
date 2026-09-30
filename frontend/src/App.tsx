@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import './App.css';
 import axiosClient from './api/axiosClient';
-import AudioUploader from './components/AudioUploader';
-import StudentExamView from './components/StudentExamView';
 import ExamStartPage from './features/exam/pages/ExamStartPage';
 import WorkspacePage from './features/exam/pages/WorkspacePage';
+import ExamResultPage from './features/exam/pages/ExamResultPage';
 
 // --- MEMBER 2 PAGES & LAYOUTS ---
 import UserLayout from './layouts/UserLayout';
@@ -16,69 +15,237 @@ import TestHistory from './pages/student/TestHistory';
 import ExamManagement from './pages/admin/ExamManagement';
 import ExamBuilderPage from './pages/admin/ExamBuilderPage';
 
-function App() {
-  const [backendMessage, setBackendMessage] = useState<string>('Loading from backend...');
+const TEST_CASES = [
+  { id: 1, attemptId: 17, label: 'Mock Test (3h Timer)', route: '/attempts/17', badge: 'MOCK' },
+  { id: 2, attemptId: 18, label: 'Practice Mode (No Timer)', route: '/attempts/18', badge: 'PRACTICE' },
+  { id: 3, attemptId: 19, label: 'Single Skill Reading', route: '/attempts/19', badge: 'SKILL' },
+  { id: 4, attemptId: 20, label: 'Submit Flow Test', route: '/attempts/20', badge: 'MOCK' },
+  { id: 5, attemptId: 21, label: 'Completed (Redirect)', route: '/attempts/21', badge: 'DONE' },
+];
+
+function getBadgeStyle(badge: string): string {
+  switch (badge) {
+    case 'MOCK': return 'background:rgba(33,81,218,0.15);color:#3b5fe8;border:1px solid rgba(33,81,218,0.3)';
+    case 'PRACTICE': return 'background:rgba(16,185,129,0.15);color:#10B981;border:1px solid rgba(16,185,129,0.3)';
+    case 'SKILL': return 'background:rgba(33,81,218,0.15);color:#3b5fe8;border:1px solid rgba(33,81,218,0.3)';
+    default: return 'background:#263549;color:#94A3B8;border:1px solid #334155';
+  }
+}
+
+function HomePage() {
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
 
   useEffect(() => {
     axiosClient.get('/test/hello')
-      .then((res: any) => {
-        setBackendMessage(res.message || 'Connected successfully!');
-      })
-      .catch((err) => {
-        console.error(err);
-        setBackendMessage('Failed to connect to backend.');
-      });
+      .then(() => setStatus('ok'))
+      .catch(() => setStatus('error'));
   }, []);
 
+  const statusStyle =
+    status === 'ok'
+      ? 'background:rgba(16,185,129,0.1);color:#10B981;border:1px solid rgba(16,185,129,0.3)'
+      : status === 'error'
+      ? 'background:rgba(239,68,68,0.1);color:#EF4444;border:1px solid rgba(239,68,68,0.3)'
+      : 'background:#263549;color:#94A3B8;border:1px solid #334155';
+
   return (
-    <>
-      <Routes>
-        {/* --- DEV / TEST ROUTES (Tạm thời giữ lại) --- */}
-        <Route path="/dev" element={
-          <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-            <div className="max-w-4xl w-full bg-white p-8 rounded-xl shadow-lg">
-              <h1 className="text-3xl font-bold text-indigo-600 mb-4 text-center">Dev Test Route</h1>
-              <div className="bg-indigo-50 p-4 rounded text-indigo-700 font-medium mb-6 text-center">
-                Backend Status: {backendMessage}
-              </div>
-              <nav className="flex justify-center gap-4 mb-8">
-                <Link to="/dev/test-audio" className="text-indigo-600 hover:underline font-medium">Upload Audio</Link>
-                <Link to="/dev/test-student" className="text-indigo-600 hover:underline font-medium">Student View</Link>
-                <Link to="/onboarding" className="text-green-600 hover:underline font-bold">Go to App</Link>
-              </nav>
-            </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0F172A', color: '#F8FAFC' }}>
+      {/* Header */}
+      <header style={{
+        borderBottom: '1px solid rgba(51,65,85,0.5)',
+        padding: '1rem 1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        backgroundColor: 'rgba(15,23,42,0.85)',
+        backdropFilter: 'blur(8px)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 800,
+            fontSize: '1.25rem',
+            background: 'linear-gradient(to right, #2151DA, #60a5fa)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>
+            Multilingo
+          </span>
+          <span style={{ color: '#94A3B8', fontSize: '0.875rem' }}>Exam Platform</span>
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          padding: '0.375rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 500,
+          ...Object.fromEntries(statusStyle.split(';').filter(Boolean).map(s => {
+            const [k, v] = s.split(':');
+            return [k.trim().replace(/-([a-z])/g, (_, c: string) => c.toUpperCase()), v.trim()];
+          })),
+        }}>
+          <span style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            backgroundColor: status === 'ok' ? '#10B981' : status === 'error' ? '#EF4444' : '#94A3B8',
+            display: 'inline-block',
+            animation: status === 'ok' ? 'pulse 2s infinite' : 'none',
+          }} />
+          {status === 'ok' ? 'Backend Connected' : status === 'error' ? 'Backend Offline' : 'Checking...'}
+        </div>
+      </header>
+
+      <main style={{ maxWidth: '960px', margin: '0 auto', padding: '3rem 1.5rem' }}>
+        {/* Hero */}
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <h1 style={{
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 800,
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            lineHeight: 1.15,
+            marginBottom: '1rem',
+            color: '#F8FAFC',
+          }}>
+            Luyện thi IELTS<br />
+            <span style={{
+              background: 'linear-gradient(to right, #2151DA, #60a5fa)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}>
+              thông minh &amp; hiệu quả
+            </span>
+          </h1>
+          <p style={{ color: '#94A3B8', fontSize: '1.125rem', maxWidth: '500px', margin: '0 auto' }}>
+            Hệ thống luyện thi với Timer tự động, Autosave thông minh và báo cáo phân tích chi tiết.
+          </p>
+        </div>
+
+        {/* Primary CTAs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
+          <Link to="/exams/1/start" style={{
+            display: 'flex', flexDirection: 'column', gap: '0.75rem',
+            padding: '1.5rem',
+            borderRadius: '1rem',
+            background: 'linear-gradient(135deg, #2151DA, #1e3a8a)',
+            textDecoration: 'none',
+            boxShadow: '0 8px 32px rgba(33,81,218,0.25)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.02)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)'; }}>
+            <div style={{ fontSize: '2rem' }}>⏱️</div>
+            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', color: '#fff' }}>Mock Test (IELTS)</div>
+            <div style={{ color: '#bfdbfe', fontSize: '0.875rem', lineHeight: 1.5 }}>Thi thật với đồng hồ đếm ngược, tự động nộp bài khi hết giờ.</div>
+            <div style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.875rem', fontWeight: 600 }}>Bắt đầu thi →</div>
+          </Link>
+
+          <Link to="/exams/2/start" style={{
+            display: 'flex', flexDirection: 'column', gap: '0.75rem',
+            padding: '1.5rem',
+            borderRadius: '1rem',
+            background: 'linear-gradient(135deg, #065f46, #134e4a)',
+            textDecoration: 'none',
+            boxShadow: '0 8px 32px rgba(6,78,59,0.3)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.02)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)'; }}>
+            <div style={{ fontSize: '2rem' }}>📖</div>
+            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', color: '#fff' }}>Practice Mode</div>
+            <div style={{ color: '#a7f3d0', fontSize: '0.875rem', lineHeight: 1.5 }}>Luyện tập không áp lực, không có đồng hồ đếm ngược.</div>
+            <div style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.875rem', fontWeight: 600 }}>Bắt đầu luyện →</div>
+          </Link>
+        </div>
+
+        {/* Testcases */}
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '1.125rem', color: '#cbd5e1', marginBottom: '1rem' }}>
+            📋 Dev Testcases
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
+            {TEST_CASES.map((tc) => (
+              <Link
+                key={tc.id}
+                to={tc.route}
+                style={{
+                  display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                  padding: '1rem',
+                  borderRadius: '0.75rem',
+                  background: 'rgba(30,41,59,0.6)',
+                  border: '1px solid rgba(51,65,85,0.6)',
+                  textDecoration: 'none',
+                  transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.background = '#1E293B';
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.01)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(30,41,59,0.6)';
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.4 }}>
+                    {tc.label}
+                  </span>
+                  <span style={{
+                    flexShrink: 0, fontSize: '0.7rem', padding: '2px 8px',
+                    borderRadius: '9999px', fontWeight: 600,
+                    ...Object.fromEntries(getBadgeStyle(tc.badge).split(';').filter(Boolean).map(s => {
+                      const [k, v] = s.split(':');
+                      return [k.trim().replace(/-([a-z])/g, (_, c: string) => c.toUpperCase()), v?.trim()];
+                    })),
+                  }}>
+                    {tc.badge}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Attempt #{tc.attemptId} →
+                </span>
+              </Link>
+            ))}
           </div>
-        } />
-        <Route path="/dev/test-audio" element={<AudioUploader />} />
-        <Route path="/dev/test-student" element={<StudentExamView />} />
+        </div>
+      </main>
+    </div>
+  );
+}
 
-        {/* --- CHÍNH THỨC: MEMBER 2 ROUTES --- */}
-        <Route path="/" element={<Navigate to="/onboarding" replace />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
+function App() {
+  return (
+    <Routes>
+      {/* --- DEV / PORTAL ROUTES --- */}
+      <Route path="/portal" element={<HomePage />} />
+      <Route path="/dev" element={<HomePage />} />
 
-        {/* Màn hình Student */}
-        <Route path="/student" element={<UserLayout />}>
-          <Route path="library" element={<ExamLibrary />} />
-          <Route path="history" element={<TestHistory />} />
-          <Route path="dashboard" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng của Thành viên 5 (Dashboard)</h1></div>} />
-          <Route path="flashcards" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng của Thành viên 5 (Flashcards)</h1></div>} />
-          <Route path="settings" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng của Thành viên 1 (Settings)</h1></div>} />
-        </Route>
+      {/* --- CHÍNH THỨC: MEMBER 2 ROUTES --- */}
+      <Route path="/" element={<Navigate to="/onboarding" replace />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
 
-        {/* Màn hình Admin */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="" element={<Navigate to="/admin/exams" replace />} />
-          <Route path="exams" element={<ExamManagement />} />
-          <Route path="exams/create" element={<ExamBuilderPage />} />
-          <Route path="dashboard" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng Admin Dashboard</h1></div>} />
-          <Route path="users" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng Quản lý Người dùng</h1></div>} />
-        </Route>
+      {/* Màn hình Student */}
+      <Route path="/student" element={<UserLayout />}>
+        <Route path="library" element={<ExamLibrary />} />
+        <Route path="history" element={<TestHistory />} />
+        <Route path="dashboard" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng của Thành viên 5 (Dashboard)</h1></div>} />
+        <Route path="flashcards" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng của Thành viên 5 (Flashcards)</h1></div>} />
+        <Route path="settings" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng của Thành viên 1 (Settings)</h1></div>} />
+      </Route>
 
-        {/* --- CBT EXAM ROUTES --- */}
-        <Route path="/exams/:examId/start" element={<ExamStartPage />} />
-        <Route path="/attempts/:attemptId" element={<WorkspacePage />} />
-      </Routes>
-    </>
+      {/* Màn hình Admin */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route path="" element={<Navigate to="/admin/exams" replace />} />
+        <Route path="exams" element={<ExamManagement />} />
+        <Route path="exams/create" element={<ExamBuilderPage />} />
+        <Route path="dashboard" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng Admin Dashboard</h1></div>} />
+        <Route path="users" element={<div className="container"><h1 style={{fontSize: '2rem', marginTop: '2rem'}}>Tính năng Quản lý Người dùng</h1></div>} />
+      </Route>
+
+      {/* --- CBT EXAM ROUTES --- */}
+      <Route path="/exams/:examId/start" element={<ExamStartPage />} />
+      <Route path="/student/exam/:examId" element={<ExamStartPage />} />
+      <Route path="/attempts/:attemptId" element={<WorkspacePage />} />
+      <Route path="/attempts/:attemptId/result" element={<ExamResultPage />} />
+    </Routes>
   );
 }
 
