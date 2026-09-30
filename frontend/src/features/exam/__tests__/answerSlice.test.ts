@@ -6,6 +6,11 @@ import answerReducer, {
   clearAnswers,
   selectAnswer,
   selectAnsweredQuestionIds,
+  markSavePending,
+  markSaveSuccess,
+  markSaveError,
+  initialState,
+  reducer,
 } from '../store/answerSlice';
 
 function makeStore() {
@@ -92,5 +97,43 @@ describe('answerSlice', () => {
     // Call again with same state — should be referentially identical (memoized)
     const second = selectAnsweredQuestionIds(store.getState(), 1);
     expect(first).toBe(second); // strict reference equality — fails without createSelector
+  });
+
+  describe('isDirty flag', () => {
+    it('isDirty starts false', () => {
+      const state = reducer(undefined, { type: '@@INIT' });
+      expect(state.isDirty).toBe(false);
+    });
+
+    it('setAnswer marks isDirty = true', () => {
+      let state = reducer({ ...initialState, attemptId: 1 }, setAttemptContext({ attemptId: 1, version: 0, savedAnswers: [] }));
+      state = reducer(state, setAnswer({ partId: 1, questionId: 'q1', value: 'A' }));
+      expect(state.isDirty).toBe(true);
+    });
+
+    it('markSaveSuccess resets isDirty to false and sets lastSavedAt', () => {
+      let state = reducer({ ...initialState, attemptId: 1, isDirty: true }, markSaveSuccess({ savedAt: 1000 }));
+      expect(state.isDirty).toBe(false);
+      expect(state.lastSavedAt).toBe(1000);
+      expect(state.saveStatus).toBe('saved');
+    });
+
+    it('markSaveError keeps isDirty true', () => {
+      let state = reducer({ ...initialState, isDirty: true }, markSaveError());
+      expect(state.isDirty).toBe(true);
+      expect(state.saveStatus).toBe('error');
+    });
+
+    it('markSavePending sets saveStatus to saving', () => {
+      const state = reducer(initialState, markSavePending());
+      expect(state.saveStatus).toBe('saving');
+    });
+
+    it('clearAnswers resets isDirty and saveStatus', () => {
+      const dirty = { ...initialState, isDirty: true, saveStatus: 'error' as const };
+      const state = reducer(dirty, clearAnswers());
+      expect(state.isDirty).toBe(false);
+      expect(state.saveStatus).toBe('idle');
+    });
   });
 });
