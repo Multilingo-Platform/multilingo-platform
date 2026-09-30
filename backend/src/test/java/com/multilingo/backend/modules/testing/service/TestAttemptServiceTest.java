@@ -6,6 +6,8 @@ import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
+import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
+import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,9 +15,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -126,5 +131,71 @@ class TestAttemptServiceTest {
         String snapshotJson = response.getExamSnapshot().toString();
         assertThat(snapshotJson).doesNotContain("correctAnswer");
         assertThat(snapshotJson).doesNotContain("correct_answer");
+    }
+
+    // ─── UC-03: autosaveAnswers ────────────────────────────────────────────────
+
+    @Test
+    void autosaveAnswers_saves_to_attempt_answers_table() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestMode(TestMode.PRACTICE);
+        WorkspaceResponse attempt = service.createAttempt(req);
+
+        AutosaveAnswersRequest saveReq = new AutosaveAnswersRequest();
+        saveReq.setVersion(1);
+        saveReq.setAnswers(List.of(
+                AutosaveAnswersRequest.PartAnswerDto.builder()
+                        .partId(1)
+                        .answers(List.of(
+                                AutosaveAnswersRequest.QuestionAnswerDto.builder()
+                                        .questionId("q_001")
+                                        .answer("A")
+                                        .build()
+                        ))
+                        .build()
+        ));
+
+        assertDoesNotThrow(() -> service.autosaveAnswers(attempt.getAttemptId(), saveReq));
+    }
+
+    // ─── UC-04: submitAttempt ──────────────────────────────────────────────────
+
+    @Test
+    void submitAttempt_changes_status_to_COMPLETED() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestMode(TestMode.PRACTICE);
+        WorkspaceResponse attempt = service.createAttempt(req);
+
+        AutosaveAnswersRequest submitReq = new AutosaveAnswersRequest();
+        submitReq.setVersion(1);
+        submitReq.setAnswers(Collections.emptyList());
+
+        SubmitResultResponse result = service.submitAttempt(attempt.getAttemptId(), submitReq);
+
+        assertThat(result.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+        assertThat(result.getRedirectUrl()).contains(attempt.getAttemptId().toString());
+    }
+
+    @Test
+    void submitAttempt_is_idempotent_when_already_completed() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestMode(TestMode.PRACTICE);
+        WorkspaceResponse attempt = service.createAttempt(req);
+
+        AutosaveAnswersRequest submitReq = new AutosaveAnswersRequest();
+        submitReq.setVersion(1);
+        submitReq.setAnswers(Collections.emptyList());
+
+        service.submitAttempt(attempt.getAttemptId(), submitReq);
+
+        // Submit lần 2 — phải trả về kết quả cũ, không throw
+        SubmitResultResponse result2 = service.submitAttempt(attempt.getAttemptId(), submitReq);
+        assertThat(result2.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
     }
 }
