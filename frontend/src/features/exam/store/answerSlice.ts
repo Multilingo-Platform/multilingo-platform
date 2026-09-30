@@ -13,6 +13,12 @@ interface AnswerState {
   /** null cho đến lần autosave thành công đầu tiên */
   lastSavedAt: number | null;
   saveStatus: SaveStatus;
+  /**
+   * Monotonically increasing counter — incremented every time setAnswer fires.
+   * useAutosave snapshots this before sending the HTTP request; markSaveSuccess
+   * only resets isDirty if no new edit has arrived since then (pendingVersion unchanged).
+   */
+  pendingVersion: number;
 }
 
 export const initialState: AnswerState = {
@@ -22,6 +28,7 @@ export const initialState: AnswerState = {
   isDirty: false,
   lastSavedAt: null,
   saveStatus: 'idle',
+  pendingVersion: 0,
 };
 
 const answerSlice = createSlice({
@@ -38,6 +45,7 @@ const answerSlice = createSlice({
       state.answers = {};
       state.isDirty = false;
       state.saveStatus = 'idle';
+      state.pendingVersion = 0;
       for (const part of savedAnswers) {
         state.answers[part.part_id] = {};
         for (const ua of part.answers) {
@@ -57,16 +65,22 @@ const answerSlice = createSlice({
       }
       state.answers[partId][questionId] = value;
       state.isDirty = true;
+      state.pendingVersion += 1;
     },
 
-    markSavePending(state) {
+    /** Pass the pendingVersion snapshot taken just before launching the HTTP request. */
+    markSavePending(state, action: PayloadAction<number>) {
+      void action; // version snapshot held by useAutosave — not stored here
       state.saveStatus = 'saving';
     },
 
-    markSaveSuccess(state, action: PayloadAction<{ savedAt: number }>) {
-      state.isDirty = false;
+    markSaveSuccess(state, action: PayloadAction<{ savedAt: number; version: number }>) {
       state.lastSavedAt = action.payload.savedAt;
       state.saveStatus = 'saved';
+      // Only clear isDirty when no new edit arrived after the HTTP call was launched
+      if (state.pendingVersion === action.payload.version) {
+        state.isDirty = false;
+      }
     },
 
     markSaveError(state) {
@@ -111,8 +125,14 @@ export const selectSaveStatus = createSelector(
     (state: RootLike) => state.answers.isDirty,
     (state: RootLike) => state.answers.saveStatus,
     (state: RootLike) => state.answers.lastSavedAt,
+    (state: RootLike) => state.answers.pendingVersion,
   ],
-  (isDirty, saveStatus, lastSavedAt) => ({ isDirty, saveStatus, lastSavedAt })
+  (isDirty, saveStatus, lastSavedAt, pendingVersion) => ({
+    isDirty,
+    saveStatus,
+    lastSavedAt,
+    pendingVersion,
+  })
 );
 
 // Export for tests
