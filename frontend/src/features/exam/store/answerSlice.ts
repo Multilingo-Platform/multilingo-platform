@@ -106,11 +106,14 @@ export const selectAnsweredQuestionIds = createSelector(
   }
 );
 
-export const selectSaveStatus = (state: RootLike) => ({
-  isDirty: state.answers.isDirty,
-  saveStatus: state.answers.saveStatus,
-  lastSavedAt: state.answers.lastSavedAt,
-});
+export const selectSaveStatus = createSelector(
+  [
+    (state: RootLike) => state.answers.isDirty,
+    (state: RootLike) => state.answers.saveStatus,
+    (state: RootLike) => state.answers.lastSavedAt,
+  ],
+  (isDirty, saveStatus, lastSavedAt) => ({ isDirty, saveStatus, lastSavedAt })
+);
 
 // Export for tests
 export const reducer = answerSlice.reducer;
