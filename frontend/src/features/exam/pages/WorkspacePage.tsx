@@ -20,7 +20,10 @@ const WorkspacePage: React.FC = () => {
   const navigate = useNavigate();
 
   const { workspace, loading, error, retry } = useWorkspace(attemptId);
-  const { displayTime, isExpired, isPractice } = useExamTimer(workspace?.deadline ?? null);
+  const { displayTime, isExpired, isPractice } = useExamTimer(
+    workspace?.deadline ?? null,
+    workspace?.serverTimeOffset ?? 0
+  );
   useAutosave(workspace && workspace.status === 'IN_PROGRESS' ? attemptId : null);
 
   const { isDirty } = useSelector((state: RootState) => selectSaveStatus(state));

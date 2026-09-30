@@ -20,12 +20,22 @@ function formatTime(ms: number): string {
   return `${minutes}:${ss}`;
 }
 
-export function useExamTimer(deadline: string | null): ExamTimerResult {
+/**
+ * @param deadline  ISO-8601 deadline string from server, or null for practice mode.
+ * @param serverTimeOffset  (optional) ms difference: serverClock − clientClock at workspace
+ *   fetch time. Positive = server ahead; negative = server behind. Defaults to 0.
+ */
+export function useExamTimer(
+  deadline: string | null,
+  serverTimeOffset: number = 0
+): ExamTimerResult {
   const isPractice = deadline === null;
 
   const computeTimeLeft = (): number => {
     if (isPractice || !deadline) return 0;
-    return Math.max(0, Date.parse(deadline) - Date.now());
+    // Adjust client's "now" by the server-client clock difference
+    const serverAdjustedNow = Date.now() + serverTimeOffset;
+    return Math.max(0, Date.parse(deadline) - serverAdjustedNow);
   };
 
   const [timeLeftMs, setTimeLeftMs] = useState<number>(computeTimeLeft);
@@ -41,7 +51,7 @@ export function useExamTimer(deadline: string | null): ExamTimerResult {
     }, 500);
 
     return () => clearInterval(id);
-  }, [deadline, isPractice]);
+  }, [deadline, isPractice, serverTimeOffset]);
 
   return {
     timeLeftMs,
