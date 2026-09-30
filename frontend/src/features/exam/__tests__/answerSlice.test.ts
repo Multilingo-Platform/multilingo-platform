@@ -112,7 +112,10 @@ describe('answerSlice', () => {
     });
 
     it('markSaveSuccess resets isDirty to false and sets lastSavedAt', () => {
-      let state = reducer({ ...initialState, attemptId: 1, isDirty: true }, markSaveSuccess({ savedAt: 1000 }));
+      let state = reducer(
+        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
+        markSaveSuccess({ savedAt: 1000, version: 1 })
+      );
       expect(state.isDirty).toBe(false);
       expect(state.lastSavedAt).toBe(1000);
       expect(state.saveStatus).toBe('saved');
@@ -125,7 +128,7 @@ describe('answerSlice', () => {
     });
 
     it('markSavePending sets saveStatus to saving', () => {
-      const state = reducer(initialState, markSavePending());
+      const state = reducer(initialState, markSavePending(0));
       expect(state.saveStatus).toBe('saving');
     });
 
@@ -134,6 +137,28 @@ describe('answerSlice', () => {
       const state = reducer(dirty, clearAnswers());
       expect(state.isDirty).toBe(false);
       expect(state.saveStatus).toBe('idle');
+    });
+
+    it('RACE: markSaveSuccess does NOT reset isDirty if new edit arrived (version mismatch)', () => {
+      // pendingVersion starts at 1; one more edit arrives → pendingVersion becomes 2
+      let state = reducer(
+        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
+        setAnswer({ partId: 1, questionId: 'q1', value: 'B' })
+      );
+      // In-flight save captured version=1 — responds now, but edit at version=2 is still dirty
+      state = reducer(state, markSaveSuccess({ savedAt: 1000, version: 1 }));
+      expect(state.isDirty).toBe(true);   // Must stay dirty
+      expect(state.saveStatus).toBe('saved');
+    });
+
+    it('RACE: markSaveSuccess resets isDirty when version matches (no new edit)', () => {
+      let state = reducer(
+        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
+        markSavePending(1)
+      );
+      state = reducer(state, markSaveSuccess({ savedAt: 2000, version: 1 }));
+      expect(state.isDirty).toBe(false);
+      expect(state.lastSavedAt).toBe(2000);
     });
   });
 });
