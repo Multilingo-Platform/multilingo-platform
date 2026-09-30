@@ -1,17 +1,27 @@
 import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import type { AnswerValue, PartAnswers } from '../types/answer.types';
 
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 interface AnswerState {
   attemptId: number | null;
   version: number;
   /** answers[partId][questionId] = AnswerValue */
   answers: Record<number, Record<string, AnswerValue>>;
+  /** true khi có đáp án chưa được autosave lên server thành công */
+  isDirty: boolean;
+  /** null cho đến lần autosave thành công đầu tiên */
+  lastSavedAt: number | null;
+  saveStatus: SaveStatus;
 }
 
-const initialState: AnswerState = {
+export const initialState: AnswerState = {
   attemptId: null,
   version: 0,
   answers: {},
+  isDirty: false,
+  lastSavedAt: null,
+  saveStatus: 'idle',
 };
 
 const answerSlice = createSlice({
@@ -26,6 +36,8 @@ const answerSlice = createSlice({
       state.attemptId = attemptId;
       state.version = version;
       state.answers = {};
+      state.isDirty = false;
+      state.saveStatus = 'idle';
       for (const part of savedAnswers) {
         state.answers[part.part_id] = {};
         for (const ua of part.answers) {
@@ -38,13 +50,28 @@ const answerSlice = createSlice({
       state,
       action: PayloadAction<{ partId: number; questionId: string; value: AnswerValue }>
     ) {
-      // Invariant: no writes when no active attempt
       if (state.attemptId === null) return;
       const { partId, questionId, value } = action.payload;
       if (!state.answers[partId]) {
         state.answers[partId] = {};
       }
       state.answers[partId][questionId] = value;
+      state.isDirty = true;
+    },
+
+    markSavePending(state) {
+      state.saveStatus = 'saving';
+    },
+
+    markSaveSuccess(state, action: PayloadAction<{ savedAt: number }>) {
+      state.isDirty = false;
+      state.lastSavedAt = action.payload.savedAt;
+      state.saveStatus = 'saved';
+    },
+
+    markSaveError(state) {
+      state.saveStatus = 'error';
+      // isDirty remains true — retry on next interval
     },
 
     clearAnswers() {
@@ -53,19 +80,21 @@ const answerSlice = createSlice({
   },
 });
 
-export const { setAttemptContext, setAnswer, clearAnswers } = answerSlice.actions;
+export const {
+  setAttemptContext,
+  setAnswer,
+  markSavePending,
+  markSaveSuccess,
+  markSaveError,
+  clearAnswers,
+} = answerSlice.actions;
 
-// Selectors — typed loosely to avoid circular imports
 type RootLike = { answers: AnswerState };
 
 export function selectAnswer(state: RootLike, partId: number, questionId: string): AnswerValue {
   return state.answers.answers?.[partId]?.[questionId] ?? null;
 }
 
-/**
- * Memoized selector — returns the same array reference when answers for
- * this partId haven't changed, preventing unnecessary QuestionPalette re-renders.
- */
 export const selectAnsweredQuestionIds = createSelector(
   [(state: RootLike) => state.answers.answers, (_: RootLike, partId: number) => partId],
   (answers, partId): string[] => {
@@ -77,4 +106,12 @@ export const selectAnsweredQuestionIds = createSelector(
   }
 );
 
+export const selectSaveStatus = (state: RootLike) => ({
+  isDirty: state.answers.isDirty,
+  saveStatus: state.answers.saveStatus,
+  lastSavedAt: state.answers.lastSavedAt,
+});
+
+// Export for tests
+export const reducer = answerSlice.reducer;
 export default answerSlice.reducer;
