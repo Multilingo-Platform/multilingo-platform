@@ -1,7 +1,9 @@
 package com.multilingo.backend.modules.testing.controller;
 
 import com.multilingo.backend.common.dto.ApiResponse;
+import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 import com.multilingo.backend.modules.testing.service.TestAttemptService;
 import jakarta.validation.Valid;
@@ -43,5 +45,31 @@ public class TestAttemptController {
             @PathVariable Integer id) {
         WorkspaceResponse workspace = testAttemptService.getAttemptWorkspace(id);
         return ResponseEntity.ok(ApiResponse.success(workspace));
+    }
+
+    /**
+     * UC-03: Autosave answers draft for an in-progress attempt.
+     *
+     * @return 200 OK
+     */
+    @PutMapping("/{id}/answers")
+    public ResponseEntity<ApiResponse<Void>> autosaveAnswers(
+            @PathVariable Integer id,
+            @Valid @RequestBody AutosaveAnswersRequest request) {
+        testAttemptService.autosaveAnswers(id, request);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /**
+     * UC-04: Submit attempt. Idempotent.
+     *
+     * @return 200 OK with SubmitResultResponse
+     */
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<ApiResponse<SubmitResultResponse>> submitAttempt(
+            @PathVariable Integer id,
+            @Valid @RequestBody AutosaveAnswersRequest request) {
+        SubmitResultResponse result = testAttemptService.submitAttempt(id, request);
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 }
