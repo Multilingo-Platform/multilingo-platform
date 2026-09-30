@@ -54,4 +54,5 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({ questions, partId, on
   );
 };
 
+export { QuestionPalette };
 export default QuestionPalette;
