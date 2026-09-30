@@ -6,11 +6,16 @@ import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.testing.adapter.ExamAdapter;
 import com.multilingo.backend.modules.testing.adapter.IdentityAdapter;
 import com.multilingo.backend.modules.testing.adapter.dto.ExamFixture;
+import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
+import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
+import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
+import com.multilingo.backend.modules.testing.repository.AttemptAnswerRepository;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.testing.service.TestAttemptService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -26,6 +32,7 @@ import java.util.Map;
 public class TestAttemptServiceImpl implements TestAttemptService {
 
     private final TestAttemptRepository testAttemptRepository;
+    private final AttemptAnswerRepository attemptAnswerRepository;
     private final ExamAdapter examAdapter;
     private final IdentityAdapter identityAdapter;
     private final ObjectMapper objectMapper;
@@ -75,6 +82,68 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                         "Attempt not found or access denied: " + attemptId));
 
         return toWorkspaceResponse(attempt);
+    }
+
+    @Override
+    @Transactional
+    public void autosaveAnswers(Integer attemptId, AutosaveAnswersRequest request) {
+        Integer userId = identityAdapter.getCurrentUserId();
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
+                        "Attempt not found or access denied: " + attemptId));
+
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            return;
+        }
+
+        if (request.getAnswers() != null) {
+            for (AutosaveAnswersRequest.PartAnswerDto partDto : request.getAnswers()) {
+                if (partDto.getPartId() == null) continue;
+
+                Map<String, Object> qMap = new HashMap<>();
+                if (partDto.getAnswers() != null) {
+                    for (AutosaveAnswersRequest.QuestionAnswerDto qDto : partDto.getAnswers()) {
+                        if (qDto.getQuestionId() != null) {
+                            qMap.put(qDto.getQuestionId(), qDto.getAnswer());
+                        }
+                    }
+                }
+
+                AttemptAnswer answerRecord = attemptAnswerRepository
+                        .findByAttemptIdAndPartId(attemptId, partDto.getPartId())
+                        .orElseGet(() -> AttemptAnswer.builder()
+                                .attempt(attempt)
+                                .partId(partDto.getPartId())
+                                .build());
+
+                answerRecord.setUserAnswers(qMap);
+                attemptAnswerRepository.save(answerRecord);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public SubmitResultResponse submitAttempt(Integer attemptId, AutosaveAnswersRequest request) {
+        Integer userId = identityAdapter.getCurrentUserId();
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
+                        "Attempt not found or access denied: " + attemptId));
+
+        // Idempotency: if already completed, return existing result without re-grading
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            return SubmitResultResponse.from(attempt.getId(), attempt.getStatus());
+        }
+
+        // Save final answers
+        autosaveAnswers(attemptId, request);
+
+        // Transition status to COMPLETED
+        attempt.setStatus(AttemptStatus.COMPLETED);
+        attempt.setEndTime(Instant.now());
+        testAttemptRepository.save(attempt);
+
+        return SubmitResultResponse.from(attempt.getId(), AttemptStatus.COMPLETED);
     }
 
     // ─── private helpers ────────────────────────────────────────────────────────
