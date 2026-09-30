@@ -1,5 +1,11 @@
 import axiosClient from '../../../api/axiosClient';
-import type { ApiResponse, CreateAttemptRequest, WorkspaceResponse } from '../types/api.types';
+import type {
+  ApiResponse,
+  AutosaveRequest,
+  CreateAttemptRequest,
+  SubmitResult,
+  WorkspaceResponse,
+} from '../types/api.types';
 
 function normalizeWorkspace(data: any): WorkspaceResponse {
   return {
@@ -43,4 +49,37 @@ export async function getWorkspace(attemptId: number): Promise<WorkspaceResponse
     throw new Error(res.message || 'Attempt not found');
   }
   return normalizeWorkspace(res.data);
+}
+
+/**
+ * PUT /api/v1/attempts/:id/answers
+ * Autosave draft answers. Called by useAutosave hook every 15s when isDirty=true.
+ */
+export async function autosaveAnswers(attemptId: number, req: AutosaveRequest): Promise<void> {
+  const res = await axiosClient.put<unknown, ApiResponse<null>>(
+    `/v1/attempts/${attemptId}/answers`,
+    { version: req.version, answers: req.answers }
+  );
+  if (!res.success) {
+    throw new Error(res.message || 'Autosave failed');
+  }
+}
+
+/**
+ * POST /api/v1/attempts/:id/submit
+ * Submit attempt. Idempotent — safe to call multiple times.
+ */
+export async function submitAttempt(attemptId: number, req: AutosaveRequest): Promise<SubmitResult> {
+  const res = await axiosClient.post<unknown, ApiResponse<any>>(
+    `/v1/attempts/${attemptId}/submit`,
+    { version: req.version, answers: req.answers }
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Submit failed');
+  }
+  return {
+    attempt_id: res.data.attemptId ?? res.data.attempt_id,
+    status: res.data.status,
+    redirect_url: res.data.redirectUrl ?? res.data.redirect_url,
+  };
 }
