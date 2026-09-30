@@ -48,4 +48,25 @@ describe('useExamTimer', () => {
     const { result } = renderHook(() => useExamTimer(deadline));
     expect(result.current.displayTime).toMatch(/^1:1[45]:\d{2}$/);
   });
+
+  it('applies serverTimeOffset to correct for client clock skew', () => {
+    const clientNow = Date.now();
+    vi.setSystemTime(clientNow);
+
+    // Server is 5 minutes BEHIND client (serverOffset = serverClock - clientClock = -300_000)
+    const serverOffset = -300_000;
+
+    // Server's current time = clientNow + serverOffset = clientNow - 300_000
+    // Deadline = server_now + 10 min = (clientNow + serverOffset) + 10*60_000
+    const deadline = new Date(clientNow + serverOffset + 10 * 60_000).toISOString();
+
+    const { result } = renderHook(() => useExamTimer(deadline, serverOffset));
+
+    // serverAdjustedNow = Date.now() + serverOffset = clientNow - 300_000
+    // remaining = deadline - serverAdjustedNow
+    //           = (clientNow - 300_000 + 600_000) - (clientNow - 300_000)
+    //           = 600_000 ms = 10 min ✓
+    expect(result.current.timeLeftMs).toBeGreaterThan(9 * 60_000);
+    expect(result.current.timeLeftMs).toBeLessThanOrEqual(10 * 60_000 + 500);
+  });
 });

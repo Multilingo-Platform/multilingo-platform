@@ -7,7 +7,7 @@ import type {
   WorkspaceResponse,
 } from '../types/api.types';
 
-function normalizeWorkspace(data: any): WorkspaceResponse {
+function normalizeWorkspace(data: any, serverTimeOffset = 0): WorkspaceResponse {
   return {
     attempt_id: data.attemptId ?? data.attempt_id,
     status: data.status,
@@ -17,6 +17,7 @@ function normalizeWorkspace(data: any): WorkspaceResponse {
     exam_snapshot: data.examSnapshot ?? data.exam_snapshot ?? {},
     version: data.version ?? 0,
     saved_answers: data.savedAnswers ?? data.saved_answers ?? [],
+    serverTimeOffset,
   };
 }
 
@@ -44,11 +45,19 @@ export async function createAttempt(req: CreateAttemptRequest): Promise<Workspac
  * Loads workspace for an existing attempt. Returns workspace without correct_answer.
  */
 export async function getWorkspace(attemptId: number): Promise<WorkspaceResponse> {
+  const clientBefore = Date.now();
   const res = await axiosClient.get<unknown, ApiResponse<any>>(`/v1/attempts/${attemptId}/workspace`);
+  const clientAfter = Date.now();
   if (!res.success || !res.data) {
     throw new Error(res.message || 'Attempt not found');
   }
-  return normalizeWorkspace(res.data);
+  // Compute server-client clock offset if backend provides serverNow in response body
+  const serverNowMs: number = res.data.serverNow ?? res.data.server_now ?? 0;
+  const serverTimeOffset =
+    serverNowMs > 0
+      ? serverNowMs - Math.round((clientBefore + clientAfter) / 2)
+      : 0;
+  return normalizeWorkspace(res.data, serverTimeOffset);
 }
 
 /**
