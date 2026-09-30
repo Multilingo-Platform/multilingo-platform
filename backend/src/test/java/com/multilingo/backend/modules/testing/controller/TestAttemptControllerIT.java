@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -123,5 +124,74 @@ class TestAttemptControllerIT {
     void get_workspace_nonexistent_attempt_returns_403() throws Exception {
         mockMvc.perform(get("/api/v1/attempts/{id}/workspace", 99999))
                 .andExpect(status().isForbidden());
+    }
+
+    // ─── UC-03: PUT /api/v1/attempts/{id}/answers ────────────────────────────────
+
+    @Test
+    void put_answers_returns_200_for_valid_attempt() throws Exception {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestMode(TestMode.MOCK_TEST);
+        MvcResult create = mockMvc.perform(post("/api/v1/attempts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andReturn();
+        int attemptId = objectMapper.readTree(create.getResponse().getContentAsString())
+                .path("data").path("attemptId").asInt();
+
+        String body = "{\"version\": 1, \"answers\": []}";
+        mockMvc.perform(put("/api/v1/attempts/{id}/answers", attemptId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+    }
+
+    // ─── UC-04: POST /api/v1/attempts/{id}/submit ───────────────────────────────
+
+    @Test
+    void post_submit_changes_status_to_COMPLETED() throws Exception {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestMode(TestMode.MOCK_TEST);
+        MvcResult create = mockMvc.perform(post("/api/v1/attempts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andReturn();
+        int attemptId = objectMapper.readTree(create.getResponse().getContentAsString())
+                .path("data").path("attemptId").asInt();
+
+        String body = "{\"version\": 1, \"answers\": []}";
+        mockMvc.perform(post("/api/v1/attempts/{id}/submit", attemptId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.redirectUrl").value("/attempts/" + attemptId + "/result"));
+    }
+
+    @Test
+    void post_submit_idempotent_returns_200_when_already_submitted() throws Exception {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestMode(TestMode.MOCK_TEST);
+        MvcResult create = mockMvc.perform(post("/api/v1/attempts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andReturn();
+        int attemptId = objectMapper.readTree(create.getResponse().getContentAsString())
+                .path("data").path("attemptId").asInt();
+        String body = "{\"version\": 1, \"answers\": []}";
+
+        mockMvc.perform(post("/api/v1/attempts/{id}/submit", attemptId)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/attempts/{id}/submit", attemptId)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"));
     }
 }
