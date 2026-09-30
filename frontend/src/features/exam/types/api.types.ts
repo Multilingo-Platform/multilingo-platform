@@ -30,3 +30,15 @@ export interface ApiResponse<T> {
   data: T | null;
   timestamp: string;
 }
+
+export interface AutosaveRequest {
+  version: number;
+  answers: PartAnswers[];
+}
+
+export interface SubmitResult {
+  attempt_id: number;
+  status: 'COMPLETED' | 'AI_GRADING';
+  redirect_url: string;
+}
+
