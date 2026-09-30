@@ -15,7 +15,34 @@
               "title": "Reading Part 1",
               "durationMinutes": 20,
               "questions": [
-                { "id": 1, "type": "MCQ", "prompt": "Choose the correct answer" }
+                {
+                  "id": 1,
+                  "question_id": "q_1",
+                  "question_number": 1,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "What is the primary cognitive benefit of multilingual education mentioned in the passage?",
+                  "prompt": "Choose the correct answer",
+                  "options": [
+                    { "id": "A", "text": "Enhanced cognitive flexibility and executive attention control" },
+                    { "id": "B", "text": "Immediate increase in physical stamina and motor reflex" },
+                    { "id": "C", "text": "Permanent reduction in total required study hours" },
+                    { "id": "D", "text": "Guaranteed international employment without language certification" }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "question_id": "q_2",
+                  "question_number": 2,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "According to research, at what stage does second language acquisition occur most naturally?",
+                  "prompt": "Choose the correct answer",
+                  "options": [
+                    { "id": "A", "text": "During early childhood developmental stages" },
+                    { "id": "B", "text": "Exclusively after completing secondary school education" },
+                    { "id": "C", "text": "Only when working in corporate multinationals" },
+                    { "id": "D", "text": "During adult language refresher workshops" }
+                  ]
+                }
               ]
             },
             {
@@ -23,7 +50,22 @@
               "title": "Reading Part 2",
               "durationMinutes": 20,
               "questions": [
-                { "id": 2, "type": "TRUE_FALSE_NOT_GIVEN", "prompt": "Is this statement true?" }
+                {
+                  "id": 3,
+                  "question_id": "q_3",
+                  "question_number": 3,
+                  "type": "TRUE_FALSE_NOT_GIVEN",
+                  "question_text": "The research surveyed more than 5,000 students across 10 universities in Southeast Asia.",
+                  "prompt": "Is this statement true?"
+                },
+                {
+                  "id": 4,
+                  "question_id": "q_4",
+                  "question_number": 4,
+                  "type": "TRUE_FALSE_NOT_GIVEN",
+                  "question_text": "Monolingual participants scored higher on multitasking and conflict resolution tests.",
+                  "prompt": "Is this statement true?"
+                }
               ]
             },
             {
@@ -31,7 +73,14 @@
               "title": "Reading Part 3",
               "durationMinutes": 20,
               "questions": [
-                { "id": 3, "type": "FILL_IN", "prompt": "Fill in the blank" }
+                {
+                  "id": 5,
+                  "question_id": "q_5",
+                  "question_number": 5,
+                  "type": "FILL_IN_THE_BLANK",
+                  "question_text": "Language immersion programs are shown to promote neural ________ across cortical regions.",
+                  "prompt": "Fill in the blank"
+                }
               ]
             }
           ]
@@ -46,7 +95,20 @@
               "title": "Listening Part 1",
               "durationMinutes": 20,
               "questions": [
-                { "id": 4, "type": "MCQ", "prompt": "What does the speaker say?" }
+                {
+                  "id": 6,
+                  "question_id": "q_6",
+                  "question_number": 6,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "What is the professor's core advice regarding daily spaced repetition?",
+                  "prompt": "What does the speaker say?",
+                  "options": [
+                    { "id": "A", "text": "Review vocabulary consistently with active recall intervals" },
+                    { "id": "B", "text": "Listen passively to recorded lectures while asleep" },
+                    { "id": "C", "text": "Cram vocabulary lists solely before examination dates" },
+                    { "id": "D", "text": "Skip difficult terms and focus solely on familiar idioms" }
+                  ]
+                }
               ]
             },
             {
@@ -54,7 +116,14 @@
               "title": "Listening Part 2",
               "durationMinutes": 20,
               "questions": [
-                { "id": 5, "type": "FILL_IN", "prompt": "Complete the form" }
+                {
+                  "id": 7,
+                  "question_id": "q_7",
+                  "question_number": 7,
+                  "type": "FILL_IN_THE_BLANK",
+                  "question_text": "The campus international student symposium starts promptly at ________ AM tomorrow.",
+                  "prompt": "Complete the form"
+                }
               ]
             }
           ]
@@ -70,9 +139,12 @@
               "durationMinutes": 40,
               "questions": [
                 {
-                  "id": 6,
+                  "id": 8,
+                  "question_id": "q_8",
+                  "question_number": 8,
                   "type": "ESSAY",
-                  "prompt": "Đây là câu hỏi có dấu tiếng Việt — viết luận về chủ đề môi trường"
+                  "question_text": "Some argue that learning foreign languages is becoming obsolete due to real-time AI translators. Discuss both views and give your opinion. (Minimum 150 words)",
+                  "prompt": "Đây là câu hỏi có dấu tiếng Việt — viết luận về chủ đề môi trường và công nghệ"
                 }
               ]
             },
@@ -81,7 +153,14 @@
               "title": "Writing Task 1",
               "durationMinutes": 40,
               "questions": [
-                { "id": 7, "type": "ESSAY", "prompt": "Describe the graph below" }
+                {
+                  "id": 9,
+                  "question_id": "q_9",
+                  "question_number": 9,
+                  "type": "ESSAY",
+                  "question_text": "Summarize the key trends shown in global language adoption over the past 20 years. (Minimum 100 words)",
+                  "prompt": "Describe the graph below"
+                }
               ]
             }
           ]
@@ -103,7 +182,19 @@
               "title": "Reading Part 1",
               "durationMinutes": null,
               "questions": [
-                { "id": 8, "type": "MCQ", "prompt": "Test question" }
+                {
+                  "id": 10,
+                  "question_id": "q_10",
+                  "question_number": 1,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "In practice mode, there is no time restriction. Which of the following is true?",
+                  "prompt": "Test question",
+                  "options": [
+                    { "id": "A", "text": "You can take your time to practice answering each question" },
+                    { "id": "B", "text": "The exam will auto-submit after 5 seconds" },
+                    { "id": "C", "text": "Practice mode does not support autosave" }
+                  ]
+                }
               ]
             }
           ]
