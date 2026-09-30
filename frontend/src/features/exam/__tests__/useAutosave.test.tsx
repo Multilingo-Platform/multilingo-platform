@@ -39,6 +39,7 @@ describe('useAutosave', () => {
         answers: {},
         saveStatus: 'idle',
         lastSavedAt: null,
+        pendingVersion: 0,
       },
     });
     await act(async () => {
@@ -57,6 +58,7 @@ describe('useAutosave', () => {
         answers: { 1: { q1: 'A' } },
         saveStatus: 'idle',
         lastSavedAt: null,
+        pendingVersion: 1,
       },
     });
     await act(async () => {
@@ -77,6 +79,7 @@ describe('useAutosave', () => {
         answers: {},
         saveStatus: 'saving',
         lastSavedAt: null,
+        pendingVersion: 1,
       },
     });
     await act(async () => {
@@ -95,6 +98,7 @@ describe('useAutosave', () => {
         answers: {},
         saveStatus: 'idle',
         lastSavedAt: null,
+        pendingVersion: 1,
       },
     });
     await act(async () => {
@@ -102,5 +106,43 @@ describe('useAutosave', () => {
     });
     expect(store.getState().answers.saveStatus).toBe('error');
     expect(store.getState().answers.isDirty).toBe(true);
+  });
+
+  it('removes localStorage draft after successful save', async () => {
+    mockAutosave.mockResolvedValueOnce(undefined);
+    const removeSpy = vi.spyOn(Storage.prototype, 'removeItem');
+    setup({
+      answers: {
+        attemptId: 42,
+        isDirty: true,
+        version: 1,
+        answers: { 1: { q1: 'A' } },
+        saveStatus: 'idle',
+        lastSavedAt: null,
+        pendingVersion: 1,
+      },
+    });
+    await act(async () => { vi.advanceTimersByTime(15_000); });
+    expect(removeSpy).toHaveBeenCalledWith('exam_draft_42');
+    removeSpy.mockRestore();
+  });
+
+  it('writes localStorage draft on network failure', async () => {
+    mockAutosave.mockRejectedValueOnce(new Error('network error'));
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    setup({
+      answers: {
+        attemptId: 42,
+        isDirty: true,
+        version: 1,
+        answers: { 1: { q1: 'A' } },
+        saveStatus: 'idle',
+        lastSavedAt: null,
+        pendingVersion: 1,
+      },
+    });
+    await act(async () => { vi.advanceTimersByTime(15_000); });
+    expect(setItemSpy).toHaveBeenCalledWith('exam_draft_42', expect.any(String));
+    setItemSpy.mockRestore();
   });
 });
