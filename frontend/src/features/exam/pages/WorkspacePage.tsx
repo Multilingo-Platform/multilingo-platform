@@ -9,7 +9,7 @@ import { SaveStatusBadge } from '../components/SaveStatusBadge';
 import { SubmitOverlay } from '../components/SubmitOverlay';
 import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
 import { QuestionPalette } from '../components/QuestionPalette';
-import { submitAttempt } from '../api/attemptApi';
+import { autosaveAnswers, submitAttempt } from '../api/attemptApi';
 import { selectSaveStatus } from '../store/answerSlice';
 import type { RootState } from '../../../store/store';
 import type { Question } from '../types/exam.types';
@@ -57,12 +57,19 @@ const WorkspacePage: React.FC = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    const answers = Object.entries(answersState.answers).map(([pId, qMap]) => ({
-      part_id: Number(pId),
-      answers: Object.entries(qMap).map(([question_id, answer]) => ({ question_id, answer })),
-    }));
     try {
-      const result = await submitAttempt(attemptId, { version: answersState.version, answers });
+      // Pre-submit flush: push unsaved answers to server before closing attempt
+      if (isDirty) {
+        const answers = Object.entries(answersState.answers).map(([pId, qMap]) => ({
+          part_id: Number(pId),
+          answers: Object.entries(qMap).map(([question_id, answer]) => ({ question_id, answer })),
+        }));
+        await autosaveAnswers(attemptId, { version: answersState.version, answers });
+        try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
+      }
+      const result = await submitAttempt(attemptId, { version: answersState.version, answers: [] });
+      // Always clean up localStorage draft after successful submit
+      try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
       navigate(result.redirect_url);
     } catch {
       setIsSubmitting(false);
@@ -137,20 +144,20 @@ const WorkspacePage: React.FC = () => {
         </div>
 
         <button
-          disabled={isDirty || isSubmitting}
+          disabled={isSubmitting}
           onClick={() => setShowConfirm(true)}
           style={{
             padding: '12px 20px',
-            background: isDirty ? '#9ca3af' : '#dc2626',
+            background: isSubmitting ? '#9ca3af' : '#dc2626',
             color: 'white',
             border: 'none',
             borderRadius: 8,
-            cursor: isDirty ? 'not-allowed' : 'pointer',
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
             fontWeight: '600',
             fontSize: '1rem',
           }}
         >
-          {isDirty ? 'Đang lưu...' : 'Nộp bài'}
+          Nộp bài
         </button>
       </div>
 
