@@ -21,6 +21,8 @@ export interface WorkspaceResponse {
   exam_snapshot: ExamSnapshot;  // Snapshot does NOT contain correct_answer
   version: number;
   saved_answers: PartAnswers[];
+  /** ms: serverClock − clientClock at workspace fetch time. 0 if unknown. */
+  serverTimeOffset: number;
 }
 
 export interface ApiResponse<T> {
