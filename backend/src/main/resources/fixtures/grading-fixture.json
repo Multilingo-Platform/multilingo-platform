@@ -1,0 +1,49 @@
+{
+  "exams": [
+    {
+      "exam_id": 1,
+      "parts": [
+        {
+          "part_id": 1,
+          "answers": {
+            "q_1": { "type": "SINGLE_CHOICE", "correct": "A", "alternates": [] },
+            "q_2": { "type": "SINGLE_CHOICE", "correct": "A", "alternates": [] }
+          }
+        },
+        {
+          "part_id": 2,
+          "answers": {
+            "q_3": { "type": "TRUE_FALSE_NOT_GIVEN", "correct": "TRUE", "alternates": [] },
+            "q_4": { "type": "TRUE_FALSE_NOT_GIVEN", "correct": "FALSE", "alternates": [] }
+          }
+        },
+        {
+          "part_id": 3,
+          "answers": {
+            "q_5": {
+              "type": "FILL_IN_THE_BLANK",
+              "correct": "plasticity",
+              "alternates": ["neural plasticity", "neuroplasticity"]
+            }
+          }
+        },
+        {
+          "part_id": 4,
+          "answers": {
+            "q_6": { "type": "SINGLE_CHOICE", "correct": "A", "alternates": [] }
+          }
+        },
+        {
+          "part_id": 5,
+          "answers": {
+            "q_7": {
+              "type": "FILL_IN_THE_BLANK",
+              "correct": "9",
+              "alternates": ["9:00", "nine", "09:00"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
