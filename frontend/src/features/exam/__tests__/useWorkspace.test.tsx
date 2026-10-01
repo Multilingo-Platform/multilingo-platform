@@ -17,13 +17,14 @@ function makeWrapper() {
 
 const mockWorkspace: WorkspaceResponse = {
   attempt_id: 5,
-  status: 'IN_PROGRESS',
-  test_scope: 'FULL_EXAM',
-  test_mode: 'MOCK_TEST',
+  status: 'IN_PROGRESS' as const,
+  test_scope: 'FULL_EXAM' as const,
+  test_mode: 'MOCK_TEST' as const,
   deadline: null,
   exam_snapshot: { exam_id: 1, code: 'IE01', title: 'IELTS Mock', type: 'IELTS', sections: [] },
   version: 1,
   saved_answers: [],
+  serverTimeOffset: 0,
 };
 
 describe('useWorkspace', () => {
