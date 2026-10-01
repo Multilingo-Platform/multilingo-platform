@@ -166,16 +166,14 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 aa.setEarnedScore(partResult.values().stream()
                     .map(QuestionGradingResult::getScore)
                     .reduce(BigDecimal.ZERO, BigDecimal::add));
-                attemptAnswerRepository.save(aa);
             }
         }
+        attemptAnswerRepository.saveAll(savedAnswers);
 
         // Persist overall score vào TestAttempt
         attempt.setOverallScore(gradingResult.getTotalScore());
-        if (!gradingResult.getSectionScores().isEmpty()) {
-            Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
-            attempt.setSectionScores(sectionMap);
-        }
+        Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
+        attempt.setSectionScores(sectionMap);
         // ─────────────────────────────────────────────────────────────────────────
 
         // Transition status to COMPLETED
