@@ -333,4 +333,36 @@ class TestAttemptServiceTest {
         assertThat(snapshotJson).doesNotContain("correct_answer");
         assertThat(snapshotJson).doesNotContain("alternates");
     }
+
+    // ─── TC_SUBMIT_04: sectionScores persisted ──────────────────────────────────
+
+    @Test
+    void submitAttempt_persists_sectionScores() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestMode(TestMode.PRACTICE);
+        WorkspaceResponse attempt = service.createAttempt(req);
+
+        // Answer Part 1 (Reading section, q_1 correct)
+        AutosaveAnswersRequest saveReq = AutosaveAnswersRequest.builder()
+            .version(1)
+            .answers(List.of(
+                AutosaveAnswersRequest.PartAnswerDto.builder()
+                    .partId(1)
+                    .answers(List.of(
+                        AutosaveAnswersRequest.QuestionAnswerDto.builder()
+                            .questionId("q_1").answer("A").build()
+                    ))
+                    .build()
+            ))
+            .build();
+
+        service.submitAttempt(attempt.getAttemptId(), saveReq);
+
+        TestAttempt saved = testAttemptRepository.findById(attempt.getAttemptId()).orElseThrow();
+        assertThat(saved.getSectionScores()).isNotNull();
+        // Only Part 1 was autosaved → only Reading section has an AttemptAnswer row
+        assertThat(saved.getSectionScores()).containsKey("Reading");
+    }
 }
