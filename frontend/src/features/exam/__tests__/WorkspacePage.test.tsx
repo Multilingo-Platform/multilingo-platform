@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -15,11 +14,11 @@ vi.mock('../hooks/useAutosave', () => ({ useAutosave: vi.fn() }));
 
 const baseWorkspace = {
   attempt_id: 99,
-  status: 'IN_PROGRESS',
-  test_scope: 'FULL_EXAM',
-  test_mode: 'MOCK_TEST',
-  deadline: null,
-  exam_snapshot: { title: 'Test Exam', sections: [] },
+  status: 'IN_PROGRESS' as const,
+  test_scope: 'FULL_EXAM' as const,
+  test_mode: 'MOCK_TEST' as const,
+  deadline: null as string | null,
+  exam_snapshot: { exam_id: 1, code: 'T', title: 'Test Exam', type: 'IELTS', sections: [] },
   version: 1,
   saved_answers: [],
   serverTimeOffset: 0,
@@ -32,7 +31,7 @@ function makeStore(isDirty = false) {
       answers: {
         attemptId: 99,
         version: 1,
-        answers: isDirty ? { 1: { q1: 'A' } } : {},
+        answers: (isDirty ? { 1: { q1: 'A' } } : {}) as Record<number, Record<string, import('../types/answer.types').AnswerValue>>,
         isDirty,
         lastSavedAt: null,
         saveStatus: 'idle' as const,
