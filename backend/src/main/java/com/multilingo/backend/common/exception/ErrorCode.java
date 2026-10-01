@@ -14,6 +14,8 @@ public enum ErrorCode {
     CONFLICT(409, HttpStatus.CONFLICT, "Dữ liệu bị trùng lặp hoặc xung đột"),
     VALIDATION_FAILED(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu đầu vào không hợp lệ"),
     QUOTA_EXCEEDED(429, HttpStatus.TOO_MANY_REQUESTS, "Đã vượt quá hạn mức sử dụng tính năng"),
+    GRADING_DATA_ERROR(422, HttpStatus.UNPROCESSABLE_ENTITY,
+            "Dữ liệu answer key trong fixture lỗi hoặc không xác định được loại câu"),
     UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định");
 
     private final int code;
