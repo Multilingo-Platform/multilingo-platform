@@ -2,7 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import React from 'react';
 import answerReducer, { setAttemptContext, setAnswer } from '../store/answerSlice';
 import QuestionPalette from '../components/QuestionPalette';
 import type { Question } from '../types/exam.types';

@@ -44,26 +44,27 @@ const WorkspacePage: React.FC = () => {
   // Active part: selected part or first part available
   const currentPart = useMemo(() => {
     if (selectedPartId !== null) {
-      const found = allParts.find(p => (p.part_id ?? p.id) === selectedPartId);
+      const found = allParts.find(p => p.id === selectedPartId);
       if (found) return found;
     }
     const firstSection = workspace?.exam_snapshot?.sections?.[0];
     return firstSection?.parts?.[0];
   }, [workspace, selectedPartId, allParts]);
 
-  const partQuestions: Question[] = (currentPart?.questions ?? []).map((q: any) => ({
+  const currentPartQuestions = currentPart?.content?.question_groups?.flatMap(g => g.questions) ?? [];
+  const partQuestions: Question[] = currentPartQuestions.map((q: any) => ({
     ...q,
     question_id: q.question_id || String(q.id),
     question_number: q.question_number ?? q.id,
     type: q.type === 'MCQ' ? 'SINGLE_CHOICE' : q.type === 'FILL_IN' ? 'FILL_IN_THE_BLANK' : q.type,
     question_text: q.question_text || q.prompt || '',
   }));
-  const partId = currentPart?.part_id ?? currentPart?.id ?? 1;
+  const partId = currentPart?.id ?? 1;
 
   // Compute unanswered questions across the entire exam
   const allQuestions = useMemo(() => {
     return workspace?.exam_snapshot?.sections?.flatMap(s =>
-      s.parts?.flatMap(p => p.questions ?? []) ?? []
+      s.parts?.flatMap(p => p.content?.question_groups?.flatMap(g => g.questions) ?? []) ?? []
     ) ?? [];
   }, [workspace]);
 
