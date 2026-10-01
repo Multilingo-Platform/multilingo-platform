@@ -224,6 +224,9 @@ class ObjectiveGradingServiceTest {
 
         GradingResult result = service.gradeAttempt(List.of(answer), Map.of(11, pgk));
         assertThat(result.getTotalScore()).isEqualByComparingTo("2.0");
+        // All pairs correct → verdict CORRECT
+        assertThat(result.getPartResults().get(11).get("q_match").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
     }
 
     @Test
@@ -243,22 +246,54 @@ class ObjectiveGradingServiceTest {
 
         GradingResult result = service.gradeAttempt(List.of(answer), Map.of(11, pgk));
         assertThat(result.getTotalScore()).isEqualByComparingTo("1.0");
+        // Partial match → verdict WRONG (not CORRECT)
+        assertThat(result.getPartResults().get(11).get("q_match").getVerdict())
+            .isEqualTo(GradingVerdict.WRONG);
+    }
+
+    @Test
+    void matching_empty_user_map_is_blank() { // TC_GRADE_MA_03
+        GradingKey key = new GradingKey();
+        key.setQuestionId("q_match");
+        key.setType("MATCHING");
+        key.setCorrect(Map.of("q_left1", "B", "q_left2", "A"));
+        key.setAlternates(List.of());
+        PartGradingKey pgk = new PartGradingKey();
+        pgk.setPartId(11);
+        pgk.setAnswers(Map.of("q_match", key));
+
+        AttemptAnswer answer = new AttemptAnswer();
+        answer.setPartId(11);
+        answer.setUserAnswers(Collections.emptyMap());
+
+        GradingResult result = service.gradeAttempt(List.of(answer), Map.of(11, pgk));
+        assertThat(result.getPartResults().get(11).get("q_match").getVerdict())
+            .isEqualTo(GradingVerdict.BLANK);
+        assertThat(result.getPartResults().get(11).get("q_match").getScore())
+            .isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     // ─── TC_GRADE_ES_01: ESSAY bỏ qua ───────────────────────────────────────────
 
     @Test
     void essay_not_counted_in_totalObjectiveCount() {
-        Map<Integer, PartGradingKey> keys = Map.of(
-            6, partKey(6, "q_8", "ESSAY", null, List.of())
-        );
+        GradingKey essayKey = new GradingKey();
+        essayKey.setQuestionId("q_8");
+        essayKey.setType("ESSAY");
+        essayKey.setCorrect(null); // ESSAY has no correct answer
+        essayKey.setAlternates(List.of());
+        PartGradingKey pgk = new PartGradingKey();
+        pgk.setPartId(6);
+        pgk.setAnswers(Map.of("q_8", essayKey));
+
         AttemptAnswer answer = answerForPart(6, "q_8", "Some essay text");
 
-        // ESSAY không có trong grading fixture thực tế, nhưng test engine behavior
-        // khi fixture có type=ESSAY thì bỏ qua
-        GradingResult result = service.gradeAttempt(List.of(answer), Map.of());
+        // Engine skips ESSAY questions — totalObjectiveCount should be 0
+        GradingResult result = service.gradeAttempt(List.of(answer), Map.of(6, pgk));
         assertThat(result.getTotalObjectiveCount()).isZero();
         assertThat(result.getTotalScore()).isEqualByComparingTo(BigDecimal.ZERO);
+        // partResults should exist for part 6 but be empty (no objective questions)
+        assertThat(result.getPartResults().get(6)).isEmpty();
     }
 
     // ─── TC_GRADE_ERR: Lỗi fixture ───────────────────────────────────────────────
@@ -327,5 +362,57 @@ class ObjectiveGradingServiceTest {
         // "Đại Học".toLowerCase(Locale.ROOT) = "đại học" → CORRECT
         assertThat(result.getPartResults().get(20).get("q_vn").getVerdict())
             .isEqualTo(GradingVerdict.CORRECT);
+    }
+
+    // ─── TC_GRADE_SEC: sectionScores accumulation ────────────────────────────────
+
+    @Test
+    void sectionScores_accumulated_by_sectionName() {
+        // Part 1 (Reading): 1 correct → 1.0
+        GradingKey k1 = new GradingKey();
+        k1.setQuestionId("q_1"); k1.setType("SINGLE_CHOICE"); k1.setCorrect("A"); k1.setAlternates(List.of());
+        PartGradingKey pgk1 = new PartGradingKey();
+        pgk1.setPartId(1); pgk1.setSectionName("Reading"); pgk1.setAnswers(Map.of("q_1", k1));
+
+        // Part 2 (Reading): 1 correct → 1.0
+        GradingKey k2 = new GradingKey();
+        k2.setQuestionId("q_2"); k2.setType("SINGLE_CHOICE"); k2.setCorrect("B"); k2.setAlternates(List.of());
+        PartGradingKey pgk2 = new PartGradingKey();
+        pgk2.setPartId(2); pgk2.setSectionName("Reading"); pgk2.setAnswers(Map.of("q_2", k2));
+
+        // Part 3 (Listening): 1 wrong → 0.0
+        GradingKey k3 = new GradingKey();
+        k3.setQuestionId("q_3"); k3.setType("SINGLE_CHOICE"); k3.setCorrect("C"); k3.setAlternates(List.of());
+        PartGradingKey pgk3 = new PartGradingKey();
+        pgk3.setPartId(3); pgk3.setSectionName("Listening"); pgk3.setAnswers(Map.of("q_3", k3));
+
+        Map<Integer, PartGradingKey> keys = Map.of(1, pgk1, 2, pgk2, 3, pgk3);
+        List<AttemptAnswer> answers = List.of(
+            answerForPart(1, "q_1", "A"),  // CORRECT
+            answerForPart(2, "q_2", "B"),  // CORRECT
+            answerForPart(3, "q_3", "X")   // WRONG
+        );
+
+        GradingResult result = service.gradeAttempt(answers, keys);
+
+        // Reading = 1.0 + 1.0 = 2.0
+        assertThat(result.getSectionScores().get("Reading"))
+            .isEqualByComparingTo(new BigDecimal("2.0"));
+        // Listening = 0.0
+        assertThat(result.getSectionScores().get("Listening"))
+            .isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(result.getSectionScores()).hasSize(2);
+    }
+
+    @Test
+    void sectionScores_empty_when_no_sectionName() {
+        // PartGradingKey without sectionName → sectionScores should not contain any entry
+        Map<Integer, PartGradingKey> keys = Map.of(
+            1, partKey(1, "q_1", "SINGLE_CHOICE", "A", List.of())
+        );
+        AttemptAnswer answer = answerForPart(1, "q_1", "A");
+
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getSectionScores()).isEmpty();
     }
 }

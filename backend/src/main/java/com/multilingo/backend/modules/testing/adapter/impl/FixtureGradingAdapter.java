@@ -35,6 +35,8 @@ public class FixtureGradingAdapter implements GradingAdapter {
             for (Object partObj : parts) {
                 Map<?, ?> partRaw = (Map<?, ?>) partObj;
                 Integer partId = ((Number) partRaw.get("part_id")).intValue();
+                String sectionName = partRaw.get("section_name") != null
+                    ? (String) partRaw.get("section_name") : null;
                 Map<?, ?> answersRaw = (Map<?, ?>) partRaw.get("answers");
                 Map<String, GradingKey> answers = new HashMap<>();
                 for (Map.Entry<?, ?> entry : answersRaw.entrySet()) {
@@ -45,6 +47,7 @@ public class FixtureGradingAdapter implements GradingAdapter {
                 }
                 PartGradingKey pgk = new PartGradingKey();
                 pgk.setPartId(partId);
+                pgk.setSectionName(sectionName);
                 pgk.setAnswers(answers);
                 partMap.put(partId, pgk);
             }

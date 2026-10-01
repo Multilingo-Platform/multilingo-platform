@@ -10,6 +10,8 @@ import java.util.Map;
 @Data
 public class PartGradingKey {
     private Integer partId;
+    /** Tên section chứa Part này (ví dụ: "Reading", "Listening"). Dùng để tính sectionScores. */
+    private String sectionName;
     /** Map<questionId, GradingKey> */
     private Map<String, GradingKey> answers;
 }
