@@ -87,6 +87,15 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
             }
 
             partResults.put(partId, partResult);
+
+            // Accumulate sectionScores from PartGradingKey.sectionName
+            String sectionName = pgk.getSectionName();
+            if (sectionName != null && !sectionName.isBlank()) {
+                BigDecimal partScore = partResult.values().stream()
+                    .map(QuestionGradingResult::getScore)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                sectionScores.merge(sectionName, partScore, BigDecimal::add);
+            }
         }
 
         return GradingResult.builder()
@@ -117,7 +126,6 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
 
     // ─── SINGLE_CHOICE ───────────────────────────────────────────────────────────
 
-    @SuppressWarnings("unchecked")
     private QuestionGradingResult gradeSingleChoice(
             String questionId, GradingKey key, Object rawAnswer) {
         String userAns = normalize(rawAnswer);
@@ -206,7 +214,8 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
             ? (Map<String, Object>) rawAnswer : Collections.emptyMap();
 
         BigDecimal score = BigDecimal.ZERO;
-        int pairs = correctMap.size();
+        int totalPairs = correctMap.size();
+        int correctPairs = 0;
 
         for (Map.Entry<String, String> entry : correctMap.entrySet()) {
             String subId = entry.getKey();
@@ -215,13 +224,24 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
             String userAns = normalize(userRaw);
             if (correctAns != null && correctAns.equals(userAns)) {
                 score = score.add(BigDecimal.ONE);
+                correctPairs++;
             }
         }
 
-        // Trả về QuestionGradingResult đặc biệt cho MATCHING với score = số cặp đúng
+        // MATCHING partial credit: score = số cặp đúng, nhưng verdict CORRECT chỉ khi
+        // tất cả cặp đều đúng. Nếu không có cặp nào đúng và user không gửi map → BLANK.
+        GradingVerdict verdict;
+        if (correctPairs == totalPairs) {
+            verdict = GradingVerdict.CORRECT;
+        } else if (userMap.isEmpty()) {
+            verdict = GradingVerdict.BLANK;
+        } else {
+            verdict = GradingVerdict.WRONG;
+        }
+
         return QuestionGradingResult.builder()
             .questionId(questionId)
-            .verdict(score.compareTo(BigDecimal.ZERO) > 0 ? GradingVerdict.CORRECT : GradingVerdict.WRONG)
+            .verdict(verdict)
             .score(score)
             .build();
     }
