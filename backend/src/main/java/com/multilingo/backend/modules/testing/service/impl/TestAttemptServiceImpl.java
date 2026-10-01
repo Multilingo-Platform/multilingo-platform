@@ -18,14 +18,22 @@ import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import com.multilingo.backend.modules.testing.repository.AttemptAnswerRepository;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.testing.service.TestAttemptService;
+import com.multilingo.backend.modules.testing.adapter.GradingAdapter;
+import com.multilingo.backend.modules.testing.grading.ObjectiveGradingService;
+import com.multilingo.backend.modules.testing.grading.dto.GradingResult;
+import com.multilingo.backend.modules.testing.grading.dto.PartGradingKey;
+import com.multilingo.backend.modules.testing.grading.dto.QuestionGradingResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +44,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final ExamAdapter examAdapter;
     private final IdentityAdapter identityAdapter;
     private final ObjectMapper objectMapper;
+    private final GradingAdapter gradingAdapter;
+    private final ObjectiveGradingService gradingService;
 
     @Override
     @Transactional
@@ -137,6 +147,36 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         // Save final answers
         autosaveAnswers(attemptId, request);
+
+        // ── Sprint 04: Grade objective questions ──────────────────────────────────
+        List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attemptId);
+        Map<Integer, PartGradingKey> keys = gradingAdapter.loadPartKeys(attempt.getExamId());
+        GradingResult gradingResult = gradingService.gradeAttempt(savedAnswers, keys);
+
+        // Persist per-Part flags and earnedScore
+        for (AttemptAnswer aa : savedAnswers) {
+            Map<String, QuestionGradingResult> partResult =
+                gradingResult.getPartResults().get(aa.getPartId());
+            if (partResult != null) {
+                Map<String, Object> flags = partResult.entrySet().stream()
+                    .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> (Object) e.getValue().getVerdict().name()));
+                aa.setIsCorrectFlags(flags);
+                aa.setEarnedScore(partResult.values().stream()
+                    .map(QuestionGradingResult::getScore)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+                attemptAnswerRepository.save(aa);
+            }
+        }
+
+        // Persist overall score vào TestAttempt
+        attempt.setOverallScore(gradingResult.getTotalScore());
+        if (!gradingResult.getSectionScores().isEmpty()) {
+            Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
+            attempt.setSectionScores(sectionMap);
+        }
+        // ─────────────────────────────────────────────────────────────────────────
 
         // Transition status to COMPLETED
         attempt.setStatus(AttemptStatus.COMPLETED);
