@@ -5,7 +5,7 @@ import answerReducer from '../features/exam/store/answerSlice';
 
 export function createTestStore(preloadedState?: any) {
   return configureStore({
-    reducer: { answers: answerReducer },
+    reducer: { answers: answerReducer } as any,
     preloadedState,
   });
 }
