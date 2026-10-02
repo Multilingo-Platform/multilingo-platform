@@ -31,31 +31,40 @@ export function useExamTimer(
 ): ExamTimerResult {
   const isPractice = deadline === null;
 
-  const computeTimeLeft = (): number => {
-    if (isPractice || !deadline) return 0;
+  const computeTimeLeft = (dl: string | null): number => {
+    if (dl === null || !dl) return 0;
     // Adjust client's "now" by the server-client clock difference
     const serverAdjustedNow = Date.now() + serverTimeOffset;
-    return Math.max(0, Date.parse(deadline) - serverAdjustedNow);
+    return Math.max(0, Date.parse(dl) - serverAdjustedNow);
   };
 
-  const [timeLeftMs, setTimeLeftMs] = useState<number>(computeTimeLeft);
+  const [timeLeftMs, setTimeLeftMs] = useState<number>(() => computeTimeLeft(deadline));
+  const [prevDeadline, setPrevDeadline] = useState<string | null>(deadline);
+
+  // Synchronize state immediately during render if deadline prop changes
+  if (deadline !== prevDeadline) {
+    setPrevDeadline(deadline);
+    setTimeLeftMs(computeTimeLeft(deadline));
+  }
 
   useEffect(() => {
-    if (isPractice) return;
+    if (isPractice || !deadline) return;
 
-    setTimeLeftMs(computeTimeLeft());
+    setTimeLeftMs(computeTimeLeft(deadline));
 
     // Refresh mỗi 500ms để tránh giật khi quay lại từ tab ẩn
     const id = setInterval(() => {
-      setTimeLeftMs(computeTimeLeft());
+      setTimeLeftMs(computeTimeLeft(deadline));
     }, 500);
 
     return () => clearInterval(id);
   }, [deadline, isPractice, serverTimeOffset]);
 
+  const hasExpired = !isPractice && deadline !== null && timeLeftMs === 0;
+
   return {
     timeLeftMs,
-    isExpired: !isPractice && timeLeftMs === 0,
+    isExpired: hasExpired,
     displayTime: isPractice ? '' : formatTime(timeLeftMs),
     isPractice,
   };

@@ -69,4 +69,20 @@ describe('useExamTimer', () => {
     expect(result.current.timeLeftMs).toBeGreaterThan(9 * 60_000);
     expect(result.current.timeLeftMs).toBeLessThanOrEqual(10 * 60_000 + 500);
   });
+
+  it('does not prematurely set isExpired=true when transitioning from null to a future deadline', () => {
+    const { result, rerender } = renderHook(
+      ({ dl }: { dl: string | null }) => useExamTimer(dl),
+      { initialProps: { dl: null as string | null } }
+    );
+    expect(result.current.isPractice).toBe(true);
+    expect(result.current.isExpired).toBe(false);
+
+    const futureDeadline = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    rerender({ dl: futureDeadline });
+
+    expect(result.current.isPractice).toBe(false);
+    expect(result.current.isExpired).toBe(false);
+    expect(result.current.timeLeftMs).toBeGreaterThan(0);
+  });
 });
