@@ -1,5 +1,4 @@
-import React from 'react';
-import { Search, Filter, Play, Clock, BarChart } from 'lucide-react';
+import { Search, Filter, Clock, BarChart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ExamLibrary = () => {
