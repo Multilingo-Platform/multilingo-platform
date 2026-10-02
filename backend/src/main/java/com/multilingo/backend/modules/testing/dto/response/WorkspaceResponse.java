@@ -24,6 +24,10 @@ public class WorkspaceResponse {
     private Instant startTime;
     /** null for PRACTICE mode */
     private Instant deadline;
+    /** Current server timestamp in UTC for client timer drift compensation */
+    private Instant serverTime;
+    /** Grace period in seconds for submission after deadline (default 15) */
+    private Integer gracePeriodSeconds;
     /**
      * Server-side snapshot of exam at attempt creation time.
      * Contains questions and options, but NOT correct_answer or explanation.
