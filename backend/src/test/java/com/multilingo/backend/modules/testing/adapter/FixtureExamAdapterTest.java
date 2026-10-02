@@ -48,4 +48,12 @@ class FixtureExamAdapterTest {
         Integer userId = identityAdapter.getCurrentUserId();
         assertThat(userId).isEqualTo(1);
     }
+
+    @Test
+    void findById_returns_parts_with_contentHtml() {
+        ExamFixture exam = examAdapter.findById(1).orElseThrow();
+        com.multilingo.backend.modules.testing.adapter.dto.PartFixture part1 = exam.getSections().get(0).getParts().get(0);
+        assertThat(part1.getContentHtml()).isNotNull();
+        assertThat(part1.getContentHtml()).contains("reading-passage");
+    }
 }
