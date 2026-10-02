@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -83,5 +83,43 @@ describe('QuestionPalette', () => {
     const cell = screen.getByTestId('palette-q_002');
     expect(cell).toHaveAttribute('data-flagged', 'true');
     expect(screen.getByText(/Đánh dấu xem lại/i)).toBeInTheDocument();
+  });
+
+  it('TC_WS_PAL_05: question with empty string or whitespace is considered unanswered', () => {
+    const store = makeStore();
+    store.dispatch(setAnswer({ partId: 1, questionId: 'q_001', value: '' }));
+    store.dispatch(setAnswer({ partId: 1, questionId: 'q_002', value: '   ' }));
+    render(
+      <Provider store={store}>
+        <QuestionPalette questions={questions} partId={1} onNavigate={vi.fn()} />
+      </Provider>
+    );
+    expect(screen.getByTestId('palette-q_001')).toHaveAttribute('data-answered', 'false');
+    expect(screen.getByTestId('palette-q_002')).toHaveAttribute('data-answered', 'false');
+    expect(screen.getByText('0/5 câu')).toBeInTheDocument();
+  });
+
+  it('TC_WS_PAL_06: typing text then clearing returns question to unanswered state', () => {
+    const store = makeStore();
+    store.dispatch(setAnswer({ partId: 1, questionId: 'q_001', value: 'Essay draft' }));
+    const { rerender } = render(
+      <Provider store={store}>
+        <QuestionPalette questions={questions} partId={1} onNavigate={vi.fn()} />
+      </Provider>
+    );
+    expect(screen.getByTestId('palette-q_001')).toHaveAttribute('data-answered', 'true');
+    expect(screen.getByText('1/5 câu')).toBeInTheDocument();
+
+    // User clears all text
+    act(() => {
+      store.dispatch(setAnswer({ partId: 1, questionId: 'q_001', value: '' }));
+    });
+    rerender(
+      <Provider store={store}>
+        <QuestionPalette questions={questions} partId={1} onNavigate={vi.fn()} />
+      </Provider>
+    );
+    expect(screen.getByTestId('palette-q_001')).toHaveAttribute('data-answered', 'false');
+    expect(screen.getByText('0/5 câu')).toBeInTheDocument();
   });
 });
