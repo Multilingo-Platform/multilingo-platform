@@ -153,7 +153,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     @Transactional
     public SubmitResultResponse submitAttempt(Integer attemptId, SubmitAttemptRequest request) {
         Integer userId = identityAdapter.getCurrentUserId();
-        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserIdForUpdate(attemptId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
                         "Attempt not found or access denied: " + attemptId));
 
