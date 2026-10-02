@@ -25,7 +25,10 @@ import com.multilingo.backend.modules.testing.grading.ObjectiveGradingService;
 import com.multilingo.backend.modules.testing.grading.dto.GradingResult;
 import com.multilingo.backend.modules.testing.grading.dto.PartGradingKey;
 import com.multilingo.backend.modules.testing.grading.dto.QuestionGradingResult;
+import com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest;
+import com.multilingo.backend.modules.testing.entity.enums.SubmitReason;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TestAttemptServiceImpl implements TestAttemptService {
@@ -137,53 +141,79 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     @Override
     @Transactional
     public SubmitResultResponse submitAttempt(Integer attemptId, AutosaveAnswersRequest request) {
+        SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
+                .reason(SubmitReason.MANUAL)
+                .baseVersion(request != null ? request.getVersion() : null)
+                .finalAnswers(request != null ? request.getAnswers() : null)
+                .build();
+        return submitAttempt(attemptId, submitReq);
+    }
+
+    @Override
+    @Transactional
+    public SubmitResultResponse submitAttempt(Integer attemptId, SubmitAttemptRequest request) {
         Integer userId = identityAdapter.getCurrentUserId();
         TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
                         "Attempt not found or access denied: " + attemptId));
 
-        // Idempotency: if already completed, return existing result without re-grading
+        // Idempotency: if already finalized, return existing result without re-grading
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
             return SubmitResultResponse.from(attempt.getId(), attempt.getStatus());
         }
 
-        // Save final answers
-        autosaveAnswers(attemptId, request);
-
-        // ── Sprint 04: Grade objective questions ──────────────────────────────────
-        List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attemptId);
-        Map<Integer, PartGradingKey> keys = gradingAdapter.loadPartKeys(attempt.getExamId());
-        GradingResult gradingResult = gradingService.gradeAttempt(savedAnswers, keys);
-
-        // Persist per-Part flags and earnedScore
-        for (AttemptAnswer aa : savedAnswers) {
-            Map<String, QuestionGradingResult> partResult =
-                gradingResult.getPartResults().get(aa.getPartId());
-            if (partResult != null) {
-                Map<String, Object> flags = partResult.entrySet().stream()
-                    .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> (Object) e.getValue().getVerdict().name()));
-                aa.setIsCorrectFlags(flags);
-                aa.setEarnedScore(partResult.values().stream()
-                    .map(QuestionGradingResult::getScore)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add));
-            }
+        // Phase 1: Finalize (lock answers & set end_time)
+        if (request != null && request.getFinalAnswers() != null) {
+            AutosaveAnswersRequest saveReq = AutosaveAnswersRequest.builder()
+                    .version(request.getBaseVersion() != null ? request.getBaseVersion() : 1)
+                    .answers(request.getFinalAnswers())
+                    .build();
+            autosaveAnswers(attemptId, saveReq);
         }
-        attemptAnswerRepository.saveAll(savedAnswers);
 
-        // Persist overall score vào TestAttempt
-        attempt.setOverallScore(gradingResult.getTotalScore());
-        Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
-        attempt.setSectionScores(sectionMap);
-        // ─────────────────────────────────────────────────────────────────────────
-
-        // Transition status to COMPLETED
-        attempt.setStatus(AttemptStatus.COMPLETED);
-        attempt.setEndTime(Instant.now());
+        Instant now = Instant.now();
+        Instant calculatedEndTime = (attempt.getDeadline() != null && now.isAfter(attempt.getDeadline()))
+                ? attempt.getDeadline()
+                : now;
+        attempt.setEndTime(calculatedEndTime);
+        attempt.setStatus(AttemptStatus.SUBMITTED);
         testAttemptRepository.save(attempt);
 
-        return SubmitResultResponse.from(attempt.getId(), AttemptStatus.COMPLETED);
+        // Phase 2: Grading
+        try {
+            List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attemptId);
+            Map<Integer, PartGradingKey> keys = gradingAdapter.loadPartKeys(attempt.getExamId());
+            GradingResult gradingResult = gradingService.gradeAttempt(savedAnswers, keys);
+
+            for (AttemptAnswer aa : savedAnswers) {
+                Map<String, QuestionGradingResult> partResult =
+                        gradingResult.getPartResults().get(aa.getPartId());
+                if (partResult != null) {
+                    Map<String, Object> flags = partResult.entrySet().stream()
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    e -> (Object) e.getValue().getVerdict().name()));
+                    aa.setIsCorrectFlags(flags);
+                    aa.setEarnedScore(partResult.values().stream()
+                            .map(QuestionGradingResult::getScore)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add));
+                }
+            }
+            attemptAnswerRepository.saveAll(savedAnswers);
+
+            attempt.setOverallScore(gradingResult.getTotalScore());
+            Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
+            attempt.setSectionScores(sectionMap);
+
+            attempt.setStatus(AttemptStatus.COMPLETED);
+            testAttemptRepository.save(attempt);
+        } catch (Exception e) {
+            log.error("Grading failed for attempt {}: {}", attemptId, e.getMessage(), e);
+            attempt.setStatus(AttemptStatus.GRADING_FAILED);
+            testAttemptRepository.save(attempt);
+        }
+
+        return SubmitResultResponse.from(attempt.getId(), attempt.getStatus());
     }
 
     // ─── private helpers ────────────────────────────────────────────────────────

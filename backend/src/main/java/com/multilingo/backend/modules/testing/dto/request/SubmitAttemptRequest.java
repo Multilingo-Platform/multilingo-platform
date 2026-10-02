@@ -1,5 +1,6 @@
 package com.multilingo.backend.modules.testing.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.multilingo.backend.modules.testing.entity.enums.SubmitReason;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -20,5 +21,6 @@ public class SubmitAttemptRequest {
 
     private Integer baseVersion;
 
+    @JsonAlias({"answers", "finalAnswers"})
     private List<AutosaveAnswersRequest.PartAnswerDto> finalAnswers;
 }

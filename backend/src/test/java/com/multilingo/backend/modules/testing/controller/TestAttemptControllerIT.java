@@ -163,7 +163,7 @@ class TestAttemptControllerIT {
         int attemptId = objectMapper.readTree(create.getResponse().getContentAsString())
                 .path("data").path("attemptId").asInt();
 
-        String body = "{\"version\": 1, \"answers\": []}";
+        String body = "{\"reason\": \"MANUAL\", \"version\": 1, \"answers\": []}";
         mockMvc.perform(post("/api/v1/attempts/{id}/submit", attemptId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -184,7 +184,7 @@ class TestAttemptControllerIT {
                 .andReturn();
         int attemptId = objectMapper.readTree(create.getResponse().getContentAsString())
                 .path("data").path("attemptId").asInt();
-        String body = "{\"version\": 1, \"answers\": []}";
+        String body = "{\"reason\": \"MANUAL\", \"version\": 1, \"answers\": []}";
 
         mockMvc.perform(post("/api/v1/attempts/{id}/submit", attemptId)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
