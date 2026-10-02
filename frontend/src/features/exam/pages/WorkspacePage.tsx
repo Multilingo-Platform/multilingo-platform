@@ -55,29 +55,44 @@ const WorkspacePage: React.FC = () => {
   // Active part: selected part or first part available
   const currentPart = useMemo(() => {
     if (selectedPartId !== null) {
-      const found = allParts.find(p => p.id === selectedPartId);
+      const found = allParts.find(p => (p as any).id === selectedPartId || (p as any).part_id === selectedPartId);
       if (found) return found;
     }
     const firstSection = workspace?.exam_snapshot?.sections?.[0];
     return firstSection?.parts?.[0];
   }, [workspace, selectedPartId, allParts]);
 
-  const currentPartQuestions = currentPart?.content?.question_groups?.flatMap(g => g.questions) ?? [];
-  const partQuestions: Question[] = currentPartQuestions.map((q: any) => ({
-    ...q,
-    question_id: q.question_id || String(q.id),
-    question_number: q.question_number ?? q.id,
-    type: q.type === 'MCQ' ? 'SINGLE_CHOICE' : q.type === 'FILL_IN' ? 'FILL_IN_THE_BLANK' : q.type,
-    question_text: q.question_text || q.prompt || '',
-  }));
-  const partId = currentPart?.id ?? 1;
+  // Active part questions extraction: supports both part.questions & part.content.question_groups
+  const currentPartQuestions = useMemo(() => {
+    if (!currentPart) return [];
+    if (Array.isArray((currentPart as any).questions) && (currentPart as any).questions.length > 0) {
+      return (currentPart as any).questions;
+    }
+    return currentPart?.content?.question_groups?.flatMap((g: any) => g.questions ?? []) ?? [];
+  }, [currentPart]);
+
+  const partQuestions: Question[] = useMemo(() => {
+    return currentPartQuestions.map((q: any) => ({
+      ...q,
+      question_id: q.question_id || String(q.id),
+      question_number: q.question_number ?? q.id,
+      type: q.type === 'MCQ' ? 'SINGLE_CHOICE' : q.type === 'FILL_IN' ? 'FILL_IN_THE_BLANK' : q.type,
+      question_text: q.question_text || q.prompt || '',
+      options: q.options ?? null,
+    }));
+  }, [currentPartQuestions]);
+
+  const partId = (currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1;
 
   // Compute unanswered questions across the entire exam
   const allQuestions = useMemo(() => {
-    return workspace?.exam_snapshot?.sections?.flatMap(s =>
-      s.parts?.flatMap(p => p.content?.question_groups?.flatMap(g => g.questions) ?? []) ?? []
-    ) ?? [];
-  }, [workspace]);
+    return allParts.flatMap((p: any) => {
+      if (Array.isArray(p.questions) && p.questions.length > 0) {
+        return p.questions;
+      }
+      return p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) ?? [];
+    });
+  }, [allParts]);
 
   const unansweredCount = useMemo(() => {
     let answered = 0;
@@ -187,8 +202,10 @@ const WorkspacePage: React.FC = () => {
     return null;
   }
 
-  const passageHtml = currentPart?.content?.content_html;
-  const currentPartNumber = currentPart?.part_number ?? (allParts.findIndex(p => p.id === partId) + 1 || 1);
+  const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html;
+  const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
+  const currentPartNumber = currentPart?.part_number ?? (allParts.findIndex(p => ((p as any).part_id ?? p.id) === partId) + 1 || 1);
+  const partTitle = currentPart?.title || currentPart?.content?.part_title || `Passage ${currentPartNumber}`;
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-800 select-text" onClick={() => {
@@ -242,7 +259,7 @@ const WorkspacePage: React.FC = () => {
             <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wider bg-white px-2.5 py-1 rounded border border-slate-200">
-                  {currentPart?.content?.part_title || `Passage ${currentPartNumber}`}
+                  {partTitle}
                 </span>
                 <span className="text-xs text-slate-500">IELTS Academic Reading</span>
               </div>
@@ -267,13 +284,13 @@ const WorkspacePage: React.FC = () => {
                   dangerouslySetInnerHTML={{ __html: passageHtml }}
                   className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
                 />
-              ) : currentPart?.content?.instruction ? (
+              ) : partInstruction ? (
                 <div className="space-y-4">
                   <h2 className="font-heading text-lg font-bold text-slate-900">
-                    {currentPart.content.part_title || 'Hướng dẫn phần thi'}
+                    {partTitle}
                   </h2>
                   <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
-                    {currentPart.content.instruction}
+                    {partInstruction}
                   </div>
                 </div>
               ) : (
@@ -294,6 +311,9 @@ const WorkspacePage: React.FC = () => {
                 const pId = (p as any).part_id ?? p.id;
                 const isActive = pId === partId;
                 const pIndex = allParts.findIndex(item => ((item as any).part_id ?? item.id) === pId) + 1;
+                const qCount = Array.isArray(p.questions)
+                  ? p.questions.length
+                  : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
                 return (
                   <button
                     key={pId}
@@ -305,12 +325,12 @@ const WorkspacePage: React.FC = () => {
                         : 'text-slate-500 border-transparent hover:text-slate-900'
                     }`}
                   >
-                    <span>{p.title || `Part ${pIndex}`}</span>
-                    {p.content?.question_groups && (
+                    <span>{p.title || p.content?.part_title || `Part ${pIndex}`}</span>
+                    {qCount > 0 && (
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
                         isActive ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
                       }`}>
-                        {p.content.question_groups.flatMap((g: any) => g.questions ?? []).length} câu
+                        {qCount} câu
                       </span>
                     )}
                   </button>
@@ -324,10 +344,10 @@ const WorkspacePage: React.FC = () => {
             {partQuestions.length > 0 ? (
               <div className="flex flex-col gap-4 max-w-3xl">
                 {/* Part Instruction Callout */}
-                {currentPart?.content?.instruction && (
+                {partInstruction && (
                   <div className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700">
                     <span className="font-bold text-amber-800 block mb-0.5">Hướng dẫn làm bài:</span>
-                    {currentPart.content.instruction}
+                    {partInstruction}
                   </div>
                 )}
 
