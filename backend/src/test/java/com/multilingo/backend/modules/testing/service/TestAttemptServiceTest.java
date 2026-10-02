@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -364,5 +365,44 @@ class TestAttemptServiceTest {
         assertThat(saved.getSectionScores()).isNotNull();
         // Only Part 1 was autosaved → only Reading section has an AttemptAnswer row
         assertThat(saved.getSectionScores()).containsKey("Reading");
+    }
+
+    @Test
+    void createAttempt_single_skill_filters_exam_snapshot_to_single_section() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.SINGLE_SKILL);
+        req.setTestMode(TestMode.PRACTICE);
+        req.setTargetSectionId(1); // Reading
+
+        WorkspaceResponse response = service.createAttempt(req);
+
+        assertThat(response.getExamSnapshot()).isNotNull();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sections = (List<Map<String, Object>>) response.getExamSnapshot().get("sections");
+        assertThat(sections).hasSize(1);
+        assertThat(sections.get(0).get("id")).isEqualTo(1);
+        assertThat(response.getExamSnapshot().get("durationMinutes")).isEqualTo(60);
+    }
+
+    @Test
+    void createAttempt_single_part_filters_exam_snapshot_to_single_part() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.SINGLE_PART);
+        req.setTestMode(TestMode.PRACTICE);
+        req.setTargetPartId(2); // Reading Part 2
+
+        WorkspaceResponse response = service.createAttempt(req);
+
+        assertThat(response.getExamSnapshot()).isNotNull();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sections = (List<Map<String, Object>>) response.getExamSnapshot().get("sections");
+        assertThat(sections).hasSize(1);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> parts = (List<Map<String, Object>>) sections.get(0).get("parts");
+        assertThat(parts).hasSize(1);
+        assertThat(parts.get(0).get("id")).isEqualTo(2);
+        assertThat(response.getExamSnapshot().get("durationMinutes")).isEqualTo(20);
     }
 }
