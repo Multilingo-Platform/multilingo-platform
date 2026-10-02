@@ -68,7 +68,7 @@ public class TestAttemptController {
     @PostMapping("/{id}/submit")
     public ResponseEntity<ApiResponse<SubmitResultResponse>> submitAttempt(
             @PathVariable Integer id,
-            @Valid @RequestBody AutosaveAnswersRequest request) {
+            @Valid @RequestBody com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest request) {
         SubmitResultResponse result = testAttemptService.submitAttempt(id, request);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
