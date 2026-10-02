@@ -92,7 +92,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
   const [examTitle, setExamTitle] = useState('Đề thi Mới');
   const [examType, setExamType] = useState('IELTS_ACADEMIC');
   const [parts, setParts] = useState<ExamPart[]>([]);
-  const [expandedParts, setExpandedParts] = useState<Record<string, boolean>>({});
+  const [activePartIndex, setActivePartIndex] = useState(0);
   const [selectedSpecificPart, setSelectedSpecificPart] = useState('IELTS_L1');
   const [selectedSkill, setSelectedSkill] = useState('IELTS_LISTENING');
   const [wizardMode, setWizardMode] = useState<'START' | 'FULL' | 'SKILL' | 'PART' | 'BUILDER'>('START');
@@ -192,7 +192,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
     }
     if (newPart) {
       setParts([...parts, newPart]);
-      setExpandedParts(prev => ({ ...prev, [parts.length]: true }));
+      setActivePartIndex(parts.length);
     }
   };
 
@@ -244,7 +244,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
     
     if (newPartsToAdd.length > 0) {
       setParts([...parts, ...newPartsToAdd]);
-      setExpandedParts(prev => ({ ...prev, [parts.length]: true }));
+      setActivePartIndex(parts.length);
     }
   };
 
@@ -342,11 +342,8 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
     }
 
     setParts(newParts);
-    // Expand only the first part to not clutter the screen
-    setExpandedParts({ 0: true });
+    setActivePartIndex(0);
   };
-
-  const togglePart = (partIdx: number) => setExpandedParts(prev => ({ ...prev, [partIdx]: !prev[partIdx] }));
 
 
   const updatePart = (partIdx: number, field: keyof ExamPart, value: any) => {
@@ -602,46 +599,81 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
           <p>Chưa có Part nào. Bấm <strong>"+ Thêm Kỹ Năng / Part"</strong> ở góc trên để thêm nội dung.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {parts.map((part, pIndex) => (
-            <div key={pIndex} className="ed-card" style={{ overflow: 'hidden', borderLeft: '4px solid var(--primary)' }}>
-              <div 
-                className="flex-between" 
-                style={{ background: 'var(--bg-tertiary)', padding: '1rem 1.5rem', cursor: 'pointer', borderBottom: expandedParts[pIndex] ? '1px solid var(--border-light)' : 'none' }}
-                onClick={() => togglePart(pIndex)}
+        <div>
+          {/* TABS */}
+          <div style={{ display: 'flex', overflowX: 'auto', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-light)' }}>
+            {parts.map((tabPart, tabIndex) => (
+              <button 
+                key={tabIndex} 
+                onClick={() => setActivePartIndex(tabIndex)}
+                style={{ 
+                  padding: '0.75rem 1.5rem', 
+                  border: 'none', 
+                  background: 'transparent',
+                  borderBottom: activePartIndex === tabIndex ? '3px solid var(--primary)' : '3px solid transparent',
+                  color: activePartIndex === tabIndex ? 'var(--primary)' : 'var(--text-secondary)',
+                  fontWeight: activePartIndex === tabIndex ? 700 : 500,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'all 0.2s ease'
+                }}
               >
-                <div className="flex-center" style={{ gap: '0.5rem' }}>
-                  {expandedParts[pIndex] ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                  <input type="text" value={part.part_title} onChange={(e) => updatePart(pIndex, 'part_title', e.target.value)} onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: 'none', fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', outline: 'none', width: '300px' }} />
+                {tabPart.part_title || `Part ${tabIndex + 1}`}
+              </button>
+            ))}
+          </div>
+
+          {/* ACTIVE TAB CONTENT */}
+          {(() => {
+            const pIndex = activePartIndex;
+            const part = parts[pIndex];
+            if (!part) return null;
+            return (
+              <div className="ed-card" style={{ padding: '1.5rem', background: 'var(--bg-primary)', borderLeft: '4px solid var(--primary)', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem' }}>
+                  <button className="btn" style={{ padding: '0.25rem 0.5rem', color: 'var(--danger)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-light)' }} onClick={() => {
+                    if (window.confirm('Bạn có chắc muốn xóa Part này?')) {
+                      const newParts = [...parts];
+                      newParts.splice(pIndex, 1);
+                      setParts(newParts);
+                      if (activePartIndex >= newParts.length) setActivePartIndex(Math.max(0, newParts.length - 1));
+                    }
+                  }}>
+                    <Trash2 size={16} /> Xóa Part
+                  </button>
                 </div>
-              </div>
-
-              {expandedParts[pIndex] && (
-                <div style={{ padding: '1.5rem', background: 'var(--bg-primary)' }}>
-                  
-                  {/* Part Settings */}
-                  <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Hướng dẫn chung (Instruction)</label>
-                      <input type="text" className="input-field" value={part.instruction || ''} onChange={e => updatePart(pIndex, 'instruction', e.target.value)} placeholder="VD: Listen to the conversation..." />
-                    </div>
-                    
-                    {/* CHỈ HIỆN AUDIO NẾU LÀ KỸ NĂNG NGHE */}
-                    {(part.part_title.toLowerCase().includes('listen') || part.part_title.toLowerCase().includes('nghe')) && (
-                      <div style={{ flex: 1 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><Music size={14} color="var(--primary)" /> Shared Audio URL</label>
-                        <input type="text" className="input-field" value={part.shared_audio?.url || ''} onChange={e => updatePart(pIndex, 'shared_audio', { url: e.target.value, duration_seconds: 0 })} placeholder="Nhập Link Mp3 cho Part này..." />
-                      </div>
-                    )}
+                
+                {/* Part Settings */}
+                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: 1, maxWidth: '300px' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Tiêu đề Part</label>
+                    <input type="text" className="input-field" value={part.part_title} onChange={(e) => updatePart(pIndex, 'part_title', e.target.value)} />
                   </div>
+                  <div style={{ flex: 2 }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Hướng dẫn chung (Instruction)</label>
+                    <input type="text" className="input-field" value={part.instruction || ''} onChange={e => updatePart(pIndex, 'instruction', e.target.value)} placeholder="VD: Listen to the conversation..." />
+                  </div>
+                </div>
 
-                  {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC VSTEP ĐỌC */}
-                  {(part.part_title.toLowerCase().includes('passage') || (examType === 'VSTEP' && part.part_title.toLowerCase().includes('đọc'))) && (
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><AlignLeft size={14} color="var(--primary)" /> Nội dung Bài Đọc (Shared Reading Passage)</label>
-                      <textarea className="input-field" rows={6} value={part.shared_content_html || ''} onChange={e => updatePart(pIndex, 'shared_content_html', e.target.value)} placeholder="<p>Nhập mã HTML của toàn bộ bài đọc IELTS/VSTEP tại đây...</p>"></textarea>
+                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+                  {/* CHỈ HIỆN AUDIO NẾU LÀ KỸ NĂNG NGHE */}
+                  {(part.part_title.toLowerCase().includes('listen') || part.part_title.toLowerCase().includes('nghe')) && (
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><Music size={14} color="var(--primary)" /> Shared Audio URL</label>
+                      <input type="text" className="input-field" value={part.shared_audio?.url || ''} onChange={e => updatePart(pIndex, 'shared_audio', { url: e.target.value, duration_seconds: 0 })} placeholder="Nhập Link Mp3 cho Part này..." />
                     </div>
                   )}
+                </div>
+
+                {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC VSTEP ĐỌC */}
+                {(part.part_title.toLowerCase().includes('passage') || (examType === 'VSTEP' && part.part_title.toLowerCase().includes('đọc'))) && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><AlignLeft size={14} color="var(--primary)" /> Nội dung Bài Đọc (Shared Reading Passage)</label>
+                    <textarea className="input-field" rows={6} value={part.shared_content_html || ''} onChange={e => updatePart(pIndex, 'shared_content_html', e.target.value)} placeholder="<p>Nhập mã HTML của toàn bộ bài đọc IELTS/VSTEP tại đây...</p>"></textarea>
+                  </div>
+                )}
 
                   {/* Question Groups */}
                   {part.question_groups.map((group, gIndex) => {
@@ -806,9 +838,8 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                     })()
                   )}
                 </div>
-              )}
-            </div>
-          ))}
+            );
+          })()}
         </div>
       )}
 
