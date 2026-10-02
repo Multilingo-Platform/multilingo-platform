@@ -85,4 +85,27 @@ describe('useExamTimer', () => {
     expect(result.current.isExpired).toBe(false);
     expect(result.current.timeLeftMs).toBeGreaterThan(0);
   });
+
+  it('calculates remaining seconds correctly with offset and handles visibilitychange', () => {
+    vi.setSystemTime(new Date('2026-10-02T11:59:50Z'));
+    const serverTime = '2026-10-02T12:00:00Z';
+    const deadline = '2026-10-02T12:01:00Z';
+
+    const { result } = renderHook(() => useExamTimer(serverTime, deadline));
+    expect(result.current.remainingSeconds).toBe(60);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(result.current.remainingSeconds).toBe(59);
+
+    // Simulate tab switch / visibilitychange after 10s of background throttling
+    vi.setSystemTime(new Date('2026-10-02T12:00:10Z'));
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    // Server time is now 12:00:20Z. Remaining until 12:01:00Z is 40s.
+    expect(result.current.remainingSeconds).toBe(40);
+  });
 });
+

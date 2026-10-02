@@ -17,6 +17,7 @@ function normalizeWorkspace(data: any, serverTimeOffset = 0): WorkspaceResponse 
     exam_snapshot: data.examSnapshot ?? data.exam_snapshot ?? {},
     version: data.version ?? 0,
     saved_answers: data.savedAnswers ?? data.saved_answers ?? [],
+    serverTime: data.serverTime ?? data.server_time ?? null,
     serverTimeOffset,
   };
 }
@@ -51,8 +52,11 @@ export async function getWorkspace(attemptId: number): Promise<WorkspaceResponse
   if (!res.success || !res.data) {
     throw new Error(res.message || 'Attempt not found');
   }
-  // Compute server-client clock offset if backend provides serverNow in response body
-  const serverNowMs: number = res.data.serverNow ?? res.data.server_now ?? 0;
+  // Compute server-client clock offset if backend provides serverTime in response body
+  const serverTimeRaw = res.data.serverTime ?? res.data.server_time ?? res.data.serverNow ?? res.data.server_now;
+  const serverNowMs: number = serverTimeRaw
+    ? (typeof serverTimeRaw === 'number' ? serverTimeRaw : new Date(serverTimeRaw).getTime())
+    : 0;
   const serverTimeOffset =
     serverNowMs > 0
       ? serverNowMs - Math.round((clientBefore + clientAfter) / 2)

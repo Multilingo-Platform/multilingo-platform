@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface ExamTimerResult {
   timeLeftMs: number;
+  remainingSeconds: number;
   isExpired: boolean;
   displayTime: string;
   isPractice: boolean;
@@ -20,50 +21,89 @@ function formatTime(ms: number): string {
   return `${minutes}:${ss}`;
 }
 
-/**
- * @param deadline  ISO-8601 deadline string from server, or null for practice mode.
- * @param serverTimeOffset  (optional) ms difference: serverClock − clientClock at workspace
- *   fetch time. Positive = server ahead; negative = server behind. Defaults to 0.
- */
 export function useExamTimer(
-  deadline: string | null,
-  serverTimeOffset: number = 0
+  arg1: string | null,
+  arg2?: string | number | null
 ): ExamTimerResult {
-  const isPractice = deadline === null;
+  let resolvedDeadline: string | null = null;
+  let initialServerTime: string | null = null;
+  let explicitOffset: number | null = null;
 
-  const computeTimeLeft = (dl: string | null): number => {
+  if (typeof arg2 === 'string' || (arg2 === null && arguments.length >= 2)) {
+    // Calling convention: (serverTime, deadline)
+    initialServerTime = arg1;
+    resolvedDeadline = arg2;
+  } else {
+    // Calling convention: (deadline, serverTimeOffset?)
+    resolvedDeadline = arg1;
+    if (typeof arg2 === 'number') {
+      explicitOffset = arg2;
+    }
+  }
+
+  const isPractice = resolvedDeadline === null;
+
+  // Compute offset only ONCE when serverTime or explicitOffset is provided
+  const offsetRef = useRef<number | null>(null);
+  const serverTimeRef = useRef<string | null>(initialServerTime);
+
+  if (offsetRef.current === null || serverTimeRef.current !== initialServerTime) {
+    serverTimeRef.current = initialServerTime;
+    if (explicitOffset !== null) {
+      offsetRef.current = explicitOffset;
+    } else if (initialServerTime) {
+      offsetRef.current = new Date(initialServerTime).getTime() - Date.now();
+    } else {
+      offsetRef.current = 0;
+    }
+  }
+
+  const computeTimeLeft = useCallback((dl: string | null): number => {
     if (dl === null || !dl) return 0;
-    // Adjust client's "now" by the server-client clock difference
-    const serverAdjustedNow = Date.now() + serverTimeOffset;
+    const serverAdjustedNow = Date.now() + (offsetRef.current ?? 0);
     return Math.max(0, Date.parse(dl) - serverAdjustedNow);
-  };
+  }, []);
 
-  const [timeLeftMs, setTimeLeftMs] = useState<number>(() => computeTimeLeft(deadline));
-  const [prevDeadline, setPrevDeadline] = useState<string | null>(deadline);
+  const [timeLeftMs, setTimeLeftMs] = useState<number>(() => computeTimeLeft(resolvedDeadline));
+  const [prevDeadline, setPrevDeadline] = useState<string | null>(resolvedDeadline);
 
-  // Synchronize state immediately during render if deadline prop changes
-  if (deadline !== prevDeadline) {
-    setPrevDeadline(deadline);
-    setTimeLeftMs(computeTimeLeft(deadline));
+  // Synchronize state immediately during render if deadline changes
+  if (resolvedDeadline !== prevDeadline) {
+    setPrevDeadline(resolvedDeadline);
+    setTimeLeftMs(computeTimeLeft(resolvedDeadline));
   }
 
   useEffect(() => {
-    if (isPractice || !deadline) return;
+    if (isPractice || !resolvedDeadline) return;
 
-    setTimeLeftMs(computeTimeLeft(deadline));
+    const tick = () => {
+      setTimeLeftMs(computeTimeLeft(resolvedDeadline));
+    };
 
-    // Refresh mỗi 500ms để tránh giật khi quay lại từ tab ẩn
-    const id = setInterval(() => {
-      setTimeLeftMs(computeTimeLeft(deadline));
-    }, 500);
+    tick();
 
-    return () => clearInterval(id);
-  }, [deadline, isPractice, serverTimeOffset]);
+    const intervalId = setInterval(tick, 500);
 
-  const hasExpired = !isPractice && deadline !== null && timeLeftMs === 0;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        tick();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [resolvedDeadline, isPractice, computeTimeLeft]);
+
+  const hasExpired = !isPractice && resolvedDeadline !== null && timeLeftMs === 0;
+  const remainingSeconds = Math.max(0, Math.floor(timeLeftMs / 1000));
 
   return {
     timeLeftMs,
+    remainingSeconds,
     isExpired: hasExpired,
     displayTime: isPractice ? '' : formatTime(timeLeftMs),
     isPractice,
