@@ -88,7 +88,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public WorkspaceResponse getAttemptWorkspace(Integer attemptId) {
         Integer userId = identityAdapter.getCurrentUserId();
 
@@ -96,6 +96,19 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
                         "Attempt not found or access denied: " + attemptId));
+
+        if (attempt.getTestMode() == TestMode.MOCK_TEST
+                && attempt.getStatus() == AttemptStatus.IN_PROGRESS
+                && attempt.getDeadline() != null
+                && Instant.now().isAfter(attempt.getDeadline())) {
+            // Lazy Finalize when querying expired attempt
+            TestAttempt lockedAttempt = testAttemptRepository.findByIdAndUserIdForUpdate(attemptId, userId)
+                    .orElse(attempt);
+            if (lockedAttempt.getStatus() == AttemptStatus.IN_PROGRESS) {
+                finalizeAndGradeAttempt(lockedAttempt, SubmitReason.TIMEOUT_SERVER, null, userId);
+                attempt = lockedAttempt;
+            }
+        }
 
         return toWorkspaceResponse(attempt);
     }
@@ -156,16 +169,38 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
             if (reason == SubmitReason.TIMEOUT_CLIENT && now.isAfter(attempt.getDeadline().plusSeconds(15))) {
                 // Past 15s grace window: discard payload and finalize with saved answers
-                request = SubmitAttemptRequest.builder()
-                        .reason(SubmitReason.TIMEOUT_SERVER)
-                        .finalAnswers(null)
-                        .build();
+                reason = SubmitReason.TIMEOUT_SERVER;
             }
         }
 
+        List<AutosaveAnswersRequest.PartAnswerDto> finalAnswers =
+                (reason != SubmitReason.TIMEOUT_SERVER && request != null) ? request.getFinalAnswers() : null;
+
+        return finalizeAndGradeAttempt(attempt, reason, finalAnswers, userId);
+    }
+
+    @Override
+    @Transactional
+    public void expireAttemptBySystem(Integer attemptId) {
+        TestAttempt attempt = testAttemptRepository.findByIdForUpdate(attemptId).orElse(null);
+        if (attempt == null || attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            return;
+        }
+        if (attempt.getDeadline() == null || !Instant.now().isAfter(attempt.getDeadline())) {
+            return;
+        }
+        finalizeAndGradeAttempt(attempt, SubmitReason.TIMEOUT_SERVER, null, attempt.getUserId());
+    }
+
+    private SubmitResultResponse finalizeAndGradeAttempt(TestAttempt attempt,
+                                                         SubmitReason reason,
+                                                         List<AutosaveAnswersRequest.PartAnswerDto> finalAnswers,
+                                                         Integer userId) {
+        Instant now = Instant.now();
+
         // Phase 1: Finalize (lock answers & set end_time)
-        if (request != null && request.getFinalAnswers() != null) {
-            saveAnswersInternal(attempt, request.getFinalAnswers());
+        if (reason != SubmitReason.TIMEOUT_SERVER && finalAnswers != null) {
+            saveAnswersInternal(attempt, finalAnswers);
         }
 
         Instant calculatedEndTime = (attempt.getDeadline() != null && now.isAfter(attempt.getDeadline()))
@@ -177,7 +212,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         // Phase 2: Grading
         try {
-            List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attemptId);
+            List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
             Map<Integer, PartGradingKey> keys = gradingAdapter.loadPartKeys(attempt.getExamId());
             GradingResult gradingResult = gradingService.gradeAttempt(savedAnswers, keys);
 
@@ -210,7 +245,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
             testAttemptRepository.save(attempt);
         } catch (Exception e) {
-            log.error("Grading failed for attempt {}: {}", attemptId, e.getMessage(), e);
+            log.error("Grading failed for attempt {}: {}", attempt.getId(), e.getMessage(), e);
             attempt.setStatus(AttemptStatus.GRADING_FAILED);
             testAttemptRepository.save(attempt);
         }
