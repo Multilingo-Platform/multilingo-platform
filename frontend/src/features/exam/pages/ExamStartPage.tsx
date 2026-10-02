@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import ScopeModePicker from '../components/ScopeModePicker';
 import { createAttempt } from '../api/attemptApi';
-import type { CreateAttemptRequest } from '../types/api.types';
+import type { CreateAttemptRequest, TestMode, TestScope } from '../types/api.types';
 
 const ExamStartPage: React.FC = () => {
   const { examId } = useParams<{ examId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const initialMode = (searchParams.get('mode') as TestMode) || undefined;
+  const initialScope = (searchParams.get('scope') as TestScope) || undefined;
 
   const handleSubmit = async (req: CreateAttemptRequest) => {
     setIsLoading(true);
@@ -79,7 +83,7 @@ const ExamStartPage: React.FC = () => {
               📝 Đề thi #{examId}
             </span>
             <span className="badge-green">
-              IELTS Academic Reading
+              {examId === '2' ? 'IELTS General Reading' : 'IELTS Academic Reading'}
             </span>
             <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>
               Chuẩn Format CBT Quốc tế
@@ -94,10 +98,12 @@ const ExamStartPage: React.FC = () => {
             marginBottom: '0.75rem',
             letterSpacing: '-0.01em',
           }}>
-            IELTS Academic Reading - Cambridge 19 Test 01
+            {examId === '2' ? 'IELTS General Reading - Practice 02' : 'IELTS Academic Reading - Cambridge 19 Test 01'}
           </h1>
           <p style={{ color: '#4b5563', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-            Bài thi chuẩn hóa cấu trúc 3 Passages học thuật (40 câu hỏi), bao gồm dạng bài True / False / Not Given, Matching Headings, và Summary Completion.
+            {examId === '2'
+              ? 'Bài thi luyện tập đọc hiểu chuyên sâu, hỗ trợ tra từ điển ngữ cảnh AI và luyện tập linh hoạt không áp lực thời gian.'
+              : 'Bài thi chuẩn hóa cấu trúc 3 Passages học thuật (40 câu hỏi), bao gồm dạng bài True / False / Not Given, Matching Headings, và Summary Completion.'}
           </p>
 
           {/* Quick Info Grid */}
@@ -107,15 +113,19 @@ const ExamStartPage: React.FC = () => {
           }}>
             <div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>⏱️ Thời lượng</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>60 Phút</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>
+                {examId === '2' ? 'Không giới hạn' : '60 - 180 Phút'}
+              </div>
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>📋 Số câu hỏi</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>40 Câu</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>
+                {examId === '2' ? 'Đầy đủ Part' : '40 Câu'}
+              </div>
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>📖 Cấu trúc</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>3 Passages</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>Passages CBT</div>
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>👥 Thí sinh</div>
@@ -128,6 +138,8 @@ const ExamStartPage: React.FC = () => {
         <div className="ed-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
           <ScopeModePicker
             examId={parseInt(examId, 10)}
+            initialMode={initialMode}
+            initialScope={initialScope}
             onSubmit={handleSubmit}
             isLoading={isLoading}
             error={error}

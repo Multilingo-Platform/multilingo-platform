@@ -198,7 +198,7 @@ function HomePage() {
         {/* Dual Primary CTAs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '3.5rem' }}>
           {/* Card 1: Mock Test */}
-          <Link to="/exams/1/start" style={{
+          <Link to="/exams/1/start?mode=MOCK_TEST&scope=FULL_EXAM" style={{
             display: 'flex', flexDirection: 'column', gap: '1rem',
             padding: '2rem',
             borderRadius: '1.25rem',
@@ -239,7 +239,7 @@ function HomePage() {
           </Link>
 
           {/* Card 2: Practice Mode */}
-          <Link to="/exams/2/start" style={{
+          <Link to="/exams/1/start?mode=PRACTICE&scope=FULL_EXAM" style={{
             display: 'flex', flexDirection: 'column', gap: '1rem',
             padding: '2rem',
             borderRadius: '1.25rem',
@@ -378,14 +378,14 @@ function HomePage() {
               <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
                 40 câu hỏi • 3 Passages • 12,450 thí sinh đã thi
               </p>
-              <Link to="/exams/1/start" className="btn-primary" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+              <Link to="/exams/1/start?mode=MOCK_TEST&scope=FULL_EXAM" className="btn-primary" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
                 Vào thi ngay →
               </Link>
             </div>
 
             <div className="ed-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <span className="badge-orange">IELTS 60 Phút</span>
+                <span className="badge-orange">IELTS Practice</span>
                 <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>General</span>
               </div>
               <h4 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem', color: '#111827', marginBottom: '0.5rem' }}>
@@ -394,7 +394,7 @@ function HomePage() {
               <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
                 40 câu hỏi • 3 Sections • 8,120 thí sinh đã thi
               </p>
-              <Link to="/exams/2/start" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+              <Link to="/exams/2/start?mode=PRACTICE&scope=FULL_EXAM" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
                 Luyện tập ngay →
               </Link>
             </div>
@@ -412,7 +412,7 @@ function HomePage() {
               <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
                 100 câu hỏi • Part 5, 6, 7 • 19,300 thí sinh
               </p>
-              <Link to="/exams/1/start" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+              <Link to="/exams/1/start?mode=PRACTICE&scope=SINGLE_SKILL" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
                 Luyện tập ngay →
               </Link>
             </div>
@@ -430,7 +430,7 @@ function HomePage() {
               <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
                 40 câu hỏi • 4 Passages • 5,600 thí sinh
               </p>
-              <Link to="/exams/2/start" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+              <Link to="/exams/1/start?mode=PRACTICE&scope=FULL_EXAM" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
                 Luyện tập ngay →
               </Link>
             </div>
