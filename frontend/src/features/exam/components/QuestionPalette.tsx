@@ -22,21 +22,21 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({ questions, partId, on
       {/* Progress bar */}
       <div style={{ marginBottom: '0.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
-          <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-heading)', fontWeight: 500, color: '#94A3B8' }}>
-            Đã làm
+          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-heading)', fontWeight: 600, color: '#4b5563' }}>
+            Tiến độ hoàn thành
           </span>
-          <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-heading)', fontWeight: 600, color: '#e2e8f0' }}>
-            {answeredCount}/{total}
+          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-heading)', fontWeight: 700, color: '#111827' }}>
+            {answeredCount}/{total} câu
           </span>
         </div>
         <div style={{
-          width: '100%', height: '4px',
-          background: '#1E293B', borderRadius: '9999px', overflow: 'hidden',
+          width: '100%', height: '6px',
+          background: '#e5e7eb', borderRadius: '9999px', overflow: 'hidden',
         }}>
           <div style={{
             height: '100%',
             width: `${progress}%`,
-            background: progress === 100 ? '#10B981' : '#2151DA',
+            background: progress === 100 ? '#10b981' : '#d97706',
             borderRadius: '9999px',
             transition: 'width 0.4s ease',
           }} />
@@ -66,15 +66,16 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({ questions, partId, on
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '0.7rem',
+                fontSize: '0.75rem',
                 fontWeight: '700',
                 fontFamily: 'var(--font-heading)',
-                transition: 'all 0.15s',
-                backgroundColor: answered ? 'rgba(16,185,129,0.15)' : 'rgba(30,41,59,0.8)',
-                color: answered ? '#10B981' : '#64748b',
-                border: answered ? '1px solid rgba(16,185,129,0.4)' : '1px solid #334155',
+                transition: 'all 0.15s ease',
+                backgroundColor: answered ? '#10b981' : '#ffffff',
+                color: answered ? '#ffffff' : '#374151',
+                border: answered ? '1px solid #059669' : '1px solid #d1d5db',
+                boxShadow: answered ? '0 1px 2px rgba(16,185,129,0.3)' : '0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
               {q.question_number}
@@ -84,14 +85,14 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({ questions, partId, on
       </nav>
 
       {/* Legend */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.65rem', color: '#94A3B8' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(16,185,129,0.3)', border: '1px solid rgba(16,185,129,0.4)', display: 'inline-block' }} />
-          Đã trả lời
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '0.875rem' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 500, color: '#4b5563' }}>
+          <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#10b981', display: 'inline-block' }} />
+          Đã trả lời ({answeredCount})
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.65rem', color: '#94A3B8' }}>
-          <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(30,41,59,0.8)', border: '1px solid #334155', display: 'inline-block' }} />
-          Chưa trả lời
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 500, color: '#6b7280' }}>
+          <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ffffff', border: '1px solid #d1d5db', display: 'inline-block' }} />
+          Chưa làm ({total - answeredCount})
         </span>
       </div>
     </div>

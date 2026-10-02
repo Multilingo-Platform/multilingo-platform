@@ -19,9 +19,9 @@ export function SaveStatusBadge() {
     return (
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-        fontSize: '0.75rem', color: '#F59E0B',
-        padding: '0.25rem 0.5rem',
-        background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
+        fontSize: '0.75rem', fontWeight: 600, color: '#b45309',
+        padding: '0.25rem 0.625rem',
+        background: '#fffbeb', border: '1px solid #fde68a',
         borderRadius: '9999px',
       }}>
         <Spinner /> Đang lưu...
@@ -33,12 +33,12 @@ export function SaveStatusBadge() {
     return (
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-        fontSize: '0.75rem', color: '#10B981',
-        padding: '0.25rem 0.5rem',
-        background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)',
+        fontSize: '0.75rem', fontWeight: 600, color: '#065f46',
+        padding: '0.25rem 0.625rem',
+        background: '#ecfdf5', border: '1px solid #a7f3d0',
         borderRadius: '9999px',
       }}>
-        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
         Đã lưu
       </span>
     );
@@ -48,9 +48,9 @@ export function SaveStatusBadge() {
     return (
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-        fontSize: '0.75rem', color: '#F59E0B',
-        padding: '0.25rem 0.5rem',
-        background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
+        fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c',
+        padding: '0.25rem 0.625rem',
+        background: '#fee2e2', border: '1px solid #fca5a5',
         borderRadius: '9999px',
       }}>
         ⚠️ Đang thử lại...
