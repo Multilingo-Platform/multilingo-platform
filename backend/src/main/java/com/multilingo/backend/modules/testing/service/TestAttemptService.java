@@ -5,6 +5,8 @@ import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
 import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 
+import com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest;
+
 public interface TestAttemptService {
 
     /**
@@ -33,7 +35,12 @@ public interface TestAttemptService {
     void autosaveAnswers(Integer attemptId, AutosaveAnswersRequest request);
 
     /**
-     * Submits an attempt.
+     * Submits an attempt with full SubmitAttemptRequest (reason, version, final answers).
+     */
+    SubmitResultResponse submitAttempt(Integer attemptId, SubmitAttemptRequest request);
+
+    /**
+     * Submits an attempt (legacy backward-compatible overload).
      * Idempotent: if already completed, returns existing result.
      */
     SubmitResultResponse submitAttempt(Integer attemptId, AutosaveAnswersRequest request);
