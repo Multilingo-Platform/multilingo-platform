@@ -201,7 +201,13 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
             attempt.setSectionScores(sectionMap);
 
-            attempt.setStatus(AttemptStatus.COMPLETED);
+            boolean hasWriting = checkHasWriting(attempt);
+            if (hasWriting) {
+                boolean hasQuota = checkAiQuota(userId);
+                attempt.setStatus(hasQuota ? AttemptStatus.AI_GRADING : AttemptStatus.AI_GRADING_QUEUED);
+            } else {
+                attempt.setStatus(AttemptStatus.COMPLETED);
+            }
             testAttemptRepository.save(attempt);
         } catch (Exception e) {
             log.error("Grading failed for attempt {}: {}", attemptId, e.getMessage(), e);
@@ -213,6 +219,27 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     // ─── private helpers ────────────────────────────────────────────────────────
+
+    private boolean checkHasWriting(TestAttempt attempt) {
+        if (attempt.getExamSnapshot() == null) return false;
+        Object sectionsObj = attempt.getExamSnapshot().get("sections");
+        if (sectionsObj instanceof List<?> sections) {
+            for (Object s : sections) {
+                if (s instanceof Map<?, ?> secMap) {
+                    Object name = secMap.get("name");
+                    if (name != null && name.toString().toUpperCase().contains("WRITING")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean checkAiQuota(Integer userId) {
+        // Stub for Sprint 05: default true, will connect to user_quotas in Sprint 08/09
+        return true;
+    }
 
     private void saveAnswersInternal(TestAttempt attempt, List<AutosaveAnswersRequest.PartAnswerDto> answers) {
         if (answers == null) return;
