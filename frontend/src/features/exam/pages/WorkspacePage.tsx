@@ -30,8 +30,8 @@ const WorkspacePage: React.FC = () => {
 
   const { workspace, loading, error, retry } = useWorkspace(attemptId);
   const { displayTime, isExpired, isPractice } = useExamTimer(
-    workspace?.deadline ?? null,
-    workspace?.serverTimeOffset ?? 0
+    workspace?.serverTime ?? null,
+    workspace?.deadline ?? null
   );
   useAutosave(workspace && workspace.status === 'IN_PROGRESS' ? attemptId : null);
 
