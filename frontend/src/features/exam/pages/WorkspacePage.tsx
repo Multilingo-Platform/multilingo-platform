@@ -284,9 +284,9 @@ const WorkspacePage: React.FC = () => {
           {allParts.length > 1 && (
             <div className="bg-white px-6 border-b border-slate-200 flex items-center gap-6 shrink-0 overflow-x-auto">
               {allParts.map((p: any) => {
-                const pId = p.part_id ?? p.id;
+                const pId = (p as any).part_id ?? p.id;
                 const isActive = pId === partId;
-                const pIndex = allParts.findIndex(item => (item.part_id ?? item.id) === pId) + 1;
+                const pIndex = allParts.findIndex(item => ((item as any).part_id ?? item.id) === pId) + 1;
                 return (
                   <button
                     key={pId}
