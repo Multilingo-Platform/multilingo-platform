@@ -178,7 +178,8 @@ class TestAttemptServiceTest {
     void submitAttempt_changes_status_to_COMPLETED() {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
-        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestScope(TestScope.SINGLE_SKILL);
+        req.setTargetSectionId(1);
         req.setTestMode(TestMode.PRACTICE);
         WorkspaceResponse attempt = service.createAttempt(req);
 
@@ -196,7 +197,8 @@ class TestAttemptServiceTest {
     void submitAttempt_is_idempotent_when_already_completed() {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
-        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestScope(TestScope.SINGLE_SKILL);
+        req.setTargetSectionId(1);
         req.setTestMode(TestMode.PRACTICE);
         WorkspaceResponse attempt = service.createAttempt(req);
 
@@ -218,7 +220,8 @@ class TestAttemptServiceTest {
         // Tạo attempt với exam 1
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
-        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestScope(TestScope.SINGLE_SKILL);
+        req.setTargetSectionId(1);
         req.setTestMode(TestMode.PRACTICE);
         WorkspaceResponse attempt = service.createAttempt(req);
 
@@ -284,7 +287,8 @@ class TestAttemptServiceTest {
     void submitAttempt_idempotent_does_not_overwrite_score() {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
-        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestScope(TestScope.SINGLE_SKILL);
+        req.setTargetSectionId(1);
         req.setTestMode(TestMode.PRACTICE);
         WorkspaceResponse attempt = service.createAttempt(req);
 
