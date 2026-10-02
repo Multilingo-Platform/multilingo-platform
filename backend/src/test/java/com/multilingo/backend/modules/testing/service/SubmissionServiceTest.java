@@ -18,6 +18,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -223,4 +225,69 @@ class SubmissionServiceTest {
         TestAttempt submittedAttempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
         assertThat(submittedAttempt.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
     }
+
+    @Test
+    void getWorkspace_pastDeadline_triggersLazyFinalize() {
+        CreateAttemptRequest createReq = new CreateAttemptRequest();
+        createReq.setExamId(1);
+        createReq.setTestScope(TestScope.SINGLE_SKILL);
+        createReq.setTargetSectionId(1);
+        createReq.setTestMode(TestMode.MOCK_TEST);
+        WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
+
+        // Set deadline to 5 seconds ago
+        TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        Instant pastDeadline = Instant.now().minusSeconds(5);
+        attempt.setDeadline(pastDeadline);
+        testAttemptRepository.save(attempt);
+
+        when(objectiveGradingService.gradeAttempt(any(), any())).thenReturn(
+                com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
+                        .totalScore(java.math.BigDecimal.TEN)
+                        .partResults(java.util.Map.of())
+                        .sectionScores(java.util.Map.of())
+                        .build()
+        );
+
+        WorkspaceResponse response = testAttemptService.getAttemptWorkspace(workspace.getAttemptId());
+
+        assertThat(response.getStatus()).isNotEqualTo(AttemptStatus.IN_PROGRESS);
+        assertThat(response.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+
+        TestAttempt updatedAttempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        assertThat(updatedAttempt.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+        assertThat(updatedAttempt.getEndTime()).isBeforeOrEqualTo(pastDeadline);
+    }
+
+    @Test
+    void expireAttemptBySystem_finalizesExpiredAttempt() {
+        CreateAttemptRequest createReq = new CreateAttemptRequest();
+        createReq.setExamId(1);
+        createReq.setTestScope(TestScope.SINGLE_SKILL);
+        createReq.setTargetSectionId(1);
+        createReq.setTestMode(TestMode.MOCK_TEST);
+        WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
+
+        // Set deadline to 30 seconds ago
+        TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        Instant pastDeadline = Instant.now().minusSeconds(30);
+        attempt.setDeadline(pastDeadline);
+        testAttemptRepository.save(attempt);
+
+        when(objectiveGradingService.gradeAttempt(any(), any())).thenReturn(
+                com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
+                        .totalScore(java.math.BigDecimal.TEN)
+                        .partResults(java.util.Map.of())
+                        .sectionScores(java.util.Map.of())
+                        .build()
+        );
+
+        testAttemptService.expireAttemptBySystem(workspace.getAttemptId());
+
+        TestAttempt updatedAttempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        assertThat(updatedAttempt.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+        assertThat(updatedAttempt.getEndTime()).isBeforeOrEqualTo(pastDeadline);
+    }
 }
+
+

@@ -44,4 +44,11 @@ public interface TestAttemptService {
      * Idempotent: if already completed, returns existing result.
      */
     SubmitResultResponse submitAttempt(Integer attemptId, AutosaveAnswersRequest request);
+
+    /**
+     * System-triggered expiration for attempts past deadline.
+     * Uses TIMEOUT_SERVER reason and runs through grading pipeline.
+     */
+    void expireAttemptBySystem(Integer attemptId);
 }
+
