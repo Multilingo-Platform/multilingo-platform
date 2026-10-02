@@ -2,30 +2,43 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors */
-  --color-primary: #2151DA;
-  --color-primary-hover: #1a3fb5;
-  --color-primary-light: #3b5fe8;
+  /* Brand / Primary (Amber EdTech Theme) */
+  --color-primary: #d97706;
+  --color-primary-hover: #b45309;
+  --color-primary-light: #fffbeb;
+  --color-primary-dark: #92400e;
 
-  --color-success: #10B981;
+  /* Accent & Feedback */
+  --color-accent: #ca8a04;
+  --color-success: #10b981;
   --color-success-light: #d1fae5;
   --color-success-dark: #059669;
 
-  --color-warning: #F59E0B;
+  --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
 
-  --color-danger: #EF4444;
+  --color-danger: #ef4444;
   --color-danger-light: #fee2e2;
   --color-danger-dark: #dc2626;
 
-  --color-surface: #1E293B;
-  --color-surface-2: #263549;
-  --color-surface-3: #2d3f55;
+  /* Surface & Background */
+  --color-bg-primary: #f9fafb;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f3f4f6;
 
-  --color-border: #334155;
-  --color-border-light: #475569;
+  --color-surface: #ffffff;
+  --color-surface-2: #f9fafb;
+  --color-surface-3: #f3f4f6;
 
-  --color-muted: #94A3B8;
+  /* Typography */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #9ca3af;
+
+  /* Borders */
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+  --color-border-dark: #d1d5db;
 
   /* Fonts */
   --font-heading: 'Plus Jakarta Sans', sans-serif;
@@ -88,8 +101,8 @@
 
   body {
     font-family: var(--font-body);
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    background-color: #f9fafb;
+    color: #111827;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -104,14 +117,14 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--color-surface, #f1f5f9);
+    background: #f1f5f9;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-border, #cbd5e1);
+    background: #cbd5e1;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-border-light, #94a3b8);
+    background: #94a3b8;
   }
 }
 
