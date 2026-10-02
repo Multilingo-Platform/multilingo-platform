@@ -15,10 +15,11 @@ interface QuestionRendererProps {
   partId: number;
   currentAnswer: AnswerValue;
   onChange: (value: AnswerValue) => void;
+  minWords?: number;
 }
 
 const QuestionRenderer: React.FC<QuestionRendererProps> = ({
-  question, currentAnswer, onChange,
+  question, currentAnswer, onChange, minWords,
 }) => {
   const { type, question_text, options, media } = question;
 
@@ -29,6 +30,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           options={options ?? []}
           value={currentAnswer as string | null}
           onChange={onChange}
+          questionId={question.question_id}
         />
       );
 
@@ -77,6 +79,8 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           value={currentAnswer as string | null}
           onChange={onChange}
           questionText={question_text}
+          media={media}
+          minWords={minWords}
         />
       );
 

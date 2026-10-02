@@ -36,6 +36,7 @@ function makeStore(isDirty = false) {
         lastSavedAt: null,
         saveStatus: 'idle' as const,
         pendingVersion: isDirty ? 1 : 0,
+        flags: {},
       },
     },
   });
@@ -118,6 +119,64 @@ describe('WorkspacePage', () => {
     renderPage(makeStore());
     expect(screen.getByText('Direct question text')).toBeDefined();
     expect(screen.getByText('Direct passage test')).toBeDefined();
+  });
+
+  it('renders pane divider and flag toggle button on question card', () => {
+    vi.mocked(workspaceHookModule.default).mockReturnValue({
+      workspace: {
+        ...baseWorkspace,
+        exam_snapshot: {
+          exam_id: 1,
+          code: 'T',
+          title: 'IELTS Test',
+          type: 'IELTS',
+          sections: [
+            {
+              id: 1,
+              skill_type: 'READING' as const,
+              title: 'Reading',
+              duration_minutes: 60,
+              parts: [
+                {
+                  id: 1,
+                  title: 'Reading Part 1',
+                  contentHtml: '<p>Direct passage test</p>',
+                  questions: [
+                    {
+                      id: 1,
+                      question_id: 'q_1',
+                      question_number: 1,
+                      type: 'SINGLE_CHOICE',
+                      question_text: 'Direct question text',
+                      options: [{ id: 'A', text: 'Option A' }],
+                    },
+                  ],
+                } as any,
+              ],
+            },
+          ],
+        },
+      },
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    });
+
+    const store = makeStore();
+    renderPage(store);
+
+    // Verify pane divider exists
+    const divider = screen.getByTestId('pane-divider');
+    expect(divider).toBeInTheDocument();
+
+    // Verify flag button exists and can be clicked
+    const flagBtn = screen.getByTestId('flag-btn-q_1');
+    expect(flagBtn).toBeInTheDocument();
+    expect(flagBtn).toHaveTextContent('Xem lại');
+
+    fireEvent.click(flagBtn);
+    expect(store.getState().answers.flags?.[1]?.['q_1']).toBe(true);
+    expect(flagBtn).toHaveTextContent('Đã xem lại');
   });
 });
 

@@ -8,10 +8,11 @@ import { TimerDisplay } from '../components/TimerDisplay';
 import { SaveStatusBadge } from '../components/SaveStatusBadge';
 import { SubmitOverlay } from '../components/SubmitOverlay';
 import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
+import { TimeUpModal } from '../components/TimeUpModal';
 import { QuestionPalette } from '../components/QuestionPalette';
 import QuestionRenderer from '../components/renderers/QuestionRenderer';
 import { autosaveAnswers, submitAttempt } from '../api/attemptApi';
-import { setAnswer, selectSaveStatus } from '../store/answerSlice';
+import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
 import type { AppDispatch, RootState } from '../../../store/store';
 import type { Question } from '../types/exam.types';
 
@@ -39,8 +40,36 @@ const WorkspacePage: React.FC = () => {
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
+  const [showTimeUp, setShowTimeUp] = useState(false);
+  const [submitResultUrl, setSubmitResultUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
+
+  // Resizable split pane state (default 50/50, bounds 25% - 75%)
+  const [splitRatio, setSplitRatio] = useState<number>(50);
+  const [isDraggingSplit, setIsDraggingSplit] = useState(false);
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isDraggingSplit) return;
+    const onMouseMove = (e: MouseEvent) => {
+      if (!workspaceContainerRef.current) return;
+      const rect = workspaceContainerRef.current.getBoundingClientRect();
+      const newWidth = ((e.clientX - rect.left) / rect.width) * 100;
+      if (newWidth >= 25 && newWidth <= 75) {
+        setSplitRatio(newWidth);
+      }
+    };
+    const onMouseUp = () => {
+      setIsDraggingSplit(false);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [isDraggingSplit]);
 
   // Floating AI Dictionary Tooltip state
   const [dictTooltip, setDictTooltip] = useState<DictTooltip | null>(null);
@@ -52,15 +81,26 @@ const WorkspacePage: React.FC = () => {
     return workspace?.exam_snapshot?.sections?.flatMap(s => s.parts ?? []) ?? [];
   }, [workspace]);
 
+  const currentSection = useMemo(() => {
+    if (selectedPartId !== null) {
+      const found = workspace?.exam_snapshot?.sections?.find(s => 
+        s.parts?.some(p => ((p as any).id === selectedPartId || (p as any).part_id === selectedPartId))
+      );
+      if (found) return found;
+    }
+    return workspace?.exam_snapshot?.sections?.[0];
+  }, [workspace, selectedPartId]);
+
   // Active part: selected part or first part available
   const currentPart = useMemo(() => {
     if (selectedPartId !== null) {
       const found = allParts.find(p => (p as any).id === selectedPartId || (p as any).part_id === selectedPartId);
       if (found) return found;
     }
-    const firstSection = workspace?.exam_snapshot?.sections?.[0];
-    return firstSection?.parts?.[0];
-  }, [workspace, selectedPartId, allParts]);
+    return currentSection?.parts?.[0];
+  }, [currentSection, selectedPartId, allParts]);
+
+  const currentSkill = currentSection?.skill_type || ((currentSection as any)?.name?.toUpperCase() as any) || 'READING';
 
   // Active part questions extraction: supports both part.questions & part.content.question_groups
   const currentPartQuestions = useMemo(() => {
@@ -106,7 +146,7 @@ const WorkspacePage: React.FC = () => {
     return Math.max(0, allQuestions.length - answered);
   }, [allQuestions, answersState.answers]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (isTimeout = false) => {
     setIsSubmitting(true);
     try {
       // Pre-submit flush: push unsaved answers to server before closing attempt
@@ -121,8 +161,16 @@ const WorkspacePage: React.FC = () => {
       const result = await submitAttempt(attemptId, { version: answersState.version, answers: [] });
       // Always clean up localStorage draft after successful submit
       try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
-      navigate(result.redirect_url);
+      if (isTimeout) {
+        setSubmitResultUrl(result.redirect_url);
+      } else {
+        navigate(result.redirect_url);
+      }
     } catch {
+      if (isTimeout) {
+        setSubmitResultUrl(`/attempts/${attemptId}/result`);
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -131,16 +179,17 @@ const WorkspacePage: React.FC = () => {
   useEffect(() => {
     if (
       isExpired &&
+      !showTimeUp &&
       !showOverlay &&
       !isSubmitting &&
       workspace &&
       workspace.status === 'IN_PROGRESS' &&
       workspace.deadline !== null
     ) {
-      setShowOverlay(true);
-      handleSubmit();
+      setShowTimeUp(true);
+      handleSubmit(true);
     }
-  }, [isExpired, showOverlay, isSubmitting, workspace]);
+  }, [isExpired, showTimeUp, showOverlay, isSubmitting, workspace]);
 
   // Handle text selection in Reading Passage for AI Dictionary popup
   const handlePassageMouseUp = () => {
@@ -251,35 +300,67 @@ const WorkspacePage: React.FC = () => {
       </header>
 
       {/* 2. MAIN BODY: SPLIT-PANE WORKSPACE */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* LEFT PANE: Reading Passage Workspace */}
-        {allParts.length > 0 && (
-          <section className="hidden lg:flex lg:w-1/2 flex-col bg-white border-r border-slate-200 h-full overflow-hidden">
-            {/* Passage Toolbar */}
+      <div ref={workspaceContainerRef} className="flex flex-1 overflow-hidden relative">
+        {/* LEFT PANE: Reading Passage or Writing Prompt Workspace */}
+        {currentSkill !== 'LISTENING' && allParts.length > 0 && (
+          <section
+            style={{ width: `${splitRatio}%` }}
+            className={`hidden lg:flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden ${
+              isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
+            }`}
+          >
+            {/* Toolbar */}
             <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wider bg-white px-2.5 py-1 rounded border border-slate-200">
                   {partTitle}
                 </span>
-                <span className="text-xs text-slate-500">IELTS Academic Reading</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Bôi đen từ để tra từ điển AI
+                <span className="text-xs text-slate-500">
+                  IELTS Academic {currentSkill === 'WRITING' ? 'Writing' : 'Reading'}
                 </span>
               </div>
+              {currentSkill === 'READING' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Bôi đen từ để tra từ điển AI
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Passage Text Content */}
+            {/* Passage / Prompt Text Content */}
             <div
               ref={readingContainerRef}
-              onMouseUp={handlePassageMouseUp}
+              onMouseUp={currentSkill === 'READING' ? handlePassageMouseUp : undefined}
               className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
             >
-              {passageHtml ? (
+              {currentSkill === 'WRITING' ? (
+                <div className="space-y-6">
+                  <h2 className="font-heading text-xl font-bold text-slate-900">
+                    {partTitle}
+                  </h2>
+                  {partInstruction && (
+                    <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
+                      {partInstruction}
+                    </div>
+                  )}
+                  {partQuestions[0] && (
+                    <div className="space-y-4">
+                      <div className="prose prose-slate max-w-none text-slate-800 font-medium whitespace-pre-wrap">
+                        {partQuestions[0].question_text}
+                      </div>
+                      {partQuestions[0].media?.url && (
+                        <div className="mt-4 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
+                          <img src={partQuestions[0].media.url} alt="Writing Prompt Graph" className="max-w-full h-auto max-h-[60vh] object-contain" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : passageHtml ? (
                 <div
                   dangerouslySetInnerHTML={{ __html: passageHtml }}
                   className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
@@ -302,45 +383,30 @@ const WorkspacePage: React.FC = () => {
           </section>
         )}
 
-        {/* RIGHT PANE: Questions & Interaction */}
-        <main className="flex-1 flex flex-col bg-slate-50 h-full overflow-hidden">
-          {/* Part Switcher Tabs */}
-          {allParts.length > 1 && (
-            <div className="bg-white px-6 border-b border-slate-200 flex items-center gap-6 shrink-0 overflow-x-auto">
-              {allParts.map((p: any) => {
-                const pId = (p as any).part_id ?? p.id;
-                const isActive = pId === partId;
-                const pIndex = allParts.findIndex(item => ((item as any).part_id ?? item.id) === pId) + 1;
-                const qCount = Array.isArray(p.questions)
-                  ? p.questions.length
-                  : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
-                return (
-                  <button
-                    key={pId}
-                    type="button"
-                    onClick={() => setSelectedPartId(pId)}
-                    className={`py-3 font-heading font-semibold text-sm flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? 'text-amber-700 border-amber-600'
-                        : 'text-slate-500 border-transparent hover:text-slate-900'
-                    }`}
-                  >
-                    <span>{p.title || p.content?.part_title || `Part ${pIndex}`}</span>
-                    {qCount > 0 && (
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
-                        isActive ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {qCount} câu
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        {/* RESIZABLE DIVIDER GUTTER */}
+        {currentSkill !== 'LISTENING' && allParts.length > 0 && (
+          <div
+            data-testid="pane-divider"
+            onMouseDown={() => setIsDraggingSplit(true)}
+            onDoubleClick={() => setSplitRatio(50)}
+            title="Kéo để chỉnh độ rộng 2 bên (Nhấp đúp để đặt lại 50/50)"
+            className={`hidden lg:flex w-2.5 hover:w-3.5 bg-slate-200 hover:bg-amber-400 cursor-col-resize items-center justify-center border-x border-slate-300 transition-colors group select-none shrink-0 z-20 ${
+              isDraggingSplit ? 'bg-amber-500 w-3.5' : ''
+            }`}
+          >
+            <div className="w-0.5 h-8 rounded-full bg-slate-400 group-hover:bg-amber-800 transition-colors" />
+          </div>
+        )}
 
+        {/* RIGHT PANE: Questions & Interaction */}
+        <main
+          style={currentSkill !== 'LISTENING' && allParts.length > 0 ? { width: `${100 - splitRatio}%` } : undefined}
+          className={`flex-1 flex flex-col bg-slate-50 h-full overflow-hidden ${
+            currentSkill === 'LISTENING' ? 'items-center' : ''
+          } ${isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'}`}
+        >
           {/* Scrollable Questions Container */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          <div className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 w-full ${currentSkill === 'LISTENING' ? 'max-w-4xl' : ''}`}>
             {partQuestions.length > 0 ? (
               <div className="flex flex-col gap-4 max-w-3xl">
                 {/* Part Instruction Callout */}
@@ -355,6 +421,13 @@ const WorkspacePage: React.FC = () => {
                   const qId = q.question_id;
                   const currentVal = answersState.answers?.[partId]?.[qId] ?? null;
                   const isAnswered = currentVal !== null && currentVal !== undefined && (!Array.isArray(currentVal) || currentVal.length > 0);
+                  const isFlagged = !!answersState.flags?.[partId]?.[qId];
+
+                  // Calculate minWords based on Writing Task 1 vs Task 2
+                  const isTask2 = currentPart?.title?.toLowerCase().includes('task 2') ||
+                    currentPart?.content?.part_title?.toLowerCase().includes('task 2') ||
+                    q.question_text?.toLowerCase().includes('task 2');
+                  const minWords = isTask2 ? 250 : 150;
 
                   return (
                     <div
@@ -364,15 +437,33 @@ const WorkspacePage: React.FC = () => {
                         isAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
                       }`}
                     >
-                      <div className="flex items-start gap-3 mb-3.5">
-                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
-                          isAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
-                        }`}>
-                          {q.question_number}
-                        </span>
-                        <div className="font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1">
-                          {q.question_text}
+                      <div className="flex items-start justify-between gap-3 mb-3.5">
+                        <div className="flex items-start gap-3 flex-1">
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
+                            isAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}>
+                            {q.question_number}
+                          </span>
+                          <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'lg:hidden' : ''}`}>
+                            {q.question_text}
+                          </div>
                         </div>
+
+                        {/* Flag toggle button */}
+                        <button
+                          type="button"
+                          data-testid={`flag-btn-${qId}`}
+                          onClick={() => dispatch(toggleFlag({ partId, questionId: qId }))}
+                          title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 shadow-2xs ${
+                            isFlagged
+                              ? 'bg-amber-100 border-amber-400 text-amber-900 ring-2 ring-amber-400/30'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                          }`}
+                        >
+                          <span>{isFlagged ? '🚩' : '🏳️'}</span>
+                          <span>{isFlagged ? 'Đã xem lại' : 'Xem lại'}</span>
+                        </button>
                       </div>
 
                       <div className="pl-10">
@@ -380,6 +471,7 @@ const WorkspacePage: React.FC = () => {
                           question={q}
                           partId={partId}
                           currentAnswer={currentVal}
+                          minWords={minWords}
                           onChange={(val) => {
                             dispatch(setAnswer({ partId, questionId: qId, value: val }));
                           }}
@@ -399,21 +491,73 @@ const WorkspacePage: React.FC = () => {
 
         {/* 3. RIGHT SIDEBAR: STUDY4-STYLE QUESTION PALETTE DOCK */}
         <aside className="w-64 sm:w-72 shrink-0 bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden shadow-xs">
-          <div className="p-4 flex-1 overflow-y-auto">
-            <div className="font-heading font-bold text-xs uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
-              <span>Bảng câu hỏi</span>
-              <span className="badge-orange text-[11px]">
-                {partQuestions.length} câu
-              </span>
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            {/* Part Switcher in Sidebar (Study4 Style) */}
+            {allParts.length > 1 && (
+              <div className="p-4 border-b border-slate-200 bg-slate-50/50 shrink-0">
+                <div className="font-heading font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
+                  Chọn phần thi
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {allParts.map((p: any) => {
+                    const pId = (p as any).part_id ?? p.id;
+                    const isActive = pId === partId;
+                    const pIndex = allParts.findIndex(item => ((item as any).part_id ?? item.id) === pId) + 1;
+                    const qCount = Array.isArray(p.questions)
+                      ? p.questions.length
+                      : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
+                    return (
+                      <button
+                        key={pId}
+                        type="button"
+                        onClick={() => setSelectedPartId(pId)}
+                        className={`py-2 px-2 rounded-lg text-xs font-heading font-semibold flex flex-col items-center justify-center transition-all cursor-pointer border ${
+                          isActive
+                            ? 'bg-amber-100 border-amber-300 text-amber-800 shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                        title={p.title || p.content?.part_title || `Part ${pIndex}`}
+                      >
+                        <span className="truncate w-full text-center">
+                          {p.title || p.content?.part_title || `Part ${pIndex}`}
+                        </span>
+                        {qCount > 0 && (
+                          <span className="text-[10px] font-normal opacity-75 mt-0.5">
+                            {qCount} câu
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="p-4 flex-1">
+              <div className="font-heading font-bold text-xs uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+                <span>Bảng câu hỏi</span>
+                <span className="badge-orange text-[11px]">
+                  {allQuestions.length} câu
+                </span>
+              </div>
+              <QuestionPalette
+                allParts={allParts}
+                activePartId={partId}
+                onNavigate={(targetPartId, qId) => {
+                  if (targetPartId !== partId) {
+                    setSelectedPartId(targetPartId);
+                    // Wait for React to render the new part's questions before scrolling
+                    setTimeout(() => {
+                      const el = document.getElementById(`q-${qId}`);
+                      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 50);
+                  } else {
+                    const el = document.getElementById(`q-${qId}`);
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
+              />
             </div>
-            <QuestionPalette
-              questions={partQuestions}
-              partId={partId}
-              onNavigate={(qId) => {
-                const el = document.getElementById(`q-${qId}`);
-                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-            />
           </div>
 
           {/* Sticky Bottom Action: Submit Button */}
@@ -496,15 +640,27 @@ const WorkspacePage: React.FC = () => {
         onConfirm={() => {
           setShowConfirm(false);
           setShowOverlay(true);
-          handleSubmit();
+          handleSubmit(false);
         }}
         onCancel={() => setShowConfirm(false)}
+      />
+
+      <TimeUpModal
+        open={showTimeUp}
+        isSubmitting={isSubmitting}
+        onClose={() => {
+          if (submitResultUrl) {
+            navigate(submitResultUrl);
+          } else {
+            navigate(`/attempts/${attemptId}/result`);
+          }
+        }}
       />
 
       <SubmitOverlay
         visible={showOverlay}
         isRetrying={isSubmitting}
-        onRetry={handleSubmit}
+        onRetry={() => handleSubmit(false)}
       />
     </div>
   );
