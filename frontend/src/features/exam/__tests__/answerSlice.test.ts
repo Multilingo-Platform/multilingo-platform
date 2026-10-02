@@ -11,6 +11,9 @@ import answerReducer, {
   markSaveError,
   initialState,
   reducer,
+  toggleFlag,
+  clearFlags,
+  selectIsQuestionFlagged,
 } from '../store/answerSlice';
 
 function makeStore() {
@@ -18,6 +21,24 @@ function makeStore() {
 }
 
 describe('answerSlice', () => {
+  describe('flags', () => {
+    it('toggles question flag on and off', () => {
+      let state = reducer(initialState, toggleFlag({ partId: 1, questionId: 'q_001' }));
+      expect(selectIsQuestionFlagged({ answers: state }, 1, 'q_001')).toBe(true);
+
+      state = reducer(state, toggleFlag({ partId: 1, questionId: 'q_001' }));
+      expect(selectIsQuestionFlagged({ answers: state }, 1, 'q_001')).toBe(false);
+    });
+
+    it('clears all flags on clearFlags', () => {
+      let state = reducer(initialState, toggleFlag({ partId: 1, questionId: 'q_001' }));
+      expect(selectIsQuestionFlagged({ answers: state }, 1, 'q_001')).toBe(true);
+
+      state = reducer(state, clearFlags());
+      expect(selectIsQuestionFlagged({ answers: state }, 1, 'q_001')).toBe(false);
+      expect(state.flags).toEqual({});
+    });
+  });
   it('TC_WS_ANS_01: setAnswer stores string for SINGLE_CHOICE', () => {
     const store = makeStore();
     store.dispatch(setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));

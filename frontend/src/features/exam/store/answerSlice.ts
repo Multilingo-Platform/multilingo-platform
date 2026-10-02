@@ -19,6 +19,8 @@ interface AnswerState {
    * only resets isDirty if no new edit has arrived since then (pendingVersion unchanged).
    */
   pendingVersion: number;
+  /** flags[partId][questionId] = boolean */
+  flags: Record<number, Record<string, boolean>>;
 }
 
 export const initialState: AnswerState = {
@@ -29,6 +31,7 @@ export const initialState: AnswerState = {
   lastSavedAt: null,
   saveStatus: 'idle',
   pendingVersion: 0,
+  flags: {},
 };
 
 const answerSlice = createSlice({
@@ -88,6 +91,24 @@ const answerSlice = createSlice({
       // isDirty remains true — retry on next interval
     },
 
+    toggleFlag(
+      state,
+      action: PayloadAction<{ partId: number; questionId: string }>
+    ) {
+      const { partId, questionId } = action.payload;
+      if (!state.flags) {
+        state.flags = {};
+      }
+      if (!state.flags[partId]) {
+        state.flags[partId] = {};
+      }
+      state.flags[partId][questionId] = !state.flags[partId][questionId];
+    },
+
+    clearFlags(state) {
+      state.flags = {};
+    },
+
     clearAnswers() {
       return initialState;
     },
@@ -100,6 +121,8 @@ export const {
   markSavePending,
   markSaveSuccess,
   markSaveError,
+  toggleFlag,
+  clearFlags,
   clearAnswers,
 } = answerSlice.actions;
 
@@ -107,6 +130,14 @@ type RootLike = { answers: AnswerState };
 
 export function selectAnswer(state: RootLike, partId: number, questionId: string): AnswerValue {
   return state.answers.answers?.[partId]?.[questionId] ?? null;
+}
+
+export function selectIsQuestionFlagged(state: RootLike, partId: number, questionId: string): boolean {
+  return !!state.answers.flags?.[partId]?.[questionId];
+}
+
+export function selectFlaggedQuestions(state: RootLike): Record<number, Record<string, boolean>> {
+  return state.answers.flags ?? {};
 }
 
 export const selectAnsweredQuestionIds = createSelector(

@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import answerReducer, { setAttemptContext, setAnswer } from '../store/answerSlice';
+import answerReducer, { setAttemptContext, setAnswer, toggleFlag } from '../store/answerSlice';
 import QuestionPalette from '../components/QuestionPalette';
 import type { Question } from '../types/exam.types';
 
@@ -70,5 +70,18 @@ describe('QuestionPalette', () => {
     );
     fireEvent.click(screen.getByTestId('palette-q_002'));
     expect(onNavigate).toHaveBeenCalledWith('q_002');
+  });
+
+  it('TC_WS_PAL_04: shows flagged state on cell and in legend', () => {
+    const store = makeStore();
+    store.dispatch(toggleFlag({ partId: 1, questionId: 'q_002' }));
+    render(
+      <Provider store={store}>
+        <QuestionPalette questions={questions} partId={1} onNavigate={vi.fn()} />
+      </Provider>
+    );
+    const cell = screen.getByTestId('palette-q_002');
+    expect(cell).toHaveAttribute('data-flagged', 'true');
+    expect(screen.getByText(/Đánh dấu xem lại/i)).toBeInTheDocument();
   });
 });
