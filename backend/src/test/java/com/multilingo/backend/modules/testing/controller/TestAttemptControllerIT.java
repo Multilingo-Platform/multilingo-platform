@@ -154,7 +154,8 @@ class TestAttemptControllerIT {
     void post_submit_changes_status_to_COMPLETED() throws Exception {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
-        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestScope(TestScope.SINGLE_SKILL);
+        req.setTargetSectionId(1);
         req.setTestMode(TestMode.MOCK_TEST);
         MvcResult create = mockMvc.perform(post("/api/v1/attempts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -176,7 +177,8 @@ class TestAttemptControllerIT {
     void post_submit_idempotent_returns_200_when_already_submitted() throws Exception {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
-        req.setTestScope(TestScope.FULL_EXAM);
+        req.setTestScope(TestScope.SINGLE_SKILL);
+        req.setTargetSectionId(1);
         req.setTestMode(TestMode.MOCK_TEST);
         MvcResult create = mockMvc.perform(post("/api/v1/attempts")
                         .contentType(MediaType.APPLICATION_JSON)
