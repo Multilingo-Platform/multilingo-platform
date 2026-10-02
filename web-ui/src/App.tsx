@@ -11,6 +11,7 @@ import MockTestEngine from './pages/student/MockTestEngine';
 import ExamResult from './pages/student/ExamResult';
 import Flashcards from './pages/student/Flashcards';
 import UserSettings from './pages/student/UserSettings';
+import TestHistory from './pages/student/TestHistory';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import ExamManagement from './pages/admin/ExamManagement';
@@ -36,6 +37,7 @@ function App() {
           <Route path="/student" element={<UserLayout />}>
             <Route path="dashboard" element={<StudentDashboard />} />
             <Route path="library" element={<ExamLibrary />} />
+            <Route path="history" element={<TestHistory />} />
             <Route path="flashcards" element={<Flashcards />} />
             <Route path="exam/:id/result" element={<ExamResult />} />
             <Route path="settings" element={<UserSettings />} />

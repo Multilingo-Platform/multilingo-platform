@@ -17,7 +17,7 @@ Theo đúng bản chất phân tích thiết kế hệ thống và tinh gọn bi
      - **Bỏ các Use Case con riêng lẻ về Upload Audio, Upload Ảnh, và Toggle Xuất bản:** Vì thực tế đây chỉ là các trường nhập liệu (field/action) nằm bên trong form Thêm/Sửa đề thi, không phải là các Use Case độc lập cần vẽ riêng AD/SD.
    * **Không vẽ các biểu đồ kỹ thuật nội bộ tự phát** (như cron job, webhook riêng, view con). Luồng thanh toán VNPAY được gộp trọn vẹn trong `UC06`.
 2. **Phân công nghiệp vụ:**
-   * **Thành viên 2:** Phụ trách toàn diện **`UC05` (Onboarding mục tiêu)** + **`UC07/07.1` (Kho đề thi & Gợi ý đề)** + **`UC14.1` $\rightarrow$ `UC14.4` (Trọn bộ CMS Đề thi: Thêm, Sửa, Xóa, Import)**.
+   * **Thành viên 2:** Phụ trách toàn diện **`UC05` (Onboarding mục tiêu)** + **`UC07` (Kho đề thi)** + **`UC10.3` (Tra cứu lịch sử làm bài)** + **`UC14.1` $\rightarrow$ `UC14.4` (Trọn bộ CMS Đề thi: Thêm, Sửa, Xóa, Import)**.
    * **Thành viên 5:** Tập trung 100% vào chu trình Học tập cá nhân hóa: Từ điển ngữ cảnh, Sổ Flashcard SRS, Dashboard năng lực và Nhắc nhở học tập (`UC12.3`).
 
 ---
@@ -27,7 +27,7 @@ Theo đúng bản chất phân tích thiết kế hệ thống và tinh gọn bi
 ```mermaid
 graph TD
     TV1["👤 TV1: Xác thực, Phân quyền RBAC & Gói cước / Thanh toán VNPAY"]
-    TV2["👤 TV2: Onboarding Mục tiêu, Kho Đề thi & CMS Đề thi (Thêm, Sửa, Xóa, Import)"]
+    TV2["👤 TV2: Onboarding Mục tiêu, Kho Đề thi, Lịch sử làm bài & CMS Đề thi"]
     TV3["👤 TV3: Không gian Thi thử, Luyện tập từng phần & TRỢ LÝ AI (Gemini)"]
     TV4["👤 TV4: Giám sát Hệ thống, Phân tích Hành vi (Tracking) & Kiểm toán Admin"]
     TV5["👤 TV5: Từ điển Ngữ cảnh, Sổ Flashcard SRS, Dashboard & Nhắc nhở Học tập"]
@@ -45,7 +45,7 @@ graph TD
 | Thành viên | Phân hệ & Trách nhiệm cốt lõi | Danh mục Use Case & Extend chuẩn hóa (1:1) | Số lượng AD | Số lượng SD |
 | :---: | :--- | :--- | :---: | :---: |
 | **TV 1** | **Xác thực, Phân quyền RBAC & Thanh toán VNPAY** | `UC01`, `UC01.1`, `UC02`, `UC03`, `UC04`, `UC04.1`, `UC04.2`, `UC06`, `UC15.2/16.1` | **9 Biểu đồ** | **9 Biểu đồ** |
-| **TV 2** | **Onboarding Mục tiêu, Kho Đề thi & CMS Đề thi (CRUD + Import)** | `UC05`, `UC07`, `UC07.1`, `UC14.1` $\rightarrow$ `UC14.4` *(Thêm, Sửa, Xóa, Import đề)* | **7 Biểu đồ** | **7 Biểu đồ** |
+| **TV 2** | **Onboarding Mục tiêu, Kho Đề thi, Lịch sử thi & CMS Đề thi (CRUD + Import)** | `UC05`, `UC07`, `UC10.3` *(Lịch sử thi)*, `UC14.1` $\rightarrow$ `UC14.4` *(Thêm, Sửa, Xóa, Import đề)* | **7 Biểu đồ** | **7 Biểu đồ** |
 | **TV 3** | **Không gian Thi thử, Luyện tập & TRỢ LÝ AI (Gemini)** | `UC08`, `UC08.1`, `UC08.4`, `UC08.5`, `UC09`, `UC09.2`, `UC10`, `UC10.2` | **8 Biểu đồ** | **8 Biểu đồ** |
 | **TV 4** | **Giám sát Hệ thống, Tracking Hành vi & Kiểm toán** | `A_Tracking`, `UC15`, `UC15.1`, `UC15.3`, `UC15.4`, `UC16`, `UC16.2`, `UC16.3` | **8 Biểu đồ** | **8 Biểu đồ** |
 | **TV 5** | **Từ điển Ngữ cảnh, Sổ Flashcard SRS & Dashboard** | `UC08.2`, `UC08.3`, `UC11`, `UC12`, `UC12.1`, `UC12.2`, `UC12.3`, `UC13`, `UC13.1/13.2` | **9 Biểu đồ** | **9 Biểu đồ** |
@@ -86,7 +86,7 @@ graph TD
 
 ---
 
-### 👤 THÀNH VIÊN 2: Onboarding Mục tiêu, Kho Đề thi & CMS Đề thi Đa cấp (CRUD + Import)
+### 👤 THÀNH VIÊN 2: Onboarding Mục tiêu, Kho Đề thi, Lịch sử làm bài & CMS Đề thi (CRUD + Import)
 *(Đã tinh gọn: Bỏ các UC con Audio, Ảnh, Xuất bản để gộp vào Thêm/Sửa đề thi)*
 
 #### 1. Cơ sở dữ liệu sở hữu ([DATABASE_SCHEMA.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/md/DATABASE_SCHEMA.md))
@@ -98,7 +98,7 @@ graph TD
 #### 2. Danh mục Biểu đồ Hoạt động (Activity Diagrams) cần vẽ (7 Biểu đồ)
 1. **AD-UC05 (UC05 - Thiết lập mục tiêu học tập Onboarding):** Học viên đăng nhập lần đầu $\rightarrow$ Chọn ngôn ngữ mẹ đẻ, ngôn ngữ muốn học $\rightarrow$ Chọn chứng chỉ mục tiêu (IELTS/TOEIC/VNLTV) và điểm kỳ vọng (Target Band) $\rightarrow$ Lưu vào hồ sơ $\rightarrow$ Chuyển thẳng vào Kho đề thi.
 2. **AD-UC07 (UC07 - Tra cứu & Lọc kho đề thi):** Học viên vào thư viện đề thi $\rightarrow$ Chọn tiêu chí lọc (Chứng chỉ, kỹ năng, Free/VIP, độ khó) $\rightarrow$ Hệ thống lọc và hiển thị danh mục đề thi tương ứng.
-3. **AD-UC07.1 (UC07.1 - Gợi ý đề thi theo mục tiêu cá nhân):** Hệ thống đọc Target Band từ kết quả Onboarding của học viên $\rightarrow$ Tự động đề xuất danh sách các bộ đề phù hợp với năng lực.
+3. **AD-UC10.3 (UC10.3 - Tra cứu lịch sử làm bài):** Học viên vào mục Lịch sử $\rightarrow$ Xem danh sách các bài thi đã làm $\rightarrow$ Lọc theo thời gian/tên đề $\rightarrow$ Click xem lại kết quả chi tiết.
 4. **AD-UC14.1 (UC14.1 - Thêm mới đề thi đa cấp):** Giáo viên/Admin tạo đề thi mới (Exam) $\rightarrow$ Nhập thông tin $\rightarrow$ Tạo Section $\rightarrow$ Tạo Part $\rightarrow$ Tải lên Audio/Ảnh minh họa $\rightarrow$ Soạn câu hỏi/đáp án/giải thích $\rightarrow$ Đóng gói lưu cấu trúc JSONB.
 5. **AD-UC14.2 (UC14.2 - Chỉnh sửa đề thi):** Giáo viên/Admin chọn đề $\rightarrow$ Load cây câu hỏi hiện tại $\rightarrow$ Sửa nội dung bài đọc, cập nhật media, sửa đáp án, đổi trạng thái xuất bản (`is_published`) $\rightarrow$ Cập nhật vào DB.
 6. **AD-UC14.3 (UC14.3 - Xóa đề thi):** Giáo viên/Admin chọn đề cần xóa $\rightarrow$ Xác nhận xóa $\rightarrow$ Kiểm tra ràng buộc (đã có lượt thi chưa) $\rightarrow$ Xóa đề thi (hoặc xóa mềm) và đồng bộ lưu vết sang Nhật ký kiểm toán `audit_logs`.
@@ -107,7 +107,7 @@ graph TD
 #### 3. Danh mục Biểu đồ Tuần tự (Sequence Diagrams) cần vẽ (7 Biểu đồ)
 1. **SD-UC05 (UC05 - Lưu mục tiêu Onboarding):** `Student` $\rightarrow$ `OnboardingView` $\rightarrow$ `UserController.saveTarget()` $\rightarrow$ Cập nhật `native_language`, `target_language` vào `users` $\rightarrow$ Khởi tạo `user_study_stats` $\rightarrow$ Chuyển hướng sang Thư viện đề thi.
 2. **SD-UC07 (UC07 - Tra cứu và Lọc kho đề thi):** `Student` $\rightarrow$ `ExamCatalogView` $\rightarrow$ `ExamController.filterExams()` $\rightarrow$ `ExamRepository.findAllWithFilter()` $\rightarrow$ Trả danh sách đề thi kèm phân trang.
-3. **SD-UC07.1 (UC07.1 - Gợi ý đề thi theo mục tiêu):** `Student` $\rightarrow$ `ExamCatalogView` $\rightarrow$ `ExamController.getRecommendedExams()` $\rightarrow$ Lấy Target Band $\rightarrow$ Truy vấn đề thi tương ứng $\rightarrow$ Trả danh sách gợi ý.
+3. **SD-UC10.3 (UC10.3 - Tra cứu lịch sử làm bài):** `Student` $\rightarrow$ `TestHistoryView` $\rightarrow$ `TestAttemptController.getHistory()` $\rightarrow$ Truy vấn `test_attempts` theo `user_id` $\rightarrow$ Trả danh sách lịch sử.
 4. **SD-UC14.1 (UC14.1 - Thêm mới đề thi đa cấp):** `Teacher` $\rightarrow$ `ExamBuilderView` (Nhập Part, tải Audio/Ảnh lên Cloud) $\rightarrow$ `AdminExamController.createExam()` $\rightarrow$ Validate cây câu hỏi $\rightarrow$ Lưu `exams`, `exam_sections` $\rightarrow$ Đóng gói JSONB vào `exam_parts.content_data`.
 5. **SD-UC14.2 (UC14.2 - Chỉnh sửa đề thi):** `Teacher` $\rightarrow$ `ExamEditView` $\rightarrow$ `AdminExamController.updateExam(examId)` $\rightarrow$ Cập nhật dữ liệu, media và cờ `is_published` vào `exams` & `exam_parts` $\rightarrow$ Trả thông báo thành công.
 6. **SD-UC14.3 (UC14.3 - Xóa đề thi):** `Teacher` $\rightarrow$ `ExamListView` $\rightarrow$ `AdminExamController.deleteExam(examId)` $\rightarrow$ `ExamRepository.deleteById()` $\rightarrow$ Ghi log xóa vào `audit_logs` $\rightarrow$ Trả kết quả.
