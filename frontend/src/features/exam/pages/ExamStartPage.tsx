@@ -24,68 +24,108 @@ const ExamStartPage: React.FC = () => {
   };
 
   if (!examId) return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#EF4444', fontWeight: 500 }}>Exam ID không hợp lệ</div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#ef4444', fontWeight: 600 }}>Exam ID không hợp lệ</div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0F172A', color: '#F8FAFC' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', color: '#111827', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header style={{
-        borderBottom: '1px solid rgba(51,65,85,0.5)',
-        padding: '1rem 1.5rem',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '0.875rem 2rem',
         display: 'flex',
         alignItems: 'center',
-        gap: '1rem',
+        justifyContent: 'space-between',
+        backgroundColor: '#ffffff',
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
       }}>
-        <Link to="/" style={{
-          color: '#94A3B8', textDecoration: 'none', fontSize: '0.875rem',
-          display: 'flex', alignItems: 'center', gap: '0.25rem',
-          transition: 'color 0.2s',
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#e2e8f0'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#94A3B8'; }}
-        >
-          ← Trang chủ
-        </Link>
-        <span style={{ color: 'rgba(51,65,85,0.6)' }}>|</span>
-        <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, color: '#cbd5e1', fontSize: '0.875rem' }}>
-          Thiết lập phiên thi
-        </span>
-      </header>
-
-      <main style={{ maxWidth: '640px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        {/* Hero */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.375rem 0.75rem',
-            background: 'rgba(33,81,218,0.1)', border: '1px solid rgba(33,81,218,0.3)',
-            borderRadius: '9999px', color: '#3b5fe8', fontSize: '0.75rem', fontWeight: 500,
-            marginBottom: '1rem',
-          }}>
-            📝 Exam #{examId}
-          </div>
-          <h1 style={{
-            fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.875rem',
-            color: '#F8FAFC', marginBottom: '0.5rem', lineHeight: 1.2,
-          }}>
-            Thiết lập phiên thi
-          </h1>
-          <p style={{ color: '#94A3B8', fontSize: '0.875rem', lineHeight: 1.6 }}>
-            Chọn phạm vi và chế độ thi phù hợp với mục tiêu luyện tập của bạn.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Link to="/" style={{
+            color: '#d97706', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: '0.35rem',
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#b45309'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#d97706'; }}
+          >
+            ← Quay lại Trang chủ
+          </Link>
+          <span style={{ color: '#d1d5db' }}>|</span>
+          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, color: '#4b5563', fontSize: '0.875rem' }}>
+            Thiết lập phòng thi
+          </span>
         </div>
 
-        {/* Form card */}
         <div style={{
-          background: 'rgba(30,41,59,0.6)',
-          border: '1px solid rgba(51,65,85,0.6)',
-          borderRadius: '1rem',
-          padding: '1.5rem 2rem',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.3)',
+          fontSize: '0.75rem', fontWeight: 600, color: '#065f46',
+          backgroundColor: '#ecfdf5', padding: '3px 10px', borderRadius: '9999px',
+          border: '1px solid #a7f3d0',
         }}>
+          🟢 Hệ thống sẵn sàng
+        </div>
+      </header>
+
+      {/* Main Form Container */}
+      <main style={{ maxWidth: '780px', margin: '0 auto', padding: '2.5rem 1.5rem', width: '100%', flex: 1 }}>
+        {/* Exam Overview Banner */}
+        <div className="ed-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <span className="badge-orange">
+              📝 Đề thi #{examId}
+            </span>
+            <span className="badge-green">
+              IELTS Academic Reading
+            </span>
+            <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>
+              Chuẩn Format CBT Quốc tế
+            </span>
+          </div>
+
+          <h1 style={{
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 800,
+            fontSize: '1.75rem',
+            color: '#111827',
+            marginBottom: '0.75rem',
+            letterSpacing: '-0.01em',
+          }}>
+            IELTS Academic Reading - Cambridge 19 Test 01
+          </h1>
+          <p style={{ color: '#4b5563', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+            Bài thi chuẩn hóa cấu trúc 3 Passages học thuật (40 câu hỏi), bao gồm dạng bài True / False / Not Given, Matching Headings, và Summary Completion.
+          </p>
+
+          {/* Quick Info Grid */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem',
+            padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb',
+          }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>⏱️ Thời lượng</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>60 Phút</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>📋 Số câu hỏi</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>40 Câu</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>📖 Cấu trúc</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>3 Passages</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>👥 Thí sinh</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>12,450+</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scope and Mode Picker Form */}
+        <div className="ed-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
           <ScopeModePicker
             examId={parseInt(examId, 10)}
             onSubmit={handleSubmit}
@@ -93,7 +133,38 @@ const ExamStartPage: React.FC = () => {
             error={error}
           />
         </div>
+
+        {/* Important Rules & Instructions */}
+        <div style={{
+          backgroundColor: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: '1rem',
+          padding: '1.25rem 1.5rem',
+          color: '#92400e',
+          fontSize: '0.875rem',
+          lineHeight: 1.6,
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>💡</span> Lưu ý quan trọng khi làm bài:
+          </div>
+          <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+            <li><strong>Autosave thông minh:</strong> Từng câu trả lời của bạn được lưu tức thì vào máy chủ đám mây.</li>
+            <li><strong>Tra từ tại chỗ:</strong> Bôi đen từ vựng trong bài đọc để tra cứu phiên âm, nghĩa tiếng Việt và lưu Flashcard.</li>
+            <li><strong>Giữ nguyên tab:</strong> Không tải lại trang (F5) khi đang làm bài. Đồng hồ sẽ đếm ngược liên tục.</li>
+          </ul>
+        </div>
       </main>
+
+      <footer style={{
+        borderTop: '1px solid #e5e7eb',
+        backgroundColor: '#ffffff',
+        padding: '1.25rem',
+        textAlign: 'center',
+        color: '#6b7280',
+        fontSize: '0.8rem',
+      }}>
+        © 2026 Multilingo Platform • Hỗ trợ kỹ thuật: support@multilingo.edu.vn
+      </footer>
     </div>
   );
 };
