@@ -6,6 +6,7 @@ import type {
   SubmitResult,
   WorkspaceResponse,
 } from '../types/api.types';
+import type { PartAnswers } from '../types/answer.types';
 
 function normalizeWorkspace(data: any, serverTimeOffset = 0): WorkspaceResponse {
   return {
