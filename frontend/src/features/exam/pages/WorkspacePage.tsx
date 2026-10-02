@@ -158,7 +158,11 @@ const WorkspacePage: React.FC = () => {
         await autosaveAnswers(attemptId, { version: answersState.version, answers });
         try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
       }
-      const result = await submitAttempt(attemptId, { version: answersState.version, answers: [] });
+      const result = await submitAttempt(attemptId, {
+        version: answersState.version,
+        answers: [],
+        reason: isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL',
+      });
       // Always clean up localStorage draft after successful submit
       try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
       if (isTimeout) {
@@ -636,7 +640,10 @@ const WorkspacePage: React.FC = () => {
       {/* 5. MODALS & SUBMIT OVERLAYS */}
       <SubmitConfirmModal
         open={showConfirm}
+        total={allQuestions.length}
+        answered={allQuestions.length - unansweredCount}
         unansweredCount={unansweredCount}
+        isLoading={isSubmitting}
         onConfirm={() => {
           setShowConfirm(false);
           setShowOverlay(true);

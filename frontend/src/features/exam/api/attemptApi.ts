@@ -78,14 +78,38 @@ export async function autosaveAnswers(attemptId: number, req: AutosaveRequest): 
   }
 }
 
+export interface SubmitAttemptApiRequest {
+  reason?: 'MANUAL' | 'TIMEOUT_CLIENT' | 'TIMEOUT_SERVER';
+  version?: number;
+  baseVersion?: number;
+  answers?: PartAnswers[];
+  finalAnswers?: PartAnswers[];
+}
+
 /**
  * POST /api/v1/attempts/:id/submit
  * Submit attempt. Idempotent — safe to call multiple times.
  */
-export async function submitAttempt(attemptId: number, req: AutosaveRequest): Promise<SubmitResult> {
+export async function submitAttempt(
+  attemptId: number,
+  req?: SubmitAttemptApiRequest
+): Promise<SubmitResult> {
+  const payload: Record<string, any> = {
+    version: req?.version ?? 0,
+    answers: req?.answers ?? [],
+  };
+  if (req?.reason) {
+    payload.reason = req.reason;
+  }
+  if (req?.baseVersion !== undefined) {
+    payload.baseVersion = req.baseVersion;
+  }
+  if (req?.finalAnswers !== undefined) {
+    payload.finalAnswers = req.finalAnswers;
+  }
   const res = await axiosClient.post<unknown, ApiResponse<any>>(
     `/v1/attempts/${attemptId}/submit`,
-    { version: req.version, answers: req.answers }
+    payload
   );
   if (!res.success || !res.data) {
     throw new Error(res.message || 'Submit failed');
