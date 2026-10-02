@@ -67,7 +67,8 @@ class SubmissionServiceTest {
     void submitAttempt_concurrentRequests_idempotent() throws Exception {
         CreateAttemptRequest createReq = new CreateAttemptRequest();
         createReq.setExamId(1);
-        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestScope(TestScope.SINGLE_SKILL);
+        createReq.setTargetSectionId(1);
         createReq.setTestMode(TestMode.PRACTICE);
         WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
 
@@ -105,7 +106,8 @@ class SubmissionServiceTest {
     void autosave_afterDeadline_throwsExpired() {
         CreateAttemptRequest createReq = new CreateAttemptRequest();
         createReq.setExamId(1);
-        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestScope(TestScope.SINGLE_SKILL);
+        createReq.setTargetSectionId(1);
         createReq.setTestMode(TestMode.MOCK_TEST);
         WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
 
@@ -132,7 +134,8 @@ class SubmissionServiceTest {
     void submit_manualAfterDeadline_throwsExpired() {
         CreateAttemptRequest createReq = new CreateAttemptRequest();
         createReq.setExamId(1);
-        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestScope(TestScope.SINGLE_SKILL);
+        createReq.setTargetSectionId(1);
         createReq.setTestMode(TestMode.MOCK_TEST);
         WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
 
@@ -157,7 +160,8 @@ class SubmissionServiceTest {
     void submit_timeoutClientInGraceWindow_success() {
         CreateAttemptRequest createReq = new CreateAttemptRequest();
         createReq.setExamId(1);
-        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestScope(TestScope.SINGLE_SKILL);
+        createReq.setTargetSectionId(1);
         createReq.setTestMode(TestMode.MOCK_TEST);
         WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
 
@@ -180,5 +184,43 @@ class SubmissionServiceTest {
 
         SubmitResultResponse response = testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq);
         assertThat(response.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+    }
+
+    @Test
+    void gradeAttempt_withWriting_statusAiGrading() {
+        CreateAttemptRequest createReq = new CreateAttemptRequest();
+        createReq.setExamId(1);
+        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestMode(TestMode.PRACTICE);
+        WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
+
+        // Inject writing section into examSnapshot of attempt
+        TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        java.util.Map<String, Object> snapshot = new java.util.HashMap<>(attempt.getExamSnapshot());
+        snapshot.put("sections", java.util.List.of(
+                java.util.Map.of("name", "Reading"),
+                java.util.Map.of("name", "Writing Task 1")
+        ));
+        attempt.setExamSnapshot(snapshot);
+        testAttemptRepository.save(attempt);
+
+        org.mockito.Mockito.reset(objectiveGradingService);
+        when(objectiveGradingService.gradeAttempt(any(), any())).thenReturn(
+                com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
+                        .totalScore(java.math.BigDecimal.TEN)
+                        .partResults(java.util.Map.of())
+                        .sectionScores(java.util.Map.of())
+                        .build()
+        );
+
+        SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
+                .reason(SubmitReason.MANUAL)
+                .build();
+
+        SubmitResultResponse response = testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq);
+        assertThat(response.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
+
+        TestAttempt submittedAttempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        assertThat(submittedAttempt.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
     }
 }
