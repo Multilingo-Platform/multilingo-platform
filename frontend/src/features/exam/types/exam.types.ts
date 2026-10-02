@@ -61,8 +61,13 @@ export interface ExamPartContent {
 
 export interface ExamPart {
   id: number;
-  part_number: number;
-  content: ExamPartContent;
+  part_number?: number;
+  title?: string;
+  durationMinutes?: number;
+  instruction?: string;
+  contentHtml?: string;
+  content?: ExamPartContent;
+  questions?: Question[];
 }
 
 export interface ExamSection {

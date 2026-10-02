@@ -74,6 +74,51 @@ describe('WorkspacePage', () => {
     });
     expect(() => renderPage(makeStore())).not.toThrow();
   });
+
+  it('renders questions directly from part.questions array and renders passageHtml', () => {
+    vi.mocked(workspaceHookModule.default).mockReturnValue({
+      workspace: {
+        ...baseWorkspace,
+        exam_snapshot: {
+          exam_id: 1,
+          code: 'T',
+          title: 'IELTS Test',
+          type: 'IELTS',
+          sections: [
+            {
+              id: 1,
+              skill_type: 'READING' as const,
+              title: 'Reading',
+              duration_minutes: 60,
+              parts: [
+                {
+                  id: 1,
+                  title: 'Reading Part 1',
+                  contentHtml: '<p>Direct passage test</p>',
+                  questions: [
+                    {
+                      id: 1,
+                      question_id: 'q_1',
+                      question_number: 1,
+                      type: 'SINGLE_CHOICE',
+                      question_text: 'Direct question text',
+                      options: [{ id: 'A', text: 'Option A' }],
+                    },
+                  ],
+                } as any,
+              ],
+            },
+          ],
+        },
+      },
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    });
+    renderPage(makeStore());
+    expect(screen.getByText('Direct question text')).toBeDefined();
+    expect(screen.getByText('Direct passage test')).toBeDefined();
+  });
 });
 
 describe('WorkspacePage submit flow', () => {
