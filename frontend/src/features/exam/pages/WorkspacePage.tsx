@@ -14,6 +14,7 @@ import QuestionRenderer from '../components/renderers/QuestionRenderer';
 import { autosaveAnswers, submitAttempt } from '../api/attemptApi';
 import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
 import { isAnswered } from '../utils/answerUtils';
+import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
 import type { AppDispatch, RootState } from '../../../store/store';
 import type { Question } from '../types/exam.types';
 
@@ -265,8 +266,10 @@ const WorkspacePage: React.FC = () => {
 
   const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html;
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
-  const currentPartNumber = currentPart?.part_number ?? (allParts.findIndex(p => ((p as any).part_id ?? p.id) === partId) + 1 || 1);
-  const partTitle = currentPart?.title || currentPart?.content?.part_title || `Passage ${currentPartNumber}`;
+  const partHeaderInfo = useMemo(() => {
+    return getPartHeaderInfo(currentSkill, currentPart, currentSection?.parts, allParts);
+  }, [currentSkill, currentPart, currentSection, allParts]);
+  const partTitle = currentPart?.title || currentPart?.content?.part_title || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-800 select-text" onClick={() => {
@@ -297,8 +300,11 @@ const WorkspacePage: React.FC = () => {
               {workspace.exam_snapshot?.title || 'Bài thi'}
             </h1>
             {allParts.length > 0 && (
-              <span className="badge-orange shrink-0 hidden md:inline-flex">
-                Passage {currentPartNumber} / {allParts.length}
+              <span
+                data-testid="header-part-badge"
+                className="badge-orange shrink-0 hidden md:inline-flex"
+              >
+                {partHeaderInfo.displayText}
               </span>
             )}
           </div>
@@ -435,11 +441,8 @@ const WorkspacePage: React.FC = () => {
                   const isQuestionAnswered = isAnswered(currentVal, q.type);
                   const isFlagged = !!answersState.flags?.[partId]?.[qId];
 
-                  // Calculate minWords based on Writing Task 1 vs Task 2
-                  const isTask2 = currentPart?.title?.toLowerCase().includes('task 2') ||
-                    currentPart?.content?.part_title?.toLowerCase().includes('task 2') ||
-                    q.question_text?.toLowerCase().includes('task 2');
-                  const minWords = isTask2 ? 250 : 150;
+                  // Calculate dynamic minWords based on question text/metadata or skill standards
+                  const minWords = extractMinWords(q, currentPart);
 
                   return (
                     <div

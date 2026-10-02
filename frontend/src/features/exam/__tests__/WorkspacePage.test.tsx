@@ -265,4 +265,102 @@ describe('WorkspacePage submit flow', () => {
     });
     removeSpy.mockRestore();
   });
+
+  it('renders dynamic skill header "Task 1 / 2" instead of "Passage" when in Writing section', async () => {
+    const mockWritingWorkspace = {
+      ...baseWorkspace,
+      exam_snapshot: {
+        exam_id: 1,
+        code: 'IE01',
+        title: 'IELTS Mock Test – Full',
+        type: 'IELTS',
+        sections: [
+          {
+            id: 1,
+            skill_type: 'READING' as const,
+            title: 'Reading',
+            duration_minutes: 60,
+            parts: [
+              { id: 1, title: 'Reading Part 1' },
+              { id: 2, title: 'Reading Part 2' },
+              { id: 3, title: 'Reading Part 3' },
+            ],
+          },
+          {
+            id: 2,
+            skill_type: 'WRITING' as const,
+            title: 'Writing',
+            duration_minutes: 60,
+            parts: [
+              { id: 6, title: 'Writing Task 2', questions: [{ id: 8, question_id: 'q8', question_number: 8, type: 'ESSAY' as const, question_text: 'Task 2 prompt' }] },
+              { id: 7, title: 'Writing Task 1', questions: [{ id: 9, question_id: 'q9', question_number: 9, type: 'ESSAY' as const, question_text: 'Task 1 prompt' }] },
+            ],
+          },
+        ],
+      },
+    };
+
+    vi.mocked(workspaceHookModule.default).mockReturnValue({
+      workspace: mockWritingWorkspace as any,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    });
+
+    renderPage(makeStore());
+
+    // Click to select Writing Task 1
+    const task1Btn = screen.getByRole('button', { name: /writing task 1/i });
+    fireEvent.click(task1Btn);
+
+    const headerBadge = screen.getByTestId('header-part-badge');
+    expect(headerBadge.textContent).toBe('Task 1 / 2');
+    expect(headerBadge.textContent).not.toContain('Passage');
+  });
+
+  it('passes dynamic minWords extracted from question text to EssayRenderer', async () => {
+    const mockWritingWorkspace = {
+      ...baseWorkspace,
+      exam_snapshot: {
+        exam_id: 1,
+        code: 'IE01',
+        title: 'IELTS Mock Test',
+        type: 'IELTS',
+        sections: [
+          {
+            id: 2,
+            skill_type: 'WRITING' as const,
+            title: 'Writing',
+            duration_minutes: 60,
+            parts: [
+              {
+                id: 7,
+                title: 'Writing Task 1',
+                questions: [
+                  {
+                    id: 9,
+                    question_id: 'q9',
+                    question_number: 9,
+                    type: 'ESSAY' as const,
+                    question_text: 'Summarize the key trends shown in global language adoption. (Minimum 100 words)',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    vi.mocked(workspaceHookModule.default).mockReturnValue({
+      workspace: mockWritingWorkspace as any,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    });
+
+    renderPage(makeStore());
+
+    expect(screen.getByText(/0 \/ 100 từ/i)).toBeDefined();
+  });
 });
