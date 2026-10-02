@@ -1,0 +1,117 @@
+{
+  "part_title": "TOEIC Reading Test",
+  "content_html": "<p><strong>Directions:</strong> In this section, you will read a variety of texts and answer several different types of reading comprehension questions.</p>",
+  "question_groups": [
+    
+    {
+      "group_id": "toeic-part5-01",
+      "instruction": "Part 5: Incomplete Sentences. Choose the word or phrase that best completes the sentence.",
+      "questions": [
+        {
+          "question_id": "q_101",
+          "type": "MULTIPLE_CHOICE",
+          "question_text": "101. The new software update will be installed ------- the weekend.",
+          "metadata": {
+            "options": ["A. over", "B. at", "C. on", "D. along"],
+            "correct_answer": "A",
+            "explanation": "Giới từ 'over' dùng với một khoảng thời gian (over the weekend = trong suốt dịp cuối tuần)."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "toeic-part6-01",
+      "instruction": "Part 6: Text Completion. Read the text and choose the best answer to complete the blanks.",
+      "content_html": "<div class='border p-4 bg-gray-50'><p><strong>To:</strong> All Staff<br/><strong>Subject:</strong> Office Renovation</p><p>Please be informed that the main lobby will be closed for renovations starting next Monday. All employees must use the rear entrance ------- (102). We apologize for any inconvenience. ------- (103).</p></div>",
+      "questions": [
+        {
+          "question_id": "q_102",
+          "type": "MULTIPLE_CHOICE",
+          "question_text": "102.",
+          "metadata": {
+            "options": ["A. instead", "B. moreover", "C. however", "D. regardless"],
+            "correct_answer": "A",
+            "explanation": "Ngữ cảnh báo sảnh chính đóng cửa, nên nhân viên phải sử dụng lối vào phía sau 'thay vào đó' (instead)."
+          }
+        },
+        {
+          "question_id": "q_103",
+          "type": "MULTIPLE_CHOICE",
+          "question_text": "103.",
+          "metadata": {
+            "options": [
+              "A. The renovations will cost $50,000.",
+              "B. Normal operations will resume in two weeks.",
+              "C. Please remember to lock your doors.",
+              "D. The new security guard starts tomorrow."
+            ],
+            "correct_answer": "B",
+            "explanation": "Câu chèn vào đoạn văn (Sentence Insertion): Câu B thông báo thời gian hoạt động bình thường trở lại là logic nhất để nối tiếp lời xin lỗi về sự bất tiện."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "toeic-part7-single-image-01",
+      "instruction": "Part 7: Single Passage. Questions 147-148 refer to the following receipt.",
+      "shared_media": {
+        "type": "image",
+        "url": "https://your-cloud-storage.com/images/toeic-receipt.png",
+        "display_config": {
+          "size_preset": "medium",
+          "alignment": "center"
+        }
+      },
+      "questions": [
+        {
+          "question_id": "q_147",
+          "type": "MULTIPLE_CHOICE",
+          "question_text": "147. What did the customer purchase?",
+          "metadata": {
+            "options": ["A. A coffee machine", "B. Office supplies", "C. A laptop computer", "D. Kitchen utensils"],
+            "correct_answer": "B",
+            "explanation": "Trong hình ảnh hóa đơn có liệt kê các món hàng là giấy in A4, bút bi và kẹp ghim, tương đương với 'Office supplies' (văn phòng phẩm)."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "toeic-part7-double-01",
+      "instruction": "Part 7: Double Passages. Questions 176-180 refer to the following email and schedule.",
+      "content_html": "<div class='border p-4 bg-white mb-4'><p><strong>From:</strong> HR Department<br/><strong>To:</strong> New Hires</p><p>Welcome to the team! Please review the attached schedule for your orientation day tomorrow. Be sure to arrive 10 minutes early.</p></div>",
+      "shared_media": {
+        "type": "image",
+        "url": "https://your-cloud-storage.com/images/orientation-schedule.png",
+        "display_config": {
+          "size_preset": "large",
+          "alignment": "center"
+        }
+      },
+      "questions": [
+        {
+          "question_id": "q_176",
+          "type": "MULTIPLE_CHOICE",
+          "question_text": "176. According to the email, what should new employees do?",
+          "metadata": {
+            "options": ["A. Bring their laptops", "B. Arrive early", "C. Submit paperwork", "D. Reply to the email"],
+            "correct_answer": "B",
+            "explanation": "Đoạn cuối email có viết 'Be sure to arrive 10 minutes early' (Đảm bảo đến sớm 10 phút)."
+          }
+        },
+        {
+          "question_id": "q_177",
+          "type": "MULTIPLE_CHOICE",
+          "question_text": "177. Look at the schedule. Where will the IT setup take place?",
+          "metadata": {
+            "options": ["A. Room 101", "B. The cafeteria", "C. Room 205", "D. The main lobby"],
+            "correct_answer": "C",
+            "explanation": "Dựa vào hình ảnh lịch trình, phần 'IT Setup' được gắn liền với địa điểm là 'Room 205'."
+          }
+        }
+      ]
+    }
+  ]
+}

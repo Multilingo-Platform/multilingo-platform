@@ -1,0 +1,164 @@
+{
+  exam_title TOEIC Listening Master Test,
+  exam_type TOEIC_LISTENING,
+  parts [
+    {
+      part_title Part 1 Photographs,
+      instruction Listen to the four statements and select the one that best describes the picture.,
+      content_html pstrongDirectionsstrong For each question in this part, you will hear four statements about a picture. The statements will not be printed in your test book. Choose the statement that best describes what you see in the picture.p,
+      question_groups [
+        {
+          group_id toeic-list-p1-01,
+          shared_audio {
+            url httpsyour-cloud-storage.comaudiotoeic-part1-q1.mp3,
+            duration_seconds 25
+          },
+          questions [
+            {
+              question_id q_001,
+              type MULTIPLE_CHOICE,
+              question_text 1. ,
+              media {
+                type image,
+                url httpsyour-cloud-storage.comimagestoeic-p1-meeting.jpg,
+                display_config {
+                  size_preset medium,
+                  alignment center
+                }
+              },
+              metadata {
+                options [(A), (B), (C), (D)],
+                correct_answer (B),
+                explanation Audio script (A) They are moving some chairs. (B) A presentation is being given. (C) They are leaving the room. (D) They are pouring coffee. nnTrong ảnh có một người đang thuyết trình bằng máy chiếu - Chọn (B).
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      part_title Part 2 Question-Response,
+      instruction Listen to the question and the three responses. Choose the best response.,
+      content_html pstrongDirectionsstrong You will hear a question or statement and three responses spoken in English. They will not be printed in your test book. Select the best response.p,
+      question_groups [
+        {
+          group_id toeic-list-p2-01,
+          shared_audio {
+            url httpsyour-cloud-storage.comaudiotoeic-part2-q7.mp3,
+            duration_seconds 15
+          },
+          questions [
+            {
+              question_id q_007,
+              type MULTIPLE_CHOICE,
+              question_text 7. Mark your answer on your screen.,
+              metadata {
+                options [(A), (B), (C)],
+                correct_answer (A),
+                explanation Audio script nQ When is the budget report duen(A) By Friday afternoon.n(B) Mr. Smith's office.n(C) Yes, it is very expensive.nnCâu hỏi 'When' (Khi nào) - Đáp án chỉ thời gian 'By Friday afternoon' (Trước chiều thứ Sáu) là chính xác.
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      part_title Part 3 Conversations (Standard & Graphic),
+      instruction Listen to the conversation and answer the questions.,
+      question_groups [
+        {
+          group_id toeic-list-p3-standard-01,
+          instruction Questions 32-34 refer to the following conversation.,
+          shared_audio {
+            url httpsyour-cloud-storage.comaudiotoeic-part3-q32-34.mp3,
+            duration_seconds 45
+          },
+          questions [
+            {
+              question_id q_032,
+              type MULTIPLE_CHOICE,
+              question_text 32. Where are the speakers,
+              metadata {
+                options [A. At a hotel, B. At an airport, C. At a restaurant, D. At a train station],
+                correct_answer B. At an airport,
+                explanation Audio có nhắc đến các từ khóa 'flight', 'boarding gate', 'luggage'.
+              }
+            }
+          ]
+        },
+        {
+          group_id toeic-list-p3-graphic-01,
+          instruction Questions 62-64 refer to the following conversation and schedule.,
+          shared_audio {
+            url httpsyour-cloud-storage.comaudiotoeic-part3-q62-64.mp3,
+            duration_seconds 55
+          },
+          shared_media {
+            type image,
+            url httpsyour-cloud-storage.comimagestoeic-flight-schedule.png,
+            display_config {
+              size_preset medium,
+              alignment center
+            }
+          },
+          questions [
+            {
+              question_id q_062,
+              type MULTIPLE_CHOICE,
+              question_text 62. Why is the man apologizing,
+              metadata {
+                options [A. A flight is delayed., B. A ticket is lost., C. A machine is broken., D. A store is closed.],
+                correct_answer A. A flight is delayed.,
+                explanation Người nam nói 'I apologize, but your flight to Tokyo has been delayed due to bad weather'.
+              }
+            },
+            {
+              question_id q_063,
+              type MULTIPLE_CHOICE,
+              question_text 63. Look at the graphic. Which gate should the woman go to,
+              metadata {
+                options [A. Gate 12, B. Gate 14, C. Gate 16, D. Gate 18],
+                correct_answer C. Gate 16,
+                explanation Dạng bài kết hợp hình ảnh (Graphic) Trong audio người phụ nữ nói cô ấy đi chuyến bay tới 'Tokyo'. Đối chiếu lên hình ảnh lịch trình, chuyến bay đi Tokyo khởi hành tại 'Gate 16'.
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      part_title Part 4 Talks (With Graphic),
+      instruction Listen to the talk and answer the questions.,
+      question_groups [
+        {
+          group_id toeic-list-p4-graphic-01,
+          instruction Questions 98-100 refer to the following excerpt from a meeting and pie chart.,
+          shared_audio {
+            url httpsyour-cloud-storage.comaudiotoeic-part4-q98-100.mp3,
+            duration_seconds 60
+          },
+          shared_media {
+            type image,
+            url httpsyour-cloud-storage.comimagestoeic-pie-chart-budget.png,
+            display_config {
+              size_preset large,
+              alignment center
+            }
+          },
+          questions [
+            {
+              question_id q_098,
+              type MULTIPLE_CHOICE,
+              question_text 98. Look at the graphic. Which department will receive the most funding next year,
+              metadata {
+                options [A. Marketing, B. Research and Development, C. Human Resources, D. Maintenance],
+                correct_answer B. Research and Development,
+                explanation Audio nhắc đến 'The department taking up the largest slice of our budget pie...'. Nhìn vào biểu đồ tròn, phần lớn nhất (45%) thuộc về Research and Development.
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

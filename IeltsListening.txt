@@ -1,0 +1,209 @@
+{
+  "exam_title": "IELTS Listening Master Test",
+  "exam_type": "IELTS_LISTENING",
+  "parts": [
+    {
+      "part_title": "Part 1: Form Completion",
+      "instruction": "Listen to a telephone conversation and complete the form.",
+      "shared_audio": {
+        "url": "https://your-cloud-storage.com/audio/ielts-list-part1.mp3",
+        "duration_seconds": 245
+      },
+      "question_groups": [
+        {
+          "group_id": "list-p1-form",
+          "instruction": "Complete the form below. Write ONE WORD AND/OR A NUMBER for each answer.",
+          "content_html": "<h3 class='font-bold bg-blue-50 p-2'>CAR INSURANCE QUOTE FORM</h3>",
+          "questions": [
+            {
+              "question_id": "q_001",
+              "type": "FILL_IN_THE_BLANKS",
+              "question_text": "Customer First Name: [___1___]",
+              "metadata": {
+                "correct_answer": ["Liam", "liam"],
+                "explanation": "Audio: 'My name is Liam. L-I-A-M'."
+              }
+            },
+            {
+              "question_id": "q_002",
+              "type": "FILL_IN_THE_BLANKS",
+              "question_text": "Contact Number: [___2___]",
+              "metadata": {
+                "correct_answer": ["01928374", "019 283 74"],
+                "explanation": "Backend cần loại bỏ khoảng trắng trước khi chấm điểm."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part_title": "Part 2: Map Labeling & Multiple Choice",
+      "instruction": "Listen to a guide talking about a newly renovated park.",
+      "shared_audio": {
+        "url": "https://your-cloud-storage.com/audio/ielts-list-part2.mp3",
+        "duration_seconds": 310
+      },
+      "question_groups": [
+        {
+          "group_id": "list-p2-map",
+          "instruction": "Label the map below. Write the correct letter, A-F, next to Questions 3-4.",
+          "shared_media": {
+            "type": "image",
+            "url": "https://your-cloud-storage.com/images/park-map.png",
+            "display_config": {
+              "size_preset": "large",
+              "alignment": "center"
+            }
+          },
+          "questions": [
+            {
+              "question_id": "q_003",
+              "type": "MAP_LABELING",
+              "question_text": "3. The Rose Garden",
+              "metadata": {
+                "options": ["A", "B", "C", "D", "E", "F"],
+                "correct_answer": "D",
+                "explanation": "Audio: 'The Rose Garden is located on the far right, just past the bridge (D)'."
+              }
+            },
+            {
+              "question_id": "q_004",
+              "type": "MAP_LABELING",
+              "question_text": "4. The Cafe",
+              "metadata": {
+                "options": ["A", "B", "C", "D", "E", "F"],
+                "correct_answer": "A",
+                "explanation": "Audio: 'You will find the cafe directly opposite the main entrance (A)'."
+              }
+            }
+          ]
+        },
+        {
+          "group_id": "list-p2-mcq",
+          "instruction": "Choose the correct letter, A, B, or C.",
+          "questions": [
+            {
+              "question_id": "q_005",
+              "type": "MULTIPLE_CHOICE",
+              "question_text": "5. What time does the park close on Sundays?",
+              "metadata": {
+                "options": ["A. 6:00 PM", "B. 8:00 PM", "C. 10:00 PM"],
+                "correct_answer": "B. 8:00 PM",
+                "explanation": "Audio: 'On weekends, we extend our hours until 8:00 PM'."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part_title": "Part 3: Matching Features & Multi-Select",
+      "instruction": "Listen to two students discussing their university project.",
+      "shared_audio": {
+        "url": "https://your-cloud-storage.com/audio/ielts-list-part3.mp3",
+        "duration_seconds": 380
+      },
+      "question_groups": [
+        {
+          "group_id": "list-p3-matching",
+          "instruction": "What action will the students take for each of the following research stages? Choose FOUR answers from the box.",
+          "content_html": "<div class='border border-gray-300 p-4 mb-4 bg-gray-50'><strong>Actions:</strong><br/>A. Ask the tutor for help<br/>B. Read more articles<br/>C. Conduct a survey<br/>D. Skip this stage</div>",
+          "questions": [
+            {
+              "question_id": "q_006",
+              "type": "MATCHING_FEATURES",
+              "question_text": "6. Literature Review",
+              "metadata": {
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "B",
+                "explanation": "Audio: 'We definitely need to dive into more journals for the literature review'."
+              }
+            },
+            {
+              "question_id": "q_007",
+              "type": "MATCHING_FEATURES",
+              "question_text": "7. Data Analysis",
+              "metadata": {
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "A",
+                "explanation": "Audio: 'I am stuck on the analysis. Let's book a meeting with Professor Alan'."
+              }
+            }
+          ]
+        },
+        {
+          "group_id": "list-p3-multiselect",
+          "instruction": "Choose TWO letters, A-E.",
+          "questions": [
+            {
+              "question_id": "q_008",
+              "type": "MULTIPLE_CHOICE_MULTI",
+              "question_text": "8-9. Which TWO topics will they present?",
+              "metadata": {
+                "options": [
+                  "A. Climate change",
+                  "B. Marine biology",
+                  "C. Urban planning",
+                  "D. Renewable energy",
+                  "E. Deforestation"
+                ],
+                "correct_answer": ["C", "D"],
+                "explanation": "Audio thống nhất chọn Urban planning và Renewable energy làm trọng tâm."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part_title": "Part 4: Diagram Labeling & Note Completion",
+      "instruction": "Listen to a lecture on renewable energy systems.",
+      "shared_audio": {
+        "url": "https://your-cloud-storage.com/audio/ielts-list-part4.mp3",
+        "duration_seconds": 420
+      },
+      "question_groups": [
+        {
+          "group_id": "list-p4-diagram",
+          "instruction": "Label the diagram below. Write NO MORE THAN TWO WORDS for each answer.",
+          "shared_media": {
+            "type": "image",
+            "url": "https://your-cloud-storage.com/images/wind-turbine-diagram.png",
+            "display_config": {
+              "size_preset": "medium",
+              "alignment": "center"
+            }
+          },
+          "questions": [
+            {
+              "question_id": "q_010",
+              "type": "DIAGRAM_LABELING",
+              "question_text": "10. The component that rotates is called the [___10___]",
+              "metadata": {
+                "correct_answer": ["rotor blade", "rotor blades", "blade", "blades"],
+                "explanation": "Audio: 'The wind turns the rotor blades, which are connected to the main shaft'."
+              }
+            }
+          ]
+        },
+        {
+          "group_id": "list-p4-notes",
+          "instruction": "Complete the notes below. Write ONE WORD ONLY for each answer.",
+          "content_html": "<h3 class='font-bold text-lg mb-2'>THE FUTURE OF WIND POWER</h3>",
+          "questions": [
+            {
+              "question_id": "q_011",
+              "type": "FILL_IN_THE_BLANKS",
+              "question_text": "The biggest challenge is storing energy in the [___11___].",
+              "metadata": {
+                "correct_answer": ["battery", "batteries"],
+                "explanation": "Audio: 'Currently, our main bottleneck lies in the batteries used for storage'."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

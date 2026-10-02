@@ -1,0 +1,160 @@
+{
+  "part_title": "IELTS Academic Reading - Passage 1",
+  "content_html": "<div class='reading-passage'><h2>The History of Bicycles</h2><p><strong>A.</strong> The bicycle is a classic invention...</p><p><strong>B.</strong> In the 1890s, the safety bicycle...</p><p><strong>C.</strong> Modern materials have changed...</p></div>",
+  "question_groups": [
+    
+    {
+      "group_id": "reading-tfng-01",
+      "instruction": "Do the following statements agree with the information given in Reading Passage 1? Choose TRUE, FALSE, or NOT GIVEN.",
+      "questions": [
+        {
+          "question_id": "q_001",
+          "type": "TRUE_FALSE_NOT_GIVEN",
+          "question_text": "1. The first bicycles were made entirely of wood.",
+          "metadata": {
+            "options": ["TRUE", "FALSE", "NOT GIVEN"],
+            "correct_answer": "TRUE",
+            "explanation": "Đoạn A có câu: 'The earliest models were constructed strictly from timber.' (timber = wood)."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "reading-yynn-01",
+      "instruction": "Do the following statements agree with the views of the writer? Choose YES, NO, or NOT GIVEN.",
+      "questions": [
+        {
+          "question_id": "q_002",
+          "type": "YES_NO_NOT_GIVEN",
+          "question_text": "2. The invention of the safety bicycle was the most important development in cycling history.",
+          "metadata": {
+            "options": ["YES", "NO", "NOT GIVEN"],
+            "correct_answer": "NOT GIVEN",
+            "explanation": "Tác giả có nhắc đến 'safety bicycle' ở đoạn B nhưng không hề khẳng định đây là bước phát triển 'quan trọng nhất' (most important)."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "reading-mcq-single-01",
+      "instruction": "Choose the correct letter, A, B, C, or D.",
+      "questions": [
+        {
+          "question_id": "q_003",
+          "type": "MULTIPLE_CHOICE",
+          "question_text": "3. What is the writer's main purpose in the second paragraph?",
+          "metadata": {
+            "options": [
+              "A. To explain how bicycles became faster.",
+              "B. To describe the social impact of cycling.",
+              "C. To detail the mechanical flaws of early models.",
+              "D. To compare different manufacturing materials."
+            ],
+            "correct_answer": "B. To describe the social impact of cycling.",
+            "explanation": "Đoạn B tập trung vào việc xe đạp đã giúp thay đổi phong cách ăn mặc và sự tự do đi lại của phụ nữ (social impact)."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "reading-mcq-multi-01",
+      "instruction": "Choose TWO letters, A-E. Which TWO advantages of modern bicycles are mentioned?",
+      "questions": [
+        {
+          "question_id": "q_004",
+          "type": "MULTIPLE_CHOICE_MULTI",
+          "question_text": "4-5. Choose two advantages.",
+          "metadata": {
+            "options": [
+              "A. They are cheaper to produce.",
+              "B. They are significantly lighter.",
+              "C. They require less maintenance.",
+              "D. They fold up for easy storage.",
+              "E. They have more gears."
+            ],
+            "correct_answer": ["B", "E"],
+            "explanation": "Đoạn C đề cập đến 'carbon frames reducing weight' (B) và 'advanced gearing systems' (E)."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "reading-matching-headings-01",
+      "instruction": "Choose the correct heading for each paragraph from the list of headings below.",
+      "shared_media": null,
+      "questions": [
+        {
+          "question_id": "q_006",
+          "type": "MATCHING_HEADINGS",
+          "question_text": "6. Paragraph A",
+          "metadata": {
+            "options": ["i. A temporary decline", "ii. The structural evolution", "iii. The birth of the bicycle"],
+            "correct_answer": "iii. The birth of the bicycle",
+            "explanation": "Đoạn A nói về sự ra đời của nguyên mẫu đầu tiên."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "reading-matching-features-01",
+      "instruction": "Look at the following statements and the list of researchers below. Match each statement with the correct researcher, A, B, or C.",
+      "questions": [
+        {
+          "question_id": "q_007",
+          "type": "MATCHING_FEATURES",
+          "question_text": "7. Argued that bicycles paved the way for automobile mechanics.",
+          "metadata": {
+            "options": ["A. John Boyd Dunlop", "B. J.K. Starley", "C. Pierre Michaux"],
+            "correct_answer": "B",
+            "explanation": "Trong đoạn C, J.K. Starley đã chỉ ra rằng công nghệ ổ bi và xích xe đạp là tiền đề cho ô tô."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "reading-fill-blanks-01",
+      "instruction": "Complete the summary below. Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+      "questions": [
+        {
+          "question_id": "q_008",
+          "type": "FILL_IN_THE_BLANKS",
+          "question_text": "The early version of the bicycle was known as a [___8___] because of its rough ride.",
+          "metadata": {
+            "correct_answer": ["boneshaker", "bone shaker"],
+            "explanation": "Đoạn A: 'It earned the nickname boneshaker due to its stiff wooden wheels'."
+          }
+        }
+      ]
+    },
+
+    {
+      "group_id": "reading-diagram-labeling-01",
+      "instruction": "Label the diagram below. Choose NO MORE THAN ONE WORD from the passage for each answer.",
+      "shared_media": {
+        "type": "image",
+        "url": "https://your-cloud-storage.com/images/bicycle-diagram.png",
+        "display_config": {
+          "size_preset": "large",
+          "alignment": "center"
+        }
+      },
+      "questions": [
+        {
+          "question_id": "q_009",
+          "type": "DIAGRAM_LABELING",
+          "question_text": "9. The central frame component: [___9___]",
+          "metadata": {
+            "correct_answer": ["diamond", "diamond frame"],
+            "explanation": "Sơ đồ chỉ vào khung xe, trong bài có nhắc đến 'diamond frame'."
+          }
+        }
+      ]
+    }
+  ]
+}

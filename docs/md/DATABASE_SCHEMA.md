@@ -11,10 +11,10 @@ Lưu thông tin tài khoản và kiểm soát giới hạn tính năng AI.
 ### Bảng `users`
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính người dùng |
+| `id` | INT (PK) | Khóa chính người dùng |
 | `email` | VARCHAR | Unique, Tài khoản đăng nhập |
 | `password_hash` | VARCHAR | Mật khẩu mã hóa |
-| `role_id` | UUID (FK) | Liên kết bảng `roles` (1 User có 1 Role) |
+| `role_id` | INT (FK) | Liên kết bảng `roles` (1 User có 1 Role) |
 | `last_login_at` | TIMESTAMP | Thời điểm Online cuối cùng |
 | `last_login_ip` | VARCHAR | IP truy cập cuối cùng (Giúp Admin xem nhanh) |
 | `native_language` | VARCHAR | Ngôn ngữ mẹ đẻ (VD: `vi`, `en`) |
@@ -25,7 +25,7 @@ Lưu thông tin tài khoản và kiểm soát giới hạn tính năng AI.
 ### Bảng `subscription_plans`
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | VARCHAR (PK) | Mã gói (VD: `plan-30-days`) |
+| `id` | INT (PK) | Mã gói (VD: `plan-30-days`) |
 | `name` | VARCHAR | Tên hiển thị của gói |
 | `price` | NUMERIC | Giá tiền |
 | `duration_days` | INT | Số ngày hiệu lực (VD: 30, 90) |
@@ -33,9 +33,9 @@ Lưu thông tin tài khoản và kiểm soát giới hạn tính năng AI.
 ### Bảng `transactions`
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Định danh giao dịch |
-| `user_id` | UUID (FK) | Liên kết với `users` |
-| `plan_id` | VARCHAR (FK) | Liên kết với `subscription_plans` |
+| `id` | INT (PK) | Định danh giao dịch |
+| `user_id` | INT (FK) | Liên kết với `users` |
+| `plan_id` | INT (FK) | Liên kết với `subscription_plans` |
 | `status` | VARCHAR | Trạng thái thanh toán (SUCCESS, PENDING, FAILED) |
 | `payment_method` | VARCHAR | Cổng thanh toán (VNPAY, MOMO) |
 | `paid_at` | TIMESTAMP | Thời gian thanh toán thành công |
@@ -43,8 +43,8 @@ Lưu thông tin tài khoản và kiểm soát giới hạn tính năng AI.
 ### Bảng `user_quotas`
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `user_id` | UUID (FK) | Liên kết với `users` |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Liên kết với `users` |
 | `feature_code` | VARCHAR | Mã tính năng (VD: `AI_WRITING_GRADING`, `AI_DICTIONARY`) |
 | `used_count` | INT | Số lượt đã sử dụng |
 | `max_limit` | INT | Số lượt tối đa được phép dùng |
@@ -58,7 +58,7 @@ Chứa cấu trúc đề thi đa cấp bậc (Exam -> Section -> Part), áp dụ
 ### Bảng `exams`
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | VARCHAR (PK) | Mã đề nguyên khối (VD: `cam-18-test-1`) |
+| `id` | INT (PK) | Mã đề nguyên khối (VD: `cam-18-test-1`) |
 | `title` | VARCHAR | Tên đề hiển thị |
 | `type` | VARCHAR | Loại chứng chỉ (IELTS, TOEIC, VNLTV) |
 | `exam_language` | VARCHAR | Ngôn ngữ của đề thi (VD: `en`, `vi`) |
@@ -68,16 +68,16 @@ Chứa cấu trúc đề thi đa cấp bậc (Exam -> Section -> Part), áp dụ
 ### Bảng `exam_sections` (Kỹ năng)
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính kỹ năng |
-| `exam_id` | VARCHAR (FK) | Liên kết với bảng `exams` |
+| `id` | INT (PK) | Khóa chính kỹ năng |
+| `exam_id` | INT (FK) | Liên kết với bảng `exams` |
 | `skill_type` | VARCHAR | Kỹ năng (READING, LISTENING, WRITING) |
 | `duration_minutes` | INT | Tổng thời gian đếm ngược làm bài (VD: 60) |
 
 ### Bảng `exam_parts` (Task / Playlist)
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính Part |
-| `section_id` | UUID (FK) | Liên kết với bảng `exam_sections` |
+| `id` | INT (PK) | Khóa chính Part |
+| `section_id` | INT (FK) | Liên kết với bảng `exam_sections` |
 | `part_number` | INT | Thứ tự phát (Playlist audio) hoặc thứ tự Tab hiển thị |
 | `content_data` | **JSONB** | **(Quan trọng)** Chứa nội dung bài đọc, mảng các câu hỏi, các options, `correct_answer`, và `media_url` (Cloudinary/Firebase). |
 
@@ -89,9 +89,9 @@ Lưu bài nộp, đáp án của học sinh và điểm số thống kê.
 ### Bảng `test_attempts` (Phiên làm bài)
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Định danh phiên thi |
-| `user_id` | UUID (FK) | Liên kết `users` |
-| `exam_id` | VARCHAR (FK) | Liên kết `exams` |
+| `id` | INT (PK) | Định danh phiên thi |
+| `user_id` | INT (FK) | Liên kết `users` |
+| `exam_id` | INT (FK) | Liên kết `exams` |
 | `test_scope` | VARCHAR | Phạm vi: FULL_EXAM, SINGLE_SKILL, SINGLE_PART |
 | `test_mode` | VARCHAR | Chế độ: MOCK_TEST (Thi thật), PRACTICE (Luyện tập) |
 | `status` | VARCHAR | Trạng thái: IN_PROGRESS, AI_GRADING, COMPLETED, ABANDONED |
@@ -102,9 +102,9 @@ Lưu bài nộp, đáp án của học sinh và điểm số thống kê.
 ### Bảng `attempt_answers` (Đáp án chi tiết)
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `attempt_id` | UUID (FK) | Liên kết với `test_attempts` |
-| `part_id` | UUID (FK) | Liên kết với `exam_parts` |
+| `id` | INT (PK) | Khóa chính |
+| `attempt_id` | INT (FK) | Liên kết với `test_attempts` |
+| `part_id` | INT (FK) | Liên kết với `exam_parts` |
 | `user_answers` | **JSONB** | Mảng đáp án thí sinh điền (VD: `{"q1": "A", "q2": "fox"}`) |
 | `is_correct_flags`| **JSONB** | Mảng chấm Đúng/Sai tự động (VD: `{"q1": true, "q2": false}`) |
 | `ai_feedback` | **JSONB** | Báo cáo đa chiều do AI trả về cho phần Writing (Ngữ pháp, Từ vựng) |
@@ -113,31 +113,46 @@ Lưu bài nộp, đáp án của học sinh và điểm số thống kê.
 ---
 
 ## CỤM 4: Sổ tay Từ vựng (Flashcard - Spaced Repetition)
-Hỗ trợ tính năng tra từ điển và ôn tập lặp lại ngắt quãng.
+Hỗ trợ tính năng tra từ điển, phân loại bộ thẻ và ôn tập lặp lại ngắt quãng (SRS).
 
 ### Bảng `dictionary_words` (Từ điển dùng chung)
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `word` | VARCHAR | Từ vựng |
+| `id` | INT (PK) | Khóa chính |
+| `word` | VARCHAR | Từ vựng chuẩn hệ thống |
 | `language_code` | VARCHAR | Ngôn ngữ của từ (VD: `en`, `vi`) |
 | `phonetic` | VARCHAR | Phiên âm (IPA) |
 | `pos` | VARCHAR | Từ loại (Danh từ, động từ...) |
+| `level` | VARCHAR | Cấp độ CEFR (A1, A2, B1, B2, C1, C2) |
 | `default_meaning` | **JSONB** | Nghĩa mặc định đa ngôn ngữ (VD: `{"vi": "Quả táo", "en": "A fruit"}`) |
 
-### Bảng `user_flashcards` (Dữ liệu cá nhân hóa)
+### Bảng `flashcard_decks` (Bộ thẻ cá nhân hóa)
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `user_id` | UUID (FK) | Liên kết `users` |
-| `word_id` | UUID (FK) | Liên kết `dictionary_words` |
-| `custom_meaning` | TEXT | Nghĩa dịch sát ngữ cảnh (Do AI sinh ra khi học viên double-click tra từ trong bài đọc) |
-| `example_sentence` | TEXT | Đoạn văn chứa từ vựng trong lúc tra, giúp học sinh nhớ ngữ cảnh |
-| `status` | VARCHAR | NEW, LEARNING, MASTERED |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Người tạo bộ thẻ |
+| `name` | VARCHAR | Tên bộ thẻ (VD: "Từ vựng IELTS Task 2") |
+| `description` | TEXT | Mô tả bộ thẻ |
+| `is_public` | BOOLEAN | Trạng thái chia sẻ cho cộng đồng (True/False) |
+| `clones_count` | INT | Số lượt được người khác copy/nhân bản |
+| `created_at` | TIMESTAMP | Thời gian tạo |
+
+### Bảng `user_flashcards` (Thẻ từ vựng cá nhân)
+| Cột | Kiểu dữ liệu | Ghi chú |
+| :--- | :--- | :--- |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Liên kết `users` |
+| `deck_id` | INT (FK) | Liên kết `flashcard_decks` |
+| `word_id` | INT (FK) | Liên kết `dictionary_words` (Có thể NULL) |
+| `custom_word` | VARCHAR | Từ vựng do user tự nhập (Dùng khi `word_id` là NULL) |
+| `custom_meaning` | TEXT | Nghĩa tự định nghĩa hoặc dịch sát ngữ cảnh bài đọc |
+| `example_sentence` | TEXT | Câu ví dụ cá nhân |
+| `custom_image_url` | VARCHAR | Ảnh minh họa tự tải lên để dễ nhớ (Mnemonic) |
+| `status` | VARCHAR | Trạng thái học: NEW, LEARNING, MASTERED |
 | `review_count` | INT | Số lần đã ôn tập |
-| `ease_factor` | NUMERIC | Hệ số độ khó (Phục vụ thuật toán SRS) |
+| `ease_factor` | NUMERIC | Hệ số độ khó (SRS Algorithm) |
 | `interval_days` | INT | Chu kỳ ngày nhắc ôn tập |
-| `next_review_date` | TIMESTAMP | Lịch nhắc ôn tập cụ thể |
+| `next_review_date` | TIMESTAMP| Lịch nhắc ôn tập cụ thể |
 
 ---
 
@@ -147,7 +162,7 @@ Các bảng cần thiết để xây dựng một hệ thống hoàn chỉnh ch�
 ### Bảng `roles` (Vai trò)
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
+| `id` | INT (PK) | Khóa chính |
 | `name` | VARCHAR | Tên Role (VD: `ADMIN`, `USER`, `EDITOR`) |
 | `description` | TEXT | Mô tả chi tiết |
 
@@ -155,7 +170,7 @@ Các bảng cần thiết để xây dựng một hệ thống hoàn chỉnh ch�
 Chứa các quyền nhỏ và cụ thể (VD: `CREATE_EXAM`, `DELETE_USER`, `VIEW_REPORTS`).
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
+| `id` | INT (PK) | Khóa chính |
 | `action_code` | VARCHAR | Mã quyền hạn (VD: `CREATE_EXAM`) |
 | `module` | VARCHAR | Thuộc tính năng nào (VD: `EXAM`, `USER`, `BILLING`) |
 
@@ -163,15 +178,15 @@ Chứa các quyền nhỏ và cụ thể (VD: `CREATE_EXAM`, `DELETE_USER`, `VIE
 Một Role có nhiều Permission, và một Permission có thể thuộc nhiều Role.
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `role_id` | UUID (FK) | Liên kết bảng `roles` |
-| `permission_id` | UUID (FK) | Liên kết bảng `permissions` |
+| `role_id` | INT (FK) | Liên kết bảng `roles` |
+| `permission_id` | INT (FK) | Liên kết bảng `permissions` |
 
 ### Bảng `refresh_tokens` (Quản lý Phiên đăng nhập)
 Hỗ trợ bảo mật JWT, cho phép user duy trì đăng nhập hoặc bị Admin "kick" từ xa.
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `user_id` | UUID (FK) | Liên kết bảng `users` |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Liên kết bảng `users` |
 | `token` | VARCHAR | Chuỗi Refresh Token |
 | `device_info` | VARCHAR | Thiết bị đang sử dụng Token này (Mobile, PC) |
 | `ip_address` | VARCHAR | Địa chỉ IP của thiết bị |
@@ -182,8 +197,8 @@ Hỗ trợ bảo mật JWT, cho phép user duy trì đăng nhập hoặc bị Ad
 Dùng để gửi thông báo nhắc nhở học tập, thông báo hết hạn Premium, nhắc nhở Flashcard v.v.
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `user_id` | UUID (FK) | Gửi cho ai |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Gửi cho ai |
 | `title` | VARCHAR | Tiêu đề thông báo |
 | `content` | TEXT | Nội dung chi tiết |
 | `is_read` | BOOLEAN | Trạng thái đã đọc |
@@ -193,8 +208,8 @@ Dùng để gửi thông báo nhắc nhở học tập, thông báo hết hạn 
 Ghi vết các hành động quan trọng để Admin dễ dàng debug hoặc truy vết bảo mật (Ví dụ: Ai vừa xóa đề thi A?).
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `user_id` | UUID (FK) | Người thực hiện hành động |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Người thực hiện hành động |
 | `action` | VARCHAR | Hành động (VD: `DELETE_EXAM`, `UPDATE_QUOTA`) |
 | `entity_type` | VARCHAR | Đối tượng bị tác động (VD: `EXAM`, `USER`) |
 | `entity_id` | VARCHAR | ID của đối tượng |
@@ -211,7 +226,7 @@ Hỗ trợ Admin theo dõi sâu sát hành vi người dùng, phát hiện gian 
 Lưu trữ thông tin để xếp hạng (Top Users) và Gamification (Mức độ chăm chỉ).
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `user_id` | UUID (PK, FK) | Liên kết `users` |
+| `user_id` | INT (PK, FK) | Liên kết `users` |
 | `current_streak` | INT | Chuỗi ngày học liên tiếp hiện tại |
 | `highest_streak` | INT | Chuỗi kỷ lục |
 | `total_learning_minutes`| INT | Tổng số phút đã học trên hệ thống |
@@ -221,8 +236,8 @@ Lưu trữ thông tin để xếp hạng (Top Users) và Gamification (Mức đ�
 Để Admin có thể vẽ biểu đồ thời lượng học trong tuần/tháng và tính Tỷ lệ ôn tập đúng hạn.
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `user_id` | UUID (FK) | Liên kết `users` |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Liên kết `users` |
 | `study_date` | DATE | Ngày học |
 | `learning_minutes`| INT | Số phút học trong ngày đó |
 | `flashcards_due` | INT | Số lượng thẻ Flashcard TỚI HẠN cần ôn trong ngày |
@@ -232,8 +247,8 @@ Lưu trữ thông tin để xếp hạng (Top Users) và Gamification (Mức đ�
 Giúp Admin theo dõi chi tiết toàn bộ lịch sử thiết bị để Cảnh báo "Chia sẻ tài khoản".
 | Cột | Kiểu dữ liệu | Ghi chú |
 | :--- | :--- | :--- |
-| `id` | UUID (PK) | Khóa chính |
-| `user_id` | UUID (FK) | Liên kết `users` |
+| `id` | INT (PK) | Khóa chính |
+| `user_id` | INT (FK) | Liên kết `users` |
 | `ip_address` | VARCHAR | IP đăng nhập |
 | `device_info` | VARCHAR | Thông tin thiết bị (VD: Chrome on Windows) |
 | `login_time` | TIMESTAMP | Thời điểm đăng nhập |

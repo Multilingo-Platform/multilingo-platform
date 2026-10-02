@@ -1,0 +1,110 @@
+{
+  "exam_title": "IELTS Writing Master Test (Academic & General)",
+  "exam_type": "IELTS_WRITING",
+  "parts": [
+    {
+      "part_title": "Academic Task 1: Charts & Graphs",
+      "instruction": "You should spend about 20 minutes on this task.",
+      "question_groups": [
+        {
+          "group_id": "writing-ac-t1-chart",
+          "instruction": "The chart below shows the total number of minutes (in billions) of telephone calls in the UK, divided into three categories, from 1995 to 2002.",
+          "shared_media": {
+            "type": "image",
+            "url": "https://your-cloud-storage.com/images/ielts-bar-chart-calls.png",
+            "display_config": {
+              "size_preset": "large",
+              "alignment": "center"
+            }
+          },
+          "questions": [
+            {
+              "question_id": "q_w_001",
+              "type": "WRITING_ESSAY",
+              "question_text": "Summarise the information by selecting and reporting the main features, and make comparisons where relevant. Write at least 150 words.",
+              "metadata": {
+                "ai_prompt_context": "Dạng bài: Academic Task 1 (Bar Chart). Yêu cầu AI chấm chặt tiêu chí Task Achievement: Thí sinh có viết câu Overview (tổng quan) không? Có gom nhóm số liệu và so sánh các năm/hạng mục với nhau không? Không được đưa ý kiến cá nhân vào bài.",
+                "correct_answer": null,
+                "explanation": "Sample Band 8.0: The bar chart illustrates the total duration of telephone calls in the UK across three different categories over a seven-year period..."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part_title": "Academic Task 1: Maps & Processes",
+      "instruction": "You should spend about 20 minutes on this task.",
+      "question_groups": [
+        {
+          "group_id": "writing-ac-t1-process",
+          "instruction": "The diagram below shows how geothermal energy is used to produce electricity.",
+          "shared_media": {
+            "type": "image",
+            "url": "https://your-cloud-storage.com/images/ielts-geothermal-process.png",
+            "display_config": {
+              "size_preset": "large",
+              "alignment": "center"
+            }
+          },
+          "questions": [
+            {
+              "question_id": "q_w_002",
+              "type": "WRITING_ESSAY",
+              "question_text": "Summarise the information by selecting and reporting the main features. Write at least 150 words.",
+              "metadata": {
+                "ai_prompt_context": "Dạng bài: Academic Task 1 (Process Diagram). AI cần tập trung kiểm tra tiêu chí Grammatical Range: Thí sinh có sử dụng linh hoạt câu bị động (passive voice) để mô tả quá trình máy móc không? Các từ nối chỉ trình tự thời gian (firstly, subsequently, following this) có được dùng chính xác không?",
+                "correct_answer": null,
+                "explanation": "Sample Band 8.0: The diagram depicts the sequential process of generating electricity using geothermal energy..."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part_title": "General Training Task 1: Letters",
+      "instruction": "You should spend about 20 minutes on this task.",
+      "question_groups": [
+        {
+          "group_id": "writing-gt-t1-letter",
+          "content_html": "<div class='bg-gray-50 p-5 border border-gray-200 rounded-md'><strong>Situation:</strong> You recently bought a piece of equipment for your kitchen but it did not work.<br/><br/>Write a letter to the shop manager. In your letter:<ul class='list-disc pl-6 mt-2'><li>describe the problem with the equipment</li><li>explain what happened when you tried to contact the shop</li><li>say what you would like the manager to do</li></ul></div>",
+          "questions": [
+            {
+              "question_id": "q_w_003",
+              "type": "WRITING_ESSAY",
+              "question_text": "Write at least 150 words. You do NOT need to write any addresses. Begin your letter as follows: <em>Dear Sir or Madam,</em>",
+              "metadata": {
+                "ai_prompt_context": "Dạng bài: General Task 1 (Formal Letter - Complaint). AI chấm tiêu chí Task Response: Bài viết phải cover đầy đủ 3 bullet points trong đề. Tiêu chí Tone: Giọng điệu phải trang trọng (formal), tuyệt đối không dùng từ lóng (slangs) hay viết tắt (I'm, don't).",
+                "correct_answer": null,
+                "explanation": "Sample Band 8.0: Dear Sir or Madam, I am writing to express my profound dissatisfaction with a blender I purchased from your store..."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part_title": "Task 2: Essay (Academic & General Training)",
+      "instruction": "You should spend about 40 minutes on this task.",
+      "question_groups": [
+        {
+          "group_id": "writing-t2-essay",
+          "content_html": "<div class='bg-blue-50 p-5 border-l-4 border-blue-500 rounded-r-md'><p class='font-bold text-blue-800 mb-2'>Topic:</p><p class='text-lg'>Some people believe that university education should be free for everyone. Others think that students should pay for their higher education.</p></div>",
+          "questions": [
+            {
+              "question_id": "q_w_004",
+              "type": "WRITING_ESSAY",
+              "question_text": "Discuss both these views and give your own opinion. Write at least 250 words.",
+              "metadata": {
+                "ai_prompt_context": "Dạng bài: Task 2 (Discussion + Opinion). Yêu cầu AI chấm điểm theo 4 tiêu chí chuẩn IELTS: TR, CC, LR, GRA. Đặc biệt lưu ý TR: Thí sinh phải bàn luận cả 2 chiều của vấn đề và chốt được ý kiến cá nhân. Nếu chỉ bàn 1 chiều, band TR không được vượt quá 5.0.",
+                "correct_answer": null,
+                "explanation": "Sample Band 8.5: Opinions are deeply divided on whether tertiary education should be fully state-funded or funded by students themselves..."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
