@@ -9,14 +9,14 @@ interface ScopeModePickerProps {
 }
 
 const SCOPE_OPTIONS: { value: TestScope; label: string; desc: string; icon: string }[] = [
-  { value: 'FULL_EXAM', label: 'Toàn bộ đề', desc: '4 kỹ năng: Reading, Listening, Writing, Speaking', icon: '📋' },
-  { value: 'SINGLE_SKILL', label: 'Một kỹ năng', desc: 'Chọn 1 trong 4 kỹ năng để luyện tập', icon: '🎯' },
+  { value: 'FULL_EXAM', label: 'Toàn bộ đề', desc: 'Đầy đủ tất cả các phần và câu hỏi', icon: '📋' },
+  { value: 'SINGLE_SKILL', label: 'Một kỹ năng', desc: 'Chọn 1 kỹ năng trọng tâm để luyện tập', icon: '🎯' },
   { value: 'SINGLE_PART', label: 'Một phần', desc: 'Luyện riêng từng Part trong kỹ năng', icon: '📌' },
 ];
 
 const MODE_OPTIONS: { value: TestMode; label: string; desc: string; icon: string; activeColor: string }[] = [
-  { value: 'MOCK_TEST', label: 'Mock Test', desc: 'Đồng hồ đếm ngược, tự động nộp khi hết giờ', icon: '⏱️', activeColor: '#2151DA' },
-  { value: 'PRACTICE', label: 'Practice', desc: 'Không giới hạn thời gian, không áp lực', icon: '📖', activeColor: '#10B981' },
+  { value: 'MOCK_TEST', label: 'Mock Test', desc: 'Đồng hồ đếm ngược, tự động nộp bài khi hết giờ', icon: '⏱️', activeColor: '#d97706' },
+  { value: 'PRACTICE', label: 'Practice', desc: 'Không giới hạn thời gian, tự do tra từ AI', icon: '📖', activeColor: '#059669' },
 ];
 
 const SECTION_OPTIONS = [
@@ -33,38 +33,39 @@ const PART_OPTIONS = [
 
 const cardBase: React.CSSProperties = {
   textAlign: 'left',
-  padding: '1rem',
-  borderRadius: '0.75rem',
-  border: '1px solid #334155',
-  background: 'rgba(30,41,59,0.5)',
+  padding: '1.125rem',
+  borderRadius: '0.875rem',
+  border: '1px solid #e5e7eb',
+  background: '#ffffff',
   cursor: 'pointer',
   transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
   width: '100%',
   color: 'inherit',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
 };
 
-const cardActive: React.CSSProperties = {
+const cardActiveAmber: React.CSSProperties = {
   ...cardBase,
-  border: '1px solid #2151DA',
-  background: 'rgba(33,81,218,0.1)',
-  boxShadow: '0 0 0 1px #2151DA',
+  border: '2px solid #d97706',
+  background: '#fffbeb',
+  boxShadow: '0 4px 12px rgba(217,119,6,0.12)',
 };
 
 const cardActiveGreen: React.CSSProperties = {
   ...cardBase,
-  border: '1px solid #10B981',
-  background: 'rgba(16,185,129,0.1)',
-  boxShadow: '0 0 0 1px #10B981',
+  border: '2px solid #059669',
+  background: '#ecfdf5',
+  boxShadow: '0 4px 12px rgba(5,150,105,0.12)',
 };
 
 const pillBase: React.CSSProperties = {
   padding: '0.375rem 1rem',
   borderRadius: '0.5rem',
   fontSize: '0.875rem',
-  fontWeight: 500,
-  border: '1px solid #334155',
-  background: '#1E293B',
-  color: '#94A3B8',
+  fontWeight: 600,
+  border: '1px solid #d1d5db',
+  background: '#ffffff',
+  color: '#4b5563',
   cursor: 'pointer',
   transition: 'all 0.2s',
   fontFamily: 'var(--font-heading)',
@@ -72,9 +73,10 @@ const pillBase: React.CSSProperties = {
 
 const pillActive: React.CSSProperties = {
   ...pillBase,
-  background: '#2151DA',
-  border: '1px solid #2151DA',
-  color: '#fff',
+  background: '#d97706',
+  border: '1px solid #d97706',
+  color: '#ffffff',
+  boxShadow: '0 2px 4px rgba(217,119,6,0.25)',
 };
 
 const Spinner = () => (
@@ -115,28 +117,28 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({ examId, onSubmit, isL
 
       {/* Step 1: Scope */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
           <span style={{
-            width: '1.25rem', height: '1.25rem', borderRadius: '50%',
-            background: '#2151DA', color: '#fff',
+            width: '1.5rem', height: '1.5rem', borderRadius: '50%',
+            background: '#d97706', color: '#fff',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
+            fontSize: '0.75rem', fontWeight: 800, flexShrink: 0,
           }}>1</span>
-          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#cbd5e1' }}>
-            Chọn phạm vi thi
+          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#111827' }}>
+            Chọn phạm vi bài thi
           </span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem' }}>
           {SCOPE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => { setScope(opt.value); setSectionId(''); setPartId(''); }}
-              style={scope === opt.value ? cardActive : cardBase}
+              style={scope === opt.value ? cardActiveAmber : cardBase}
             >
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{opt.icon}</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '0.25rem' }}>{opt.label}</div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', lineHeight: 1.5 }}>{opt.desc}</div>
+              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{opt.icon}</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.95rem', color: '#111827', marginBottom: '0.25rem' }}>{opt.label}</div>
+              <div style={{ fontSize: '0.8rem', color: '#4b5563', lineHeight: 1.5 }}>{opt.desc}</div>
             </button>
           ))}
         </div>
@@ -145,8 +147,8 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({ examId, onSubmit, isL
       {/* Section picker */}
       {needsSection && (
         <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94A3B8', marginBottom: '0.75rem' }}>
-            ↳ Chọn kỹ năng
+          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.75rem' }}>
+            ↳ Chọn kỹ năng:
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {SECTION_OPTIONS.map((opt) => (
@@ -161,8 +163,8 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({ examId, onSubmit, isL
 
       {needsPart && sectionId && (
         <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94A3B8', marginBottom: '0.75rem' }}>
-            ↳ Chọn phần
+          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.75rem' }}>
+            ↳ Chọn phần:
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {PART_OPTIONS.map((opt) => (
@@ -177,70 +179,81 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({ examId, onSubmit, isL
 
       {/* Step 2: Mode */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
           <span style={{
-            width: '1.25rem', height: '1.25rem', borderRadius: '50%',
-            background: '#2151DA', color: '#fff',
+            width: '1.5rem', height: '1.5rem', borderRadius: '50%',
+            background: '#d97706', color: '#fff',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
+            fontSize: '0.75rem', fontWeight: 800, flexShrink: 0,
           }}>2</span>
-          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#cbd5e1' }}>
-            Chọn chế độ
+          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#111827' }}>
+            Chọn chế độ làm bài
           </span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.875rem' }}>
           {MODE_OPTIONS.map((opt) => {
             const isActive = mode === opt.value;
             const style: React.CSSProperties = isActive
-              ? (opt.activeColor === '#10B981' ? cardActiveGreen : cardActive)
+              ? (opt.activeColor === '#059669' ? cardActiveGreen : cardActiveAmber)
               : cardBase;
             return (
               <button key={opt.value} type="button" onClick={() => setMode(opt.value)} style={style}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{opt.icon}</div>
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.875rem', color: '#e2e8f0', marginBottom: '0.25rem' }}>{opt.label}</div>
-                <div style={{ fontSize: '0.75rem', color: '#94A3B8', lineHeight: 1.5 }}>{opt.desc}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '1.75rem' }}>{opt.icon}</div>
+                  {opt.value === 'MOCK_TEST' && (
+                    <span className="badge-orange" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+                      Khuyên dùng
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.95rem', color: '#111827', marginBottom: '0.25rem' }}>
+                  {opt.label}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#4b5563', lineHeight: 1.5 }}>
+                  {opt.desc}
+                </div>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Error */}
+      {/* Error Message */}
       {error && (
         <div role="alert" style={{
           display: 'flex', alignItems: 'center', gap: '0.5rem',
-          padding: '0.75rem 1rem',
-          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: '0.75rem', color: '#EF4444', fontSize: '0.875rem',
+          padding: '0.875rem 1.25rem',
+          background: '#fee2e2', border: '1px solid #fca5a5',
+          borderRadius: '0.75rem', color: '#b91c1c', fontSize: '0.875rem', fontWeight: 500,
           animation: 'fadeIn 0.2s ease-out',
         }}>
           ⚠️ {error}
         </div>
       )}
 
-      {/* Submit */}
+      {/* Submit Button */}
       <button
         type="submit"
         id="btn-start-exam"
         disabled={!isValid || isLoading}
         style={{
           width: '100%', padding: '1rem',
-          borderRadius: '0.75rem',
-          fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem',
+          borderRadius: '0.875rem',
+          fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.05rem',
           border: 'none', cursor: isValid && !isLoading ? 'pointer' : 'not-allowed',
-          transition: 'all 0.2s',
+          transition: 'all 0.2s ease',
           ...(isValid && !isLoading
             ? {
-                background: '#2151DA', color: '#fff',
-                boxShadow: '0 4px 16px rgba(33,81,218,0.35)',
+                background: '#d97706', color: '#ffffff',
+                boxShadow: '0 4px 16px rgba(217,119,6,0.3)',
               }
             : {
-                background: '#1E293B', color: '#94A3B8',
-                border: '1px solid #334155',
+                background: '#f3f4f6', color: '#9ca3af',
+                border: '1px solid #e5e7eb',
               }),
         }}
-        onMouseEnter={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#1a3fb5'; }}
-        onMouseLeave={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#2151DA'; }}
+        onMouseEnter={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#b45309'; }}
+        onMouseLeave={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#d97706'; }}
       >
         {isLoading ? (
           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
