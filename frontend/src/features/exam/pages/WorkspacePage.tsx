@@ -13,6 +13,7 @@ import { QuestionPalette } from '../components/QuestionPalette';
 import QuestionRenderer from '../components/renderers/QuestionRenderer';
 import { autosaveAnswers, submitAttempt } from '../api/attemptApi';
 import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
+import { isAnswered } from '../utils/answerUtils';
 import type { AppDispatch, RootState } from '../../../store/store';
 import type { Question } from '../types/exam.types';
 
@@ -138,7 +139,7 @@ const WorkspacePage: React.FC = () => {
     let answered = 0;
     for (const partMap of Object.values(answersState.answers ?? {})) {
       for (const val of Object.values(partMap ?? {})) {
-        if (val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0)) {
+        if (isAnswered(val)) {
           answered++;
         }
       }
@@ -431,7 +432,7 @@ const WorkspacePage: React.FC = () => {
                 {partQuestions.map((q) => {
                   const qId = q.question_id;
                   const currentVal = answersState.answers?.[partId]?.[qId] ?? null;
-                  const isAnswered = currentVal !== null && currentVal !== undefined && (!Array.isArray(currentVal) || currentVal.length > 0);
+                  const isQuestionAnswered = isAnswered(currentVal, q.type);
                   const isFlagged = !!answersState.flags?.[partId]?.[qId];
 
                   // Calculate minWords based on Writing Task 1 vs Task 2
@@ -445,13 +446,13 @@ const WorkspacePage: React.FC = () => {
                       key={qId}
                       id={`q-${qId}`}
                       className={`ed-card p-5 scroll-mt-4 transition-all duration-200 ${
-                        isAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
+                        isQuestionAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3 mb-3.5">
                         <div className="flex items-start gap-3 flex-1">
                           <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
-                            isAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            isQuestionAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
                           }`}>
                             {q.question_number}
                           </span>
