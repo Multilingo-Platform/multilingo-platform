@@ -104,6 +104,10 @@ const WorkspacePage: React.FC = () => {
 
   const currentSkill = currentSection?.skill_type || ((currentSection as any)?.name?.toUpperCase() as any) || 'READING';
 
+  const partHeaderInfo = useMemo(() => {
+    return getPartHeaderInfo(currentSkill, currentPart, currentSection?.parts, allParts);
+  }, [currentSkill, currentPart, currentSection, allParts]);
+
   // Active part questions extraction: supports both part.questions & part.content.question_groups
   const currentPartQuestions = useMemo(() => {
     if (!currentPart) return [];
@@ -266,9 +270,6 @@ const WorkspacePage: React.FC = () => {
 
   const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html;
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
-  const partHeaderInfo = useMemo(() => {
-    return getPartHeaderInfo(currentSkill, currentPart, currentSection?.parts, allParts);
-  }, [currentSkill, currentPart, currentSection, allParts]);
   const partTitle = currentPart?.title || currentPart?.content?.part_title || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
 
   return (
