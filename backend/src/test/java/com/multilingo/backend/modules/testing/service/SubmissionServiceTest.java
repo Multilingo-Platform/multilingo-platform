@@ -62,4 +62,42 @@ class SubmissionServiceTest {
         assertThat(attempt.getStatus()).isEqualTo(AttemptStatus.GRADING_FAILED);
         assertThat(attempt.getEndTime()).isNotNull();
     }
+
+    @Test
+    void submitAttempt_concurrentRequests_idempotent() throws Exception {
+        CreateAttemptRequest createReq = new CreateAttemptRequest();
+        createReq.setExamId(1);
+        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestMode(TestMode.PRACTICE);
+        WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
+
+        org.mockito.Mockito.reset(objectiveGradingService);
+        when(objectiveGradingService.gradeAttempt(any(), any())).thenReturn(
+                com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
+                        .totalScore(java.math.BigDecimal.TEN)
+                        .partResults(java.util.Map.of())
+                        .sectionScores(java.util.Map.of())
+                        .build()
+        );
+
+        // Verify findByIdForUpdate exists
+        java.util.Optional<TestAttempt> locked = testAttemptRepository.findByIdForUpdate(workspace.getAttemptId());
+        assertThat(locked).isPresent();
+
+        SubmitAttemptRequest submitReq1 = SubmitAttemptRequest.builder()
+                .reason(SubmitReason.MANUAL)
+                .build();
+        SubmitAttemptRequest submitReq2 = SubmitAttemptRequest.builder()
+                .reason(SubmitReason.TIMEOUT_CLIENT)
+                .build();
+
+        SubmitResultResponse r1 = testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq1);
+        SubmitResultResponse r2 = testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq2);
+
+        assertThat(r1.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+        assertThat(r2.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+
+        TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        assertThat(attempt.getEndTime()).isNotNull();
+    }
 }
