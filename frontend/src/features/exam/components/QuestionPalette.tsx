@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store/store';
 import type { Question } from '../types/exam.types';
+import { isAnswered } from '../utils/answerUtils';
 
 interface QuestionPaletteProps {
   allParts?: any[];
@@ -45,7 +46,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
     qList.forEach((q: any) => {
       const qId = q.question_id || String(q.id);
       const val = answers[pId]?.[qId];
-      if (val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0)) {
+      if (isAnswered(val, q.type)) {
         answeredCount++;
       }
       if (flags?.[pId]?.[qId]) {
@@ -114,7 +115,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                 {qList.map((q: any) => {
                   const qId = q.question_id || String(q.id);
                   const val = answers[pId]?.[qId];
-                  const answered = val !== null && val !== undefined && (!Array.isArray(val) || val.length > 0);
+                  const answered = isAnswered(val, q.type);
                   const isFlagged = !!flags?.[pId]?.[qId];
                   const isActive = activePartId ? pId === activePartId : true;
 
