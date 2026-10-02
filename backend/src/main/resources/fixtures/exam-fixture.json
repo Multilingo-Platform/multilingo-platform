@@ -14,6 +14,8 @@
               "id": 1,
               "title": "Reading Part 1",
               "durationMinutes": 20,
+              "instruction": "Read the passage below and answer Questions 1-2 by selecting the best option.",
+              "contentHtml": "<div class='reading-passage space-y-4'><h2>The Cognitive Architecture of Multilingual Minds</h2><p><strong>A.</strong> The cognitive benefits of acquiring multiple languages have fascinated neuroscientists and linguists for over a century. Early hypotheses in the mid-twentieth century posited that managing multiple linguistic systems might create cognitive overload or delay primary linguistic milestones. However, contemporary neuroimaging studies employing fMRI and electroencephalography demonstrate the precise opposite: early bilingualism enhances executive attention control and neuroplasticity.</p><p><strong>B.</strong> In second language acquisition, developmental stages play a pivotal role. Research confirms that childhood immersion fosters native-like phonetic sensitivity and intuitive syntactic processing. As individuals transition into adulthood, language learning relies progressively on deliberate cognitive strategies and explicit grammatical deduction rather than automatic absorption.</p><p><strong>C.</strong> Furthermore, recent cross-cultural evaluations across universities illustrate that individuals actively alternating between languages develop superior conflict resolution skills and attentional switching metrics, serving as a protective cognitive buffer against neurodegenerative conditions in later life.</p></div>",
               "questions": [
                 {
                   "id": 1,
@@ -49,6 +51,8 @@
               "id": 2,
               "title": "Reading Part 2",
               "durationMinutes": 20,
+              "instruction": "Do the following statements agree with the information in Reading Passage 2? Choose TRUE, FALSE, or NOT GIVEN.",
+              "contentHtml": "<div class='reading-passage space-y-4'><h2>Academic Cross-Linguistic Studies in Higher Education</h2><p><strong>A.</strong> A landmark multi-institutional inquiry surveyed 5,200 undergraduates across ten Southeast Asian educational hubs. The primary research vector sought to delineate correlations between dual-medium instructional modalities and scholastic achievement.</p><p><strong>B.</strong> Contrary to earlier anecdotal claims that monolingual students excel in single-task focus, bilingual cohorts exhibited notable resilience under timed examination constraints, registering higher problem-solving adaptability across analytical domains.</p></div>",
               "questions": [
                 {
                   "id": 3,
@@ -72,6 +76,8 @@
               "id": 3,
               "title": "Reading Part 3",
               "durationMinutes": 20,
+              "instruction": "Complete the summary below. Choose ONE WORD ONLY from the passage for each answer.",
+              "contentHtml": "<div class='reading-passage space-y-4'><h2>Neural Plasticity and Intensive Language Immersion</h2><p><strong>A.</strong> Immersion models subject learners to sustained auditory and communicative demands. Neuroimaging corroborates that structured immersion promotes neural connectivity across anterior and posterior cortical regions.</p></div>",
               "questions": [
                 {
                   "id": 5,
