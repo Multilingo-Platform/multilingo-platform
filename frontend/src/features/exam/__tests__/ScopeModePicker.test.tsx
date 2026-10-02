@@ -58,4 +58,29 @@ describe('ScopeModePicker', () => {
     const btn = screen.getByRole('button', { name: /đang tạo|bắt đầu/i });
     expect(btn).toBeDisabled();
   });
+
+  it('TC_WS_PICKER_04: automatically preselects scope and mode when initialScope and initialMode props are passed', () => {
+    render(
+      <ScopeModePicker
+        examId={1}
+        initialScope="FULL_EXAM"
+        initialMode="PRACTICE"
+        onSubmit={mockSubmit}
+        isLoading={false}
+        error={null}
+      />
+    );
+    // Button should immediately be enabled without clicking cards
+    const submitBtn = screen.getByRole('button', { name: /bắt đầu làm bài/i });
+    expect(submitBtn).not.toBeDisabled();
+
+    fireEvent.click(submitBtn);
+    expect(mockSubmit).toHaveBeenCalledWith({
+      exam_id: 1,
+      test_scope: 'FULL_EXAM',
+      test_mode: 'PRACTICE',
+      section_id: null,
+      part_id: null,
+    });
+  });
 });

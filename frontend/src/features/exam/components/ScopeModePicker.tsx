@@ -3,6 +3,8 @@ import type { CreateAttemptRequest, TestMode, TestScope } from '../types/api.typ
 
 interface ScopeModePickerProps {
   examId: number;
+  initialMode?: TestMode | '';
+  initialScope?: TestScope | '';
   onSubmit: (req: CreateAttemptRequest) => void;
   isLoading: boolean;
   error: string | null;
@@ -87,9 +89,16 @@ const Spinner = () => (
   </svg>
 );
 
-const ScopeModePicker: React.FC<ScopeModePickerProps> = ({ examId, onSubmit, isLoading, error }) => {
-  const [scope, setScope] = useState<TestScope | ''>('');
-  const [mode, setMode] = useState<TestMode | ''>('');
+const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
+  examId,
+  initialMode,
+  initialScope,
+  onSubmit,
+  isLoading,
+  error,
+}) => {
+  const [scope, setScope] = useState<TestScope | ''>(initialScope || '');
+  const [mode, setMode] = useState<TestMode | ''>(initialMode || '');
   const [sectionId, setSectionId] = useState('');
   const [partId, setPartId] = useState('');
 
