@@ -175,18 +175,20 @@
     },
     {
       "id": 2,
-      "title": "Practice Exam - No Duration",
+      "title": "IELTS General Reading - Practice 02",
       "durationMinutes": null,
       "sections": [
         {
           "id": 4,
-          "name": "Reading Only",
+          "name": "Reading",
           "durationMinutes": null,
           "parts": [
             {
               "id": 8,
               "title": "Reading Part 1",
               "durationMinutes": null,
+              "instruction": "Read the text below and answer Questions 1-2 by choosing the best option.",
+              "contentHtml": "<div class='reading-passage space-y-4'><h2>Community Library Services & Guidelines</h2><p><strong>A.</strong> The Central City Library offers extensive digital and print resources for lifelong learners, students, and research professionals. Membership is complimentary for all local residents and registered full-time students at partner academic institutions.</p><p><strong>B.</strong> Quiet study pods may be reserved up to seven days in advance through the online portal or directly at the information desk. Audio-visual learning materials, including multimedia language training kits and test preparation software, are accessible in the Digital Media Hub on the second floor.</p><p><strong>C.</strong> In addition to regular lending services, the library hosts weekly multilingual conversation workshops and guest author seminars designed to foster inclusive cultural exchange.</p></div>",
               "questions": [
                 {
                   "id": 10,
@@ -194,12 +196,51 @@
                   "question_number": 1,
                   "type": "SINGLE_CHOICE",
                   "question_text": "In practice mode, there is no time restriction. Which of the following is true?",
-                  "prompt": "Test question",
+                  "prompt": "Choose the correct answer",
                   "options": [
                     { "id": "A", "text": "You can take your time to practice answering each question" },
                     { "id": "B", "text": "The exam will auto-submit after 5 seconds" },
                     { "id": "C", "text": "Practice mode does not support autosave" }
                   ]
+                },
+                {
+                  "id": 11,
+                  "question_id": "q_11",
+                  "question_number": 2,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "According to the passage, who is eligible for complimentary library membership?",
+                  "prompt": "Choose the correct answer",
+                  "options": [
+                    { "id": "A", "text": "Local residents and registered full-time students" },
+                    { "id": "B", "text": "Only university professors and research fellows" },
+                    { "id": "C", "text": "Commercial visitors from international businesses" },
+                    { "id": "D", "text": "Anyone who pays an annual registration fee" }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": 9,
+              "title": "Reading Part 2",
+              "durationMinutes": null,
+              "instruction": "Do the following statements agree with the information in Reading Passage 2? Choose TRUE, FALSE, or NOT GIVEN.",
+              "contentHtml": "<div class='reading-passage space-y-4'><h2>Workplace Ergonomics and Remote Productivity</h2><p><strong>A.</strong> Modern ergonomic research emphasizes dynamic postural adjustment rather than prolonged static seating. Ergonomists recommend changing work positions every thirty to forty-five minutes to mitigate musculoskeletal fatigue and maintain optimal cognitive engagement.</p><p><strong>B.</strong> When configuring a home workstation, monitor height should align directly with eye level to minimize cervical spinal strain. Ambient lighting should be calibrated to avoid screen glare while maintaining adequate contrast for document review.</p></div>",
+              "questions": [
+                {
+                  "id": 12,
+                  "question_id": "q_12",
+                  "question_number": 3,
+                  "type": "TRUE_FALSE_NOT_GIVEN",
+                  "question_text": "Ergonomists recommend remaining completely stationary in one ergonomic chair position for four continuous hours.",
+                  "prompt": "Is this statement true?"
+                },
+                {
+                  "id": 13,
+                  "question_id": "q_13",
+                  "question_number": 4,
+                  "type": "TRUE_FALSE_NOT_GIVEN",
+                  "question_text": "The top of the monitor display should ideally be aligned with the user's natural eye level.",
+                  "prompt": "Is this statement true?"
                 }
               ]
             }
