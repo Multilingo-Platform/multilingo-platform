@@ -170,9 +170,16 @@ const WorkspacePage: React.FC = () => {
       } else {
         navigate(result.redirect_url);
       }
-    } catch {
+    } catch (err: any) {
+      try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
+      const resultUrl = `/attempts/${attemptId}/result`;
       if (isTimeout) {
-        setSubmitResultUrl(`/attempts/${attemptId}/result`);
+        setSubmitResultUrl(resultUrl);
+      } else {
+        const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409;
+        if (is409) {
+          navigate(resultUrl);
+        }
       }
     } finally {
       setIsSubmitting(false);
