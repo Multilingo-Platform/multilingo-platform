@@ -109,32 +109,15 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                         "Attempt not found or access denied: " + attemptId));
 
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
-            return;
+            throw new AppException(ErrorCode.ATTEMPT_ALREADY_SUBMITTED);
         }
 
-        if (request.getAnswers() != null) {
-            for (AutosaveAnswersRequest.PartAnswerDto partDto : request.getAnswers()) {
-                if (partDto.getPartId() == null) continue;
+        if (attempt.getTestMode() == TestMode.MOCK_TEST && attempt.getDeadline() != null && Instant.now().isAfter(attempt.getDeadline())) {
+            throw new AppException(ErrorCode.ATTEMPT_EXPIRED);
+        }
 
-                Map<String, Object> qMap = new HashMap<>();
-                if (partDto.getAnswers() != null) {
-                    for (AutosaveAnswersRequest.QuestionAnswerDto qDto : partDto.getAnswers()) {
-                        if (qDto.getQuestionId() != null) {
-                            qMap.put(qDto.getQuestionId(), qDto.getAnswer());
-                        }
-                    }
-                }
-
-                AttemptAnswer answerRecord = attemptAnswerRepository
-                        .findByAttemptIdAndPartId(attemptId, partDto.getPartId())
-                        .orElseGet(() -> AttemptAnswer.builder()
-                                .attempt(attempt)
-                                .partId(partDto.getPartId())
-                                .build());
-
-                answerRecord.setUserAnswers(qMap);
-                attemptAnswerRepository.save(answerRecord);
-            }
+        if (request != null && request.getAnswers() != null) {
+            saveAnswersInternal(attempt, request.getAnswers());
         }
     }
 
@@ -162,16 +145,29 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             return SubmitResultResponse.from(attempt.getId(), attempt.getStatus());
         }
 
-        // Phase 1: Finalize (lock answers & set end_time)
-        if (request != null && request.getFinalAnswers() != null) {
-            AutosaveAnswersRequest saveReq = AutosaveAnswersRequest.builder()
-                    .version(request.getBaseVersion() != null ? request.getBaseVersion() : 1)
-                    .answers(request.getFinalAnswers())
-                    .build();
-            autosaveAnswers(attemptId, saveReq);
+        Instant now = Instant.now();
+        SubmitReason reason = (request != null && request.getReason() != null)
+                ? request.getReason()
+                : SubmitReason.MANUAL;
+
+        if (attempt.getTestMode() == TestMode.MOCK_TEST && attempt.getDeadline() != null) {
+            if (reason == SubmitReason.MANUAL && now.isAfter(attempt.getDeadline())) {
+                throw new AppException(ErrorCode.ATTEMPT_EXPIRED);
+            }
+            if (reason == SubmitReason.TIMEOUT_CLIENT && now.isAfter(attempt.getDeadline().plusSeconds(15))) {
+                // Past 15s grace window: discard payload and finalize with saved answers
+                request = SubmitAttemptRequest.builder()
+                        .reason(SubmitReason.TIMEOUT_SERVER)
+                        .finalAnswers(null)
+                        .build();
+            }
         }
 
-        Instant now = Instant.now();
+        // Phase 1: Finalize (lock answers & set end_time)
+        if (request != null && request.getFinalAnswers() != null) {
+            saveAnswersInternal(attempt, request.getFinalAnswers());
+        }
+
         Instant calculatedEndTime = (attempt.getDeadline() != null && now.isAfter(attempt.getDeadline()))
                 ? attempt.getDeadline()
                 : now;
@@ -217,6 +213,32 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     // ─── private helpers ────────────────────────────────────────────────────────
+
+    private void saveAnswersInternal(TestAttempt attempt, List<AutosaveAnswersRequest.PartAnswerDto> answers) {
+        if (answers == null) return;
+        for (AutosaveAnswersRequest.PartAnswerDto partDto : answers) {
+            if (partDto.getPartId() == null) continue;
+
+            Map<String, Object> qMap = new HashMap<>();
+            if (partDto.getAnswers() != null) {
+                for (AutosaveAnswersRequest.QuestionAnswerDto qDto : partDto.getAnswers()) {
+                    if (qDto.getQuestionId() != null) {
+                        qMap.put(qDto.getQuestionId(), qDto.getAnswer());
+                    }
+                }
+            }
+
+            AttemptAnswer answerRecord = attemptAnswerRepository
+                    .findByAttemptIdAndPartId(attempt.getId(), partDto.getPartId())
+                    .orElseGet(() -> AttemptAnswer.builder()
+                            .attempt(attempt)
+                            .partId(partDto.getPartId())
+                            .build());
+
+            answerRecord.setUserAnswers(qMap);
+            attemptAnswerRepository.save(answerRecord);
+        }
+    }
 
     /**
      * Computes deadline based on scope and mode.
