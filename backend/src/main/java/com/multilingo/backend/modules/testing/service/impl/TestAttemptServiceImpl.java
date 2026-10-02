@@ -6,6 +6,8 @@ import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.testing.adapter.ExamAdapter;
 import com.multilingo.backend.modules.testing.adapter.IdentityAdapter;
 import com.multilingo.backend.modules.testing.adapter.dto.ExamFixture;
+import com.multilingo.backend.modules.testing.adapter.dto.PartFixture;
+import com.multilingo.backend.modules.testing.adapter.dto.SectionFixture;
 import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
 import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
@@ -62,8 +64,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         // 2. Validate mode/scope constraints
         Instant deadline = computeDeadline(exam, request, now);
 
-        // 3. Build server-side exam snapshot (safe — no correct answers)
-        Map<String, Object> snapshot = buildExamSnapshot(exam);
+        // 3. Build server-side exam snapshot (safe — no correct answers, filtered by scope)
+        Map<String, Object> snapshot = buildExamSnapshot(exam, request);
 
         // 4. Persist attempt
         TestAttempt attempt = TestAttempt.builder()
@@ -241,9 +243,46 @@ public class TestAttemptServiceImpl implements TestAttemptService {
      * Builds an exam snapshot safe to store and return to client.
      * Uses ObjectMapper to convert ExamFixture → Map, which strips any fields
      * not present in the DTO (correct_answer, explanation are never in ExamFixture).
+     * Filters sections and parts based on testScope (SINGLE_SKILL or SINGLE_PART).
      */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> buildExamSnapshot(ExamFixture exam) {
+    private Map<String, Object> buildExamSnapshot(ExamFixture exam, CreateAttemptRequest request) {
+        if (request.getTestScope() == TestScope.FULL_EXAM) {
+            return objectMapper.convertValue(exam, Map.class);
+        }
+
+        // Deep copy / clone via Jackson
+        ExamFixture cloned = objectMapper.convertValue(
+                objectMapper.convertValue(exam, Map.class), ExamFixture.class);
+
+        if (request.getTestScope() == TestScope.SINGLE_SKILL) {
+            SectionFixture targetSection = cloned.getSections().stream()
+                    .filter(s -> request.getTargetSectionId().equals(s.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                            "Section not found: " + request.getTargetSectionId()));
+
+            cloned.setSections(List.of(targetSection));
+            cloned.setDurationMinutes(targetSection.getDurationMinutes());
+            return objectMapper.convertValue(cloned, Map.class);
+        }
+
+        if (request.getTestScope() == TestScope.SINGLE_PART) {
+            for (SectionFixture section : cloned.getSections()) {
+                for (PartFixture part : section.getParts()) {
+                    if (request.getTargetPartId().equals(part.getId())) {
+                        section.setParts(List.of(part));
+                        section.setDurationMinutes(part.getDurationMinutes());
+                        cloned.setSections(List.of(section));
+                        cloned.setDurationMinutes(part.getDurationMinutes());
+                        return objectMapper.convertValue(cloned, Map.class);
+                    }
+                }
+            }
+            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                    "Part not found: " + request.getTargetPartId());
+        }
+
         return objectMapper.convertValue(exam, Map.class);
     }
 
