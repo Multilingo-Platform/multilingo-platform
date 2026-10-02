@@ -145,4 +145,36 @@ describe('useAutosave', () => {
     expect(setItemSpy).toHaveBeenCalledWith('exam_draft_42', expect.any(String));
     setItemSpy.mockRestore();
   });
+
+  it('clears interval on 409 error (ATTEMPT_EXPIRED)', async () => {
+    const error409 = new Error('Attempt expired');
+    (error409 as any).response = { status: 409, data: { code: 'ATTEMPT_EXPIRED' } };
+    mockAutosave.mockRejectedValue(error409);
+
+    const { store } = setup({
+      answers: {
+        attemptId: 42,
+        isDirty: true,
+        version: 1,
+        answers: { 1: { q1: 'A' } },
+        saveStatus: 'idle',
+        lastSavedAt: null,
+        pendingVersion: 1,
+      },
+    });
+
+    // Advance 15s to trigger first autosave which returns 409
+    await act(async () => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(mockAutosave).toHaveBeenCalledTimes(1);
+    expect(store.getState().answers.saveStatus).toBe('error');
+
+    // Advance another 15s: should NOT call API again because timer was cleared
+    await act(async () => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(mockAutosave).toHaveBeenCalledTimes(1);
+  });
 });
+
