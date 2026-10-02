@@ -52,7 +52,7 @@ Task chỉ chuyển sang DONE khi đạt tiêu chí nghiệm thu. Việc UI hi�
 - Mỗi câu trả lời định danh bằng `partId + questionId`, tránh trùng mã câu giữa các Part.
 - Workspace dùng DTO riêng theo danh sách trường được phép trả về. Answer key, lời giải và AI feedback không nằm trong payload làm bài.
 - Đóng băng nội dung đề theo từng attempt bằng snapshot phía server, để việc sửa đề sau đó không làm thay đổi cách chấm bài đang làm hoặc đã nộp.
-- Trạng thái: `IN_PROGRESS → COMPLETED` với bài khách quan; `IN_PROGRESS → AI_GRADING → COMPLETED` với bài có Writing. Chỉ hoàn thành khi mọi phần Writing đã được xử lý hợp lệ.
+- Trạng thái: `IN_PROGRESS → SUBMITTED → COMPLETED` với bài khách quan (nếu lỗi chấm chuyển `GRADING_FAILED`); `IN_PROGRESS → SUBMITTED → AI_GRADING → COMPLETED` với bài có Writing (nếu hết quota AI chuyển `AI_GRADING_QUEUED`); `EXPIRED` khi attempt quá hạn được hệ thống tự động chốt bài.
 - Hints chỉ dùng trong Practice Writing. Xem kết quả hoặc feedback không kích hoạt chấm lại.
 - Khi chưa có quy đổi chứng chỉ, lưu điểm thô và thông tin đơn vị điểm. Không cộng điểm khách quan với điểm Writing để tạo một tổng điểm không có ý nghĩa.
 - Các thay đổi schema cần thiết phải có migration và ghi rõ lý do, gồm snapshot đề, deadline, kiểm soát phiên bản đáp án và dữ liệu điều phối chấm Writing.
@@ -90,7 +90,7 @@ Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 | M00-01 | Thống nhất JSON schema `content_data` của `exam_parts`: danh sách loại câu hỏi (MCQ, Fill-in, Matching, T/F/NG, Essay…), format đáp án chuẩn `correct_answer`, format lời giải, audio URL convention. Ghi vào `docs/contracts/content-data-schema.md`. | **TV2** | TODO |
 | M00-02 | Xác nhận cấu trúc Entity cây đề: `Exam`, `ExamSection`, `ExamPart` gồm các cột, kiểu dữ liệu, quan hệ FK. Đặc biệt xác nhận `duration_minutes` ở cấp nào (Section hay Part). | **TV2** | TODO |
 | M00-03 | Xác nhận JWT token structure và cách lấy `userId` từ Spring Security Context. Xác nhận interface kiểm tra `subscription_tier` (FREE/PREMIUM). | **TV1** | TODO |
-| M00-04 | Quyết định timezone convention toàn dự án: giữ `Asia/Ho_Chi_Minh` hay chuyển lưu trữ UTC. Nếu giữ ICT, TV3 sẽ dùng ICT trong schema của mình. | **Toàn nhóm** | TODO |
+| M00-04 | Quyết định timezone convention toàn dự án: Thống nhất lưu UTC (`timestamptz` / `Instant` trong database & backend), API trả chuẩn ISO-8601 UTC (`...Z`), Frontend tự format theo Local Time. | **Toàn nhóm** | DONE |
 | M00-05 | Xác nhận interface đọc `user_quotas` để kiểm tra hạn mức AI. Bảng `user_quotas` do TV4 sở hữu. | **TV4** | TODO |
 
 **Kết thúc milestone:** Có ít nhất file `docs/contracts/content-data-schema.md` được TV2 xác nhận. Các quyết định M00-03, M00-04, M00-05 được ghi nhận (có thể trong file này hoặc meeting notes).
@@ -112,7 +112,7 @@ Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 | S00-05 | Viết contract cây đề và danh sách loại câu hỏi **dựa trên kết quả M00-01**; ghi rõ cách chuẩn hóa ESSAY/WRITING_ESSAY và audio. |
 | S00-06 | Viết contract câu trả lời, flags và thống kê; có ví dụ câu đúng, sai, bỏ trống và chọn nhiều đáp án. |
 | S00-07 | Viết contract API, response lỗi và ownership; xác định rõ trường client được gửi. |
-| S00-08 | Viết bảng chuyển trạng thái, quy tắc timer và điểm; ghi nhận điểm khác nhau giữa tài liệu và diagram hiện có. |
+| S00-08 | Viết bảng chuyển trạng thái (bổ sung trạng thái trung gian `SUBMITTED`, lỗi chấm `GRADING_FAILED`, quá hạn `EXPIRED`, hàng đợi AI `AI_GRADING_QUEUED`), quy tắc timer và điểm; ghi nhận điểm khác biệt giữa tài liệu và diagram hiện có. |
 | S00-09 | Tạo fixture Reading hợp lệ và fixture có lỗi cấu trúc để kiểm thử validation. Fixture phải tuân theo schema M00-01. |
 | S00-10 | Tạo fixture Listening và Writing, gồm thời lượng Part và các định dạng media cần dùng. Fixture phải tuân theo schema M00-01. |
 | S00-11 | Thiết lập unit/component test frontend; một test mẫu chạy được trong lệnh kiểm tra. |
@@ -139,8 +139,8 @@ Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 | S01-08 | Validate đề, scope và quan hệ Section/Part; chặn Part nằm ngoài đề đã chọn. |
 | S01-09 | Tạo snapshot server-side cho attempt; sửa fixture gốc không làm thay đổi snapshot. |
 | S01-10 | Tính deadline từ cấu hình đề; Practice không có deadline, Mock thiếu thời lượng bị từ chối rõ ràng. |
-| S01-11 | Implement API tạo attempt và DTO workspace an toàn; response không có answer key hoặc lời giải. |
-| S01-12 | Implement API đọc attempt; test người dùng khác, ID không tồn tại và attempt đã nộp. |
+| S01-11 | Implement API tạo attempt và DTO workspace an toàn; bổ sung `serverTime` (UTC ISO-8601), `deadline` và trạng thái `EXPIRED`; response không có answer key hoặc lời giải. |
+| S01-12 | Implement API đọc attempt; bổ sung `serverTime`, `deadline`, trạng thái `SUBMITTED`/`EXPIRED`; test người dùng khác, ID không tồn tại và attempt đã nộp. |
 
 **Kết thúc sprint:** start/read hoạt động với PostgreSQL test; kiểm thử ownership và chống lộ đáp án đạt.
 
@@ -179,8 +179,8 @@ Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 | S03-02 | Implement lưu nháp theo transaction; lỗi một phần không tạo trạng thái lưu dang dở. |
 | S03-03 | Thêm kiểm soát version; request cũ không ghi đè đáp án mới hơn. |
 | S03-04 | Bổ sung đáp án và version vào API khôi phục workspace. |
-| S03-05 | Tạo autosave theo cấu hình, mặc định 60 giây theo tài liệu luồng. |
-| S03-06 | Chỉ gửi khi dữ liệu thay đổi; tuần tự hóa request để tránh chồng lượt lưu. |
+| S03-05 | Tạo autosave theo cấu hình, chu kỳ mặc định 15 giây kèm dirty-flag (chỉ gửi khi có thay đổi); thêm cơ chế flush trước deadline (khi còn < 30s) và gửi qua `navigator.sendBeacon` khi sự kiện `visibilitychange` (rời trang/ẩn tab). |
+| S03-06 | Chỉ gửi khi dữ liệu thay đổi; tuần tự hóa request để tránh chồng lượt lưu; autosave tự kiểm tra deadline và dừng ngay khi nhận mã 409 (bài đã nộp/quá hạn). |
 | S03-07 | Hiển thị trạng thái đang lưu, đã lưu và chưa lưu được. |
 | S03-08 | Giữ đáp án trong phiên khi mất mạng và thử lưu lại khi kết nối phục hồi. |
 | S03-09 | Xử lý xung đột nhiều tab bằng thông báo và đồng bộ lại; không tự ghi đè âm thầm. |
@@ -217,20 +217,25 @@ Nhóm API dự kiến, được mô tả chi tiết trong Sprint 00:
 
 | ID | Task nhỏ và tiêu chí nghiệm thu |
 |---|---|
-| S05-01 | Tạo submit service chung; nhận đáp án cuối và chấm bằng bộ chấm Sprint 04. |
-| S05-02 | Khóa và cập nhật attempt trong transaction; hai request submit chỉ tạo một kết quả. |
-| S05-03 | Cố định end_time và đáp án sau submit; request lặp trả trạng thái đã có. |
-| S05-04 | Xử lý Writing bằng AI_GRADING; bài thuần khách quan chuyển COMPLETED. |
-| S05-05 | Tạo hộp xác nhận nộp bài, hiển thị số câu bỏ trống và chặn double-click. |
-| S05-06 | Tạo countdown dựa trên deadline/server time; reload hoặc chuyển tab không khởi động lại thời gian. |
-| S05-07 | Khi hết giờ, khóa nhập liệu và gửi submit bằng cùng coordinator của nút Nộp bài. |
-| S05-08 | Phân xử autosave và submit; không để request lưu nháp đến muộn thay đổi bài đã nộp. |
-| S05-09 | Thêm xử lý server cho attempt quá hạn khi client đóng trang; dùng đáp án đã lưu, không nhận sửa bài sau deadline. |
-| S05-10 | Test đồng thời nộp tay/timeout, mất response, mất mạng và đóng trình duyệt; Practice không tự hết giờ. |
+| S05-01 | Tạo submit service cho pha đóng bài (Finalize Attempt): nhận `finalAnswers`, `baseVersion`, `reason` (`MANUAL` / `TIMEOUT_CLIENT` / `TIMEOUT_SERVER`), chuyển trạng thái `SUBMITTED`. Việc chấm điểm tách sang task riêng. |
+| S05-02 | Tách đóng bài và chấm điểm thành hai pha riêng biệt: pha chấm điểm chạy sau khi đóng bài; lỗi chấm điểm chuyển trạng thái `GRADING_FAILED`, không làm mất hoặc rollback trạng thái bài đã đóng (`SUBMITTED`). |
+| S05-03 | Khóa và cập nhật attempt trong transaction: dùng `SELECT ... FOR UPDATE`, xử lý idempotency, hai request submit song song chỉ tạo một kết quả, request lặp trả kết quả đã chốt. |
+| S05-04 | Cố định `end_time = min(now, deadline)`: bảo đảm `end_time` không bao giờ vượt deadline; đóng băng dữ liệu đáp án cuối cùng. |
+| S05-05 | Điều phối trạng thái kết quả và job Writing: tạo job chấm Writing trong cùng transaction đóng bài (không tạo sau commit); nếu hết quota AI, vẫn hoàn tất đóng bài và chấm khách quan, phần Writing chuyển `AI_GRADING_QUEUED` để retry sau; bài thuần khách quan chuyển `COMPLETED`. |
+| S05-06 | Cấu hình Grace Window (15 giây) cho submit do timeout: chỉ chấp nhận cho request submit có `reason=TIMEOUT_CLIENT` (trong vòng `deadline + 15s`) để nhận payload cuối; autosave thường sau deadline lập tức bị từ chối. |
+| S05-07 | Cơ chế Lazy Finalize cho attempt quá hạn: `GET /attempts/{id}` và `/result` phát hiện attempt `IN_PROGRESS` có `now > deadline` thì tự động finalize ngay và trả trạng thái `EXPIRED` (hoặc `SUBMITTED`), ngăn học viên reload gõ tiếp trước khi cron chạy. |
+| S05-08 | Tạo countdown phía frontend dựa trên deadline/server time: lấy `serverTime` khi tải attempt, tính `offset = serverTime - Date.now()` một lần, tính thời gian còn lại từ `deadline` ở mỗi tick (không trừ dần), tự động tính lại khi có sự kiện `visibilitychange`. |
+| S05-09 | Tạo hộp xác nhận nộp bài thủ công: hiển thị số câu đã làm / bỏ trống, cảnh báo câu chưa hoàn thành, chặn double-click và hiển thị loading state. |
+| S05-10 | Tự động nộp bài khi hết giờ và UX phục hồi lỗi: khi countdown về 0, khóa toàn bộ nhập liệu, hiển thị overlay "Hết giờ! Đang nộp bài...", gửi submit kèm `reason=TIMEOUT_CLIENT`; nếu lỗi mạng có cơ chế retry với backoff, nút "Thử nộp lại"; nếu backend đã chốt bài thì tự chuyển sang trang kết quả. |
+| S05-11 | Phân xử autosave và submit: endpoint autosave tự kiểm tra deadline (chặn sau deadline, không phụ thuộc cron); autosave sau khi bài đã nộp hoặc quá hạn trả về HTTP 409 với mã lỗi riêng (`ATTEMPT_ALREADY_SUBMITTED` / `ATTEMPT_EXPIRED`) để frontend dừng timer autosave. |
+| S05-12 | ⚠️ **CẦN XIN PHÉP NHÓM** — Background scheduler quét attempt quá hạn (Cron finalize): cấu hình `@Scheduled` định kỳ quét các attempt `IN_PROGRESS` có `deadline + 15s < now`, sử dụng `SELECT FOR UPDATE SKIP LOCKED`, xử lý theo batch kèm index `(status, deadline)`, gọi submit service với `reason=TIMEOUT_SERVER`. |
+| S05-13 | Test backend đồng thời và deadline: kiểm thử 2 request submit đồng thời, nộp tay song song timeout server, autosave muộn sau submit, nộp trong grace window vs sau grace window. |
+| S05-14 | Test frontend countdown và fake timers: component/unit test đếm ngược với fake timers, bù `offset`, sự kiện tab ẩn/hiện (`visibilitychange`), tự động khóa form và overlay retry. |
+| S05-15 | Test E2E mất mạng, đóng trình duyệt và Practice: kiểm thử mất mạng lúc hết giờ, đóng trình duyệt / reload sau deadline (lazy finalize kích hoạt), Practice không có timer / không tự hết giờ. |
 
-**Mặc định về quá hạn:** server là nguồn thời gian chuẩn; deadline không có thời gian gia hạn. Đáp án đến sau deadline không thay thế đáp án đã lưu. UI phải thể hiện rõ trạng thái lưu để học viên biết phần nào đã được ghi nhận.
+**Mặc định về quá hạn:** server là nguồn thời gian chuẩn; deadline cứng cho mọi thao tác sửa bài và autosave thường; riêng request submit `reason=TIMEOUT_CLIENT` được chấp nhận trong grace window cấu hình (15 giây), chỉ để nhận payload cuối. Đáp án đến sau grace window hoặc autosave sau deadline bị từ chối với HTTP 409 (`ATTEMPT_EXPIRED`). Attempt quá hạn mà client không gửi submit sẽ được server chốt tự động qua Lazy Finalize (khi reload/truy cập lại) hoặc Background Scheduler định kỳ (`reason=TIMEOUT_SERVER`). UI phải thể hiện rõ overlay và trạng thái nộp bài để học viên yên tâm bài làm đã được ghi nhận.
 
-**Kết thúc sprint:** bài khách quan có thể làm → nộp → lưu điểm; bài Writing được lưu và chờ pipeline AI của Sprint 09.
+**Kết thúc sprint:** bài khách quan có thể làm → nộp → lưu điểm (hoặc `GRADING_FAILED` nếu lỗi); bài Writing được lưu và chuyển `AI_GRADING` / `AI_GRADING_QUEUED` chờ pipeline AI của Sprint 09.
 
 ### Sprint 06 — Kết quả và lời giải khách quan
 
@@ -384,4 +389,5 @@ Các task dưới đây can thiệp vào file/cấu hình dùng chung cho toàn 
 | S00-02 | Gộp Maven plugin trùng | `backend/pom.xml` |
 | S00-03 | Tách profile database | `backend/src/main/resources/application.properties` |
 | S00-04 | Timezone convention | `docker-compose.yml`, `pom.xml` (JVM args) |
+| S05-12 | Cấu hình `@EnableScheduling` / ShedLock cho cron quét timeout | `backend/pom.xml`, class cấu hình `SchedulingConfig.java` |
 | S08-02 | Thêm Gemini SDK dependency | `backend/pom.xml` |

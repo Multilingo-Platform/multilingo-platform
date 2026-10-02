@@ -294,6 +294,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .testMode(attempt.getTestMode())
                 .startTime(attempt.getStartTime())
                 .deadline(attempt.getDeadline())
+                .serverTime(Instant.now())
+                .gracePeriodSeconds(15)
                 .examSnapshot(attempt.getExamSnapshot())
                 .build();
     }

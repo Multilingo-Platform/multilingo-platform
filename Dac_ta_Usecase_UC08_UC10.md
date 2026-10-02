@@ -426,7 +426,17 @@
         <tr>
           <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">5a.</td>
           <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
-          <td style="border: 1px solid #000; padding: 6px 8px;">(Nếu mất kết nối mạng khi tự động nộp) Lưu tạm bài làm vào trình duyệt và thông báo chờ gửi lại.</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">(Nếu mất kết nối mạng khi tự động nộp) Hiển thị overlay lỗi, hỗ trợ retry có backoff và nút "Thử nộp lại".</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">5b.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">(Nếu học viên đóng trình duyệt hoặc tắt máy trước khi hết giờ) Background Scheduler định kỳ quét các bài thi có thời gian quá hạn (sau grace window 15 giây) và tự động chốt bài với reason=TIMEOUT_SERVER.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">5c.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">(Nếu học viên reload hoặc truy cập API sau deadline khi Scheduler chưa quét) Hệ thống kích hoạt cơ chế Lazy Finalize, ngay lập tức chốt bài, chấm điểm và trả trạng thái EXPIRED/SUBMITTED, ngăn chặn truy cập workspace để làm tiếp.</td>
         </tr>
       </table>
     </td>
