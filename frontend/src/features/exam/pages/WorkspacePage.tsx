@@ -114,11 +114,18 @@ const WorkspacePage: React.FC = () => {
 
   // Auto-submit when time expires
   useEffect(() => {
-    if (isExpired && !showOverlay && workspace && workspace.status === 'IN_PROGRESS') {
+    if (
+      isExpired &&
+      !showOverlay &&
+      !isSubmitting &&
+      workspace &&
+      workspace.status === 'IN_PROGRESS' &&
+      workspace.deadline !== null
+    ) {
       setShowOverlay(true);
       handleSubmit();
     }
-  }, [isExpired, workspace]);
+  }, [isExpired, showOverlay, isSubmitting, workspace]);
 
   // Handle text selection in Reading Passage for AI Dictionary popup
   const handlePassageMouseUp = () => {
