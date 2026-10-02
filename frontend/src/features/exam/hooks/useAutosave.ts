@@ -25,7 +25,16 @@ export function useAutosave(attemptId: number | null): void {
   useEffect(() => {
     if (!attemptId) return;
 
-    const id = setInterval(async () => {
+    let timerId: ReturnType<typeof setInterval> | null = null;
+
+    const stopAutosave = () => {
+      if (timerId !== null) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    };
+
+    timerId = setInterval(async () => {
       const {
         isDirty: currentIsDirty,
         saveStatus: currentSaveStatus,
@@ -49,8 +58,13 @@ export function useAutosave(attemptId: number | null): void {
         dispatch(markSaveSuccess({ savedAt: Date.now(), version: capturedVersion }));
         // Remove localStorage draft after successful server sync
         try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
-      } catch {
+      } catch (err: any) {
         dispatch(markSaveError());
+        const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409;
+        if (is409) {
+          stopAutosave();
+          return;
+        }
         // Keep draft in localStorage as offline fallback
         try {
           localStorage.setItem(
@@ -61,6 +75,6 @@ export function useAutosave(attemptId: number | null): void {
       }
     }, AUTOSAVE_INTERVAL_MS);
 
-    return () => clearInterval(id);
+    return () => stopAutosave();
   }, [attemptId, dispatch]);
 }
