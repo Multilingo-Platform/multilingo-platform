@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Calendar, Clock, CheckCircle, Target, ArrowRight, BarChart2 } from 'lucide-react';
+import { Search, Filter, Calendar, Clock, CheckCircle, Target, ArrowRight } from 'lucide-react';
 
 const mockHistory = [
   {

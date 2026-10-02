@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronRight, Save, AlignLeft, Settings, Image, Music, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap } from 'lucide-react';
 
 interface QuestionMetadata {
   options?: string[];
@@ -147,25 +147,8 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
     return groups;
   };
 
-  const createGenericGroup = (start: number, end: number, type: string = 'MULTIPLE_CHOICE') => {
-    const qs = [];
-    for (let i = start; i <= end; i++) {
-      let defaultOptions: string[] | undefined = undefined;
-      if (type === 'MULTIPLE_CHOICE') defaultOptions = ['A', 'B', 'C', 'D'];
-      qs.push({
-        question_id: `q_${String(i).padStart(3, '0')}`,
-        type,
-        question_text: `${i}. `,
-        metadata: { correct_answer: '', explanation: '', options: defaultOptions }
-      });
-    }
-    return [{
-      group_id: generateId('group'),
-      instruction: `Từ câu ${start} đến câu ${end}`,
-      content_html: '',
-      questions: qs
-    }];
-  };
+  // Helper reserved for future generic question group creation:
+  // const _createGenericGroup = (start: number, end: number, type: string = 'MULTIPLE_CHOICE') => { ... }
 
   const addSpecificPart = (partKey: string) => {
     let newPart: ExamPart | null = null;
