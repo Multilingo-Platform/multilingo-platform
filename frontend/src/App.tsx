@@ -23,17 +23,18 @@ const TEST_CASES = [
   { id: 5, attemptId: 21, label: 'Completed (Redirect)', route: '/attempts/21', badge: 'DONE' },
 ];
 
-function getBadgeStyle(badge: string): string {
+function getBadgeStyle(badge: string): { bg: string; color: string; border: string } {
   switch (badge) {
-    case 'MOCK': return 'background:rgba(33,81,218,0.15);color:#3b5fe8;border:1px solid rgba(33,81,218,0.3)';
-    case 'PRACTICE': return 'background:rgba(16,185,129,0.15);color:#10B981;border:1px solid rgba(16,185,129,0.3)';
-    case 'SKILL': return 'background:rgba(33,81,218,0.15);color:#3b5fe8;border:1px solid rgba(33,81,218,0.3)';
-    default: return 'background:#263549;color:#94A3B8;border:1px solid #334155';
+    case 'MOCK': return { bg: '#fffbeb', color: '#b45309', border: '#fde68a' };
+    case 'PRACTICE': return { bg: '#ecfdf5', color: '#065f46', border: '#a7f3d0' };
+    case 'SKILL': return { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
+    default: return { bg: '#f3f4f6', color: '#4b5563', border: '#e5e7eb' };
   }
 }
 
 function HomePage() {
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'IELTS' | 'TOEIC' | 'VSTEP'>('ALL');
 
   useEffect(() => {
     axiosClient.get('/test/hello')
@@ -41,172 +42,473 @@ function HomePage() {
       .catch(() => setStatus('error'));
   }, []);
 
-  const statusStyle =
-    status === 'ok'
-      ? 'background:rgba(16,185,129,0.1);color:#10B981;border:1px solid rgba(16,185,129,0.3)'
-      : status === 'error'
-      ? 'background:rgba(239,68,68,0.1);color:#EF4444;border:1px solid rgba(239,68,68,0.3)'
-      : 'background:#263549;color:#94A3B8;border:1px solid #334155';
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0F172A', color: '#F8FAFC' }}>
-      {/* Header */}
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', color: '#111827', display: 'flex', flexDirection: 'column' }}>
+      {/* Sticky Top Header */}
       <header style={{
-        borderBottom: '1px solid rgba(51,65,85,0.5)',
-        padding: '1rem 1.5rem',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '0.875rem 2rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         position: 'sticky',
         top: 0,
-        zIndex: 10,
-        backgroundColor: 'rgba(15,23,42,0.85)',
-        backdropFilter: 'blur(8px)',
+        zIndex: 30,
+        backgroundColor: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{
-            fontFamily: 'var(--font-heading)',
-            fontWeight: 800,
-            fontSize: '1.25rem',
-            background: 'linear-gradient(to right, #2151DA, #60a5fa)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+        {/* Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '10px',
+            background: 'linear-gradient(135deg, #d97706, #b45309)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: '1.25rem', boxShadow: '0 2px 6px rgba(217,119,6,0.3)',
           }}>
-            Multilingo
-          </span>
-          <span style={{ color: '#94A3B8', fontSize: '0.875rem' }}>Exam Platform</span>
+            🎓
+          </div>
+          <div>
+            <span style={{
+              fontFamily: 'var(--font-heading)',
+              fontWeight: 800,
+              fontSize: '1.25rem',
+              color: '#111827',
+              letterSpacing: '-0.02em',
+            }}>
+              Multilingo
+            </span>
+            <span style={{
+              marginLeft: '0.5rem',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              color: '#d97706',
+              backgroundColor: '#fffbeb',
+              padding: '2px 8px',
+              borderRadius: '9999px',
+              border: '1px solid #fde68a',
+            }}>
+              CBT Platform
+            </span>
+          </div>
         </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-          padding: '0.375rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 500,
-          ...Object.fromEntries(statusStyle.split(';').filter(Boolean).map(s => {
-            const [k, v] = s.split(':');
-            return [k.trim().replace(/-([a-z])/g, (_, c: string) => c.toUpperCase()), v.trim()];
-          })),
-        }}>
-          <span style={{
-            width: '6px', height: '6px', borderRadius: '50%',
-            backgroundColor: status === 'ok' ? '#10B981' : status === 'error' ? '#EF4444' : '#94A3B8',
-            display: 'inline-block',
-            animation: status === 'ok' ? 'pulse 2s infinite' : 'none',
-          }} />
-          {status === 'ok' ? 'Backend Connected' : status === 'error' ? 'Backend Offline' : 'Checking...'}
+
+        {/* Status & Profile Utilities */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Backend Status */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.35rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600,
+            backgroundColor: status === 'ok' ? '#ecfdf5' : status === 'error' ? '#fee2e2' : '#f3f4f6',
+            color: status === 'ok' ? '#065f46' : status === 'error' ? '#b91c1c' : '#4b5563',
+            border: `1px solid ${status === 'ok' ? '#a7f3d0' : status === 'error' ? '#fca5a5' : '#e5e7eb'}`,
+          }}>
+            <span style={{
+              width: '7px', height: '7px', borderRadius: '50%',
+              backgroundColor: status === 'ok' ? '#10b981' : status === 'error' ? '#ef4444' : '#9ca3af',
+              display: 'inline-block',
+              animation: status === 'ok' ? 'pulse 2s infinite' : 'none',
+            }} />
+            {status === 'ok' ? 'Backend Connected' : status === 'error' ? 'Backend Offline' : 'Checking...'}
+          </div>
+
+          {/* Streak Badge */}
+          <div className="badge-orange" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
+            🔥 5 ngày
+          </div>
+
+          {/* User Profile */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.25rem 0.625rem 0.25rem 0.35rem',
+            borderRadius: '9999px', background: '#f3f4f6', border: '1px solid #e5e7eb',
+          }}>
+            <div style={{
+              width: '26px', height: '26px', borderRadius: '50%',
+              backgroundColor: '#ca8a04', color: '#fff',
+              fontSize: '0.75rem', fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              MA
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }}>
+              Nguyễn Minh Anh
+            </span>
+          </div>
         </div>
       </header>
 
-      <main style={{ maxWidth: '960px', margin: '0 auto', padding: '3rem 1.5rem' }}>
-        {/* Hero */}
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+      {/* Main Content */}
+      <main style={{ maxWidth: '1120px', margin: '0 auto', padding: '3rem 1.5rem', flex: 1, width: '100%' }}>
+        {/* Hero Section */}
+        <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+            padding: '0.35rem 0.875rem', borderRadius: '9999px',
+            backgroundColor: '#fffbeb', border: '1px solid #fde68a',
+            color: '#b45309', fontSize: '0.8rem', fontWeight: 700,
+            marginBottom: '1.25rem', letterSpacing: '0.02em',
+          }}>
+            ⚡ NỀN TẢNG THI THỬ CBT CHUẨN QUỐC TẾ &amp; AI TUTOR
+          </div>
           <h1 style={{
             fontFamily: 'var(--font-heading)',
             fontWeight: 800,
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            lineHeight: 1.15,
-            marginBottom: '1rem',
-            color: '#F8FAFC',
+            fontSize: 'clamp(2.25rem, 5vw, 3.25rem)',
+            lineHeight: 1.2,
+            marginBottom: '1.25rem',
+            color: '#111827',
+            letterSpacing: '-0.02em',
           }}>
-            Luyện thi IELTS<br />
+            Luyện thi chứng chỉ quốc tế<br />
             <span style={{
-              background: 'linear-gradient(to right, #2151DA, #60a5fa)',
+              background: 'linear-gradient(135deg, #d97706, #ca8a04)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}>
               thông minh &amp; hiệu quả
             </span>
           </h1>
-          <p style={{ color: '#94A3B8', fontSize: '1.125rem', maxWidth: '500px', margin: '0 auto' }}>
-            Hệ thống luyện thi với Timer tự động, Autosave thông minh và báo cáo phân tích chi tiết.
+          <p style={{ color: '#4b5563', fontSize: '1.125rem', maxWidth: '640px', margin: '0 auto', lineHeight: 1.6 }}>
+            Hệ thống thi thử IELTS, TOEIC với phòng thi CBT chia đôi màn hình chuẩn thi thật, tự động lưu bài (Autosave), tra cứu từ vựng thông minh và chấm điểm AI chi tiết.
           </p>
+
+          {/* Metric Stats */}
+          <div style={{
+            display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '2rem',
+            flexWrap: 'wrap',
+          }}>
+            <div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', color: '#d97706' }}>45,000+</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Lượt thi thử hoàn thành</div>
+            </div>
+            <div style={{ width: '1px', backgroundColor: '#e5e7eb' }} />
+            <div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', color: '#10b981' }}>98.4%</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Đạt mục tiêu kỳ thi</div>
+            </div>
+            <div style={{ width: '1px', backgroundColor: '#e5e7eb' }} />
+            <div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', color: '#b45309' }}>0.2s</div>
+              <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Phản hồi tra từ AI</div>
+            </div>
+          </div>
         </div>
 
-        {/* Primary CTAs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
+        {/* Dual Primary CTAs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '3.5rem' }}>
+          {/* Card 1: Mock Test */}
           <Link to="/exams/1/start" style={{
-            display: 'flex', flexDirection: 'column', gap: '0.75rem',
-            padding: '1.5rem',
-            borderRadius: '1rem',
-            background: 'linear-gradient(135deg, #2151DA, #1e3a8a)',
+            display: 'flex', flexDirection: 'column', gap: '1rem',
+            padding: '2rem',
+            borderRadius: '1.25rem',
+            background: 'linear-gradient(135deg, #d97706, #b45309)',
             textDecoration: 'none',
-            boxShadow: '0 8px 32px rgba(33,81,218,0.25)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
+            color: '#fff',
+            boxShadow: '0 8px 24px rgba(217,119,6,0.25)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.02)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)'; }}>
-            <div style={{ fontSize: '2rem' }}>⏱️</div>
-            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', color: '#fff' }}>Mock Test (IELTS)</div>
-            <div style={{ color: '#bfdbfe', fontSize: '0.875rem', lineHeight: 1.5 }}>Thi thật với đồng hồ đếm ngược, tự động nộp bài khi hết giờ.</div>
-            <div style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.875rem', fontWeight: 600 }}>Bắt đầu thi →</div>
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-3px)';
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 12px 28px rgba(217,119,6,0.35)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 24px rgba(217,119,6,0.25)';
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '2.5rem' }}>⏱️</div>
+              <span style={{
+                background: 'rgba(255,255,255,0.2)', padding: '4px 10px',
+                borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700,
+              }}>
+                Bấm giờ chuẩn 60 phút
+              </span>
+            </div>
+            <div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', marginBottom: '0.375rem' }}>
+                Thi thử Mock Test (IELTS)
+              </div>
+              <div style={{ color: '#fef3c7', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                Mô phỏng 100% phòng thi CBT, đồng hồ đếm ngược nghiêm ngặt, tự động nộp bài khi hết giờ và xuất báo cáo điểm số.
+              </div>
+            </div>
+            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.95rem' }}>
+              Bắt đầu làm bài thi →
+            </div>
           </Link>
 
+          {/* Card 2: Practice Mode */}
           <Link to="/exams/2/start" style={{
-            display: 'flex', flexDirection: 'column', gap: '0.75rem',
-            padding: '1.5rem',
-            borderRadius: '1rem',
-            background: 'linear-gradient(135deg, #065f46, #134e4a)',
+            display: 'flex', flexDirection: 'column', gap: '1rem',
+            padding: '2rem',
+            borderRadius: '1.25rem',
+            background: 'linear-gradient(135deg, #059669, #047857)',
             textDecoration: 'none',
-            boxShadow: '0 8px 32px rgba(6,78,59,0.3)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
+            color: '#fff',
+            boxShadow: '0 8px 24px rgba(5,150,105,0.25)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.02)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)'; }}>
-            <div style={{ fontSize: '2rem' }}>📖</div>
-            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', color: '#fff' }}>Practice Mode</div>
-            <div style={{ color: '#a7f3d0', fontSize: '0.875rem', lineHeight: 1.5 }}>Luyện tập không áp lực, không có đồng hồ đếm ngược.</div>
-            <div style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.875rem', fontWeight: 600 }}>Bắt đầu luyện →</div>
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-3px)';
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 12px 28px rgba(5,150,105,0.35)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 24px rgba(5,150,105,0.25)';
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '2.5rem' }}>📖</div>
+              <span style={{
+                background: 'rgba(255,255,255,0.2)', padding: '4px 10px',
+                borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700,
+              }}>
+                Tự do tra từ &amp; xem giải thích
+              </span>
+            </div>
+            <div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', marginBottom: '0.375rem' }}>
+                Luyện tập Practice Mode
+              </div>
+              <div style={{ color: '#d1fae5', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                Không giới hạn thời gian làm bài, dừng và tiếp tục linh hoạt, hỗ trợ tra từ điển ngữ cảnh AI ngay trong bài đọc.
+              </div>
+            </div>
+            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.95rem' }}>
+              Bắt đầu luyện tập →
+            </div>
           </Link>
         </div>
 
-        {/* Testcases */}
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '1.125rem', color: '#cbd5e1', marginBottom: '1rem' }}>
-            📋 Dev Testcases
+        {/* 3 Value Proposition Cards */}
+        <div style={{ marginBottom: '4rem' }}>
+          <h2 style={{
+            fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.35rem',
+            color: '#111827', textAlign: 'center', marginBottom: '1.75rem',
+          }}>
+            Trải nghiệm thi thử vượt trội tại Multilingo
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
-            {TEST_CASES.map((tc) => (
-              <Link
-                key={tc.id}
-                to={tc.route}
-                style={{
-                  display: 'flex', flexDirection: 'column', gap: '0.5rem',
-                  padding: '1rem',
-                  borderRadius: '0.75rem',
-                  background: 'rgba(30,41,59,0.6)',
-                  border: '1px solid rgba(51,65,85,0.6)',
-                  textDecoration: 'none',
-                  transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLAnchorElement).style.background = '#1E293B';
-                  (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.01)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(30,41,59,0.6)';
-                  (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)';
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.4 }}>
-                    {tc.label}
-                  </span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            <div className="ed-card" style={{ padding: '1.75rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🖥️</div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.1rem', color: '#111827', marginBottom: '0.5rem' }}>
+                Phòng thi CBT chuẩn quốc tế
+              </h3>
+              <p style={{ color: '#4b5563', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                Giao diện chia đôi màn hình Split-pane mô phỏng chuẩn phòng thi IDP/BC. Bảng Study4 Question Palette chuyển câu tức thì.
+              </p>
+              <div style={{ marginTop: '1rem', color: '#d97706', fontSize: '0.75rem', fontWeight: 700 }}>
+                ⚡ Tự động lưu bài (Autosave)
+              </div>
+            </div>
+
+            <div className="ed-card" style={{ padding: '1.75rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🎯</div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.1rem', color: '#111827', marginBottom: '0.5rem' }}>
+                Chẩn đoán năng lực &amp; Chấm điểm AI
+              </h3>
+              <p style={{ color: '#4b5563', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                Báo cáo phân tích 4 trục kỹ năng, tự động phát hiện bẫy lỗi sai (distractors) và đề xuất lộ trình ôn tập bám sát thực tế.
+              </p>
+              <div style={{ marginTop: '1rem', color: '#10b981', fontSize: '0.75rem', fontWeight: 700 }}>
+                📊 Radar Matrix + Dẫn chứng bài đọc
+              </div>
+            </div>
+
+            <div className="ed-card" style={{ padding: '1.75rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.1rem', color: '#111827', marginBottom: '0.5rem' }}>
+                Sổ tay Từ vựng &amp; Flashcard SRS
+              </h3>
+              <p style={{ color: '#4b5563', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                Bôi đen từ khó trong bài đọc để tra cứu phát âm IPA, ngữ nghĩa tiếng Việt và tự động lưu vào Flashcard ôn tập ngắt quãng 3D.
+              </p>
+              <div style={{ marginTop: '1rem', color: '#ca8a04', fontSize: '0.75rem', fontWeight: 700 }}>
+                🧠 Spaced Repetition System
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Exam Library Section */}
+        <div style={{ marginBottom: '3.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.35rem', color: '#111827', marginBottom: '0.25rem' }}>
+                📚 Thư viện đề thi tuyển chọn
+              </h2>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                Ngân hàng đề thi chuẩn hóa Cambridge, ETS và Khung 6 bậc VSTEP
+              </p>
+            </div>
+            {/* Filter Tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', background: '#f3f4f6', padding: '4px', borderRadius: '10px' }}>
+              {(['ALL', 'IELTS', 'TOEIC', 'VSTEP'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedFilter(tab)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: selectedFilter === tab ? '#ffffff' : 'transparent',
+                    color: selectedFilter === tab ? '#d97706' : '#6b7280',
+                    boxShadow: selectedFilter === tab ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {tab === 'ALL' ? 'Tất cả' : tab}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+            <div className="ed-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <span className="badge-orange">IELTS 60 Phút</span>
+                <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Mới nhất</span>
+              </div>
+              <h4 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem', color: '#111827', marginBottom: '0.5rem' }}>
+                IELTS Academic Reading - Cam 19 Test 01
+              </h4>
+              <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
+                40 câu hỏi • 3 Passages • 12,450 thí sinh đã thi
+              </p>
+              <Link to="/exams/1/start" className="btn-primary" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+                Vào thi ngay →
+              </Link>
+            </div>
+
+            <div className="ed-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <span className="badge-orange">IELTS 60 Phút</span>
+                <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>General</span>
+              </div>
+              <h4 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem', color: '#111827', marginBottom: '0.5rem' }}>
+                IELTS General Reading - Practice 02
+              </h4>
+              <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
+                40 câu hỏi • 3 Sections • 8,120 thí sinh đã thi
+              </p>
+              <Link to="/exams/2/start" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+                Luyện tập ngay →
+              </Link>
+            </div>
+
+            <div className="ed-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '9999px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 600 }}>
+                  TOEIC 75 Phút
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>ETS Format</span>
+              </div>
+              <h4 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem', color: '#111827', marginBottom: '0.5rem' }}>
+                TOEIC Reading Full Test 05
+              </h4>
+              <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
+                100 câu hỏi • Part 5, 6, 7 • 19,300 thí sinh
+              </p>
+              <Link to="/exams/1/start" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+                Luyện tập ngay →
+              </Link>
+            </div>
+
+            <div className="ed-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <span style={{ backgroundColor: '#fdf4ff', color: '#a855f7', border: '1px solid #f5d0fe', borderRadius: '9999px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 600 }}>
+                  VSTEP 60 Phút
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>B1 - C1</span>
+              </div>
+              <h4 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem', color: '#111827', marginBottom: '0.5rem' }}>
+                VSTEP B2 Đọc hiểu - Đề số 03
+              </h4>
+              <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1.25rem', flex: 1 }}>
+                40 câu hỏi • 4 Passages • 5,600 thí sinh
+              </p>
+              <Link to="/exams/2/start" className="btn-outline" style={{ textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+                Luyện tập ngay →
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Dev Testcase Links Bar */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '1rem',
+          border: '1px solid #e5e7eb',
+          padding: '1.25rem 1.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>
+              📋 Dev Testcases &amp; Attempt Quick Access
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Dành cho kiểm thử hệ thống</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+            {TEST_CASES.map(tc => {
+              const bStyle = getBadgeStyle(tc.badge);
+              return (
+                <Link
+                  key={tc.id}
+                  to={tc.route}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '0.75rem',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    textDecoration: 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#fffbeb';
+                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#fde68a';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#f9fafb';
+                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e5e7eb';
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827' }}>
+                      {tc.label}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>
+                      Attempt #{tc.attemptId}
+                    </div>
+                  </div>
                   <span style={{
-                    flexShrink: 0, fontSize: '0.7rem', padding: '2px 8px',
-                    borderRadius: '9999px', fontWeight: 600,
-                    ...Object.fromEntries(getBadgeStyle(tc.badge).split(';').filter(Boolean).map(s => {
-                      const [k, v] = s.split(':');
-                      return [k.trim().replace(/-([a-z])/g, (_, c: string) => c.toUpperCase()), v?.trim()];
-                    })),
+                    fontSize: '0.65rem', fontWeight: 700,
+                    padding: '2px 6px', borderRadius: '9999px',
+                    backgroundColor: bStyle.bg, color: bStyle.color, border: `1px solid ${bStyle.border}`,
                   }}>
                     {tc.badge}
                   </span>
-                </div>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                  Attempt #{tc.attemptId} →
-                </span>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer style={{
+        borderTop: '1px solid #e5e7eb',
+        backgroundColor: '#ffffff',
+        padding: '1.5rem',
+        textAlign: 'center',
+        color: '#6b7280',
+        fontSize: '0.8rem',
+      }}>
+        © 2026 Multilingo Platform • Hệ thống khảo thí trực tuyến &amp; Chấm điểm AI
+      </footer>
     </div>
   );
 }
