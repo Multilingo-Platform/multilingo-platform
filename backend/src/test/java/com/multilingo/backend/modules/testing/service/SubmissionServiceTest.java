@@ -100,4 +100,85 @@ class SubmissionServiceTest {
         TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
         assertThat(attempt.getEndTime()).isNotNull();
     }
+
+    @Test
+    void autosave_afterDeadline_throwsExpired() {
+        CreateAttemptRequest createReq = new CreateAttemptRequest();
+        createReq.setExamId(1);
+        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestMode(TestMode.MOCK_TEST);
+        WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
+
+        TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        attempt.setDeadline(java.time.Instant.now().minusSeconds(10));
+        testAttemptRepository.save(attempt);
+
+        com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest saveReq =
+                com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest.builder()
+                        .version(1)
+                        .answers(java.util.Collections.emptyList())
+                        .build();
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                testAttemptService.autosaveAnswers(workspace.getAttemptId(), saveReq))
+                .isInstanceOf(com.multilingo.backend.common.exception.AppException.class)
+                .satisfies(e -> {
+                    com.multilingo.backend.common.exception.AppException appEx = (com.multilingo.backend.common.exception.AppException) e;
+                    assertThat(appEx.getErrorCode()).isEqualTo(com.multilingo.backend.common.exception.ErrorCode.ATTEMPT_EXPIRED);
+                });
+    }
+
+    @Test
+    void submit_manualAfterDeadline_throwsExpired() {
+        CreateAttemptRequest createReq = new CreateAttemptRequest();
+        createReq.setExamId(1);
+        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestMode(TestMode.MOCK_TEST);
+        WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
+
+        TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        attempt.setDeadline(java.time.Instant.now().minusSeconds(5));
+        testAttemptRepository.save(attempt);
+
+        SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
+                .reason(SubmitReason.MANUAL)
+                .build();
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq))
+                .isInstanceOf(com.multilingo.backend.common.exception.AppException.class)
+                .satisfies(e -> {
+                    com.multilingo.backend.common.exception.AppException appEx = (com.multilingo.backend.common.exception.AppException) e;
+                    assertThat(appEx.getErrorCode()).isEqualTo(com.multilingo.backend.common.exception.ErrorCode.ATTEMPT_EXPIRED);
+                });
+    }
+
+    @Test
+    void submit_timeoutClientInGraceWindow_success() {
+        CreateAttemptRequest createReq = new CreateAttemptRequest();
+        createReq.setExamId(1);
+        createReq.setTestScope(TestScope.FULL_EXAM);
+        createReq.setTestMode(TestMode.MOCK_TEST);
+        WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
+
+        TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+        attempt.setDeadline(java.time.Instant.now().minusSeconds(5)); // 5s past deadline, <= 15s grace window
+        testAttemptRepository.save(attempt);
+
+        org.mockito.Mockito.reset(objectiveGradingService);
+        when(objectiveGradingService.gradeAttempt(any(), any())).thenReturn(
+                com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
+                        .totalScore(java.math.BigDecimal.TEN)
+                        .partResults(java.util.Map.of())
+                        .sectionScores(java.util.Map.of())
+                        .build()
+        );
+
+        SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
+                .reason(SubmitReason.TIMEOUT_CLIENT)
+                .build();
+
+        SubmitResultResponse response = testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq);
+        assertThat(response.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+    }
 }

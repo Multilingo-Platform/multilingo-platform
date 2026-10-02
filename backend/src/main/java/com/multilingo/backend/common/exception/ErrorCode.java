@@ -12,6 +12,8 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(404, HttpStatus.NOT_FOUND, "Không tìm thấy tài nguyên yêu cầu"),
     METHOD_NOT_ALLOWED(405, HttpStatus.METHOD_NOT_ALLOWED, "Phương thức HTTP không được hỗ trợ"),
     CONFLICT(409, HttpStatus.CONFLICT, "Dữ liệu bị trùng lặp hoặc xung đột"),
+    ATTEMPT_EXPIRED(409, HttpStatus.CONFLICT, "Bài thi đã hết thời gian làm bài"),
+    ATTEMPT_ALREADY_SUBMITTED(409, HttpStatus.CONFLICT, "Bài thi đã được nộp trước đó"),
     VALIDATION_FAILED(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu đầu vào không hợp lệ"),
     QUOTA_EXCEEDED(429, HttpStatus.TOO_MANY_REQUESTS, "Đã vượt quá hạn mức sử dụng tính năng"),
     GRADING_DATA_ERROR(422, HttpStatus.UNPROCESSABLE_ENTITY,
