@@ -49,7 +49,9 @@ public enum ErrorCode {
     FLASHCARD_DECK_NOT_FOUND(1208, HttpStatus.NOT_FOUND, "Không tìm thấy bộ thẻ yêu cầu"),
     FLASHCARD_NOT_FOUND(1209, HttpStatus.NOT_FOUND, "Không tìm thấy thẻ từ vựng yêu cầu"),
     FLASHCARD_WORD_DUPLICATE(1210, HttpStatus.CONFLICT, "Từ vựng này đã tồn tại trong bộ thẻ"),
-    FLASHCARD_LANG_INVALID(1211, HttpStatus.UNPROCESSABLE_ENTITY, "Mã ngôn ngữ không hợp lệ");
+    FLASHCARD_LANG_INVALID(1211, HttpStatus.UNPROCESSABLE_ENTITY, "Mã ngôn ngữ không hợp lệ"),
+    DECK_EMPTY(1212, HttpStatus.BAD_REQUEST, "Bộ thẻ chưa có từ vựng nào để ôn tập"),
+    INVALID_SRS_RATING(1213, HttpStatus.BAD_REQUEST, "Mức độ đánh giá SRS không hợp lệ (chỉ chấp nhận REMEMBERED hoặc FORGOTTEN)");
 
     private final int code;
     private final HttpStatus httpStatus;

@@ -67,4 +67,44 @@ public interface UserFlashcardRepository extends JpaRepository<UserFlashcard, In
         @Param("keyword") String keyword,
         @Param("status") String status
     );
+
+    @Query("""
+        SELECT u FROM UserFlashcard u
+        LEFT JOIN FETCH u.word
+        WHERE u.deck.id = :deckId
+          AND u.userId = :userId
+          AND u.nextReviewDate <= :now
+        ORDER BY u.nextReviewDate ASC
+    """)
+    List<UserFlashcard> findDueCardsForStudy(
+        @Param("deckId") Integer deckId,
+        @Param("userId") Integer userId,
+        @Param("now") Instant now
+    );
+
+    @Query("""
+        SELECT u FROM UserFlashcard u
+        LEFT JOIN FETCH u.word
+        WHERE u.deck.id = :deckId
+          AND u.userId = :userId
+        ORDER BY u.nextReviewDate ASC, u.createdAt ASC
+    """)
+    List<UserFlashcard> findAllForStudy(
+        @Param("deckId") Integer deckId,
+        @Param("userId") Integer userId
+    );
+
+    @Query("""
+        SELECT u FROM UserFlashcard u
+        LEFT JOIN FETCH u.word
+        WHERE u.id = :id AND u.userId = :userId
+    """)
+    Optional<UserFlashcard> findByIdAndUserIdWithWord(@Param("id") Integer id, @Param("userId") Integer userId);
+
+    long countByDeckIdAndUserId(Integer deckId, Integer userId);
+
+    long countByDeckIdAndUserIdAndStatus(Integer deckId, Integer userId, String status);
+
+    long countByUserIdAndStatus(Integer userId, String status);
 }
+
