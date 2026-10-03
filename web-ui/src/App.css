@@ -1,0 +1,164 @@
+/* Layout Reset & Conventional Education Typography */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.premium-bg {
+  min-height: 100vh;
+  background-color: #f4f6f8;
+}
+
+/* Gradient Text Replacement */
+.gradient-text {
+  color: #111827;
+  display: inline-block;
+}
+
+.gradient-text-accent {
+  color: #d97706;
+  display: inline-block;
+}
+
+/* Base styles for layouts */
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.top-nav {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 1rem;
+  color: #374151;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: all 0.15s ease;
+  border-radius: 0;
+  height: 60px;
+  border-bottom: 3px solid transparent;
+  align-self: center;
+}
+
+.nav-item:hover {
+  color: #111827;
+  border-bottom: 3px solid #f5b301;
+}
+
+.nav-item.active {
+  color: #111827;
+  border-bottom: 3px solid #f5b301;
+  background: transparent;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Mock Test UI */
+.question-palette {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.q-box {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #ffffff;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+
+.q-box:hover {
+  border-color: #f59e0b;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.q-box.done {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+  font-weight: 600;
+}
+
+.q-box.current {
+  border: 2px solid #d97706;
+  color: #1e293b;
+  background: #fffbeb;
+  font-weight: 700;
+}
+
+/* Admin Nav Items */
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.88rem;
+  border-radius: 5px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.admin-nav-item.active {
+  background: #f59e0b;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* Balanced Deck Card for Flashcard System (UC012) */
+.deck-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1.25rem;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.deck-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}

@@ -1,0 +1,29 @@
+{
+  "publicLayout": {
+    "features": "Tính năng",
+    "ielts_test": "Thư viện đề thi",
+    "vn_test": "Lộ trình học",
+    "login": "Đăng nhập",
+    "register": "Đăng ký miễn phí",
+    "footer_desc": "Nền tảng thi thử và đánh giá năng lực ngoại ngữ thực chiến với AI.",
+    "products": "Sản phẩm",
+    "support": "Hỗ trợ",
+    "guide": "Hướng dẫn sử dụng",
+    "contact": "Liên hệ"
+  },
+  "landing": {
+    "badge": "Nền tảng thi thử Đa Ngôn Ngữ số 1",
+    "title_1": "Luyện thi Đa Ngôn Ngữ",
+    "title_2": "Đỉnh cao cùng Trí tuệ Nhân tạo",
+    "desc": "Trải nghiệm thi thử giống 100% đề thi thật với đa dạng ngôn ngữ. Công nghệ AI phân tích điểm mạnh, điểm yếu chi tiết.",
+    "start_btn": "Bắt đầu học miễn phí",
+    "explore_btn": "Khám phá đề thi",
+    "why_choose": "Tại sao chọn Multilingo?",
+    "f1_title": "Chấm điểm AI",
+    "f1_desc": "Nhận feedback Writing/Speaking cực kỳ chi tiết từ AI thông minh.",
+    "f2_title": "Ngân hàng đề Đa ngôn ngữ",
+    "f2_desc": "Cập nhật liên tục đề thi của các ngôn ngữ phổ biến nhất.",
+    "f3_title": "Từ vựng Spaced Repetition",
+    "f3_desc": "Tra từ ngay trong lúc đọc, tự động nhắc nhở ôn tập."
+  }
+}

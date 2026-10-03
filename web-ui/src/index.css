@@ -1,0 +1,406 @@
+:root {
+  /* 1. Màu sắc (Design Token) chuẩn theo yêu cầu người dùng */
+  --primary: #f5b301;
+  --primary-hover: #d99a00;
+  --text-primary: #222222;
+  --text-secondary: #666666;
+  --text-muted: #888888;
+  --border: #e5e5e5;
+  --border-light: #e5e5e5;
+  --border-medium: #dddddd;
+  --bg-primary: #ffffff;
+  --bg-secondary: #ffffff;
+  --bg-subtle: #f7f7f7;
+  --bg-tertiary: #f7f7f7;
+  --bg-hover: #f1f1f1;
+
+  /* State colors */
+  --success: #16a34a;
+  --success-light: #f0fdf4;
+  --danger: #dc2626;
+  --danger-light: #fef2f2;
+  --warning: #f5b301;
+  --warning-light: #fffbeb;
+
+  /* 3. Border + Shape: default 2px, button/input 4px, tag/badge 6px */
+  --radius-default: 2px;
+  --radius-xs: 2px;
+  --radius-button: 4px;
+  --radius-input: 4px;
+  --radius-card: 4px;
+  --radius-sm: 4px;
+  --radius-badge: 6px;
+  --radius-lg: 6px;
+
+  /* Spacing: 10. Spacing */
+  --spacing-section: 24px;
+  --spacing-gap: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Inter, Roboto, Arial, sans-serif;
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  font-size: 14.5px;
+}
+
+/* 2. Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: inherit;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+h1 { 
+  font-size: 22px; 
+  font-weight: 600; 
+  margin-bottom: 8px; 
+}
+
+h2 { 
+  font-size: 18px; 
+  font-weight: 600; 
+  margin-bottom: 6px; 
+}
+
+h3 { 
+  font-size: 16px; 
+  font-weight: 500; 
+  margin-bottom: 4px; 
+}
+
+h4, h5, h6 { 
+  font-size: 14px; 
+  font-weight: 500; 
+}
+
+p, span, div {
+  font-size: 14.5px;
+  font-weight: 400;
+}
+
+small, .text-small {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 6. Card / Box */
+.ed-card, .box-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: none;
+}
+
+.ed-card:hover {
+  border-color: #d1d5db;
+}
+
+/* 7. Stats chuẩn theo yêu cầu: display: flex; gap: 16px; */
+.stats-container {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  border: 1px solid #e5e5e5;
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+}
+
+.stat-box .stat-number {
+  color: #f5b301;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.stat-box .stat-label {
+  color: #666666;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* 5. Button (RẤT QUAN TRỌNG) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-primary {
+  background: #f5b301;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: #d99a00;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  color: #333333;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 400;
+}
+
+.btn-secondary:hover {
+  background: #f7f7f7;
+  border-color: #cccccc;
+  color: #222222;
+}
+
+/* Alias cho backward compatibility */
+.btn-outline {
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  color: #333333;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 400;
+}
+
+.btn-outline:hover {
+  background: #f7f7f7;
+  border-color: #cccccc;
+  color: #222222;
+}
+
+.btn-accent {
+  background: #f5b301;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  border: none;
+}
+
+.btn-accent:hover {
+  background: #d99a00;
+}
+
+/* 8. Tabs / Filter */
+.tab-item {
+  padding: 6px 12px;
+  border-bottom: 2px solid transparent;
+  color: #666666;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  transition: all 0.15s ease;
+}
+
+.tab-item:hover {
+  color: #222222;
+}
+
+.tab-item.active {
+  border-color: #f5b301;
+  color: #f5b301;
+  font-weight: 500;
+}
+
+/* 9. Input / Search */
+.input-control, input[type="text"], input[type="search"], input[type="email"], input[type="password"], select, textarea {
+  border: 1px solid #dddddd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #222222;
+  background: #ffffff;
+  outline: none;
+  font-family: inherit;
+}
+
+.input-control:focus, input:focus, select:focus, textarea:focus {
+  border-color: #f5b301;
+}
+
+.btn-outline {
+  background: #ffffff;
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+}
+
+.btn-outline:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-dark);
+}
+
+.btn-light {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border: 1px solid #fef08a;
+}
+
+.btn-light:hover {
+  background: #fef08a;
+}
+
+/* Badges: Neat rectangular with subtle 4px soft radius */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-sm);
+  line-height: 1.25;
+}
+
+.badge-gray {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.badge-orange, .badge-yellow {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-weight: 600;
+}
+
+.badge-indigo {
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-green {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  font-weight: 600;
+}
+
+.badge-sky {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+/* Balanced Inputs with 4–6px soft corners */
+.input-field {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.8rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-field:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.input-field::placeholder {
+  color: #94a3b8;
+}
+
+/* Container & Layout Utilities */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Conventional Education Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Prototype Bar */
+.figma-proto-bar {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  background: #1f2937;
+  color: white;
+  border-radius: 4px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  font-size: 0.82rem;
+  border: 1px solid #374151;
+}
+
+.figma-proto-pill {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 99999;
+  background: #eab308;
+  color: #111827;
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid #ca8a04;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
