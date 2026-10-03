@@ -24,6 +24,7 @@ import LandingPage from '../features/public/pages/LandingPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
 import ProtectedRoute from '../features/auth/components/ProtectedRoute';
+import Flashcards from '../pages/student/Flashcards';
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -67,6 +68,10 @@ export const router = createBrowserRouter([
     path: '/onboarding',
     element: <OnboardingPage />
   },
+  {
+    path: '/flashcards',
+    element: <Navigate to="/student/flashcards" replace />
+  },
 
   // --- MÀN HÌNH STUDENT ---
   {
@@ -88,7 +93,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'flashcards',
-        element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng của Thành viên 5 (Flashcards)</h1></div>
+        element: <Flashcards />
       },
       {
         path: 'settings',
