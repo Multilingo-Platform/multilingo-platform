@@ -104,7 +104,7 @@ git commit -m "feat(vocab): add repository interfaces and projection queries for
   - `DeckResponse updateDeck(Integer deckId, UpdateDeckRequest req, Integer userId)`
   - `void deleteDeck(Integer deckId, Integer userId)`
 
-- [ ] **Step 1: Viết Unit Test (Mockito) cho FlashcardDeckService**
+- [x] **Step 1: Viết Unit Test (Mockito) cho FlashcardDeckService**
 Kiểm thử các kịch bản:
 - `TC_VOCAB_DECK_01`: Lấy danh sách thành công kèm thống kê số thẻ.
 - `TC_VOCAB_DECK_02`: Tạo deck mới thành công gán đúng `userId`.
@@ -112,16 +112,16 @@ Kiểm thử các kịch bản:
 - `TC_VOCAB_DECK_06`: Xóa deck chủ động gọi xóa các thẻ con để an toàn cascade trên mọi DB.
 - Deck không tồn tại -> ném `AppException(ErrorCode.RESOURCE_NOT_FOUND)`.
 
-- [ ] **Step 2: Chạy test xác nhận FAIL**
+- [x] **Step 2: Chạy test xác nhận FAIL**
 Run: `cd backend && ./mvnw test -Dtest=FlashcardDeckServiceTest`
 Expected: FAIL.
 
-- [ ] **Step 3: Triển khai `FlashcardDeckServiceImpl`**
+- [x] **Step 3: Triển khai `FlashcardDeckServiceImpl`**
 Xử lý logic kiểm tra quyền sở hữu (`deck.getUserId().equals(userId)`), tính toán thống kê thẻ cho từng deck, ném ngoại lệ chuẩn hóa `AppException`. Trong `deleteDeck`: thực hiện `@Transactional` và gọi `userFlashcardRepository.deleteByDeckId(deckId)` trước khi xóa deck.
 
-- [ ] **Step 4: Chạy test xác nhận PASS**
+- [x] **Step 4: Chạy test xác nhận PASS**
 Run: `cd backend && ./mvnw test -Dtest=FlashcardDeckServiceTest`
-Expected: PASS.
+Expected: PASS (10/10 tests PASS).
 
 - [ ] **Step 5: Xin xác nhận người dùng và commit**
 ```bash
