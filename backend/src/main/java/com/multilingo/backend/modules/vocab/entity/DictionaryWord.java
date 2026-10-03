@@ -41,7 +41,4 @@ public class DictionaryWord extends BaseEntity {
 
     @Column(name = "example_sentence", columnDefinition = "text")
     private String exampleSentence;
-
-    @Column(name = "audio_url", length = 500)
-    private String audioUrl;
 }

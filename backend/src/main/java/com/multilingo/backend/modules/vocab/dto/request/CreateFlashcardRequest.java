@@ -17,7 +17,7 @@ public class CreateFlashcardRequest {
     @Size(max = 150, message = "FLASHCARD_WORD_TOO_LONG")
     private String customWord;
 
-    @NotBlank(message = "FLASHCARD_MEANING_REQUIRED")
+    @Size(max = 1000, message = "FLASHCARD_MEANING_TOO_LONG")
     private String customMeaning;
 
     private String exampleSentence;

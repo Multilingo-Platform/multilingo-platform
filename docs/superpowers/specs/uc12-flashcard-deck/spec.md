@@ -53,11 +53,24 @@ UC012 đóng vai trò là **Trung tâm điều phối (Launchpad / Navigation Hu
 - `user_id`: `INT` (FK trỏ `users(id)`, NOT NULL)
 - `name`: `VARCHAR(200)` (NOT NULL)
 - `description`: `TEXT` (NULL)
+- `target_language`: `VARCHAR(10)` (NOT NULL, DEFAULT `'en'`) - Ngôn ngữ từ vựng cần học (VD: `en`, `vi`, `ko`, `zh`, `ja`)
+- `source_language`: `VARCHAR(10)` (NOT NULL, DEFAULT `'vi'`) - Ngôn ngữ giải nghĩa của học viên (VD: `vi`, `ko`, `zh`, `en`)
 - `is_public`: `BOOLEAN` (DEFAULT `FALSE`)
 - `clones_count`: `INT` (DEFAULT `0`)
 - `created_at`, `updated_at`: `TIMESTAMP` (Quản lý tự động bởi `BaseEntity`)
 
-### 3.2. Bảng `user_flashcards`
+### 3.2. Bảng `dictionary_words` (Kho từ vựng chuẩn dùng chung)
+- `id`: `INT` (PK, IDENTITY)
+- `word`: `VARCHAR(150)` (NOT NULL)
+- `language_code`: `VARCHAR(10)` (NOT NULL, DEFAULT `'en'`) - Ngôn ngữ nguồn của từ vựng
+- `phonetic`: `VARCHAR(150)` (NULL) - Phiên âm quốc tế (IPA)
+- `pos`: `VARCHAR(50)` (NULL) - Từ loại (noun, verb, adj...)
+- `level`: `VARCHAR(10)` (NULL) - Trình độ CEFR (A1-C2)
+- `default_meaning`: `JSONB` (NOT NULL) - Nghĩa đa ngôn ngữ dạng key-value: `{"vi": "...", "ko": "...", "zh": "..."}`
+- `example_sentence`: `TEXT` (NULL) - Câu ví dụ ngữ cảnh chuẩn
+*(Ghi chú: Đã loại bỏ cột `audio_url` vì giao diện client sử dụng trực tiếp Web Speech Synthesis API / TTS runtime)*
+
+### 3.3. Bảng `user_flashcards`
 - `id`: `INT` (PK, IDENTITY)
 - `user_id`: `INT` (FK trỏ `users(id)`, NOT NULL)
 - `deck_id`: `INT` (FK trỏ `flashcard_decks(id)`, ON DELETE CASCADE, NOT NULL)
@@ -83,17 +96,17 @@ Mọi API trả về định dạng chuẩn: `ResponseEntity<ApiResponse<T>>`. L
 - `GET /api/v1/vocab/decks`
   - Mô tả: Lấy danh sách bộ thẻ của user đăng nhập kèm thống kê tổng quan.
   - Response: `ApiResponse<List<DeckSummaryResponse>>`
-  - DTO: `id`, `name`, `description`, `isPublic`, `totalCards`, `newCards`, `learningCards`, `masteredCards`, `dueReviewCards`, `createdAt`, `updatedAt`.
+  - DTO: `id`, `name`, `description`, `targetLanguage`, `sourceLanguage`, `isPublic`, `totalCards`, `newCards`, `learningCards`, `masteredCards`, `dueReviewCards`, `createdAt`, `updatedAt`.
 - `POST /api/v1/vocab/decks`
-  - Mô tả: Tạo bộ thẻ mới.
-  - Request Body: `CreateDeckRequest` (`@NotBlank name` max 200, `description`, `Boolean isPublic`).
+  - Mô tả: Tạo bộ thẻ mới (hỗ trợ chỉ định cặp ngôn ngữ học & giải nghĩa).
+  - Request Body: `CreateDeckRequest` (`@NotBlank name` max 200, `description`, `Boolean isPublic`, `targetLanguage`, `sourceLanguage`).
   - Response: `ApiResponse<DeckResponse>` (HTTP 201 Created).
 - `GET /api/v1/vocab/decks/{id}`
   - Mô tả: Xem thông tin chi tiết một bộ thẻ.
-  - Response: `ApiResponse<DeckDetailResponse>` (Thông tin deck + thống kê).
+  - Response: `ApiResponse<DeckDetailResponse>` (Thông tin deck + targetLanguage + sourceLanguage + thống kê).
 - `PUT /api/v1/vocab/decks/{id}`
-  - Mô tả: Chỉnh sửa tên, mô tả, quyền riêng tư của bộ thẻ.
-  - Request Body: `UpdateDeckRequest` (`@NotBlank name`, `description`, `Boolean isPublic`).
+  - Mô tả: Chỉnh sửa tên, mô tả, quyền riêng tư, cặp ngôn ngữ của bộ thẻ.
+  - Request Body: `UpdateDeckRequest` (`@NotBlank name`, `description`, `Boolean isPublic`, `targetLanguage`, `sourceLanguage`).
   - Response: `ApiResponse<DeckResponse>`.
 - `DELETE /api/v1/vocab/decks/{id}`
   - Mô tả: Xóa vĩnh viễn bộ thẻ và các thẻ bên trong.
@@ -103,10 +116,10 @@ Mọi API trả về định dạng chuẩn: `ResponseEntity<ApiResponse<T>>`. L
 - `GET /api/v1/vocab/decks/{deckId}/cards?keyword=&status=`
   - Mô tả: Lấy danh sách thẻ từ vựng trong bộ thẻ, hỗ trợ tìm kiếm từ khóa và lọc trạng thái.
   - Response: `ApiResponse<List<FlashcardResponse>>`.
-  - DTO: `id`, `deckId`, `customWord`, `customMeaning`, `exampleSentence`, `customImageUrl`, `status`, `reviewCount`, `easeFactor`, `intervalDays`, `nextReviewDate`.
+  - DTO: `id`, `deckId`, `wordId`, `customWord`, `customMeaning`, `exampleSentence`, `customImageUrl`, `status`, `reviewCount`, `easeFactor`, `intervalDays`, `nextReviewDate`, `phonetic`, `pos`, `languageCode`, `defaultMeaning`.
 - `POST /api/v1/vocab/decks/{deckId}/cards`
-  - Mô tả: Thêm thẻ từ vựng mới vào bộ thẻ (UC12.1).
-  - Request Body: `CreateFlashcardRequest` (`@NotBlank customWord`, `@NotBlank customMeaning`, `exampleSentence`, `customImageUrl`, `wordId`).
+  - Mô tả: Thêm thẻ từ vựng mới vào bộ thẻ (UC12.1). Nếu có `wordId` mà `customMeaning` để trống, hệ thống tự động bốc nghĩa từ `defaultMeaning` theo `source_language` của bộ thẻ.
+  - Request Body: `CreateFlashcardRequest` (`@NotBlank customWord`, `customMeaning`, `exampleSentence`, `customImageUrl`, `wordId`).
   - Response: `ApiResponse<FlashcardResponse>` (HTTP 201 Created).
 - `PUT /api/v1/vocab/cards/{cardId}`
   - Mô tả: Cập nhật thông tin thẻ từ vựng (UC12.1).

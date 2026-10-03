@@ -131,7 +131,36 @@ class FlashcardDeckServiceTest {
         assertEquals(100, res.getId());
         assertEquals(userId, res.getUserId());
         assertEquals("TOEIC 750+", res.getName());
+        assertEquals("en", res.getTargetLanguage()); // default fallback
+        assertEquals("vi", res.getSourceLanguage()); // default fallback
         assertTrue(res.getIsPublic());
+    }
+
+    @Test
+    @DisplayName("TC_VOCAB_DECK_07: createDeck với cặp ngôn ngữ tùy chỉnh (target=en, source=ko)")
+    void testCreateDeck_withCustomLanguagePair_success() {
+        CreateDeckRequest req = CreateDeckRequest.builder()
+                .name("TOEIC for Korean")
+                .description("Deck cho người Hàn học tiếng Anh")
+                .targetLanguage("en")
+                .sourceLanguage("ko")
+                .isPublic(true)
+                .build();
+
+        when(flashcardDeckRepository.save(any(FlashcardDeck.class))).thenAnswer(invocation -> {
+            FlashcardDeck d = invocation.getArgument(0);
+            d.setId(101);
+            d.setCreatedAt(Instant.now());
+            d.setUpdatedAt(Instant.now());
+            return d;
+        });
+
+        DeckResponse res = flashcardDeckService.createDeck(req, userId);
+
+        assertNotNull(res);
+        assertEquals(101, res.getId());
+        assertEquals("en", res.getTargetLanguage());
+        assertEquals("ko", res.getSourceLanguage());
     }
 
     @Test

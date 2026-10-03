@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 
 @Data
 @Builder
@@ -20,6 +21,10 @@ public class FlashcardResponse {
     private String customMeaning;
     private String exampleSentence;
     private String customImageUrl;
+    private String phonetic;
+    private String pos;
+    private String languageCode;
+    private Map<String, Object> defaultMeaning;
     private String status;
     private Integer reviewCount;
     private BigDecimal easeFactor;

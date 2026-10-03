@@ -25,6 +25,14 @@ public class FlashcardDeck extends BaseEntity {
     private String description;
 
     @Builder.Default
+    @Column(name = "target_language", length = 10, nullable = false)
+    private String targetLanguage = "en";
+
+    @Builder.Default
+    @Column(name = "source_language", length = 10, nullable = false)
+    private String sourceLanguage = "vi";
+
+    @Builder.Default
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = false;
 

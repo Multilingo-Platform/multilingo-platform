@@ -20,5 +20,11 @@ public class UpdateDeckRequest {
     @Size(max = 2000, message = "DECK_DESCRIPTION_TOO_LONG")
     private String description;
 
+    @Size(max = 10, message = "FLASHCARD_LANG_INVALID")
+    private String targetLanguage;
+
+    @Size(max = 10, message = "FLASHCARD_LANG_INVALID")
+    private String sourceLanguage;
+
     private Boolean isPublic;
 }

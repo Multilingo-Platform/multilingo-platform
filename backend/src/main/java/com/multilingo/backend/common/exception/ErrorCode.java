@@ -48,7 +48,8 @@ public enum ErrorCode {
     FLASHCARD_IMAGE_URL_TOO_LONG(1207, HttpStatus.UNPROCESSABLE_ENTITY, "Đường dẫn ảnh không được vượt quá 500 ký tự"),
     FLASHCARD_DECK_NOT_FOUND(1208, HttpStatus.NOT_FOUND, "Không tìm thấy bộ thẻ yêu cầu"),
     FLASHCARD_NOT_FOUND(1209, HttpStatus.NOT_FOUND, "Không tìm thấy thẻ từ vựng yêu cầu"),
-    FLASHCARD_WORD_DUPLICATE(1210, HttpStatus.CONFLICT, "Từ vựng này đã tồn tại trong bộ thẻ");
+    FLASHCARD_WORD_DUPLICATE(1210, HttpStatus.CONFLICT, "Từ vựng này đã tồn tại trong bộ thẻ"),
+    FLASHCARD_LANG_INVALID(1211, HttpStatus.UNPROCESSABLE_ENTITY, "Mã ngôn ngữ không hợp lệ");
 
     private final int code;
     private final HttpStatus httpStatus;

@@ -16,6 +16,8 @@ public class DeckDetailResponse {
     private Integer userId;
     private String name;
     private String description;
+    private String targetLanguage;
+    private String sourceLanguage;
     private Boolean isPublic;
     private Integer clonesCount;
     private Long totalCards;

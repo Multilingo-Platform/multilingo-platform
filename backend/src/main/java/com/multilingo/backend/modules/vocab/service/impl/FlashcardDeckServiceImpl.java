@@ -113,16 +113,30 @@ public class FlashcardDeckServiceImpl implements FlashcardDeckService {
         // 2. Chuẩn hóa tên bộ thẻ (trim)
         deck.setName(request.getName().trim());
 
-        // 3. Lưu vào cơ sở dữ liệu
-        FlashcardDeck saved = flashcardDeckRepository.save(deck);
-        log.info("Tạo thành công bộ thẻ mới: id={}, name='{}', userId={}", saved.getId(), saved.getName(), userId);
+        // 3. Xử lý cặp ngôn ngữ (Target Language & Source Language)
+        if (request.getTargetLanguage() != null && !request.getTargetLanguage().trim().isEmpty()) {
+            deck.setTargetLanguage(request.getTargetLanguage().trim().toLowerCase());
+        } else if (deck.getTargetLanguage() == null) {
+            deck.setTargetLanguage("en");
+        }
 
-        // 4. Trả về Response DTO qua Mapper
+        if (request.getSourceLanguage() != null && !request.getSourceLanguage().trim().isEmpty()) {
+            deck.setSourceLanguage(request.getSourceLanguage().trim().toLowerCase());
+        } else if (deck.getSourceLanguage() == null) {
+            deck.setSourceLanguage("vi");
+        }
+
+        // 4. Lưu vào cơ sở dữ liệu
+        FlashcardDeck saved = flashcardDeckRepository.save(deck);
+        log.info("Tạo thành công bộ thẻ mới: id={}, name='{}', targetLang='{}', sourceLang='{}', userId={}", 
+                saved.getId(), saved.getName(), saved.getTargetLanguage(), saved.getSourceLanguage(), userId);
+
+        // 5. Trả về Response DTO qua Mapper
         return flashcardDeckMapper.toDeckResponse(saved);
     }
 
     /**
-     * Cập nhật thông tin bộ thẻ (Tên, Mô tả, Quyền riêng tư).
+     * Cập nhật thông tin bộ thẻ (Tên, Mô tả, Quyền riêng tư, Cặp ngôn ngữ).
      *
      * KIỂM SOÁT QUYỀN TRUY CẬP (CHỐNG IDOR):
      * - BẮT BUỘC chỉ chủ sở hữu của bộ thẻ mới có quyền chỉnh sửa.
@@ -146,6 +160,12 @@ public class FlashcardDeckServiceImpl implements FlashcardDeckService {
         deck.setDescription(request.getDescription());
         if (request.getIsPublic() != null) {
             deck.setIsPublic(request.getIsPublic());
+        }
+        if (request.getTargetLanguage() != null && !request.getTargetLanguage().trim().isEmpty()) {
+            deck.setTargetLanguage(request.getTargetLanguage().trim().toLowerCase());
+        }
+        if (request.getSourceLanguage() != null && !request.getSourceLanguage().trim().isEmpty()) {
+            deck.setSourceLanguage(request.getSourceLanguage().trim().toLowerCase());
         }
 
         // 4. Lưu lại bản ghi đã cập nhật
