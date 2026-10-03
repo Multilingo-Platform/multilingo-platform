@@ -14,3 +14,7 @@
 - Mọi Controller trả về `ResponseEntity<ApiResponse<T>>`.
 - Ném lỗi nghiệp vụ qua `AppException(ErrorCode.XYZ)` và xử lý tập trung tại `GlobalExceptionHandler`.
 
+## 3. Tiêu chuẩn kiến trúc Frontend (Feature-based)
+- Bắt buộc áp dụng Feature-based Architecture (Feature-Sliced Design).
+- Giao diện, API, logic và Redux slice của tính năng nào phải nằm gọn trong thư mục `features/<tên-tính-năng>/`.
+- Thư mục `components` ở gốc chỉ dành cho UI components tái sử dụng chung.

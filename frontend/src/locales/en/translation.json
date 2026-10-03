@@ -1,0 +1,29 @@
+{
+  "publicLayout": {
+    "features": "Features",
+    "ielts_test": "Exam Library",
+    "vn_test": "Study Roadmap",
+    "login": "Login",
+    "register": "Sign up for free",
+    "footer_desc": "The leading AI-powered platform for mock tests and language proficiency assessment.",
+    "products": "Products",
+    "support": "Support",
+    "guide": "User Guide",
+    "contact": "Contact Us"
+  },
+  "landing": {
+    "badge": "The #1 Multi-Language Mock Test Platform",
+    "title_1": "Master Multiple Languages",
+    "title_2": "Powered by Artificial Intelligence",
+    "desc": "Experience 100% realistic mock tests across various languages. AI technology analyzes your strengths and weaknesses in detail.",
+    "start_btn": "Start learning for free",
+    "explore_btn": "Explore exams",
+    "why_choose": "Why choose Multilingo?",
+    "f1_title": "AI Grading",
+    "f1_desc": "Get extremely detailed Writing/Speaking feedback from smart AI.",
+    "f2_title": "Multi-Language Exam Bank",
+    "f2_desc": "Continuously updated real exams for the most popular languages.",
+    "f3_title": "Spaced Repetition Vocab",
+    "f3_desc": "Look up words while reading, get automatic review reminders."
+  }
+}
