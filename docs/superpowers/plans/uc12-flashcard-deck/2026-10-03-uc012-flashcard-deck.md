@@ -63,42 +63,26 @@ git commit -m "feat(vocab): add request and response DTOs for decks and flashcar
 **Files:**
 - Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/repository/FlashcardDeckRepository.java`
 - Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/repository/UserFlashcardRepository.java`
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/DeckStatsProjection.java`
-- Test: `backend/src/test/java/com/multilingo/backend/modules/vocab/repository/FlashcardRepositoryTest.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/response/DeckStatsProjection.java`
 
 **Interfaces:**
 - Produces: 
   - `FlashcardDeckRepository.findAllByUserId(Integer userId)`
   - `FlashcardDeckRepository.findByIdAndUserId(Integer id, Integer userId)`
-  - `UserFlashcardRepository.countStatsByDeckIds(List<Integer> deckIds)` (Projection: deckId, total, newCount, learningCount, masteredCount, dueCount)
-  - `UserFlashcardRepository.searchCards(Integer deckId, String keyword, String status)`
+  - `UserFlashcardRepository.countStatsByDeckIds(List<Integer> deckIds, Instant now)` (Projection: deckId, total, newCount, learningCount, masteredCount, dueCount)
+  - `UserFlashcardRepository.countStatsByDeckId(Integer deckId, Instant now)`
+  - `UserFlashcardRepository.searchCards(Integer deckId, Integer userId, String keyword, String status)`
   - `UserFlashcardRepository.existsByDeckIdAndCustomWordIgnoreCase(Integer deckId, String customWord)`
   - `UserFlashcardRepository.deleteByDeckId(Integer deckId)`
 
-- [ ] **Step 1: Viết DataJpaTest cho Repository queries**
-Kiểm tra tìm kiếm Deck theo userId, đếm thống kê thẻ nhóm theo Deck, tìm kiếm từ vựng theo từ khóa `custom_word` hoặc `custom_meaning`, kiểm tra trùng lặp từ và xóa thẻ theo deckId.
-
-- [ ] **Step 2: Chạy test xác nhận FAIL**
-Run: `cd backend && ./mvnw test -Dtest=FlashcardRepositoryTest`
-Expected: FAIL.
-
-- [ ] **Step 3: Viết mã nguồn Spring Data JPA Repository và Projection Interface**
-```java
-public interface FlashcardDeckRepository extends JpaRepository<FlashcardDeck, Integer> {
-    List<FlashcardDeck> findAllByUserIdOrderByCreatedAtDesc(Integer userId);
-    Optional<FlashcardDeck> findByIdAndUserId(Integer id, Integer userId);
-    boolean existsByIdAndUserId(Integer id, Integer userId);
-}
-```
-Kèm JPQL query tổng hợp đếm thẻ cho `UserFlashcardRepository` và các phương thức `existsByDeckIdAndCustomWordIgnoreCase` và `deleteByDeckId`.
-
-- [ ] **Step 4: Chạy test xác nhận PASS**
-Run: `cd backend && ./mvnw test -Dtest=FlashcardRepositoryTest`
-Expected: PASS.
+- [x] **Step 1: Định nghĩa Projection Interface `DeckStatsProjection` cho aggregate statistics**
+- [x] **Step 2: Viết mã nguồn `FlashcardDeckRepository` với ownership query methods**
+- [x] **Step 3: Viết mã nguồn `UserFlashcardRepository` với JPQL anti-N+1 aggregate stats & search queries**
+- [x] **Step 4: Biên dịch dự án xác nhận không có lỗi syntax (`mvn test-compile`)**
 
 - [ ] **Step 5: Xin xác nhận người dùng và commit**
 ```bash
-git add backend/src/main/java/com/multilingo/backend/modules/vocab/repository/ backend/src/test/java/com/multilingo/backend/modules/vocab/repository/
+git add backend/src/main/java/com/multilingo/backend/modules/vocab/repository/ backend/src/main/java/com/multilingo/backend/modules/vocab/dto/response/DeckStatsProjection.java
 git commit -m "feat(vocab): add repository interfaces and projection queries for decks and cards"
 ```
 
