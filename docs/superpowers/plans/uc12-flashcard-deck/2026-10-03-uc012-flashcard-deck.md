@@ -31,72 +31,28 @@
 ### Task 1: Định nghĩa Request/Response DTOs cho Vocab Decks & Flashcards
 
 **Files:**
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/CreateDeckRequest.java`
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/UpdateDeckRequest.java`
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/DeckResponse.java`
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/DeckSummaryResponse.java`
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/CreateFlashcardRequest.java`
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/UpdateFlashcardRequest.java`
-- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/FlashcardResponse.java`
-- Test: `backend/src/test/java/com/multilingo/backend/modules/vocab/dto/VocabDtoValidationTest.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/request/CreateDeckRequest.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/request/UpdateDeckRequest.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/request/CreateFlashcardRequest.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/request/UpdateFlashcardRequest.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/response/DeckResponse.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/response/DeckSummaryResponse.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/response/DeckDetailResponse.java`
+- Create: `backend/src/main/java/com/multilingo/backend/modules/vocab/dto/response/FlashcardResponse.java`
 
 **Interfaces:**
-- Produces: DTOs chứa Bean Validation (`@NotBlank`, `@Size`) cho controller và service.
+- Produces: DTOs chứa Bean Validation (`@NotBlank`, `@Size`) cho controller và service, phân tách rõ ràng trong `dto/request` và `dto/response`.
+- Lưu ý: Unit tests trong dự án tập trung 100% vào kiểm thử nghiệp vụ tầng Service (`FlashcardDeckServiceTest`, `UserFlashcardServiceTest`). Bean Validation DTO được kiểm thử xác thực tại Controller (`@WebMvcTest`).
 
-- [ ] **Step 1: Viết test kiểm tra Bean Validation của các DTO**
-```java
-package com.multilingo.backend.modules.vocab.dto;
+- [x] **Step 1: Tạo các Request DTOs trong package `com.multilingo.backend.modules.vocab.dto.request`**
+- [x] **Step 2: Tạo các Response DTOs trong package `com.multilingo.backend.modules.vocab.dto.response`**
+- [x] **Step 3: Biên dịch dự án xác nhận không có lỗi syntax**
+Run: `cd backend && ./mvnw test-compile`
+Expected: BUILD SUCCESS.
 
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-class VocabDtoValidationTest {
-    private Validator validator;
-
-    @BeforeEach
-    void setUp() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
-    }
-
-    @Test
-    @DisplayName("CreateDeckRequest: Báo lỗi khi name bị trống")
-    void testCreateDeckRequest_blankName() {
-        CreateDeckRequest req = new CreateDeckRequest("", "Description", false);
-        var violations = validator.validate(req);
-        assertFalse(violations.isEmpty());
-    }
-
-    @Test
-    @DisplayName("CreateDeckRequest: Hợp lệ khi name đầy đủ")
-    void testCreateDeckRequest_valid() {
-        CreateDeckRequest req = new CreateDeckRequest("IELTS Vocab", "Core words", false);
-        var violations = validator.validate(req);
-        assertTrue(violations.isEmpty());
-    }
-}
-```
-
-- [ ] **Step 2: Chạy test để xác nhận lỗi compile (Red)**
-Run: `cd backend && ./mvnw test -Dtest=VocabDtoValidationTest`
-Expected: FAIL do các class DTO chưa tồn tại.
-
-- [ ] **Step 3: Viết mã nguồn cho các DTOs**
-Tạo các DTO với Lombok `@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor` và Jakarta Validation (`@NotBlank(message = "Tên bộ thẻ không được để trống")`, `@Size(max = 200)`).
-
-- [ ] **Step 4: Chạy lại test xác nhận PASS (Green)**
-Run: `cd backend && ./mvnw test -Dtest=VocabDtoValidationTest`
-Expected: PASS.
-
-- [ ] **Step 5: Xin xác nhận người dùng và commit**
+- [ ] **Step 4: Xin xác nhận người dùng và commit**
 ```bash
-git add backend/src/main/java/com/multilingo/backend/modules/vocab/dto/ backend/src/test/java/com/multilingo/backend/modules/vocab/dto/
+git add backend/src/main/java/com/multilingo/backend/modules/vocab/dto/
 git commit -m "feat(vocab): add request and response DTOs for decks and flashcards"
 ```
 
