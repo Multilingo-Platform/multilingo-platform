@@ -51,12 +51,16 @@ public class UserFlashcardServiceImpl implements UserFlashcardService {
             throw new AppException(ErrorCode.FORBIDDEN);
         }
 
-        // 3. Chuẩn hóa tham số tìm kiếm
-        String trimmedKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-        String normalizedStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
+        // 3. Chuẩn hóa tham số tìm kiếm (chuẩn bị search pattern lowercase để tránh lỗi PostgreSQL lower(bytea))
+        String searchPattern = (keyword != null && !keyword.trim().isEmpty())
+                ? "%" + keyword.trim().toLowerCase() + "%"
+                : null;
+        String normalizedStatus = (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status.trim()))
+                ? status.trim().toUpperCase()
+                : null;
 
         // 4. Truy vấn CSDL lọc theo từ khóa và trạng thái
-        List<UserFlashcard> cards = userFlashcardRepository.searchCards(deckId, deck.getUserId(), trimmedKeyword, normalizedStatus);
+        List<UserFlashcard> cards = userFlashcardRepository.searchCards(deckId, deck.getUserId(), searchPattern, normalizedStatus);
 
         // 5. Chuyển đổi sang Response DTO qua MapStruct
         return cards.stream()

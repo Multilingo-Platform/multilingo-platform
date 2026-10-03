@@ -88,7 +88,7 @@ class UserFlashcardServiceTest {
     @DisplayName("TC_VOCAB_CARD_01 & 02: getCardsInDeck tìm kiếm và lọc thẻ thành công cho chủ sở hữu")
     void testGetCardsInDeck_success() {
         when(flashcardDeckRepository.findById(10)).thenReturn(Optional.of(sampleDeck));
-        when(userFlashcardRepository.searchCards(eq(10), eq(userId), eq("ubi"), eq("NEW")))
+        when(userFlashcardRepository.searchCards(eq(10), eq(userId), eq("%ubi%"), eq("NEW")))
                 .thenReturn(List.of(sampleCard));
 
         List<FlashcardResponse> results = userFlashcardService.getCardsInDeck(10, "ubi", "NEW", userId);

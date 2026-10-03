@@ -55,9 +55,10 @@ public interface UserFlashcardRepository extends JpaRepository<UserFlashcard, In
         SELECT u FROM UserFlashcard u
         WHERE u.deck.id = :deckId
           AND u.userId = :userId
-          AND (:status IS NULL OR :status = 'ALL' OR u.status = :status)
-          AND (:keyword IS NULL OR LOWER(u.customWord) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(u.customMeaning) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (cast(:status as string) IS NULL OR u.status = :status)
+          AND (cast(:keyword as string) IS NULL
+               OR LOWER(u.customWord) LIKE cast(:keyword as string)
+               OR LOWER(u.customMeaning) LIKE cast(:keyword as string))
         ORDER BY u.createdAt DESC
     """)
     List<UserFlashcard> searchCards(
