@@ -505,10 +505,10 @@ const WorkspacePage: React.FC = () => {
           </div>
         </main>
 
-        {/* 3. RIGHT SIDEBAR: STUDY4-STYLE QUESTION PALETTE DOCK */}
+        {/* 3. RIGHT SIDEBAR: QUESTION PALETTE DOCK */}
         <aside className="w-64 sm:w-72 shrink-0 bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden shadow-xs">
           <div className="flex-1 overflow-y-auto flex flex-col">
-            {/* Part Switcher in Sidebar (Study4 Style) */}
+            {/* Part Switcher in Sidebar */}
             {allParts.length > 1 && (
               <div className="p-4 border-b border-slate-200 bg-slate-50/50 shrink-0">
                 <div className="font-heading font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
