@@ -121,7 +121,7 @@ const ExamResultPage: React.FC = () => {
             <Link to="/" className="hover:text-amber-700 transition-colors">Trang chủ</Link>
             <span className="text-slate-300">›</span>
             <span className="text-slate-900 font-semibold truncate max-w-[200px] sm:max-w-none">
-              Kết quả thi #{attemptId}
+              Báo cáo kết quả • IELTS Academic
             </span>
           </div>
         </div>
@@ -172,7 +172,7 @@ const ExamResultPage: React.FC = () => {
                   IELTS Academic Reading
                 </h1>
                 <p className="text-xs text-slate-500">
-                  Attempt ID: <strong className="text-slate-700">#{attemptId}</strong> • Trạng thái: <span className="text-emerald-700 font-semibold">COMPLETED</span>
+                  Mã bài thi: <strong className="text-slate-700">ML-2026-IELTS-{attemptId || '01'}</strong> • Ngày hoàn thành: <span className="text-slate-700 font-medium">04/10/2026</span> • Trạng thái: <span className="text-emerald-700 font-semibold">Đã chấm điểm</span>
                 </p>
               </div>
             </div>
@@ -425,7 +425,7 @@ const ExamResultPage: React.FC = () => {
                 Chi tiết từng câu hỏi ({SAMPLE_QUESTIONS.length} câu)
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                Xem lại đáp án đã chọn, đối chiếu trích dẫn nguyên văn và phân tích lỗi sai từ Multilingo AI
+                Xem lại đáp án đã chọn, đối chiếu trích dẫn nguyên văn và giải thích chi tiết
               </p>
             </div>
 
@@ -561,7 +561,7 @@ const ExamResultPage: React.FC = () => {
                 <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 text-xs text-slate-800 space-y-2">
                   <div className="font-heading font-bold text-amber-900 flex items-center gap-1.5">
                     <span>💡</span>
-                    <span>Phân tích đáp án từ Multilingo AI:</span>
+                    <span>Giải thích chi tiết:</span>
                   </div>
                   <p className="leading-relaxed text-slate-700">{q.explanation}</p>
                   {q.citation && (
