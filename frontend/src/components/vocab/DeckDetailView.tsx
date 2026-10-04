@@ -6,8 +6,10 @@ import {
   Volume2,
   Edit2,
   Trash2,
-  Flame,
-  GraduationCap,
+  Layers,
+  Target,
+  Clock,
+  Gamepad2,
   BookOpen,
 } from 'lucide-react';
 import type { DeckSummary, Flashcard } from '../../types/vocab';
@@ -18,7 +20,7 @@ import './vocab.css';
 /**
  * Interface định nghĩa các Props cho Component Chi tiết Bộ thẻ (DeckDetailView).
  */
-interface DeckDetailViewProps {
+export interface DeckDetailViewProps {
   /** Thông tin của bộ thẻ hiện tại */
   deck: DeckSummary;
   /** Danh sách các thẻ từ vựng thuộc bộ thẻ này */
@@ -37,17 +39,26 @@ interface DeckDetailViewProps {
   onDeleteCard: (card: Flashcard) => void;
   /** Callback tìm kiếm và lọc trạng thái truyền về cho Component cha */
   onFilterChange: (keyword: string, status: string) => void;
+  /** Callback mở chế độ Trắc nghiệm Quiz */
+  onQuizClick?: () => void;
+  /** Callback mở chế độ Kiểm tra từ vựng */
+  onTestClick?: () => void;
+  /** Callback mở chế độ Ghép từ tốc độ */
+  onMatchGameClick?: () => void;
 }
 
 /**
  * Component Hiển thị Chi tiết Bộ thẻ và Quản lý Danh sách Thẻ Từ vựng (DeckDetailView).
  *
  * TÍNH NĂNG CHÍNH:
- * 1. Hiển thị thông tin tổng quan của bộ thẻ: Cặp ngôn ngữ, số lượng thẻ, nút bắt đầu ôn tập SRS.
- * 2. Tìm kiếm từ vựng theo từ hoặc nghĩa và lọc theo trạng thái Spaced Repetition (NEW, LEARNING, MASTERED).
- * 3. Tích hợp nút phát âm bản xứ (Web Speech API) trực tiếp bên cạnh mỗi từ vựng.
- * 4. Bảng danh sách thẻ đẹp mắt, hiển thị phiên âm, từ loại, nghĩa, câu ví dụ và ảnh minh họa.
- * 5. Thao tác thêm mới, chỉnh sửa và xóa từng thẻ từ vựng.
+ * 1. Khối 4 Cổng Chế độ học tập (Flashcard SRS, Trắc nghiệm Quiz, Kiểm tra từ vựng, Ghép từ tốc độ).
+ * 2. Khối Quản lý Thẻ Từ vựng dạng Bảng chuẩn với 5 cột:
+ *    - Từ vựng & Phát âm (Web Speech TTS)
+ *    - Phiên âm & Loại (IPA + Badge từ loại)
+ *    - Định nghĩa tiếng Việt & Câu ví dụ ngữ cảnh
+ *    - Kế hoạch ôn (Hôm nay / Số lần ôn)
+ *    - Trạng thái & Thao tác Sửa/Xóa
+ * 3. Bộ lọc Pills: Tất cả, Cần ôn, Đã thuộc, Từ mới kèm số lượng động và ô tìm kiếm từ/nghĩa.
  */
 export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
   deck,
@@ -59,6 +70,9 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
   onEditCard,
   onDeleteCard,
   onFilterChange,
+  onQuizClick,
+  onTestClick,
+  onMatchGameClick,
 }) => {
   // State quản lý bộ lọc tìm kiếm cục bộ
   const [keyword, setKeyword] = useState('');
@@ -97,273 +111,369 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
   };
 
   /**
-   * Helper render badge trạng thái SRS với phong cách cổ điển, vuông vắn vừa phải
+   * Helper render badge trạng thái SRS
    */
   const renderStatusBadge = (cardStatus: string) => {
     switch (cardStatus) {
       case 'MASTERED':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>
-            Thành thạo
+          <span className="vocab-study-badge vocab-study-badge-green" style={{ padding: '0.25rem 0.65rem', fontSize: '0.82rem', background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>
+            Đã thuộc
           </span>
         );
       case 'LEARNING':
+      case 'REVIEW':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+          <span className="vocab-study-badge vocab-study-badge-amber" style={{ padding: '0.25rem 0.65rem', fontSize: '0.82rem' }}>
             Đang học
           </span>
         );
       case 'NEW':
       default:
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe' }}>
-            Mới
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              background: '#dbeafe',
+              color: '#1e40af',
+              border: '1px solid #bfdbfe',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Từ mới
           </span>
         );
     }
   };
 
+  /**
+   * Helper hiển thị kế hoạch ôn của thẻ
+   */
+  const renderSchedule = (card: Flashcard) => {
+    if (card.status === 'MASTERED') {
+      return <p className="vocab-schedule-mastered">Đã thuộc</p>;
+    }
+    if (card.nextReviewDate) {
+      const isDue = new Date(card.nextReviewDate).getTime() <= Date.now() + 60 * 1000;
+      if (isDue) {
+        return <p className="vocab-schedule-due">Hôm nay</p>;
+      }
+      const daysLeft = Math.ceil((new Date(card.nextReviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return <p className="vocab-schedule-neutral">Sau {daysLeft} ngày</p>;
+    }
+    // Mặc định cho các thẻ đang học hoặc mới
+    return <p className="vocab-schedule-due">Hôm nay</p>;
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* ========================================================
-          1. HEADER CHI TIẾT BỘ THẺ & CÁC NÚT ĐIỀU HƯỚNG
+          1. HEADER THÔNG TIN BỘ THẺ & NÚT ĐIỀU HƯỚNG (CLEAN LAYOUT)
          ======================================================== */}
-      <div>
-        {/* Nút quay lại danh sách bộ thẻ */}
+      <div className="vocab-deck-header-clean">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-amber-600 transition mb-3 cursor-pointer"
+          className="vocab-deck-back-btn"
         >
-          <ArrowLeft size={16} /> Quay lại danh sách bộ thẻ
+          <ArrowLeft size={18} /> Quay lại danh sách bộ thẻ
         </button>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-gray-200 shadow-xs">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              {/* Badge Cặp ngôn ngữ học [Target ➔ Source] không bị lỗi font trên Windows */}
-              <div className="vocab-pair-chip">
-                <span className="vocab-lang-tag target">{getLangShort(deck.targetLanguage)}</span>
-                <span style={{ color: '#d97706' }}>➔</span>
-                <span className="vocab-lang-tag source">{getLangShort(deck.sourceLanguage)}</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#78350f', marginLeft: '0.2rem' }}>
-                  {getLangName(deck.targetLanguage)}
+        <div className="vocab-deck-title-row">
+          <div className="vocab-deck-title-group">
+            <div className="vocab-deck-meta">
+              <span className="vocab-lang-badge">
+                {getLangShort(deck.targetLanguage)} ➔ {getLangShort(deck.sourceLanguage)}
+                <span style={{ fontWeight: 500, marginLeft: '0.25rem', opacity: 0.85 }}>
+                  ({getLangName(deck.targetLanguage)})
                 </span>
-              </div>
-              <span className="text-xs text-gray-400 font-medium">
+              </span>
+              <span className="vocab-count-badge">
                 {deck.totalCards} từ vựng
               </span>
             </div>
 
-            {/* Tên bộ thẻ */}
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-              {deck.name}
-            </h1>
-            {/* Mô tả bộ thẻ */}
+            <h1 className="vocab-deck-h1">{deck.name}</h1>
             {deck.description && (
-              <p className="text-sm text-gray-500 mt-1 max-w-2xl">{deck.description}</p>
+              <p className="vocab-deck-subtitle">{deck.description}</p>
             )}
           </div>
 
-          {/* Các nút hành động chính */}
-          <div className="flex items-center gap-2.5">
-            {/* Nút thêm từ mới */}
+          <div>
             <button
               onClick={onAddCardClick}
-              className="btn btn-outline text-sm py-2 flex items-center gap-1.5"
+              className="vocab-btn-add-word"
             >
-              <Plus size={16} /> Thêm từ mới
+              <Plus size={18} /> Thêm từ mới
             </button>
+          </div>
+        </div>
+      </div>
 
-            {/* Nút bắt đầu học / ôn tập SRS */}
+      {/* ========================================================
+          2. KHỐI CHẾ ĐỘ HỌC TẬP (4 CỔNG CHẾ ĐỘ TRỰC QUAN)
+         ======================================================== */}
+      <section className="vocab-study-modes-section">
+        <div className="vocab-study-modes-header">
+          <h2 className="vocab-study-modes-title">Chế độ học tập</h2>
+          <p className="vocab-study-modes-subtitle">
+            Chọn phương pháp ghi nhớ hiệu quả phù hợp với mục tiêu hôm nay
+          </p>
+        </div>
+
+        <div className="vocab-study-grid">
+          {/* 1. Flashcard SRS (Thiết kế phẳng, không dùng 3D) */}
+          <div className="vocab-study-card">
+            <div className="vocab-study-card-top">
+              <div className="vocab-study-card-header-left">
+                <Layers size={20} color="#d97706" />
+                <h3 className="vocab-study-card-title">Flashcard SRS</h3>
+              </div>
+              <span className="vocab-study-badge vocab-study-badge-amber">SM-2</span>
+            </div>
+            <p className="vocab-study-card-desc">
+              Lặp lại ngắt quãng thông minh chống quên theo phương pháp SM-2.
+            </p>
             <button
+              className="vocab-study-btn-primary"
               onClick={onStudyClick}
               disabled={cards.length === 0}
-              className={`btn text-sm py-2 flex items-center gap-2 ${
-                cards.length === 0
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'btn-primary'
-              }`}
             >
-              {deck.dueTodayCards > 0 ? (
-                <>
-                  <Flame size={16} className="fill-white" />
-                  Ôn tập ngay ({deck.dueTodayCards})
-                </>
-              ) : (
-                <>
-                  <GraduationCap size={16} />
-                  Luyện tập thẻ
-                </>
-              )}
+              <Layers size={18} /> Ôn tập ngay ({deck.dueTodayCards || 0})
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* ========================================================
-          2. THANH TÌM KIẾM TỪ KHÓA & BỘ LỌC TRẠNG THÁI SRS
-         ======================================================== */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Ô tìm kiếm từ vựng */}
-        <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition"
-            placeholder="Tìm theo từ vựng hoặc nghĩa giải thích..."
-            value={keyword}
-            onChange={handleKeywordChange}
-          />
-        </div>
-
-        {/* Các nút lọc theo trạng thái SRS */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-md border border-gray-200">
-          {[
-            { id: 'ALL', label: 'Tất cả' },
-            { id: 'NEW', label: 'Mới' },
-            { id: 'LEARNING', label: 'Đang học' },
-            { id: 'MASTERED', label: 'Thành thạo' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleStatusChange(tab.id)}
-              className={`px-3 py-1 rounded text-xs font-semibold transition ${
-                status === tab.id
-                  ? 'bg-white text-gray-900 shadow-xs'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ========================================================
-          3. DANH SÁCH THẺ TỪ VỰNG (CARDS TABLE / LIST)
-         ======================================================== */}
-      {loading ? (
-        // Hiệu ứng Loading Skeleton khi đang tải danh sách thẻ
-        <div className="ed-card bg-white p-6 space-y-4 rounded-lg">
-          {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="h-14 bg-gray-100 rounded-md animate-pulse"></div>
-          ))}
-        </div>
-      ) : cards.length === 0 ? (
-        // Giao diện khi chưa có thẻ nào trong bộ (Empty State)
-        <div className="ed-card p-10 text-center bg-white rounded-lg border-dashed border-2 border-gray-200">
-          <div className="mx-auto w-12 h-12 rounded-md bg-amber-50 flex items-center justify-center text-amber-600 mb-3 border border-amber-200">
-            <BookOpen size={24} />
-          </div>
-          <h3 className="text-base font-bold text-gray-900 mb-1">
-            {keyword ? 'Không tìm thấy thẻ từ vựng phù hợp' : 'Bộ thẻ này chưa có từ vựng nào'}
-          </h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
-            {keyword
-              ? 'Hãy thử tìm kiếm với từ khóa khác hoặc chuyển sang tab trạng thái khác.'
-              : 'Hãy thêm các từ vựng mới để bắt đầu học và áp dụng thuật toán ghi nhớ Spaced Repetition.'}
-          </p>
-          <button onClick={onAddCardClick} className="btn btn-primary text-sm inline-flex items-center gap-1.5">
-            <Plus size={16} /> Thêm từ vựng đầu tiên
-          </button>
-        </div>
-      ) : (
-        // Danh sách các thẻ từ vựng
-        <div className="ed-card bg-white overflow-hidden rounded-lg shadow-xs divide-y divide-gray-100">
-          {cards.map((card, index) => (
-            <div
-              key={card.id}
-              className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/70 transition"
-            >
-              {/* Cột trái: Từ vựng, nút loa phát âm, phiên âm, từ loại */}
-              <div className="flex-1 min-w-[220px]">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 font-mono w-5">#{index + 1}</span>
-                  <span className="text-lg font-bold text-gray-900">{card.customWord}</span>
-
-                  {/* Nút phát âm trực tiếp chuẩn Web Speech TTS */}
-                  <button
-                    onClick={() => speakWord(card.customWord, deck.targetLanguage)}
-                    title="Nghe phát âm chuẩn"
-                    className="p-1.5 rounded-full text-amber-600 hover:bg-amber-100 transition cursor-pointer"
-                  >
-                    <Volume2 size={16} />
-                  </button>
-
-                  {/* Phiên âm nếu có */}
-                  {card.phonetic && (
-                    <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                      {card.phonetic}
-                    </span>
-                  )}
-
-                  {/* Từ loại (Noun, Verb, Adj,...) */}
-                  {card.pos && (
-                    <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                      {card.pos}
-                    </span>
-                  )}
-                </div>
-
-                {/* Nghĩa của từ vựng */}
-                <p className="text-sm font-medium text-gray-700 mt-1 pl-7">
-                  {card.customMeaning || 'Chưa có giải nghĩa'}
-                </p>
-
-                {/* Câu ví dụ ngữ cảnh minh họa nếu có */}
-                {card.exampleSentence && (
-                  <p className="text-xs text-gray-500 italic mt-1.5 pl-7 border-l-2 border-amber-400/60 ml-7">
-                    "{card.exampleSentence}"
-                  </p>
-                )}
+          {/* 2. Trắc nghiệm Quiz */}
+          <div className="vocab-study-card">
+            <div className="vocab-study-card-top">
+              <div className="vocab-study-card-header-left">
+                <Target size={20} color="#3b82f6" />
+                <h3 className="vocab-study-card-title">Trắc nghiệm Quiz</h3>
               </div>
-
-              {/* Cột giữa: Ảnh minh họa (nếu có) */}
-              {card.customImageUrl && (
-                <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
-                  <img
-                    src={card.customImageUrl}
-                    alt={card.customWord}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Cột phải: Trạng thái Spaced Repetition & Các nút thao tác */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
-                {/* Trạng thái SRS */}
-                <div className="text-right">
-                  <div>{renderStatusBadge(card.status)}</div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">
-                    Lặp lại: {card.reviewCount} lần
-                  </div>
-                </div>
-
-                {/* Nút Sửa & Xóa thẻ */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => onEditCard(card)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
-                    title="Chỉnh sửa thẻ"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => onDeleteCard(card)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                    title="Xóa thẻ khỏi bộ"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
+              <span className="vocab-study-badge vocab-study-badge-gray">Luyện tập</span>
             </div>
-          ))}
+            <p className="vocab-study-card-desc">
+              Luyện phản xạ chọn đúng nghĩa và điền câu mẫu.
+            </p>
+            <button
+              className="vocab-study-btn-outline"
+              onClick={
+                onQuizClick ||
+                (() => alert('Tính năng Trắc nghiệm Quiz đang được chuẩn bị hoàn thiện!'))
+              }
+            >
+              <Target size={18} /> Luyện tập
+            </button>
+          </div>
+
+          {/* 3. Kiểm tra từ vựng */}
+          <div className="vocab-study-card">
+            <div className="vocab-study-card-top">
+              <div className="vocab-study-card-header-left">
+                <Clock size={20} color="#10b981" />
+                <h3 className="vocab-study-card-title">Kiểm tra từ vựng</h3>
+              </div>
+              <span className="vocab-study-badge vocab-study-badge-gray">10 phút</span>
+            </div>
+            <p className="vocab-study-card-desc">
+              Tính giờ tập trung và chấm điểm xếp loại tự động.
+            </p>
+            <button
+              className="vocab-study-btn-outline"
+              onClick={
+                onTestClick ||
+                (() => alert('Tính năng Kiểm tra từ vựng đang được chuẩn bị hoàn thiện!'))
+              }
+            >
+              <Clock size={18} /> Làm bài thi
+            </button>
+          </div>
+
+          {/* 4. Ghép từ tốc độ */}
+          <div className="vocab-study-card">
+            <div className="vocab-study-card-top">
+              <div className="vocab-study-card-header-left">
+                <Gamepad2 size={20} color="#ef4444" />
+                <h3 className="vocab-study-card-title">Ghép từ tốc độ</h3>
+              </div>
+              <span className="vocab-study-badge vocab-study-badge-gray">60 giây</span>
+            </div>
+            <p className="vocab-study-card-desc">
+              Thử thách phản xạ nối nhanh từ vựng với định nghĩa.
+            </p>
+            <button
+              className="vocab-study-btn-outline"
+              onClick={
+                onMatchGameClick ||
+                (() => alert('Trò chơi Ghép từ tốc độ đang được chuẩn bị hoàn thiện!'))
+              }
+            >
+              <Gamepad2 size={18} /> Chơi ngay
+            </button>
+          </div>
         </div>
-      )}
+      </section>
+
+      {/* ========================================================
+          3. BẢNG DANH SÁCH THẺ TỪ VỰNG (CARD CONTAINER & DATA TABLE)
+         ======================================================== */}
+      <div className="vocab-table-card">
+        {/* Thanh công cụ: Tabs bộ lọc và Ô tìm kiếm */}
+        <div className="vocab-table-toolbar">
+          {/* Các nút Tab lọc theo trạng thái */}
+          <div className="vocab-pills-group">
+            {[
+              { id: 'ALL', label: `Tất cả (${deck.totalCards})` },
+              { id: 'DUE', label: `Cần ôn (${deck.dueTodayCards || 0})` },
+              { id: 'MASTERED', label: `Đã thuộc (${deck.masteredCards || 0})` },
+              { id: 'NEW', label: `Từ mới (${deck.newCards || 0})` },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleStatusChange(tab.id)}
+                className={`vocab-pill-btn ${status === tab.id ? 'active' : ''}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Ô tìm kiếm từ hoặc nghĩa */}
+          <div className="vocab-search-wrapper">
+            <Search size={18} className="vocab-search-icon" />
+            <input
+              type="text"
+              className="vocab-search-input"
+              placeholder="Tìm từ hoặc nghĩa..."
+              value={keyword}
+              onChange={handleKeywordChange}
+            />
+          </div>
+        </div>
+
+        {/* Nội dung danh sách / bảng */}
+        {loading ? (
+          <div className="p-6 space-y-4">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="h-16 bg-gray-100 rounded-md animate-pulse"></div>
+            ))}
+          </div>
+        ) : cards.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="mx-auto w-14 h-14 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 mb-3 border border-amber-200">
+              <BookOpen size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              {keyword ? 'Không tìm thấy thẻ từ vựng phù hợp' : 'Không có thẻ từ vựng nào trong mục này'}
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto mb-4">
+              {keyword
+                ? 'Hãy thử tìm kiếm với từ khóa khác hoặc chuyển sang tab lọc khác.'
+                : 'Hãy thêm các từ vựng mới để bắt đầu học và ghi nhớ hiệu quả.'}
+            </p>
+            <button
+              onClick={onAddCardClick}
+              className="btn btn-primary text-base inline-flex items-center gap-2 px-4 py-2"
+            >
+              <Plus size={18} /> Thêm từ vựng mới
+            </button>
+          </div>
+        ) : (
+          <div className="vocab-table-responsive">
+            <table className="vocab-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '22%' }}>Từ vựng & Phát âm</th>
+                  <th style={{ width: '18%' }}>Phiên âm & Loại</th>
+                  <th style={{ width: '38%' }}>Định nghĩa tiếng Việt</th>
+                  <th style={{ width: '12%' }}>Kế hoạch ôn</th>
+                  <th style={{ width: '10%' }}>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cards.map((card) => (
+                  <tr key={card.id}>
+                    {/* Cột 1: Từ vựng & Phát âm */}
+                    <td>
+                      <div className="vocab-word-cell">
+                        <button
+                          onClick={() => speakWord(card.customWord, deck.targetLanguage)}
+                          title="Nghe phát âm chuẩn"
+                          className="vocab-audio-btn cursor-pointer"
+                        >
+                          <Volume2 size={20} />
+                        </button>
+                        <span className="vocab-word-title">{card.customWord}</span>
+                      </div>
+                    </td>
+
+                    {/* Cột 2: Phiên âm & Loại */}
+                    <td>
+                      <div className="vocab-phonetic-cell">
+                        {card.phonetic ? (
+                          <span className="vocab-phonetic-text">{card.phonetic}</span>
+                        ) : (
+                          <span className="vocab-phonetic-text" style={{ color: '#94a3b8' }}>---</span>
+                        )}
+                        {card.pos && (
+                          <span className="vocab-pos-badge">{card.pos.toLowerCase()}</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Cột 3: Định nghĩa tiếng Việt & Câu ví dụ ngữ cảnh */}
+                    <td>
+                      <div className="vocab-meaning-cell">
+                        <p className="vocab-meaning-text">
+                          {card.customMeaning || 'Chưa có giải nghĩa'}
+                        </p>
+                        {card.exampleSentence && (
+                          <p className="vocab-example-text">"{card.exampleSentence}"</p>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Cột 4: Kế hoạch ôn */}
+                    <td>
+                      <div className="vocab-schedule-cell">
+                        {renderSchedule(card)}
+                        <p className="vocab-schedule-count">Đã ôn {card.reviewCount} lần</p>
+                      </div>
+                    </td>
+
+                    {/* Cột 5: Trạng thái & Nút thao tác Sửa/Xóa */}
+                    <td>
+                      <div className="vocab-status-actions-cell">
+                        <div>{renderStatusBadge(card.status)}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <button
+                            onClick={() => onEditCard(card)}
+                            className="vocab-row-action-btn vocab-row-edit-btn"
+                            title="Chỉnh sửa thẻ"
+                          >
+                            <Edit2 size={17} />
+                          </button>
+                          <button
+                            onClick={() => onDeleteCard(card)}
+                            className="vocab-row-action-btn"
+                            title="Xóa thẻ khỏi bộ"
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

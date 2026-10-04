@@ -11,6 +11,7 @@ import { DeckDetailView } from '../../components/vocab/DeckDetailView';
 import { SrsStudyView } from '../../components/vocab/SrsStudyView';
 import { DeckModal } from '../../components/vocab/DeckModal';
 import { CardModal } from '../../components/vocab/CardModal';
+import { ConfirmDeleteCardModal } from '../../components/vocab/ConfirmDeleteCardModal';
 
 /**
  * Kiểu dữ liệu xác định các chế độ hiển thị trên màn hình Sổ tay & Bộ thẻ từ vựng:
@@ -26,7 +27,7 @@ type ViewMode = 'DECKS_LIST' | 'DECK_DETAIL' | 'STUDY_MODE';
  * TÍNH NĂNG CHÍNH:
  * 1. Đóng vai trò là Controller điều phối trung tâm giữa các View: Danh sách Bộ thẻ -> Chi tiết Bộ thẻ -> Chế độ Ôn tập SRS.
  * 2. Kết nối và gọi các API Backend (thông qua vocabApi) để thực hiện đầy đủ các nghiệp vụ CRUD Bộ thẻ và Thẻ con.
- * 3. Quản lý trạng thái đóng/mở của các Modal (DeckModal, CardModal) và truyền dữ liệu tương ứng.
+ * 3. Quản lý trạng thái đóng/mở của các Modal (DeckModal, CardModal, ConfirmDeleteCardModal).
  * 4. Tự động đồng bộ số liệu (refresh) sau mỗi thao tác thêm, sửa, xóa.
  */
 const Flashcards: React.FC = () => {
@@ -47,6 +48,9 @@ const Flashcards: React.FC = () => {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);    // Mở modal tạo/sửa thẻ từ vựng
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null); // Dữ liệu thẻ đang sửa
 
+  const [deletingCard, setDeletingCard] = useState<Flashcard | null>(null); // Dữ liệu thẻ đang chờ xác nhận xóa
+  const [isDeletingCard, setIsDeletingCard] = useState(false);
+
   /**
    * 1. Tải danh sách toàn bộ bộ thẻ từ vựng của người dùng từ Backend API
    */
@@ -55,21 +59,43 @@ const Flashcards: React.FC = () => {
       setLoadingDecks(true);
       const data = await vocabApi.getDecks();
       setDecks(data);
+      // Nếu đang xem 1 bộ thẻ, đồng bộ lại thông tin của bộ thẻ đó (số thẻ, thẻ cần ôn)
+      if (selectedDeck) {
+        const updated = data.find((d) => d.id === selectedDeck.id);
+        if (updated) setSelectedDeck(updated);
+      }
     } catch (err) {
       console.error('Lỗi khi tải danh sách bộ thẻ:', err);
     } finally {
       setLoadingDecks(false);
     }
-  }, []);
+  }, [selectedDeck]);
 
   /**
-   * 2. Tải danh sách thẻ từ vựng trong bộ thẻ đang chọn (hỗ trợ kèm từ khóa tìm kiếm và lọc trạng thái)
+   * 2. Tải danh sách thẻ từ vựng trong bộ thẻ đang chọn (hỗ trợ lọc từ khóa và trạng thái)
    */
   const fetchCards = useCallback(async (deckId: number, keyword?: string, status?: string) => {
     try {
       setLoadingCards(true);
-      const data = await vocabApi.getCardsInDeck(deckId, keyword, status);
-      setCards(data);
+      const isDue = status === 'DUE';
+      const apiStatus = isDue ? 'ALL' : status;
+      const data = await vocabApi.getCardsInDeck(deckId, keyword, apiStatus);
+
+      if (isDue) {
+        const now = Date.now();
+        // Lọc các thẻ cần ôn: chưa MASTERED và (đã tới hạn nextReviewDate hoặc trạng thái LEARNING)
+        setCards(
+          data.filter((c) => {
+            if (c.status === 'MASTERED') return false;
+            if (c.nextReviewDate) {
+              return new Date(c.nextReviewDate).getTime() <= now + 60 * 1000;
+            }
+            return c.status === 'LEARNING' || c.status === 'NEW';
+          })
+        );
+      } else {
+        setCards(data);
+      }
     } catch (err) {
       console.error(`Lỗi khi tải danh sách thẻ của deck #${deckId}:`, err);
     } finally {
@@ -203,21 +229,29 @@ const Flashcards: React.FC = () => {
   };
 
   /**
-   * Xử lý xóa một thẻ từ vựng
+   * Mở modal xác nhận xóa an toàn một thẻ từ vựng (UC012.6)
    */
-  const handleDeleteCard = async (card: Flashcard) => {
-    const isConfirmed = window.confirm(
-      `Bạn có chắc chắn muốn xóa từ vựng "${card.customWord}" khỏi bộ thẻ không?`
-    );
-    if (!isConfirmed || !selectedDeck) return;
+  const handleOpenDeleteCard = (card: Flashcard) => {
+    setDeletingCard(card);
+  };
+
+  /**
+   * Thực thi xóa thẻ khi học viên bấm 'Xác nhận xóa' trên ConfirmDeleteCardModal
+   */
+  const handleConfirmDeleteCard = async () => {
+    if (!deletingCard || !selectedDeck) return;
 
     try {
-      await vocabApi.deleteCard(card.id);
+      setIsDeletingCard(true);
+      await vocabApi.deleteCard(deletingCard.id);
+      setDeletingCard(null);
       await fetchCards(selectedDeck.id);
       await fetchDecks();
     } catch (err) {
       console.error('Lỗi khi xóa thẻ từ vựng:', err);
       alert('Không thể xóa thẻ từ vựng. Vui lòng thử lại!');
+    } finally {
+      setIsDeletingCard(false);
     }
   };
 
@@ -262,7 +296,7 @@ const Flashcards: React.FC = () => {
           onStudyClick={() => setViewMode('STUDY_MODE')}
           onAddCardClick={handleOpenAddCard}
           onEditCard={handleOpenEditCard}
-          onDeleteCard={handleDeleteCard}
+          onDeleteCard={handleOpenDeleteCard}
           onFilterChange={handleFilterCards}
         />
       )}
@@ -303,6 +337,15 @@ const Flashcards: React.FC = () => {
           sourceLanguage={selectedDeck.sourceLanguage}
         />
       )}
+
+      {/* Modal Xác nhận Xóa 1 thẻ từ vựng an toàn theo UC012.6 */}
+      <ConfirmDeleteCardModal
+        isOpen={Boolean(deletingCard)}
+        card={deletingCard}
+        onClose={() => setDeletingCard(null)}
+        onConfirm={handleConfirmDeleteCard}
+        isDeleting={isDeletingCard}
+      />
     </div>
   );
 };

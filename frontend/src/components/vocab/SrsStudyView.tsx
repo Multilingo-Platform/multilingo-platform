@@ -208,43 +208,15 @@ export const SrsStudyView: React.FC<SrsStudyViewProps> = ({
       </div>
 
       {/* ========================================================
-          3. CONTAINER THẺ 3D FLIP CARD
+          3. CONTAINER THẺ FLASHCARD (CLEAN FLAT DESIGN)
          ======================================================== */}
       <div
-        className="flashcard-container select-none cursor-pointer"
+        className="w-full max-w-lg bg-white rounded-2xl border-2 border-gray-100 shadow-md p-6 sm:p-8 flex flex-col justify-between min-h-[420px] select-none cursor-pointer transition hover:border-amber-200 hover:shadow-lg"
         onClick={() => setIsFlipped(!isFlipped)}
-        style={{ width: '100%', maxWidth: '480px', height: '440px', perspective: '1200px' }}
       >
-        <div
-          className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}
-          style={{
-            width: '100%',
-            height: '100%',
-            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-            transformStyle: 'preserve-3d',
-            position: 'relative',
-          }}
-        >
-          {/* ----------------------------------------------------
-              MẶT TRƯỚC THẺ: Từ vựng, nút loa, phiên âm
-             ---------------------------------------------------- */}
-          <div
-            className="ed-card flashcard-front flex-center"
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              backfaceVisibility: 'hidden',
-              flexDirection: 'column',
-              padding: '2.5rem 2rem',
-              justifyContent: 'space-between',
-              borderRadius: '1.5rem',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08)',
-              background: 'white',
-              border: '2px solid #f3f4f6',
-            }}
-          >
-            {/* Tag từ loại hoặc ngôn ngữ */}
+        {!isFlipped ? (
+          /* MẶT TRƯỚC: Từ vựng, phát âm, phiên âm */
+          <div className="flex flex-col justify-between h-full min-h-[360px]">
             <div className="flex items-center justify-between w-full">
               <span className="badge badge-orange font-bold text-xs uppercase">
                 {currentCard.pos || deck.targetLanguage.toUpperCase()}
@@ -255,77 +227,57 @@ export const SrsStudyView: React.FC<SrsStudyViewProps> = ({
                   e.stopPropagation();
                   handleSpeakCurrentWord();
                 }}
-                className="p-2 rounded-full text-amber-600 hover:bg-amber-50 transition cursor-pointer"
+                className="p-2.5 rounded-full text-amber-600 hover:bg-amber-50 transition cursor-pointer"
                 title="Nghe phát âm chuẩn"
               >
-                <Volume2 size={22} />
+                <Volume2 size={24} />
               </button>
             </div>
 
-            {/* Từ vựng nổi bật chính giữa */}
-            <div className="text-center my-auto">
-              <h2 className="text-4xl font-extrabold text-amber-700 tracking-tight mb-2">
+            <div className="text-center my-auto py-6">
+              <h2 className="text-4xl sm:text-5xl font-extrabold text-amber-700 tracking-tight mb-3">
                 {currentCard.customWord}
               </h2>
 
-              {/* Phiên âm quốc tế IPA nếu có */}
               {currentCard.phonetic && (
-                <div className="text-sm font-mono text-gray-500 bg-gray-100 px-3 py-1 rounded-full inline-block">
+                <div className="text-base font-mono text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full inline-block">
                   {currentCard.phonetic}
                 </div>
               )}
             </div>
 
-            {/* Hướng dẫn click để lật */}
-            <p className="text-xs text-gray-400 font-medium">
-              Click vào thẻ hoặc nhấn <kbd className="px-1.5 py-0.5 bg-gray-100 border rounded text-[10px] font-mono text-gray-600">Space</kbd> để lật xem nghĩa
+            <p className="text-center text-sm text-gray-400 font-medium">
+              Click vào thẻ hoặc nhấn <kbd className="px-2 py-0.5 bg-gray-100 border rounded text-xs font-mono text-gray-600">Space</kbd> để lật xem nghĩa
             </p>
           </div>
-
-          {/* ----------------------------------------------------
-              MẶT SAU THẺ: Nghĩa của từ, câu ví dụ, nút SRS
-             ---------------------------------------------------- */}
-          <div
-            className="ed-card flashcard-back flex flex-col justify-between"
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              backfaceVisibility: 'hidden',
-              transform: 'rotateY(180deg)',
-              padding: '2rem',
-              borderRadius: '1.5rem',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08)',
-              background: 'white',
-              border: '2px solid #f3f4f6',
-            }}
-          >
-            {/* Header mặt sau */}
-            <div className="flex items-center justify-between w-full border-b border-gray-100 pb-2">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Giải nghĩa ({deck.sourceLanguage.toUpperCase()})
-              </span>
+        ) : (
+          /* MẶT SAU: Nghĩa, ví dụ, bộ nút đánh giá SRS */
+          <div className="flex flex-col justify-between h-full min-h-[360px]">
+            <div className="flex items-center justify-between w-full border-b border-gray-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-amber-800">{currentCard.customWord}</span>
+                <span className="text-xs text-gray-400">({deck.targetLanguage.toUpperCase()})</span>
+              </div>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSpeakCurrentWord();
                 }}
-                className="p-1.5 rounded-full text-amber-600 hover:bg-amber-50 transition"
+                className="p-2 rounded-full text-amber-600 hover:bg-amber-50 transition cursor-pointer"
+                title="Nghe phát âm"
               >
-                <Volume2 size={18} />
+                <Volume2 size={20} />
               </button>
             </div>
 
-            {/* Khối nghĩa và câu ví dụ */}
-            <div className="my-auto flex flex-col gap-3">
-              <h3 className="text-2xl font-bold text-gray-900 leading-snug">
+            <div className="my-auto py-4 flex flex-col gap-3.5">
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-snug">
                 {currentCard.customMeaning || 'Chưa có giải nghĩa'}
               </h3>
 
-              {/* Câu ví dụ ngữ cảnh */}
               {currentCard.exampleSentence && (
-                <div className="bg-amber-50/70 p-3.5 rounded-xl border-l-4 border-amber-500 text-xs text-gray-700 italic leading-relaxed">
+                <div className="bg-amber-50/70 p-4 rounded-xl border-l-4 border-amber-500 text-sm text-gray-700 italic leading-relaxed">
                   "{currentCard.exampleSentence}"
                 </div>
               )}
@@ -333,41 +285,38 @@ export const SrsStudyView: React.FC<SrsStudyViewProps> = ({
 
             {/* Bộ điều khiển đánh giá Spaced Repetition (SRS Buttons) */}
             <div
-              className="pt-3 border-t border-gray-100 flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()} // Không lật thẻ khi bấm nút đánh giá
+              className="pt-3 border-t border-gray-100 flex items-center gap-2.5"
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Nút Quên (1 ngày) */}
               <button
                 type="button"
                 onClick={() => handleRateCard('AGAIN')}
-                className="btn btn-outline flex-1 py-2 text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 flex items-center justify-center gap-1 cursor-pointer"
+                className="btn btn-outline flex-1 py-2.5 text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 flex items-center justify-center gap-1.5 cursor-pointer rounded-lg"
                 title="Phím tắt: 1"
               >
-                <XCircle size={15} /> Quên (1d)
+                <XCircle size={16} /> Quên (1d)
               </button>
 
-              {/* Nút Khó (3 ngày) */}
               <button
                 type="button"
                 onClick={() => handleRateCard('HARD')}
-                className="btn btn-outline flex-1 py-2 text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50 flex items-center justify-center gap-1 cursor-pointer"
+                className="btn btn-outline flex-1 py-2.5 text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50 flex items-center justify-center gap-1.5 cursor-pointer rounded-lg"
                 title="Phím tắt: 2"
               >
-                <RefreshCcw size={15} /> Khó (3d)
+                <RefreshCcw size={16} /> Khó (3d)
               </button>
 
-              {/* Nút Nhớ tốt (7 ngày) */}
               <button
                 type="button"
                 onClick={() => handleRateCard('GOOD')}
-                className="btn btn-outline flex-1 py-2 text-xs font-bold text-emerald-600 border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-1 cursor-pointer"
+                className="btn btn-outline flex-1 py-2.5 text-xs font-bold text-emerald-600 border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-1.5 cursor-pointer rounded-lg"
                 title="Phím tắt: 3"
               >
-                <CheckCircle size={15} /> Nhớ (7d)
+                <CheckCircle size={16} /> Nhớ (7d)
               </button>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ========================================================
