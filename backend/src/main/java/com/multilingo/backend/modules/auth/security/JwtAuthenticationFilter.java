@@ -13,6 +13,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.io.IOException;
 
@@ -23,6 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -30,7 +32,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                // TODO: check blacklist in Redis here in Task 3
+                String jti = tokenProvider.getJtiFromJWT(jwt);
+                String isBlacklisted = stringRedisTemplate.opsForValue().get("BLACKLIST_TOKEN:" + jti);
+                if (isBlacklisted != null) {
+                    log.warn("Token is blacklisted");
+                    throw new RuntimeException("Token is blacklisted");
+                }
 
                 String email = tokenProvider.getEmailFromJWT(jwt);
 

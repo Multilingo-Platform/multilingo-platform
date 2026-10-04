@@ -90,4 +90,18 @@ class AuthenControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(904));
     }
+
+    @Test
+    @DisplayName("POST /api/auth/logout - Success")
+    void logout_Success() throws Exception {
+        com.multilingo.backend.modules.auth.dto.request.LogoutRequest request = 
+                new com.multilingo.backend.modules.auth.dto.request.LogoutRequest("mockToken");
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value(200));
+    }
 }

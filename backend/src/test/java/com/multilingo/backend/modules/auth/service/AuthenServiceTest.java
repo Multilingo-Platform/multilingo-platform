@@ -22,6 +22,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import com.multilingo.backend.modules.auth.dto.request.LogoutRequest;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
 @ExtendWith(MockitoExtension.class)
 class AuthenServiceTest {
 
@@ -33,6 +39,12 @@ class AuthenServiceTest {
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
 
     @InjectMocks
     private AuthenServiceImpl authenService;
@@ -88,5 +100,21 @@ class AuthenServiceTest {
         // Act & Assert
         AppException exception = assertThrows(AppException.class, () -> authenService.login(request));
         assertEquals(ErrorCode.WRONG_PASSWORD, exception.getErrorCode());
+    }
+
+    @Test
+    void logout_Success() {
+        // Arrange
+        LogoutRequest request = new LogoutRequest("mockToken");
+        when(jwtTokenProvider.validateToken("mockToken")).thenReturn(true);
+        when(jwtTokenProvider.getJtiFromJWT("mockToken")).thenReturn("mockJti");
+        when(jwtTokenProvider.getExpirationFromJWT("mockToken")).thenReturn(new Date(System.currentTimeMillis() + 10000));
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        // Act
+        authenService.logout(request);
+
+        // Assert
+        verify(valueOperations).set(eq("BLACKLIST_TOKEN:mockJti"), eq("invalid"), anyLong(), eq(TimeUnit.MILLISECONDS));
     }
 }

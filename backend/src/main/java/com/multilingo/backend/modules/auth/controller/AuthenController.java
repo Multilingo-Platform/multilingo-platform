@@ -24,4 +24,10 @@ public class AuthenController {
         AuthenticationResponse response = authenService.login(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody com.multilingo.backend.modules.auth.dto.request.LogoutRequest request) {
+        authenService.logout(request);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }
