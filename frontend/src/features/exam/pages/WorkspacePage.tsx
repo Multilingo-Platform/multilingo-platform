@@ -338,7 +338,7 @@ const WorkspacePage: React.FC = () => {
                   IELTS Academic {currentSkill === 'WRITING' ? 'Writing' : 'Reading'}
                 </span>
               </div>
-              {currentSkill === 'READING' && (
+              {isPractice && currentSkill === 'READING' && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +353,7 @@ const WorkspacePage: React.FC = () => {
             {/* Passage / Prompt Text Content */}
             <div
               ref={readingContainerRef}
-              onMouseUp={currentSkill === 'READING' ? handlePassageMouseUp : undefined}
+              onMouseUp={isPractice && currentSkill === 'READING' ? handlePassageMouseUp : undefined}
               className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
             >
               {currentSkill === 'WRITING' ? (
