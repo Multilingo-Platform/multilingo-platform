@@ -7,6 +7,9 @@ import com.multilingo.backend.common.exception.GlobalExceptionHandler;
 import com.multilingo.backend.modules.auth.dto.request.LoginRequest;
 import com.multilingo.backend.modules.auth.dto.response.AuthenticationResponse;
 import com.multilingo.backend.modules.auth.service.AuthenService;
+import com.multilingo.backend.modules.auth.service.UserService;
+import com.multilingo.backend.modules.auth.dto.request.ForgotPasswordRequest;
+import com.multilingo.backend.modules.auth.dto.request.ResetPasswordRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,6 +35,9 @@ class AuthenControllerTest {
 
     @Mock
     private AuthenService authenService;
+
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private AuthenController authenController;
@@ -103,5 +110,33 @@ class AuthenControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/forgot-password - Success")
+    void forgotPassword_Success() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest("test@gmail.com");
+
+        doNothing().when(userService).forgotPassword(any(ForgotPasswordRequest.class));
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/reset-password - Success")
+    void resetPassword_Success() throws Exception {
+        ResetPasswordRequest request = new ResetPasswordRequest("test@gmail.com", "123456", "newPassword");
+
+        doNothing().when(userService).resetPassword(any(ResetPasswordRequest.class));
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 }

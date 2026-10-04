@@ -21,16 +21,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import java.util.concurrent.TimeUnit;
+import java.util.Random;
+import com.multilingo.backend.modules.auth.dto.request.ForgotPasswordRequest;
+import com.multilingo.backend.modules.auth.dto.request.ResetPasswordRequest;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     UserRepository userRepository;
     RoleRepository roleRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+    StringRedisTemplate stringRedisTemplate;
 
     @Override
     @Transactional
@@ -72,5 +81,39 @@ public class UserServiceImpl implements UserService {
         }
 
         return userMapper.toUserResponse(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        stringRedisTemplate.opsForValue().set("OTP_RESET_PWD:" + request.getEmail(), otp, 5, TimeUnit.MINUTES);
+        
+        log.info("Sending OTP {} to email {}", otp, request.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        String otpInRedis = stringRedisTemplate.opsForValue().get("OTP_RESET_PWD:" + request.getEmail());
+        
+        if (otpInRedis == null) {
+            throw new AppException(ErrorCode.OTP_EXPIRED);
+        }
+        
+        if (!otpInRedis.equals(request.getOtp())) {
+            throw new AppException(ErrorCode.INVALID_OTP);
+        }
+        
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        
+        stringRedisTemplate.delete("OTP_RESET_PWD:" + request.getEmail());
     }
 }

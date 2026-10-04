@@ -9,4 +9,6 @@ public interface UserService {
     UserResponse createUser(UserCreationRequest request);
     List<UserResponse> getAllUser();
     UserResponse updateUser(String userId, UserUpdateRequest request);
+    void forgotPassword(com.multilingo.backend.modules.auth.dto.request.ForgotPasswordRequest request);
+    void resetPassword(com.multilingo.backend.modules.auth.dto.request.ResetPasswordRequest request);
 }

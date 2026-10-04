@@ -31,7 +31,9 @@ public enum ErrorCode {
     UNAUTHENTICATED_ACCESS(909, HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để thực hiện thao tác này"),
     NAME_REQUIRED(910, HttpStatus.BAD_REQUEST, "Họ và tên không được để trống"),
     INVALID_NAME_LENGTH(911, HttpStatus.BAD_REQUEST, "Độ dài họ và tên không hợp lệ"),
-    INVALID_AVATAR_URL_LENGTH(912, HttpStatus.BAD_REQUEST, "Độ dài đường dẫn ảnh không hợp lệ");
+    INVALID_AVATAR_URL_LENGTH(912, HttpStatus.BAD_REQUEST, "Độ dài đường dẫn ảnh không hợp lệ"),
+    INVALID_OTP(913, HttpStatus.BAD_REQUEST, "Mã OTP không chính xác"),
+    OTP_EXPIRED(914, HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn");
 
     private final int code;
     private final HttpStatus httpStatus;
