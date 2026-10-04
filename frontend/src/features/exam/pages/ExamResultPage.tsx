@@ -159,8 +159,12 @@ const ExamResultPage: React.FC = () => {
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center text-center">
-                  <span className="font-heading font-extrabold text-3xl sm:text-4xl text-amber-800 leading-none">6.5</span>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">IELTS Band</span>
+                  <span className="font-heading font-extrabold text-2xl sm:text-3xl text-amber-800 leading-none">
+                    {SAMPLE_QUESTIONS.filter(q => q.isCorrect).length}/{SAMPLE_QUESTIONS.length}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">
+                    Tỷ lệ {Math.round((SAMPLE_QUESTIONS.filter(q => q.isCorrect).length / SAMPLE_QUESTIONS.length) * 100)}%
+                  </span>
                 </div>
               </div>
 
@@ -178,16 +182,18 @@ const ExamResultPage: React.FC = () => {
             </div>
 
             {/* Metrics Chips (Center 5 cols) */}
-            <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="lg:col-span-5 grid grid-cols-2 gap-3">
               <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
                 <div className="flex items-center justify-between text-xs text-slate-500">
                   <span>Số câu đúng</span>
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 </div>
                 <div className="mt-2 flex items-baseline gap-1">
-                  <span className="font-heading text-2xl font-bold text-slate-900">32</span>
-                  <span className="text-xs text-slate-400">/40</span>
-                  <span className="ml-auto text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">80%</span>
+                  <span className="font-heading text-2xl font-bold text-slate-900">{SAMPLE_QUESTIONS.filter(q => q.isCorrect).length}</span>
+                  <span className="text-xs text-slate-400">/{SAMPLE_QUESTIONS.length}</span>
+                  <span className="ml-auto text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {Math.round((SAMPLE_QUESTIONS.filter(q => q.isCorrect).length / SAMPLE_QUESTIONS.length) * 100)}%
+                  </span>
                 </div>
               </div>
 
@@ -197,35 +203,12 @@ const ExamResultPage: React.FC = () => {
                   <span className="text-amber-600">⏱</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1">
-                  <span className="font-heading text-xl font-bold text-slate-900">48:15</span>
-                  <span className="text-[11px] text-slate-400">/ 60m</span>
+                  <span className="font-heading text-xl font-bold text-slate-900">--:--</span>
+                  <span className="text-[11px] text-slate-400">/ --m</span>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Mục tiêu</span>
-                  <span className="text-emerald-600">📈</span>
-                </div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="font-heading text-2xl font-bold text-emerald-600">+0.5</span>
-                  <span className="text-xs font-semibold text-emerald-600">Band</span>
-                </div>
-              </div>
 
-              <div className="col-span-2 sm:col-span-3 p-3 bg-white/80 rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                  <span className="text-amber-600">📊</span>
-                  Tỉ lệ theo Passage:
-                </span>
-                <div className="flex items-center gap-3">
-                  <span>Passage 1: <strong className="text-emerald-600">11/13</strong></span>
-                  <span className="text-slate-300">•</span>
-                  <span>Passage 2: <strong className="text-emerald-600">12/13</strong></span>
-                  <span className="text-slate-300">•</span>
-                  <span>Passage 3: <strong className="text-amber-700">9/14</strong></span>
-                </div>
-              </div>
             </div>
 
             {/* CTAs (Right 3 cols) */}
@@ -252,170 +235,7 @@ const ExamResultPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 3. TWO-COLUMN ANALYTICS & AI INSIGHTS */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* LEFT: 4-Axis Competency Breakdown (7 cols) */}
-          <section className="lg:col-span-7 ed-card p-6 sm:p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h2 className="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center text-sm">🎯</span>
-                  Phân tích năng lực chuyên sâu (Competency Matrix)
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Đánh giá đa trục dựa trên chuẩn khảo thí IELTS quốc tế & mô hình Multilingo AI
-                </p>
-              </div>
-              <span className="badge-orange text-[11px] hidden sm:inline-flex">Standard 2026</span>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              {/* Radar diagram placeholder (5 cols) */}
-              <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="relative w-44 h-44 flex items-center justify-center">
-                  <svg className="w-full h-full" viewBox="0 0 200 200">
-                    <polygon fill="none" points="100,20 176,64 176,152 100,196 24,152 24,64" stroke="#d1d5db" strokeDasharray="3 3" strokeWidth="1" />
-                    <polygon fill="none" points="100,45 155,77 155,140 100,172 45,140 45,77" stroke="#e5e7eb" strokeWidth="1" />
-                    <polygon fill="none" points="100,70 134,89 134,127 100,147 66,127 66,89" stroke="#e5e7eb" strokeWidth="1" />
-                    <line stroke="#e5e7eb" strokeWidth="1" x1="100" x2="100" y1="20" y2="196" />
-                    <line stroke="#e5e7eb" strokeWidth="1" x1="24" x2="176" y1="64" y2="152" />
-                    <line stroke="#e5e7eb" strokeWidth="1" x1="24" x2="176" y1="152" y2="64" />
-                    <polygon fill="#fef3c7" fillOpacity="0.75" points="100,32 165,72 168,144 100,180 50,145 42,75" stroke="#d97706" strokeWidth="2.5" />
-                    <circle cx="100" cy="32" fill="#b45309" r="3.5" />
-                    <circle cx="165" cy="72" fill="#b45309" r="3.5" />
-                    <circle cx="168" cy="144" fill="#b45309" r="3.5" />
-                    <circle cx="100" cy="180" fill="#b45309" r="3.5" />
-                    <circle cx="50" cy="145" fill="#b45309" r="3.5" />
-                    <circle cx="42" cy="75" fill="#b45309" r="3.5" />
-                  </svg>
-                </div>
-                <span className="text-[11px] font-medium text-slate-500 mt-2">Biểu đồ cân bằng kỹ năng</span>
-              </div>
-
-              {/* 4 Dimension Progress Bars (7 cols) */}
-              <div className="md:col-span-7 space-y-4">
-                {/* 1 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-800">Reading Comprehension</span>
-                    <span className="text-emerald-700 font-bold">85% (Rất tốt)</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '85%' }} />
-                  </div>
-                  <span className="text-[11px] text-slate-500">Khả năng đọc hiểu đại ý, cấu trúc mạch văn</span>
-                </div>
-
-                {/* 2 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-800">Vocabulary & Lexical Resource</span>
-                    <span className="text-amber-700 font-bold">78% (Tốt)</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: '78%' }} />
-                  </div>
-                  <span className="text-[11px] text-slate-500">Vốn từ vựng học thuật & cụm từ đồng nghĩa</span>
-                </div>
-
-                {/* 3 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-800">Speed & Time Management</span>
-                    <span className="text-emerald-700 font-bold">90% (Xuất sắc)</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '90%' }} />
-                  </div>
-                  <span className="text-[11px] text-slate-500">Tốc độ quét thông tin (1.2 phút / câu)</span>
-                </div>
-
-                {/* 4 */}
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-800">Critical Inference & Logic</span>
-                    <span className="text-red-600 font-bold">65% (Cần cải thiện)</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-red-500 rounded-full" style={{ width: '65%' }} />
-                  </div>
-                  <span className="text-[11px] text-slate-500">Tư duy suy luận logic & bẫy False vs Not Given</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* RIGHT: Deep AI Diagnostic & Actionable Advice (5 cols) */}
-          <section className="lg:col-span-5 ed-card p-6 sm:p-8 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm shadow-xs">
-                  ✨
-                </span>
-                <h2 className="font-heading text-lg font-bold text-slate-900">
-                  AI Diagnostic & Lộ trình đề xuất
-                </h2>
-              </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                Multilingo AI
-              </span>
-            </div>
-
-            <div className="space-y-3.5">
-              {/* Strength card */}
-              <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
-                  ✓
-                </div>
-                <div className="space-y-1">
-                  <div className="font-heading font-bold text-emerald-900 text-xs uppercase tracking-wide">
-                    Điểm mạnh nổi trội
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">
-                    Tốc độ đọc quét skimming & scanning cực tốt (1.2 phút/câu). Nhận diện chính xác 95% từ đồng nghĩa học thuật trong đoạn văn khoa học.
-                  </p>
-                </div>
-              </div>
-
-              {/* Weakness card */}
-              <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200 flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-amber-600 text-white flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
-                  !
-                </div>
-                <div className="space-y-1">
-                  <div className="font-heading font-bold text-amber-900 text-xs uppercase tracking-wide">
-                    Lỗ hổng kiến thức cần khắc phục
-                  </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">
-                    Thường nhầm lẫn giữa <strong className="text-red-600">FALSE</strong> và <strong className="text-slate-900">NOT GIVEN</strong> ở các câu hỏi suy luận sâu (Paragraph C). Có xu hướng suy đoán thông tin ngoài bài đọc.
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Plan */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                  <span>Lộ trình khắc phục đề xuất</span>
-                  <span className="badge-orange text-[10px]">Ưu tiên cao</span>
-                </div>
-
-                <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 text-xs">
-                  <span className="font-medium text-slate-800">1. Luyện 20 câu True/False/Not Given bẫy suy luận</span>
-                  <Link to="/exams/1/start" className="text-amber-700 font-bold hover:underline shrink-0">
-                    Luyện ngay →
-                  </Link>
-                </div>
-
-                <div className="p-2.5 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-2 text-xs">
-                  <span className="font-medium text-slate-800">2. Ôn bộ 15 từ vựng học thuật trong bài đọc</span>
-                  <Link to="/exams/1/start" className="text-slate-600 font-bold hover:text-slate-900 shrink-0">
-                    Flashcards →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
 
         {/* 4. DETAILED QUESTION-BY-QUESTION REVIEW SECTION */}
         <section id="questions-section" className="ed-card p-6 sm:p-8 space-y-6">
