@@ -17,6 +17,7 @@ function normalizeWorkspace(data: any, serverTimeOffset = 0): WorkspaceResponse 
     deadline: data.deadline ?? null,
     exam_snapshot: data.examSnapshot ?? data.exam_snapshot ?? {},
     version: data.version ?? 0,
+    lockedSections: data.lockedSections ?? data.locked_sections ?? [],
     saved_answers: data.savedAnswers ?? data.saved_answers ?? [],
     serverTime: data.serverTime ?? data.server_time ?? null,
     serverTimeOffset,
@@ -120,4 +121,11 @@ export async function submitAttempt(
     status: res.data.status,
     redirect_url: res.data.redirectUrl ?? res.data.redirect_url,
   };
+}
+
+export async function lockSection(attemptId: number, sectionId: number): Promise<void> {
+  const res = await axiosClient.post<unknown, ApiResponse<null>>(`/v1/attempts/${attemptId}/sections/${sectionId}/lock`);
+  if (!res.success) {
+    throw new Error(res.message || 'Lock section failed');
+  }
 }

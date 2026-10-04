@@ -50,5 +50,10 @@ public interface TestAttemptService {
      * Uses TIMEOUT_SERVER reason and runs through grading pipeline.
      */
     void expireAttemptBySystem(Integer attemptId);
+
+    /**
+     * Locks a section so answers cannot be modified anymore.
+     */
+    void lockSection(Integer attemptId, Integer sectionId);
 }
 

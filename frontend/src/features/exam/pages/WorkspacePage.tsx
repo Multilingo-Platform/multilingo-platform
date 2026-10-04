@@ -11,7 +11,7 @@ import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
 import { TimeUpModal } from '../components/TimeUpModal';
 import { QuestionPalette } from '../components/QuestionPalette';
 import QuestionRenderer from '../components/renderers/QuestionRenderer';
-import { autosaveAnswers, submitAttempt } from '../api/attemptApi';
+import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
 import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
@@ -271,6 +271,69 @@ const WorkspacePage: React.FC = () => {
   const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html;
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
   const partTitle = currentPart?.title || currentPart?.content?.part_title || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
+  const isMockFull = workspace.test_mode === 'MOCK_TEST' && workspace.test_scope === 'FULL_EXAM';
+
+  const handlePartClick = async (targetPartId: number) => {
+    if (!isMockFull) {
+      setSelectedPartId(targetPartId);
+      return;
+    }
+
+    const currentSId = (currentSection as any)?.section_id ?? currentSection?.id;
+    const targetSection = workspace?.exam_snapshot?.sections?.find(s =>
+      (s.parts || []).some((p: any) => (p.part_id ?? p.id) === targetPartId)
+    );
+    const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
+
+    // Same section, allow jumping
+    if (currentSId === targetSId) {
+      setSelectedPartId(targetPartId);
+      return;
+    }
+
+    // Locked section check
+    if (workspace.lockedSections?.includes(targetSId)) {
+      alert("Phần này đã bị khóa và không thể truy cập lại.");
+      return;
+    }
+
+    // Different section, confirm and lock current
+    if (currentSId) {
+      // Calculate unanswered count in current section
+      let sectionUnanswered = 0;
+      const parts = currentSection?.parts || [];
+      for (const p of parts) {
+        const pId = (p as any).part_id ?? p.id;
+        const savedAnswers = workspace.saved_answers?.find(a => (a as any).partId === pId || (a as any).part_id === pId)?.answers || [];
+        const reduxAnswers = answersState.answers[pId] || {};
+        const mergedAnswers: Record<string | number, any> = {
+          ...savedAnswers.reduce((acc, curr) => ({ ...acc, [(curr as any).questionId ?? (curr as any).question_id]: curr.answer }), {}),
+          ...reduxAnswers
+        };
+        
+        const qs = Array.isArray(p.questions) ? p.questions : (p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) || []);
+        for (const q of qs) {
+          const qId = q.question_id ?? q.id;
+          if (!isAnswered(q, mergedAnswers[qId])) {
+            sectionUnanswered++;
+          }
+        }
+      }
+
+      const confirmMessage = `Sau khi tiếp tục bạn KHÔNG THỂ quay lại ${currentSection?.title || 'phần này'}.\nBạn còn ${sectionUnanswered} câu chưa làm của phần này.\nBạn có chắc chắn muốn chuyển sang ${targetSection?.title || 'phần khác'}?`;
+      if (window.confirm(confirmMessage)) {
+        try {
+          await lockSection(attemptId, currentSId);
+          retry(); // refresh workspace to get new lockedSections
+          setSelectedPartId(targetPartId);
+        } catch (e: any) {
+          alert("Lỗi khi khóa phần thi: " + e.message);
+        }
+      }
+    } else {
+      setSelectedPartId(targetPartId);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-800 select-text" onClick={() => {
@@ -498,9 +561,43 @@ const WorkspacePage: React.FC = () => {
                 })}
               </div>
             ) : (
-              <pre className="text-xs overflow-auto max-h-96 bg-white text-slate-600 rounded-xl p-4 border border-slate-200">
-                {JSON.stringify(workspace.exam_snapshot, null, 2)}
-              </pre>
+              <div className="flex flex-col items-center justify-center p-12 text-slate-400">
+                <svg className="w-16 h-16 mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p>Không có dữ liệu phần thi.</p>
+              </div>
+            )}
+
+            {/* Next Section Button if Mock Full and at the end of current section */}
+            {isMockFull && currentSection && (
+              (() => {
+                const partsInSection = currentSection.parts || [];
+                if (partsInSection.length === 0) return null;
+                const lastPartId = (partsInSection[partsInSection.length - 1] as any).part_id ?? partsInSection[partsInSection.length - 1].id;
+                
+                if (partId === lastPartId) {
+                  // Find next section's first part
+                  const sIdx = workspace.exam_snapshot.sections.findIndex(s => ((s as any).section_id ?? s.id) === ((currentSection as any).section_id ?? currentSection.id));
+                  const nextSection = sIdx !== -1 && sIdx + 1 < workspace.exam_snapshot.sections.length ? workspace.exam_snapshot.sections[sIdx + 1] : null;
+                  
+                  if (nextSection && nextSection.parts?.length > 0) {
+                    const firstPartOfNext = (nextSection.parts[0] as any).part_id ?? nextSection.parts[0].id;
+                    return (
+                      <div className="mt-8 mb-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handlePartClick(firstPartOfNext)}
+                          className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-heading font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          Chuyển sang phần tiếp theo ({nextSection.title}) <span>→</span>
+                        </button>
+                      </div>
+                    );
+                  }
+                }
+                return null;
+              })()
             )}
           </div>
         </main>
@@ -522,19 +619,27 @@ const WorkspacePage: React.FC = () => {
                     const qCount = Array.isArray(p.questions)
                       ? p.questions.length
                       : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
+                    const targetSection = workspace?.exam_snapshot?.sections?.find(s => (s.parts || []).some((part: any) => (part.part_id ?? part.id) === pId));
+                    const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
+                    const isLocked = isMockFull && workspace?.lockedSections?.includes(targetSId);
+
                     return (
                       <button
                         key={pId}
                         type="button"
-                        onClick={() => setSelectedPartId(pId)}
-                        className={`py-2 px-2 rounded-lg text-xs font-heading font-semibold flex flex-col items-center justify-center transition-all cursor-pointer border ${
-                          isActive
-                            ? 'bg-amber-100 border-amber-300 text-amber-800 shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        onClick={() => handlePartClick(pId)}
+                        disabled={isLocked}
+                        className={`py-2 px-2 rounded-lg text-xs font-heading font-semibold flex flex-col items-center justify-center transition-all border ${
+                          isLocked
+                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                            : isActive
+                              ? 'bg-amber-100 border-amber-300 text-amber-800 shadow-sm cursor-pointer'
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 cursor-pointer'
                         }`}
                         title={p.title || p.content?.part_title || `Part ${pIndex}`}
                       >
-                        <span className="truncate w-full text-center">
+                        <span className="truncate w-full text-center flex items-center justify-center gap-1">
+                          {isLocked && <span>🔒</span>}
                           {p.title || p.content?.part_title || `Part ${pIndex}`}
                         </span>
                         {qCount > 0 && (
