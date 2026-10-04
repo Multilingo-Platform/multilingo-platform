@@ -72,4 +72,15 @@ public class TestAttemptController {
         SubmitResultResponse result = testAttemptService.submitAttempt(id, request);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
+
+    /**
+     * Lock a section in an attempt (MOCK_TEST FULL_EXAM only).
+     */
+    @PostMapping("/{id}/sections/{sectionId}/lock")
+    public ResponseEntity<ApiResponse<Void>> lockSection(
+            @PathVariable Integer id,
+            @PathVariable Integer sectionId) {
+        testAttemptService.lockSection(id, sectionId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

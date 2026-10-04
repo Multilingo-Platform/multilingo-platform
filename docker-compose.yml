@@ -46,6 +46,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-postgres}
       - SPRING_DATA_REDIS_HOST=redis_cache
       - SPRING_DATA_REDIS_PORT=6379
+      - SERVER_PORT=8080
     depends_on:
       postgres_db:
         condition: service_healthy
