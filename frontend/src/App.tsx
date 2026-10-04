@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import './App.css';
-import axiosClient from './api/axiosClient';
 import ExamStartPage from './features/exam/pages/ExamStartPage';
 import WorkspacePage from './features/exam/pages/WorkspacePage';
 import ExamResultPage from './features/exam/pages/ExamResultPage';
@@ -15,32 +14,8 @@ import TestHistory from './pages/student/TestHistory';
 import ExamManagement from './pages/admin/ExamManagement';
 import ExamBuilderPage from './pages/admin/ExamBuilderPage';
 
-const TEST_CASES = [
-  { id: 1, attemptId: 17, label: 'Mock Test (3h Timer)', route: '/attempts/17', badge: 'MOCK' },
-  { id: 2, attemptId: 18, label: 'Practice Mode (No Timer)', route: '/attempts/18', badge: 'PRACTICE' },
-  { id: 3, attemptId: 19, label: 'Single Skill Reading', route: '/attempts/19', badge: 'SKILL' },
-  { id: 4, attemptId: 20, label: 'Submit Flow Test', route: '/attempts/20', badge: 'MOCK' },
-  { id: 5, attemptId: 21, label: 'Completed (Redirect)', route: '/attempts/21', badge: 'DONE' },
-];
-
-function getBadgeStyle(badge: string): { bg: string; color: string; border: string } {
-  switch (badge) {
-    case 'MOCK': return { bg: '#fffbeb', color: '#b45309', border: '#fde68a' };
-    case 'PRACTICE': return { bg: '#ecfdf5', color: '#065f46', border: '#a7f3d0' };
-    case 'SKILL': return { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
-    default: return { bg: '#f3f4f6', color: '#4b5563', border: '#e5e7eb' };
-  }
-}
-
 function HomePage() {
-  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'IELTS' | 'TOEIC' | 'VSTEP'>('ALL');
-
-  useEffect(() => {
-    axiosClient.get('/test/hello')
-      .then(() => setStatus('ok'))
-      .catch(() => setStatus('error'));
-  }, []);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', color: '#111827', display: 'flex', flexDirection: 'column' }}>
@@ -93,28 +68,32 @@ function HomePage() {
           </div>
         </div>
 
-        {/* Status & Profile Utilities */}
+        {/* Student Utilities & Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Backend Status */}
+          {/* Notification Bell */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.35rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600,
-            backgroundColor: status === 'ok' ? '#ecfdf5' : status === 'error' ? '#fee2e2' : '#f3f4f6',
-            color: status === 'ok' ? '#065f46' : status === 'error' ? '#b91c1c' : '#4b5563',
-            border: `1px solid ${status === 'ok' ? '#a7f3d0' : status === 'error' ? '#fca5a5' : '#e5e7eb'}`,
+            position: 'relative',
+            cursor: 'pointer',
+            padding: '0.45rem',
+            borderRadius: '50%',
+            backgroundColor: '#f3f4f6',
+            color: '#4b5563',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}>
+            🔔
             <span style={{
+              position: 'absolute', top: '1px', right: '1px',
               width: '7px', height: '7px', borderRadius: '50%',
-              backgroundColor: status === 'ok' ? '#10b981' : status === 'error' ? '#ef4444' : '#9ca3af',
-              display: 'inline-block',
-              animation: status === 'ok' ? 'pulse 2s infinite' : 'none',
+              backgroundColor: '#ef4444',
             }} />
-            {status === 'ok' ? 'Backend Connected' : status === 'error' ? 'Backend Offline' : 'Checking...'}
           </div>
 
           {/* Streak Badge */}
           <div className="badge-orange" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
-            🔥 5 ngày
+            🔥 5 ngày Streak
           </div>
 
           {/* User Profile */}
@@ -295,7 +274,7 @@ function HomePage() {
                 Phòng thi CBT chuẩn quốc tế
               </h3>
               <p style={{ color: '#4b5563', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                Giao diện chia đôi màn hình Split-pane mô phỏng chuẩn phòng thi IDP/BC. Bảng Study4 Question Palette chuyển câu tức thì.
+                Giao diện chia đôi màn hình Split-pane mô phỏng chuẩn phòng thi IDP/BC. Bảng Question Palette chuyển câu tức thì.
               </p>
               <div style={{ marginTop: '1rem', color: '#d97706', fontSize: '0.75rem', fontWeight: 700 }}>
                 ⚡ Tự động lưu bài (Autosave)
@@ -437,63 +416,124 @@ function HomePage() {
           </div>
         </div>
 
-        {/* Quick Dev Testcase Links Bar */}
+        {/* Recent Student Activities */}
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '1rem',
           border: '1px solid #e5e7eb',
-          padding: '1.25rem 1.5rem',
+          padding: '1.5rem',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>
-              📋 Dev Testcases &amp; Attempt Quick Access
-            </h3>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Dành cho kiểm thử hệ thống</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.05rem', color: '#111827', margin: 0 }}>
+                📊 Hoạt động &amp; Lịch sử luyện thi gần đây
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '4px 0 0 0' }}>
+                Theo dõi tiến độ làm bài và các báo cáo phân tích năng lực của bạn
+              </p>
+            </div>
+            <Link to="/attempts/94/result" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d97706', textDecoration: 'none' }}>
+              Xem tất cả kết quả →
+            </Link>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-            {TEST_CASES.map(tc => {
-              const bStyle = getBadgeStyle(tc.badge);
-              return (
-                <Link
-                  key={tc.id}
-                  to={tc.route}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    borderRadius: '0.75rem',
-                    backgroundColor: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    textDecoration: 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#fffbeb';
-                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#fde68a';
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#f9fafb';
-                    (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e5e7eb';
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827' }}>
-                      {tc.label}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>
-                      Attempt #{tc.attemptId}
-                    </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            {/* Card 1: Completed Test */}
+            <Link
+              to="/attempts/94/result"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '1rem 1.25rem',
+                borderRadius: '0.75rem',
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#ecfdf5';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = '#a7f3d0';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#f9fafb';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e5e7eb';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '10px',
+                  backgroundColor: '#ecfdf5', color: '#059669',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.15rem', fontWeight: 800,
+                }}>
+                  6.5
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827' }}>
+                    IELTS Academic Reading - Cam 19
                   </div>
-                  <span style={{
-                    fontSize: '0.65rem', fontWeight: 700,
-                    padding: '2px 6px', borderRadius: '9999px',
-                    backgroundColor: bStyle.bg, color: bStyle.color, border: `1px solid ${bStyle.border}`,
-                  }}>
-                    {tc.badge}
-                  </span>
-                </Link>
-              );
-            })}
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
+                    Hoàn thành 04/10 • 32/40 câu đúng (80%)
+                  </div>
+                </div>
+              </div>
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 700,
+                padding: '3px 8px', borderRadius: '9999px',
+                backgroundColor: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0',
+              }}>
+                HOÀN THÀNH
+              </span>
+            </Link>
+
+            {/* Card 2: In-Progress Practice */}
+            <Link
+              to="/attempts/18"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '1rem 1.25rem',
+                borderRadius: '0.75rem',
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#fffbeb';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = '#fde68a';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#f9fafb';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e5e7eb';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '10px',
+                  backgroundColor: '#fffbeb', color: '#d97706',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.25rem',
+                }}>
+                  📖
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827' }}>
+                    IELTS General Reading - Practice 02
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
+                    Chế độ luyện tập • Tự do tra từ AI
+                  </div>
+                </div>
+              </div>
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 700,
+                padding: '3px 8px', borderRadius: '9999px',
+                backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a',
+              }}>
+                ĐANG LUYỆN TẬP
+              </span>
+            </Link>
           </div>
         </div>
       </main>
