@@ -16,11 +16,13 @@ import ExamManagement from '../features/exams/pages/admin/ExamManagement';
 import ExamBuilderPage from '../features/exams/pages/admin/ExamBuilderPage';
 
 import LandingPage from '../features/public/pages/LandingPage';
+import LoginPage from '../features/auth/pages/LoginPage';
+import RegisterPage from '../features/auth/pages/RegisterPage';
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
   // TODO: Sau này thay bằng state thật (ví dụ: const { token } = useSelector((state) => state.auth))
-  const isAuthenticated = true;
+  const isAuthenticated = false; 
 
   if (isAuthenticated) {
     return <Navigate to="/onboarding" replace />;
@@ -73,10 +75,18 @@ export const router = createBrowserRouter([
         element: <LandingPage /> // Gọi Component LandingPage khi vào /
       },
       {
+        path: 'login',
+        element: <LoginPage />
+      },
+      {
+        path: 'register',
+        element: <RegisterPage />
+      },
+      {
         path: 'exams', // URL sẽ là /exams (Nằm trong Public Layout)
         element: <ExamLibrary /> // Gọi Component hiển thị Đề Thi
       }
-      // Các route public khác (như /auth, /about) sẽ nằm ở đây
+      // Các route public khác (như /about) sẽ nằm ở đây
     ]
   },
   {

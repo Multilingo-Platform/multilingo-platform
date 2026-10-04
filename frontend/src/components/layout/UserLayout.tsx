@@ -3,6 +3,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { Flame } from 'lucide-react';
 import Header from './Header';
 import ProfileDropdown from '../common/ProfileDropdown';
+import Footer from './Footer';
 
 const UserLayout = () => {
   return (
@@ -41,11 +42,7 @@ const UserLayout = () => {
       </main>
 
       {/* Footer */}
-      <footer style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-light)', padding: '2rem 0', marginTop: 'auto' }}>
-        <div className="container flex-center" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          &copy; 2026 Multilingo Platform.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
