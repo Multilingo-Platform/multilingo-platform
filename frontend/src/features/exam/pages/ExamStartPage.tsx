@@ -66,11 +66,11 @@ const ExamStartPage: React.FC = () => {
         </div>
 
         <div style={{
-          fontSize: '0.75rem', fontWeight: 600, color: '#065f46',
-          backgroundColor: '#ecfdf5', padding: '3px 10px', borderRadius: '9999px',
-          border: '1px solid #a7f3d0',
+          fontSize: '0.75rem', fontWeight: 600, color: '#b45309',
+          backgroundColor: '#fffbeb', padding: '3px 10px', borderRadius: '9999px',
+          border: '1px solid #fde68a',
         }}>
-          🟢 Hệ thống sẵn sàng
+          🛡️ Phòng thi bảo mật trực tuyến
         </div>
       </header>
 
@@ -80,7 +80,7 @@ const ExamStartPage: React.FC = () => {
         <div className="ed-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
             <span className="badge-orange">
-              📝 Đề thi #{examId}
+              {examId === '2' ? 'Mã đề: IELTS-GEN-02' : 'Mã đề: IELTS-CAM19-01'}
             </span>
             <span className="badge-green">
               {examId === '2' ? 'IELTS General Reading' : 'IELTS Academic Reading'}
@@ -114,13 +114,13 @@ const ExamStartPage: React.FC = () => {
             <div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>⏱️ Thời lượng</div>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>
-                {examId === '2' ? 'Không giới hạn' : '60 - 180 Phút'}
+                Tính theo phạm vi đề
               </div>
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>📋 Số câu hỏi</div>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>
-                {examId === '2' ? 'Đầy đủ Part' : '40 Câu'}
+                Tùy thuộc phạm vi đề
               </div>
             </div>
             <div>
@@ -129,7 +129,7 @@ const ExamStartPage: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>👥 Thí sinh</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>12,450+</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>--</div>
             </div>
           </div>
         </div>
@@ -160,9 +160,9 @@ const ExamStartPage: React.FC = () => {
             <span>💡</span> Lưu ý quan trọng khi làm bài:
           </div>
           <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
-            <li><strong>Autosave thông minh:</strong> Từng câu trả lời của bạn được lưu tức thì vào máy chủ đám mây.</li>
-            <li><strong>Tra từ tại chỗ:</strong> Bôi đen từ vựng trong bài đọc để tra cứu phiên âm, nghĩa tiếng Việt và lưu Flashcard.</li>
-            <li><strong>Giữ nguyên tab:</strong> Không tải lại trang (F5) khi đang làm bài. Đồng hồ sẽ đếm ngược liên tục.</li>
+            <li><strong>Autosave:</strong> Tự động lưu bài làm liên tục vào máy chủ đám mây.</li>
+            <li><strong>Tra từ tại chỗ:</strong> Bôi đen từ vựng trong bài đọc để tra cứu phiên âm, nghĩa tiếng Việt và lưu Flashcard (chỉ khả dụng trong chế độ Practice).</li>
+            <li><strong>Giữ nguyên tab:</strong> Bạn có thể tải lại trang (F5), bài làm và thời gian còn lại sẽ được khôi phục. Tải lại trang có thể làm gián đoạn bài một chút.</li>
           </ul>
         </div>
       </main>
