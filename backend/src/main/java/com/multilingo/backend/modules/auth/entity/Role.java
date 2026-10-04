@@ -1,5 +1,8 @@
 package com.multilingo.backend.modules.auth.entity;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
+
 import com.multilingo.backend.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,13 +17,14 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Role extends BaseEntity {
 
     @Column(name = "name", length = 50, unique = true, nullable = false)
-    private String name;
+    String name;
 
     @Column(name = "description", columnDefinition = "text")
-    private String description;
+    String description;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -29,5 +33,5 @@ public class Role extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
     @Builder.Default
-    private Set<Permission> permissions = new HashSet<>();
+    Set<Permission> permissions = new HashSet<>();
 }

@@ -1,5 +1,8 @@
 package com.multilingo.backend.common.exception;
 
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.multilingo.backend.modules.auth.security.JwtAuthenticationFilter;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -31,6 +34,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({GlobalExceptionHandler.class, GlobalExceptionHandlerTest.TestMockController.class})
 @ActiveProfiles("test")
 class GlobalExceptionHandlerTest {
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private MockMvc mockMvc;

@@ -1,5 +1,8 @@
 package com.multilingo.backend.modules.auth.entity;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
+
 import com.multilingo.backend.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,25 +16,26 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class RefreshToken extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
 
     @Column(name = "token", length = 500, unique = true, nullable = false)
-    private String token;
+    String token;
 
     @Column(name = "device_info", length = 255)
-    private String deviceInfo;
+    String deviceInfo;
 
     @Column(name = "ip_address", length = 45)
-    private String ipAddress;
+    String ipAddress;
 
     @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
+    Instant expiresAt;
 
     @Builder.Default
     @Column(name = "is_revoked", nullable = false)
-    private Boolean isRevoked = false;
+    Boolean isRevoked = false;
 }

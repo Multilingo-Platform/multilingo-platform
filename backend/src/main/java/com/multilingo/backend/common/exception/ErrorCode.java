@@ -14,7 +14,24 @@ public enum ErrorCode {
     CONFLICT(409, HttpStatus.CONFLICT, "Dữ liệu bị trùng lặp hoặc xung đột"),
     VALIDATION_FAILED(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu đầu vào không hợp lệ"),
     QUOTA_EXCEEDED(429, HttpStatus.TOO_MANY_REQUESTS, "Đã vượt quá hạn mức sử dụng tính năng"),
-    UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định");
+    UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định"),
+    
+    // Validation Errors cho Auth (900 - 999)
+    EMAIL_REQUIRED(900, HttpStatus.BAD_REQUEST, "Email không được để trống"),
+    INVALID_EMAIL_FORMAT(901, HttpStatus.BAD_REQUEST, "Định dạng email không hợp lệ"),
+    PASSWORD_REQUIRED(902, HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống"),
+    INVALID_PASSWORD(903, HttpStatus.BAD_REQUEST, "Mật khẩu phải từ 6 ký tự trở lên"),
+    
+    // Logic Errors cho Auth
+    USER_NOT_FOUND(904, HttpStatus.NOT_FOUND, "Tài khoản không tồn tại"),
+    WRONG_PASSWORD(905, HttpStatus.UNAUTHORIZED, "Mật khẩu không chính xác"),
+    EMAIL_EXISTED(906, HttpStatus.CONFLICT, "Email đã được sử dụng"),
+    INVALID_TOKEN(907, HttpStatus.UNAUTHORIZED, "Token không hợp lệ"),
+    TOKEN_EXPIRED(908, HttpStatus.UNAUTHORIZED, "Token đã hết hạn"),
+    UNAUTHENTICATED_ACCESS(909, HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để thực hiện thao tác này"),
+    NAME_REQUIRED(910, HttpStatus.BAD_REQUEST, "Họ và tên không được để trống"),
+    INVALID_NAME_LENGTH(911, HttpStatus.BAD_REQUEST, "Độ dài họ và tên không hợp lệ"),
+    INVALID_AVATAR_URL_LENGTH(912, HttpStatus.BAD_REQUEST, "Độ dài đường dẫn ảnh không hợp lệ");
 
     private final int code;
     private final HttpStatus httpStatus;
