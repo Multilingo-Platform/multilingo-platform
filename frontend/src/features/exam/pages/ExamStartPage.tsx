@@ -160,6 +160,7 @@ const ExamStartPage: React.FC = () => {
             <span>💡</span> Lưu ý quan trọng khi làm bài:
           </div>
           <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+            <li><strong>Chế độ Mock Test (Toàn bộ đề):</strong> Không thể tạm dừng. Bạn phải làm bài theo trình tự. Sau khi hoàn thành một phần và chuyển tiếp, phần thi đó sẽ <strong>BỊ KHÓA</strong> vĩnh viễn và bạn không thể quay lại.</li>
             <li><strong>Autosave:</strong> Tự động lưu bài làm liên tục vào máy chủ đám mây.</li>
             <li><strong>Tra từ tại chỗ:</strong> Bôi đen từ vựng trong bài đọc để tra cứu phiên âm, nghĩa tiếng Việt và lưu Flashcard (chỉ khả dụng trong chế độ Practice).</li>
             <li><strong>Giữ nguyên tab:</strong> Bạn có thể tải lại trang (F5), bài làm và thời gian còn lại sẽ được khôi phục. Tải lại trang có thể làm gián đoạn bài một chút.</li>

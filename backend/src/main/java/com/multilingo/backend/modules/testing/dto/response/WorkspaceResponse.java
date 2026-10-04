@@ -33,4 +33,5 @@ public class WorkspaceResponse {
      * Contains questions and options, but NOT correct_answer or explanation.
      */
     private Map<String, Object> examSnapshot;
+    private java.util.List<Integer> lockedSections;
 }

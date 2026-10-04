@@ -74,11 +74,11 @@ public class TestAttempt extends BaseEntity {
     @Column(name = "exam_snapshot", columnDefinition = "json")
     private Map<String, Object> examSnapshot;
 
-    /**
-     * Sprint 01: Version field reserved for optimistic locking in Sprint 03.
-     * Not used for locking in this sprint.
-     */
     @Builder.Default
     @Column(name = "version", nullable = false)
     private Integer version = 1;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "locked_sections", columnDefinition = "json")
+    private java.util.List<Integer> lockedSections;
 }

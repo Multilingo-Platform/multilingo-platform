@@ -276,10 +276,66 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         return true;
     }
 
+    @Override
+    @Transactional
+    public void lockSection(Integer attemptId, Integer sectionId) {
+        Integer userId = identityAdapter.getCurrentUserId();
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Attempt not found or access denied"));
+
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            throw new AppException(ErrorCode.ATTEMPT_ALREADY_SUBMITTED);
+        }
+
+        if (attempt.getTestMode() != TestMode.MOCK_TEST || attempt.getTestScope() != TestScope.FULL_EXAM) {
+            return; // Only applies to MOCK_TEST and FULL_EXAM
+        }
+
+        List<Integer> locked = attempt.getLockedSections();
+        if (locked == null) {
+            locked = new java.util.ArrayList<>();
+        }
+        if (!locked.contains(sectionId)) {
+            locked.add(sectionId);
+            attempt.setLockedSections(locked);
+            testAttemptRepository.save(attempt);
+        }
+    }
+
     private void saveAnswersInternal(TestAttempt attempt, List<AutosaveAnswersRequest.PartAnswerDto> answers) {
         if (answers == null) return;
+
+        Map<Integer, Integer> partToSection = new java.util.HashMap<>();
+        Map<String, Object> examSnapshot = attempt.getExamSnapshot();
+        if (examSnapshot != null && examSnapshot.get("sections") instanceof java.util.List) {
+            java.util.List<Map<String, Object>> sections = (java.util.List<Map<String, Object>>) examSnapshot.get("sections");
+            for (Map<String, Object> section : sections) {
+                Integer sId = null;
+                if (section.get("id") instanceof Number) sId = ((Number) section.get("id")).intValue();
+                if (section.get("section_id") instanceof Number) sId = ((Number) section.get("section_id")).intValue();
+                
+                Object partsObj = section.get("parts");
+                if (partsObj instanceof java.util.List) {
+                    java.util.List<Map<String, Object>> parts = (java.util.List<Map<String, Object>>) partsObj;
+                    for (Map<String, Object> part : parts) {
+                        Integer pId = null;
+                        if (part.get("id") instanceof Number) pId = ((Number) part.get("id")).intValue();
+                        if (part.get("part_id") instanceof Number) pId = ((Number) part.get("part_id")).intValue();
+                        if (pId != null && sId != null) {
+                            partToSection.put(pId, sId);
+                        }
+                    }
+                }
+            }
+        }
+
         for (AutosaveAnswersRequest.PartAnswerDto partDto : answers) {
             if (partDto.getPartId() == null) continue;
+
+            Integer sectionId = partToSection.get(partDto.getPartId());
+            if (sectionId != null && attempt.getLockedSections() != null && attempt.getLockedSections().contains(sectionId)) {
+                continue; // Skip saving answers for locked sections
+            }
 
             Map<String, Object> qMap = new HashMap<>();
             if (partDto.getAnswers() != null) {
@@ -411,6 +467,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .serverTime(Instant.now())
                 .gracePeriodSeconds(15)
                 .examSnapshot(attempt.getExamSnapshot())
+                .lockedSections(attempt.getLockedSections() != null ? attempt.getLockedSections() : new java.util.ArrayList<>())
                 .build();
     }
 }
