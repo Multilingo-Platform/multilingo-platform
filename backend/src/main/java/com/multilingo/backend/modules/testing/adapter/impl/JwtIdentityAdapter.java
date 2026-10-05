@@ -9,11 +9,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import org.springframework.context.annotation.Primary;
+
 /**
  * Production identity adapter that extracts userId from JWT-authenticated SecurityContext.
  * Active only in non-test profiles; test profile uses FixtureIdentityAdapter instead.
  */
 @Component
+@Primary
 @Profile("!test")
 public class JwtIdentityAdapter implements IdentityAdapter {
 
