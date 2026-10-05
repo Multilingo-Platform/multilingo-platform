@@ -34,50 +34,17 @@ const ExamStartPage: React.FC = () => {
   );
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', color: '#111827', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <header style={{
-        borderBottom: '1px solid #e5e7eb',
-        padding: '0.875rem 2rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#ffffff',
-        position: 'sticky',
-        top: 0,
-        zIndex: 20,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Link to="/" style={{
-            color: '#d97706', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: '0.35rem',
-            transition: 'color 0.15s ease',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#b45309'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#d97706'; }}
-          >
-            ← Quay lại Trang chủ
-          </Link>
-          <span style={{ color: '#d1d5db' }}>|</span>
-          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, color: '#4b5563', fontSize: '0.875rem' }}>
-            Thiết lập phòng thi
-          </span>
-        </div>
-
-        <div style={{
-          fontSize: '0.75rem', fontWeight: 600, color: '#b45309',
-          backgroundColor: '#fffbeb', padding: '3px 10px', borderRadius: '9999px',
-          border: '1px solid #fde68a',
-        }}>
-          🛡️ Phòng thi bảo mật trực tuyến
-        </div>
-      </header>
-
+    <div className="w-full bg-slate-50 min-h-screen pt-8">
       {/* Main Form Container */}
-      <main style={{ maxWidth: '780px', margin: '0 auto', padding: '2.5rem 1.5rem', width: '100%', flex: 1 }}>
-        {/* Exam Overview Banner */}
-        <div className="ed-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+      <main className="max-w-6xl mx-auto px-4 pb-12 w-full flex flex-col gap-6">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-amber-600 transition-colors w-fit" style={{ textDecoration: 'none' }}>
+          ⬅ Quay lại Trang chủ
+        </Link>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Overview & Rules */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Exam Overview Banner */}
+            <div className="ed-card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
             <span className="badge-orange">
               {examId === '2' ? 'Mã đề: IELTS-GEN-02' : 'Mã đề: IELTS-CAM19-01'}
@@ -134,18 +101,6 @@ const ExamStartPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Scope and Mode Picker Form */}
-        <div className="ed-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <ScopeModePicker
-            examId={parseInt(examId, 10)}
-            initialMode={initialMode}
-            initialScope={initialScope}
-            onSubmit={handleSubmit}
-            isLoading={isLoading}
-            error={error}
-          />
-        </div>
-
         {/* Important Rules & Instructions */}
         <div style={{
           backgroundColor: '#fffbeb',
@@ -161,23 +116,28 @@ const ExamStartPage: React.FC = () => {
           </div>
           <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
             <li><strong>Chế độ Mock Test (Toàn bộ đề):</strong> Không thể tạm dừng. Bạn phải làm bài theo trình tự. Sau khi hoàn thành một phần và chuyển tiếp, phần thi đó sẽ <strong>BỊ KHÓA</strong> vĩnh viễn và bạn không thể quay lại.</li>
-            <li><strong>Autosave:</strong> Tự động lưu bài làm liên tục vào máy chủ đám mây.</li>
+            <li><strong>Autosave:</strong> Tự động lưu bài làm liên tục vào máy chủ  đám mây.</li>
             <li><strong>Tra từ tại chỗ:</strong> Bôi đen từ vựng trong bài đọc để tra cứu phiên âm, nghĩa tiếng Việt và lưu Flashcard (chỉ khả dụng trong chế độ Practice).</li>
             <li><strong>Giữ nguyên tab:</strong> Bạn có thể tải lại trang (F5), bài làm và thời gian còn lại sẽ được khôi phục. Tải lại trang có thể làm gián đoạn bài một chút.</li>
           </ul>
         </div>
-      </main>
+        </div>
 
-      <footer style={{
-        borderTop: '1px solid #e5e7eb',
-        backgroundColor: '#ffffff',
-        padding: '1.25rem',
-        textAlign: 'center',
-        color: '#6b7280',
-        fontSize: '0.8rem',
-      }}>
-        © 2026 Multilingo Platform • Hỗ trợ kỹ thuật: support@multilingo.edu.vn
-      </footer>
+        {/* Right Column: Settings Picker */}
+        <div className="lg:col-span-5">
+          <div className="ed-card lg:sticky lg:top-24 flex flex-col overflow-hidden" style={{ padding: '0', maxHeight: 'calc(100vh - 120px)' }}>
+            <ScopeModePicker
+              examId={parseInt(examId, 10)}
+              initialMode={initialMode}
+              initialScope={initialScope}
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              error={error}
+            />
+          </div>
+        </div>
+        </div>
+      </main>
     </div>
   );
 };
