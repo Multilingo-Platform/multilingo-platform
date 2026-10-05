@@ -1,5 +1,6 @@
 package com.multilingo.backend.modules.testing.adapter;
 
+import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.modules.auth.entity.User;
 import com.multilingo.backend.modules.auth.security.CustomUserDetails;
 import com.multilingo.backend.modules.testing.adapter.impl.JwtIdentityAdapter;
@@ -10,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JwtIdentityAdapterTest {
 
@@ -42,11 +44,18 @@ class JwtIdentityAdapterTest {
     }
 
     @Test
-    void getCurrentUserId_whenNotAuthenticated_returnsFallbackId() {
+    void getCurrentUserId_whenNotAuthenticated_throwsAppException() {
         SecurityContextHolder.clearContext();
 
-        Integer userId = adapter.getCurrentUserId();
+        assertThrows(AppException.class, () -> adapter.getCurrentUserId());
+    }
 
-        assertEquals(1, userId);
+    @Test
+    void getCurrentUserId_whenPrincipalIsNotCustomUserDetails_throwsAppException() {
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken("plainStringPrincipal", null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        assertThrows(AppException.class, () -> adapter.getCurrentUserId());
     }
 }
