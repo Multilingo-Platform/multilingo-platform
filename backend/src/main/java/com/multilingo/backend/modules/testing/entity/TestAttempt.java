@@ -74,6 +74,10 @@ public class TestAttempt extends BaseEntity {
     @Column(name = "exam_snapshot", columnDefinition = "json")
     private Map<String, Object> examSnapshot;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "result_summary", columnDefinition = "json")
+    private String resultSummary;
+
     @Builder.Default
     @Column(name = "version", nullable = false)
     private Integer version = 1;

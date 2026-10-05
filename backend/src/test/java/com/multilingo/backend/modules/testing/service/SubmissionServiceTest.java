@@ -235,11 +235,15 @@ class SubmissionServiceTest {
         createReq.setTestMode(TestMode.MOCK_TEST);
         WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
 
-        // Set deadline to 5 seconds ago
+        // Set deadline to 20 seconds ago (accounts for 15s grace period)
         TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
-        Instant pastDeadline = Instant.now().minusSeconds(5);
+        Instant pastDeadline = Instant.now().minusSeconds(20).truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
         attempt.setDeadline(pastDeadline);
-        testAttemptRepository.save(attempt);
+        testAttemptRepository.saveAndFlush(attempt);
+        
+        org.springframework.test.context.transaction.TestTransaction.flagForCommit();
+        org.springframework.test.context.transaction.TestTransaction.end();
+        org.springframework.test.context.transaction.TestTransaction.start();
 
         when(objectiveGradingService.gradeAttempt(any(), any())).thenReturn(
                 com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
@@ -253,6 +257,10 @@ class SubmissionServiceTest {
 
         assertThat(response.getStatus()).isNotEqualTo(AttemptStatus.IN_PROGRESS);
         assertThat(response.getStatus()).isEqualTo(AttemptStatus.COMPLETED);
+        
+        org.springframework.test.context.transaction.TestTransaction.flagForCommit();
+        org.springframework.test.context.transaction.TestTransaction.end();
+        org.springframework.test.context.transaction.TestTransaction.start();
 
         TestAttempt updatedAttempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
         assertThat(updatedAttempt.getStatus()).isEqualTo(AttemptStatus.COMPLETED);

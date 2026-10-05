@@ -83,4 +83,25 @@ public class TestAttemptController {
         testAttemptService.lockSection(id, sectionId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+    /**
+     * Get the final result summary of an attempt.
+     */
+    @GetMapping("/{id}/result")
+    public ResponseEntity<ApiResponse<com.multilingo.backend.modules.testing.dto.response.ExamResultResponse>> getAttemptResult(
+            @PathVariable Integer id) {
+        com.multilingo.backend.modules.testing.dto.response.ExamResultResponse result = testAttemptService.getAttemptResult(id);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * Get the detailed review of a specific part in an attempt.
+     */
+    @GetMapping("/{id}/review")
+    public ResponseEntity<ApiResponse<com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse>> getAttemptReview(
+            @PathVariable Integer id,
+            @RequestParam Integer partId) {
+        com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse review = testAttemptService.getAttemptReview(id, partId);
+        return ResponseEntity.ok(ApiResponse.success(review));
+    }
 }
