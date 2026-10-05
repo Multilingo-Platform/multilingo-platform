@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Calendar, Clock, CheckCircle, Target, ArrowRight, BarChart2, Flame, BookOpen } from 'lucide-react';
 
@@ -69,9 +69,9 @@ const TestHistory = () => {
           {/* Stats Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
             {statCards.map((stat, idx) => (
-              <div key={idx} className="ed-card" style={{ 
-                background: stat.color, 
-                color: 'white', 
+              <div key={idx} className="ed-card" style={{
+                background: stat.color,
+                color: 'white',
                 padding: '1.5rem',
                 border: 'none',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
@@ -94,19 +94,19 @@ const TestHistory = () => {
       <div className="container" style={{ maxWidth: '1100px', marginTop: '2rem' }}>
         <div className="flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Lịch sử làm bài gần đây</h2>
-          
+
           <div className="flex-center" style={{ gap: '1rem' }}>
             <div style={{ position: 'relative', width: '280px' }}>
               <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input 
-                type="text" 
-                placeholder="Tìm tên đề thi..." 
+              <input
+                type="text"
+                placeholder="Tìm tên đề thi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '0.6rem 1rem 0.6rem 2.5rem', 
-                  borderRadius: 'var(--radius-full)', 
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 1rem 0.6rem 2.5rem',
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border-light)',
                   background: 'var(--bg-primary)',
                   outline: 'none',
@@ -122,13 +122,13 @@ const TestHistory = () => {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {mockHistory.map((item) => (
-            <div 
-              key={item.id} 
-              className="ed-card" 
-              style={{ 
-                display: 'flex', 
-                gap: '1.5rem', 
-                alignItems: 'center', 
+            <div
+              key={item.id}
+              className="ed-card"
+              style={{
+                display: 'flex',
+                gap: '1.5rem',
+                alignItems: 'center',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 transform: hoveredId === item.id ? 'translateY(-4px)' : 'none',
                 boxShadow: hoveredId === item.id ? '0 10px 15px -3px rgba(0,0,0,0.05)' : 'var(--shadow-sm)',
@@ -141,10 +141,10 @@ const TestHistory = () => {
               onClick={() => navigate(`/student/exam/${item.id}/result`)}
             >
               {/* Score Box */}
-              <div style={{ 
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%', 
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
                 background: item.score >= (item.maxScore * 0.8) ? 'var(--success-light)' : item.score >= (item.maxScore * 0.5) ? 'var(--warning-light)' : 'var(--danger-light)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -160,17 +160,17 @@ const TestHistory = () => {
                   / {item.maxScore}
                 </span>
               </div>
-              
+
               {/* Content */}
               <div style={{ flex: 1 }}>
                 <div className="flex-center" style={{ gap: '0.75rem', marginBottom: '0.4rem' }}>
-                  <span style={{ 
-                    padding: '0.2rem 0.6rem', 
-                    borderRadius: 'var(--radius-sm)', 
-                    fontSize: '0.7rem', 
-                    fontWeight: 700, 
+                  <span style={{
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
                     textTransform: 'uppercase',
-                    background: item.mode === 'MOCK_TEST' ? 'var(--primary)' : 'var(--success)', 
+                    background: item.mode === 'MOCK_TEST' ? 'var(--primary)' : 'var(--success)',
                     color: 'white',
                     letterSpacing: '0.5px'
                   }}>
@@ -192,15 +192,15 @@ const TestHistory = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Action Button */}
               <div className="flex-center" style={{ paddingLeft: '1.5rem' }}>
-                <div 
+                <div
                   className="flex-center"
-                  style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    borderRadius: '50%', 
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
                     background: hoveredId === item.id ? 'var(--primary)' : 'var(--bg-tertiary)',
                     color: hoveredId === item.id ? 'white' : 'var(--text-secondary)',
                     transition: 'all 0.2s'
@@ -211,7 +211,7 @@ const TestHistory = () => {
               </div>
             </div>
           ))}
-          
+
           {mockHistory.length === 0 && (
             <div className="ed-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
               <Target size={48} color="var(--border-light)" style={{ margin: '0 auto 1rem' }} />

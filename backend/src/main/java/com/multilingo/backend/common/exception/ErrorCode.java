@@ -12,9 +12,31 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(404, HttpStatus.NOT_FOUND, "Không tìm thấy tài nguyên yêu cầu"),
     METHOD_NOT_ALLOWED(405, HttpStatus.METHOD_NOT_ALLOWED, "Phương thức HTTP không được hỗ trợ"),
     CONFLICT(409, HttpStatus.CONFLICT, "Dữ liệu bị trùng lặp hoặc xung đột"),
+    ATTEMPT_EXPIRED(409, HttpStatus.CONFLICT, "Bài thi đã hết thời gian làm bài"),
+    ATTEMPT_ALREADY_SUBMITTED(409, HttpStatus.CONFLICT, "Bài thi đã được nộp trước đó"),
     VALIDATION_FAILED(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu đầu vào không hợp lệ"),
     QUOTA_EXCEEDED(429, HttpStatus.TOO_MANY_REQUESTS, "Đã vượt quá hạn mức sử dụng tính năng"),
-    UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định");
+    UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định"),
+    GRADING_DATA_ERROR(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu answer key lỗi hoặc không xác định loại câu"),
+    
+    // Validation Errors cho Auth (900 - 999)
+    EMAIL_REQUIRED(900, HttpStatus.BAD_REQUEST, "Email không được để trống"),
+    INVALID_EMAIL_FORMAT(901, HttpStatus.BAD_REQUEST, "Định dạng email không hợp lệ"),
+    PASSWORD_REQUIRED(902, HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống"),
+    INVALID_PASSWORD(903, HttpStatus.BAD_REQUEST, "Mật khẩu phải từ 6 ký tự trở lên"),
+    
+    // Logic Errors cho Auth
+    USER_NOT_FOUND(904, HttpStatus.NOT_FOUND, "Tài khoản không tồn tại"),
+    WRONG_PASSWORD(905, HttpStatus.UNAUTHORIZED, "Mật khẩu không chính xác"),
+    EMAIL_EXISTED(906, HttpStatus.CONFLICT, "Email đã được sử dụng"),
+    INVALID_TOKEN(907, HttpStatus.UNAUTHORIZED, "Token không hợp lệ"),
+    TOKEN_EXPIRED(908, HttpStatus.UNAUTHORIZED, "Token đã hết hạn"),
+    UNAUTHENTICATED_ACCESS(909, HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để thực hiện thao tác này"),
+    NAME_REQUIRED(910, HttpStatus.BAD_REQUEST, "Họ và tên không được để trống"),
+    INVALID_NAME_LENGTH(911, HttpStatus.BAD_REQUEST, "Độ dài họ và tên không hợp lệ"),
+    INVALID_AVATAR_URL_LENGTH(912, HttpStatus.BAD_REQUEST, "Độ dài đường dẫn ảnh không hợp lệ"),
+    INVALID_OTP(913, HttpStatus.BAD_REQUEST, "Mã OTP không chính xác"),
+    OTP_EXPIRED(914, HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn");
 
     private final int code;
     private final HttpStatus httpStatus;

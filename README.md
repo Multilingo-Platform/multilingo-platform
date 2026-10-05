@@ -38,7 +38,8 @@ docker compose down
    cd backend
    ./mvnw spring-boot:run
    ```
-   *API Test:* [http://localhost:8080/api/test/hello](http://localhost:8080/api/test/hello)
+   *API Test:* [http://localhost:8088/api/test/hello](http://localhost:8088/api/test/hello)
+   *Swagger UI (Tài liệu API):* [http://localhost:8088/swagger-ui/index.html#/](http://localhost:8088/swagger-ui/index.html#/)
 
 3. **Khởi chạy Frontend (React 19 + Vite 8 + TailwindCSS v4):**
    ```bash

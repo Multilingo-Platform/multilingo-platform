@@ -29,8 +29,8 @@ const ExamManagement = () => {
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Quản lý Đề thi</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Biên soạn, xuất bản và quản lý tất cả các đề thi trên hệ thống.</p>
         </div>
-        <button 
-          className="btn btn-primary" 
+        <button
+          className="btn btn-primary"
           onClick={() => navigate('/admin/exams/create')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: 'var(--radius-full)', boxShadow: '0 4px 6px -1px rgba(234, 88, 12, 0.2)' }}
         >
@@ -55,20 +55,20 @@ const ExamManagement = () => {
 
       {/* Main Content Area */}
       <div className="ed-card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-md)' }}>
-        
+
         {/* Toolbar */}
         <div className="flex-between" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-secondary)' }}>
           <div style={{ position: 'relative', width: '320px' }}>
             <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm theo mã, tên đề thi..." 
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo mã, tên đề thi..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ 
-                width: '100%', 
-                padding: '0.6rem 1rem 0.6rem 2.5rem', 
-                borderRadius: 'var(--radius-md)', 
+              style={{
+                width: '100%',
+                padding: '0.6rem 1rem 0.6rem 2.5rem',
+                borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-light)',
                 outline: 'none',
                 fontSize: '0.95rem'
@@ -121,18 +121,18 @@ const ExamManagement = () => {
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{exam.joins.toLocaleString('vi-VN')}</div>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
-                    <span className="flex-center" style={{ 
+                    <span className="flex-center" style={{
                       display: 'inline-flex',
                       gap: '0.35rem',
-                      padding: '0.25rem 0.75rem', 
-                      borderRadius: 'var(--radius-full)', 
-                      fontSize: '0.75rem', 
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.75rem',
                       fontWeight: 700,
                       backgroundColor: exam.status === 'Active' ? 'var(--success-light)' : 'var(--warning-light)',
                       color: exam.status === 'Active' ? 'var(--success-dark)' : 'var(--warning-dark)',
                       border: `1px solid ${exam.status === 'Active' ? 'var(--success)' : 'var(--warning)'}`
                     }}>
-                      {exam.status === 'Active' ? <CheckCircle size={14} /> : <FileText size={14} />} 
+                      {exam.status === 'Active' ? <CheckCircle size={14} /> : <FileText size={14} />}
                       {exam.status === 'Active' ? 'Xuất bản' : 'Bản nháp'}
                     </span>
                   </td>
@@ -150,7 +150,7 @@ const ExamManagement = () => {
               ))}
             </tbody>
           </table>
-          
+
           {exams.length === 0 && (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
               Không tìm thấy đề thi nào.

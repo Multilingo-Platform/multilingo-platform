@@ -1,5 +1,8 @@
 package com.multilingo.backend.modules.auth.entity;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
+
 import com.multilingo.backend.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,19 +16,20 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserTarget extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
 
     @Column(name = "target_certificate", length = 50, nullable = false)
-    private String targetCertificate;
+    String targetCertificate;
 
     @Builder.Default
     @Column(name = "target_language", length = 10, nullable = false)
-    private String targetLanguage = "en";
+    String targetLanguage = "en";
 
     @Column(name = "target_score", precision = 4, scale = 1, nullable = false)
-    private BigDecimal targetScore;
+    BigDecimal targetScore;
 }
