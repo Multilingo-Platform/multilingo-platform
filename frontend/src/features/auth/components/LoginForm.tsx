@@ -20,31 +20,43 @@ const LoginForm = () => {
   };
 
   return (
-    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
       <div>
-        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Email của bạn</label>
-        <input type="email" className="input-field" placeholder="john.doe@example.com" />
+        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+          Email của bạn
+        </label>
+        <input 
+          type="email" 
+          className="auth-input-field" 
+          placeholder="john.doe@example.com" 
+          required 
+        />
       </div>
       
       <div>
-        <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Mật khẩu</label>
-          <span style={{ fontSize: '0.875rem', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>Quên mật khẩu?</span>
+        <div className="flex-between" style={{ marginBottom: '0.35rem' }}>
+          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>Mật khẩu</label>
+          <span style={{ fontSize: '0.825rem', color: '#c25e2e', cursor: 'pointer', fontWeight: 600 }}>Quên mật khẩu?</span>
         </div>
-        <input type="password" className="input-field" placeholder="••••••••" />
+        <input 
+          type="password" 
+          className="auth-input-field" 
+          placeholder="••••••••" 
+          required 
+        />
       </div>
 
-      <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem', padding: '1rem' }}>
+      <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }}>
         Đăng nhập ngay
       </button>
       
-      <div className="flex-center" style={{ gap: '1rem', margin: '1rem 0' }}>
-        <div style={{ flex: 1, height: '1px', background: 'var(--border-light)' }}></div>
-        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>HOẶC</span>
-        <div style={{ flex: 1, height: '1px', background: 'var(--border-light)' }}></div>
+      <div className="flex-center" style={{ gap: '0.75rem', margin: '0.45rem 0' }}>
+        <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
+        <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>HOẶC</span>
+        <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
       </div>
 
-      <button type="button" className="btn" style={{ padding: '0.875rem', background: 'white', border: '1px solid var(--border-dark)', color: 'var(--text-primary)', boxShadow: 'var(--shadow-sm)' }}>
+      <button type="button" className="auth-btn-google">
         <GoogleIcon /> Đăng nhập với Google
       </button>
     </form>

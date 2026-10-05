@@ -75,19 +75,19 @@ export const router = createBrowserRouter([
         element: <LandingPage /> // Gọi Component LandingPage khi vào /
       },
       {
-        path: 'login',
-        element: <LoginPage />
-      },
-      {
-        path: 'register',
-        element: <RegisterPage />
-      },
-      {
         path: 'exams', // URL sẽ là /exams (Nằm trong Public Layout)
         element: <ExamLibrary /> // Gọi Component hiển thị Đề Thi
       }
       // Các route public khác (như /about) sẽ nằm ở đây
     ]
+  },
+  {
+    path: '/login',
+    element: <LoginPage />
+  },
+  {
+    path: '/register',
+    element: <RegisterPage />
   },
   {
     path: '/onboarding',

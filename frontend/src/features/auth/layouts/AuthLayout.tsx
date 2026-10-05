@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 interface AuthLayoutProps {
   title: string;
@@ -10,33 +11,56 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, children, isLogin, onToggleMode }) => {
   return (
-    <div className="flex-center slide-up" style={{ minHeight: 'calc(100vh - 70px)', padding: '1rem', background: 'var(--bg-primary)' }}>
-      <div className="ed-card" style={{ display: 'flex', width: '100%', maxWidth: '900px', overflow: 'hidden', minHeight: '480px' }}>
+    <div className="auth-page-wrapper">
+      <div className="auth-bg-decor" />
 
-        {/* Left: Illustration */}
-        <div style={{ flex: 1, background: 'var(--primary)', padding: '2.5rem', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem', lineHeight: 1.2 }}>Học tập thông minh hơn!</h2>
-          <p style={{ fontSize: '1rem', opacity: 0.9, lineHeight: 1.5 }}>Mở khóa lộ trình học tập cá nhân hóa, hàng trăm đề thi chứng chỉ và hệ thống phân tích lỗi sai cực kỳ chi tiết bằng AI.</p>
-        </div>
+      <div className="auth-card-container slide-up">
+        {/* Centered Auth Card */}
+        <div className="auth-card">
+          {/* Card Header: Brand Logo & Back to Home */}
+          <div className="auth-card-top">
+            <Link to="/" className="auth-brand-badge">
+              <div className="auth-brand-icon">
+                🌐
+              </div>
+              <span className="auth-brand-name">Multilingo</span>
+            </Link>
 
-        {/* Right: Form */}
-        <div style={{ flex: 1.2, padding: '2rem 2.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--bg-secondary)' }}>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-            {title}
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.95rem' }}>
-            {subtitle}
-          </p>
+            <Link to="/" className="auth-back-btn">
+              ← Trang chủ
+            </Link>
+          </div>
+
+          <div style={{ marginBottom: '1.15rem', textAlign: 'left' }}>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#1f2937', marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>
+              {title}
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+              {subtitle}
+            </p>
+          </div>
 
           {children}
 
           {/* Toggle Login/Register */}
-          <p style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #f3f4f6', fontSize: '0.875rem', color: '#6b7280' }}>
             {isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
-            <span style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 700, marginLeft: '0.5rem' }} onClick={onToggleMode}>
+            <button
+              type="button"
+              style={{
+                color: '#c25e2e',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 700,
+                marginLeft: '0.35rem',
+                fontSize: '0.875rem'
+              }}
+              onClick={onToggleMode}
+            >
               {isLogin ? 'Đăng ký ngay' : 'Đăng nhập'}
-            </span>
-          </p>
+            </button>
+          </div>
         </div>
       </div>
     </div>
