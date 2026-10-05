@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { selectSaveStatus } from '../store/answerSlice';
-import type { RootState } from '../../../store/store';
+import type { RootState } from '../../../app/store';
 
 const Spinner = () => (
   <svg style={{ animation: 'spin 1s linear infinite', height: '0.75rem', width: '0.75rem', display: 'inline' }} viewBox="0 0 24 24" fill="none">

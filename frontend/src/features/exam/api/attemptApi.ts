@@ -1,4 +1,4 @@
-import axiosClient from '../../../api/axiosClient';
+import axiosClient from '../../../core/api/axiosClient';
 import type {
   ApiResponse,
   AutosaveRequest,

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import type { RootState } from '../../../store/store';
+import type { RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 import { isAnswered } from '../utils/answerUtils';
 

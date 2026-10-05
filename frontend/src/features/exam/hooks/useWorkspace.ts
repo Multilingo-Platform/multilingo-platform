@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
-import type { AppDispatch } from '../../../store/store';
+import type { AppDispatch } from '../../../app/store';
 import { getWorkspace } from '../api/attemptApi';
 import { setAttemptContext, clearAnswers } from '../store/answerSlice';
 import type { WorkspaceResponse } from '../types/api.types';

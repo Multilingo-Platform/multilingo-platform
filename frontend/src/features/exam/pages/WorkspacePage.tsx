@@ -15,7 +15,7 @@ import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
 import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
-import type { AppDispatch, RootState } from '../../../store/store';
+import type { AppDispatch, RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 
 interface DictTooltip {
@@ -159,7 +159,7 @@ const WorkspacePage: React.FC = () => {
       if (isDirty) {
         const answers = Object.entries(answersState.answers).map(([pId, qMap]) => ({
           part_id: Number(pId),
-          answers: Object.entries(qMap).map(([question_id, answer]) => ({ question_id, answer })),
+          answers: Object.entries(qMap as any).map(([question_id, answer]) => ({ question_id, answer: answer as any })),
         }));
         await autosaveAnswers(attemptId, { version: answersState.version, answers });
         try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
@@ -206,6 +206,7 @@ const WorkspacePage: React.FC = () => {
       setShowTimeUp(true);
       handleSubmit(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExpired, showTimeUp, showOverlay, isSubmitting, workspace]);
 
   // Handle text selection in Reading Passage for AI Dictionary popup

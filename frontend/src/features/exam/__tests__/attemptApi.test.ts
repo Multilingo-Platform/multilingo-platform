@@ -1,8 +1,8 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import * as axiosClientModule from '../../../api/axiosClient';
+import * as axiosClientModule from '../../../core/api/axiosClient';
 import { autosaveAnswers, submitAttempt } from '../api/attemptApi';
 
-vi.mock('../../../api/axiosClient', () => ({
+vi.mock('../../../core/api/axiosClient', () => ({
   default: { put: vi.fn(), post: vi.fn(), get: vi.fn() },
 }));
 
