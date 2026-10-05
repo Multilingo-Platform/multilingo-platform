@@ -1,400 +1,576 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Check, X, Minus, Target, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface ReviewQuestion {
+interface QuestionDetail {
   id: number;
-  part: number;
-  type: string;
+  category: string;
+  passageTitle: string;
+  passageText: string;
+  promptText: string;
   questionText: string;
   userAnswer: string;
   correctAnswer: string;
   isCorrect: boolean;
-  isFlagged?: boolean;
-  citation?: string;
+  citation: string;
   explanation: string;
 }
 
-const SAMPLE_QUESTIONS: ReviewQuestion[] = [
+const SAMPLE_PASSAGE = `The family of mammals called bovids belongs to the Artiodactyl class, which also includes giraffes. Bovids are a highly diverse group consisting of 137 species, some of which are man's most important domestic animals.
+
+Bovids are well represented in most parts of Eurasia and Southeast Asian islands, but they are by far the most numerous and diverse in the latter. Some species of bovid are solitary, but others live in large groups with complex social structures. Although bovids have adapted to a wide range of habitats, from arctic tundra to deep tropical forest, the majority of species favour open grassland, scrub or desert. This diversity of habitat is also matched by great diversity in size and form: at one extreme is the royal antelope of West Africa, which stands a mere 25 cm at the shoulder; at the other, the massively built bison of North America and Europe, growing to a shoulder height of 2.2m.`;
+
+const QUESTIONS_DATA: QuestionDetail[] = [
   {
     id: 1,
-    part: 1,
-    type: 'True / False / Not Given',
-    questionText: 'Early cetaceans possessed neocortical structures comparable to modern primates.',
-    userAnswer: 'FALSE',
-    correctAnswer: 'FALSE',
-    isCorrect: true,
-    citation: 'Passage 1, Paragraph A: "...Eocene archaeocetes show diminutive, elongated brains. The neocortical convolutions occurred abruptly during Oligocene epoch..."',
-    explanation: 'Đáp án FALSE vì đoạn văn chỉ ra não bộ cá voi thời kỳ đầu thuôn nhỏ và chưa có nếp nhăn vỏ não như linh trưởng hiện đại.',
+    category: '[Reading] Multiple Choice',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'Bovids are most numerous and diverse in which of the following regions?',
+    userAnswer: 'B',
+    correctAnswer: 'A',
+    isCorrect: false,
+    citation: 'Bovids are well represented in most parts of Eurasia and Southeast Asian islands, but they are by far the most numerous and diverse in the latter.',
+    explanation: 'Từ "the latter" đề cập đến "Southeast Asian islands", do đó đáp án chính xác là A.'
   },
   {
     id: 2,
-    part: 1,
-    type: 'True / False / Not Given',
-    questionText: 'Echolocation evolved simultaneously with complex acoustic communication.',
-    userAnswer: 'TRUE',
-    correctAnswer: 'TRUE',
+    category: '[Reading] Multiple Choice',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'Which class of animals do bovids belong to?',
+    userAnswer: 'Artiodactyl',
+    correctAnswer: 'Artiodactyl',
     isCorrect: true,
-    citation: 'Passage 1, Paragraph B: "...coincident with the emergence of echolocation and intense acoustic specialization across pod interactions..."',
-    explanation: 'Đáp án TRUE do hai cơ chế này xuất hiện đồng thời trong kỷ Oligocene theo hóa thạch âm thanh.',
+    citation: 'The family of mammals called bovids belongs to the Artiodactyl class, which also includes giraffes.',
+    explanation: 'Đoạn văn nêu rõ bovids thuộc lớp Artiodactyl.'
   },
   {
     id: 3,
-    part: 1,
-    type: 'True / False / Not Given',
-    questionText: 'Social pack hunting in orcas requires multi-generational knowledge transfer.',
-    userAnswer: 'NOT GIVEN',
-    correctAnswer: 'TRUE',
-    isCorrect: false,
-    isFlagged: true,
-    citation: 'Passage 1, Paragraph B: "...juveniles spend up to a decade shadowing adult matrilines before acquiring the precision... demonstrating true cultural transmission across matriarchal lines..."',
-    explanation: 'Bạn chọn NOT GIVEN do không nhận diện được cụm từ đồng nghĩa "cultural transmission across matriarchal lines" tương ứng với "multi-generational knowledge transfer".',
+    category: '[Reading] Multiple Choice',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'What is the shoulder height of the royal antelope?',
+    userAnswer: '25 cm',
+    correctAnswer: '25 cm',
+    isCorrect: true,
+    citation: 'at one extreme is the royal antelope of West Africa, which stands a mere 25 cm at the shoulder;',
+    explanation: 'Nguyên văn chỉ ra linh dương hoàng gia cao đúng 25 cm ở vai.'
   },
   {
     id: 4,
-    part: 2,
-    type: 'Multiple Choice',
-    questionText: 'Which anatomical feature was historically thought to be unique to hominids?',
-    userAnswer: 'C. Von Economo neurons',
-    correctAnswer: 'C. Von Economo neurons',
-    isCorrect: true,
-    citation: 'Passage 2, Paragraph B: "...specialized spindle cells, or von Economo neurons (VENs), historically thought to be unique to hominids and great apes."',
-    explanation: 'Đáp án chính xác C. Tế bào thần kinh thoi VENs được tìm thấy ở cá voi có răng.',
+    category: '[Reading] Matching Features',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'can endure very harsh environments',
+    userAnswer: 'a',
+    correctAnswer: 'C',
+    isCorrect: false,
+    citation: 'The sub-family Caprinae includes the sheep and the goat, together with various relatives such as the goral and the tahr. Most are woolly or have long hair. Several species, such as wild goats, chamois and mountain sheep, have adapted to high altitudes and extreme cold.',
+    explanation: 'Phân họ Caprinae có khả năng thích nghi cao với điều kiện khắc nghiệt ở vùng núi cao lạnh giá, tương ứng với lựa chọn C.'
   },
   {
     id: 5,
-    part: 2,
-    type: 'Fill in the Blank',
-    questionText: 'Synchrotron imaging revealed exponential growth in dolphin ________ density.',
-    userAnswer: 'sensory cortex',
-    correctAnswer: 'auditory nerve',
+    category: '[Reading] Matching Features',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'have adapted to open grassland habitats',
+    userAnswer: 'B',
+    correctAnswer: 'D',
     isCorrect: false,
-    citation: 'Passage 2, Paragraph C: "...auditory nerve density in ancestral dolphin lineages increased exponentially over a 15-million-year span."',
-    explanation: 'Từ cần điền chính xác theo nguyên văn là "auditory nerve", không phải sensory cortex.',
+    citation: 'the majority of species favour open grassland, scrub or desert.',
+    explanation: 'Đặc điểm thích nghi đồng cỏ mở thuộc nhóm loài D trong bài nối đặc điểm.'
   },
   {
     id: 6,
-    part: 3,
-    type: 'Matching Headings',
-    questionText: 'Select the heading that best captures Section D.',
-    userAnswer: 'iv. Coordinated hunting paradigms and matriarchal learning',
-    correctAnswer: 'iv. Coordinated hunting paradigms and matriarchal learning',
-    isCorrect: true,
-    citation: 'Passage 3, Paragraph D: "...intricate pack strategies among modern orcas reveal cooperative social cognition... wave-washing techniques to displace seals..."',
-    explanation: 'Tiêu đề iv bao quát chính xác nội dung học hỏi kỹ thuật săn mồi phối hợp từ các con đầu đàn.',
+    category: '[Reading] Matching Features',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'live in solitary social structures',
+    userAnswer: 'C',
+    correctAnswer: 'B',
+    isCorrect: false,
+    citation: 'Some species of bovid are solitary, but others live in large groups with complex social structures.',
+    explanation: 'Nhóm phân loài B có tập tính sống đơn độc theo mô tả phân tích.'
   },
+  {
+    id: 7,
+    category: '[Reading] Matching Features',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'reach shoulder heights exceeding two metres',
+    userAnswer: 'A',
+    correctAnswer: 'A',
+    isCorrect: true,
+    citation: 'at the other, the massively built bison of North America and Europe, growing to a shoulder height of 2.2m.',
+    explanation: 'Bison có chiều cao vai lên đến 2.2m, tương ứng lựa chọn A.'
+  },
+  {
+    id: 8,
+    category: '[Reading] Matching Features',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'are among man\'s most essential domestic livestock',
+    userAnswer: 'E',
+    correctAnswer: 'C',
+    isCorrect: false,
+    citation: 'Bovids are a highly diverse group consisting of 137 species, some of which are man\'s most important domestic animals.',
+    explanation: 'Gia súc thuần dưỡng quan trọng của con người thuộc nhóm C (bò, cừu, dê).'
+  },
+  {
+    id: 9,
+    category: '[Reading] Short Answer',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'How many total species of bovids are recognized?',
+    userAnswer: '120',
+    correctAnswer: '137',
+    isCorrect: false,
+    citation: 'Bovids are a highly diverse group consisting of 137 species...',
+    explanation: 'Số lượng loài bovid được công nhận là 137 loài.'
+  },
+  {
+    id: 10,
+    category: '[Reading] Short Answer',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'Which mammal outside the bovid family belongs to the same Artiodactyl class?',
+    userAnswer: 'antelope',
+    correctAnswer: 'giraffes',
+    isCorrect: false,
+    citation: '...belongs to the Artiodactyl class, which also includes giraffes.',
+    explanation: 'Động vật cùng lớp Artiodactyl được nhắc đến là hươu cao cổ (giraffes).'
+  },
+  {
+    id: 11,
+    category: '[Reading] Short Answer',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'Where is the royal antelope geographically native to?',
+    userAnswer: 'East Africa',
+    correctAnswer: 'West Africa',
+    isCorrect: false,
+    citation: 'the royal antelope of West Africa, which stands a mere 25 cm...',
+    explanation: 'Linh dương hoàng gia có nguồn gốc từ Tây Phi (West Africa).'
+  },
+  {
+    id: 12,
+    category: '[Reading] Short Answer',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'What type of habitat do the majority of bovid species prefer?',
+    userAnswer: 'arctic tundra',
+    correctAnswer: 'open grassland',
+    isCorrect: false,
+    citation: '...the majority of species favour open grassland, scrub or desert.',
+    explanation: 'Phần lớn các loài bovid ưa thích môi trường đồng cỏ mở (open grassland).'
+  },
+  {
+    id: 13,
+    category: '[Reading] Short Answer',
+    passageTitle: 'Bovids',
+    passageText: SAMPLE_PASSAGE,
+    promptText: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    questionText: 'What is the large bovid species found in North America and Europe?',
+    userAnswer: 'cattle',
+    correctAnswer: 'bison',
+    isCorrect: false,
+    citation: '...the massively built bison of North America and Europe...',
+    explanation: 'Loài bovid thể hình đồ sộ ở Bắc Mỹ và châu Âu là bò rừng bizon (bison).'
+  }
 ];
 
-type FilterType = 'ALL' | 'CORRECT' | 'INCORRECT' | 'UNANSWERED' | 'FLAGGED';
+const CATEGORIES_SUMMARY = [
+  {
+    name: '[Reading] Matching Features',
+    correct: 1,
+    wrong: 4,
+    skipped: 0,
+    questions: [4, 5, 6, 7, 8]
+  },
+  {
+    name: '[Reading] Multiple Choice',
+    correct: 1,
+    wrong: 2,
+    skipped: 0,
+    questions: [1, 2, 3]
+  },
+  {
+    name: '[Reading] Short Answer',
+    correct: 0,
+    wrong: 5,
+    skipped: 0,
+    questions: [9, 10, 11, 12, 13]
+  }
+];
 
-const ExamResultPage: React.FC = () => {
+export const ExamResultPage: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
-  const [filter, setFilter] = useState<FilterType>('ALL');
-  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
-  const filteredQuestions = SAMPLE_QUESTIONS.filter((q) => {
-    if (filter === 'CORRECT') return q.isCorrect;
-    if (filter === 'INCORRECT') return !q.isCorrect;
-    if (filter === 'FLAGGED') return q.isFlagged;
-    if (filter === 'UNANSWERED') return false;
-    return true;
-  });
+  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
+  const [isExplanationOpen, setIsExplanationOpen] = useState(true);
+
+  const totalQuestions = QUESTIONS_DATA.length;
+  const correctCount = QUESTIONS_DATA.filter((q) => q.isCorrect).length;
+  const wrongCount = totalQuestions - correctCount;
+  const skippedCount = 0;
+  const accuracyPercentage = ((correctCount / totalQuestions) * 100).toFixed(1);
+
+  const selectedQuestion = QUESTIONS_DATA.find((q) => q.id === selectedQuestionId) || null;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
-      {/* 1. TOP STICKY APP HEADER */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 sm:px-8 py-3.5 shadow-xs flex items-center justify-between">
-        {/* Left: Brand + Breadcrumbs */}
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2 text-decoration-none group">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-              </svg>
-            </div>
-            <span className="font-heading font-bold text-amber-700 text-lg hidden sm:inline">Multilingo</span>
-          </Link>
-
-          <span className="text-slate-300">/</span>
-
-          <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-600">
-            <Link to="/" className="hover:text-amber-700 transition-colors">Trang chủ</Link>
-            <span className="text-slate-300">›</span>
-            <span className="text-slate-900 font-semibold truncate max-w-[200px] sm:max-w-none">
-              Báo cáo kết quả • IELTS Academic
-            </span>
-          </div>
+    <div className="w-full max-w-5xl mx-auto px-4 py-8 space-y-6 text-slate-800">
+      
+      {/* 1. HEADER: Kết quả [Thi thử, Luyện tập]: [Tên chứng chỉ] + [Kỹ năng thi] + [Phần thi] */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Kết quả luyện tập: IELTS Collection 1 Reading Test 1
+          </h1>
+          <span className="inline-block px-2.5 py-0.5 text-xs sm:text-sm font-semibold rounded bg-amber-500 text-white">
+            Passage 1
+          </span>
         </div>
 
-        {/* Right: Streak & Actions */}
         <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-200 text-xs font-bold">
-            <span className="text-amber-600">🔥</span>
-            <span>5 ngày</span>
-          </div>
-
-          <Link
-            to="/exams/1/start"
-            className="btn-primary text-xs py-1.5 px-3 hidden sm:inline-flex"
+          <button 
+            type="button"
+            className="px-4 py-2 bg-[#2b3990] hover:bg-[#202c77] text-white text-sm font-semibold rounded-md shadow-xs transition-colors cursor-pointer"
           >
-            ✨ Làm bài mới
-          </Link>
+            Xem đáp án
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/student/library')}
+            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium rounded-md shadow-2xs transition-colors cursor-pointer"
+          >
+            Tới trang đề thi
+          </button>
         </div>
-      </header>
+      </div>
 
-      {/* MAIN CONTAINER */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* 2. HERO SCORE BANNER */}
-        <section className="bg-gradient-to-br from-amber-50 via-white to-amber-50/40 border border-amber-200/80 rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Score Ring (Left 4 cols) */}
-            <div className="lg:col-span-4 flex items-center gap-6 border-b lg:border-b-0 lg:border-r border-slate-200 pb-6 lg:pb-0 lg:pr-6">
-              <div className="relative w-28 h-28 shrink-0 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                  <circle className="opacity-20" cx="60" cy="60" fill="transparent" r="50" stroke="#d97706" strokeWidth="10" />
-                  <circle
-                    cx="60" cy="60" fill="transparent" r="50"
-                    stroke="#d97706" strokeWidth="10" strokeLinecap="round"
-                    strokeDasharray="314.16" strokeDashoffset="62.8"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center text-center">
-                  <span className="font-heading font-extrabold text-2xl sm:text-3xl text-amber-800 leading-none">
-                    {SAMPLE_QUESTIONS.filter(q => q.isCorrect).length}/{SAMPLE_QUESTIONS.length}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">
-                    Tỷ lệ {Math.round((SAMPLE_QUESTIONS.filter(q => q.isCorrect).length / SAMPLE_QUESTIONS.length) * 100)}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="badge-green text-xs">
-                  ✓ Đạt mục tiêu ban đầu
-                </span>
-                <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
-                  IELTS Academic Reading
-                </h1>
-                <p className="text-xs text-slate-500">
-                  Mã bài thi: <strong className="text-slate-700">ML-2026-IELTS-{attemptId || '01'}</strong> • Ngày hoàn thành: <span className="text-slate-700 font-medium">04/10/2026</span> • Trạng thái: <span className="text-emerald-700 font-semibold">Đã chấm điểm</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Metrics Chips (Center 5 cols) */}
-            <div className="lg:col-span-5 grid grid-cols-2 gap-3">
-              <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Số câu đúng</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                </div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="font-heading text-2xl font-bold text-slate-900">{SAMPLE_QUESTIONS.filter(q => q.isCorrect).length}</span>
-                  <span className="text-xs text-slate-400">/{SAMPLE_QUESTIONS.length}</span>
-                  <span className="ml-auto text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                    {Math.round((SAMPLE_QUESTIONS.filter(q => q.isCorrect).length / SAMPLE_QUESTIONS.length) * 100)}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Thời gian</span>
-                  <span className="text-amber-600">⏱</span>
-                </div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="font-heading text-xl font-bold text-slate-900">--:--</span>
-                  <span className="text-[11px] text-slate-400">/ --m</span>
-                </div>
-              </div>
-
-
-            </div>
-
-            {/* CTAs (Right 3 cols) */}
-            <div className="lg:col-span-3 flex flex-col gap-2.5 justify-center">
-              <Link
-                to={`/attempts/${attemptId || 1}/review`}
-                className="btn-primary text-center justify-center text-sm py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-sm"
-              >
-                🔍 Chế độ Ôn tập & Giải thích
-              </Link>
-              <Link
-                to="/exams/1/start"
-                className="btn-outline text-center justify-center text-sm py-2"
-              >
-                🔄 Làm lại đề thi
-              </Link>
-              <Link
-                to="/"
-                className="text-xs text-slate-500 hover:text-amber-700 text-center py-1 transition-colors"
-              >
-                ← Trở về Trang chủ
-              </Link>
-            </div>
-          </div>
-        </section>
-
-
-
-        {/* 4. DETAILED QUESTION-BY-QUESTION REVIEW SECTION */}
-        <section id="questions-section" className="ed-card p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="font-heading text-lg font-bold text-slate-900">
-                Chi tiết từng câu hỏi ({SAMPLE_QUESTIONS.length} câu)
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Xem lại đáp án đã chọn, đối chiếu trích dẫn nguyên văn và giải thích chi tiết
-              </p>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all cursor-pointer ${
-                  filter === 'ALL'
-                    ? 'bg-white text-amber-800 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Tất cả ({SAMPLE_QUESTIONS.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter('CORRECT')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all cursor-pointer ${
-                  filter === 'CORRECT'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Đúng ({SAMPLE_QUESTIONS.filter(q => q.isCorrect).length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter('INCORRECT')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all cursor-pointer ${
-                  filter === 'INCORRECT'
-                    ? 'bg-red-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Sai ({SAMPLE_QUESTIONS.filter(q => !q.isCorrect).length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter('FLAGGED')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold transition-all cursor-pointer ${
-                  filter === 'FLAGGED'
-                    ? 'bg-amber-500 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Gắn cờ ({SAMPLE_QUESTIONS.filter(q => q.isFlagged).length})
-              </button>
-            </div>
+      {/* 2. THỐNG KÊ TỔNG QUAN (4 CARDS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Card 1: Kết quả làm bài & Độ chính xác */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600">
+            <span className="flex items-center gap-2">
+              <Check size={16} className="text-slate-400" />
+              Kết quả làm bài
+            </span>
+            <span className="font-bold text-slate-900">{correctCount}/{totalQuestions}</span>
           </div>
 
-          {/* Quick Palette Nav */}
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold text-slate-600 mr-2">Chọn nhanh câu:</span>
-            {SAMPLE_QUESTIONS.map((q) => (
-              <button
-                key={q.id}
-                type="button"
-                onClick={() => setSelectedQuestionId(selectedQuestionId === q.id ? null : q.id)}
-                className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center cursor-pointer transition-all ${
-                  selectedQuestionId === q.id ? 'ring-2 ring-amber-500 ring-offset-1' : ''
-                } ${
-                  q.isCorrect
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-red-500 text-white'
-                }`}
-              >
-                {q.id}
-              </button>
-            ))}
+          <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600">
+            <span className="flex items-center gap-2">
+              <Target size={16} className="text-slate-400" />
+              Độ chính xác (#đúng/#tổng)
+            </span>
+            <span className="font-bold text-slate-900">{accuracyPercentage}%</span>
           </div>
 
-          {/* Questions List */}
-          <div className="space-y-4">
-            {filteredQuestions.map((q) => (
-              <article
-                key={q.id}
-                className={`p-5 rounded-xl border transition-all ${
-                  q.isCorrect
-                    ? 'border-emerald-200/80 bg-white hover:border-emerald-300'
-                    : 'border-red-200 bg-red-50/20 hover:border-red-300'
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-7 h-7 rounded-lg font-heading font-bold text-xs flex items-center justify-center text-white ${
-                      q.isCorrect ? 'bg-emerald-600' : 'bg-red-600'
-                    }`}>
+          <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600">
+            <span className="flex items-center gap-2">
+              <Clock size={16} className="text-slate-400" />
+              Thời gian hoàn thành
+            </span>
+            <span className="font-bold text-slate-900">0:00:00</span>
+          </div>
+        </div>
+
+        {/* Card 2: Trả lời đúng */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs flex flex-col items-center justify-center text-center">
+          <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-2 shadow-2xs">
+            <Check size={18} strokeWidth={3} />
+          </div>
+          <span className="text-emerald-600 font-semibold text-sm">Trả lời đúng</span>
+          <span className="text-3xl font-extrabold text-slate-900 mt-1">{correctCount}</span>
+          <span className="text-xs text-slate-400 mt-0.5">câu hỏi</span>
+        </div>
+
+        {/* Card 3: Trả lời sai */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs flex flex-col items-center justify-center text-center">
+          <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center mb-2 shadow-2xs">
+            <X size={18} strokeWidth={3} />
+          </div>
+          <span className="text-rose-600 font-semibold text-sm">Trả lời sai</span>
+          <span className="text-3xl font-extrabold text-slate-900 mt-1">{wrongCount}</span>
+          <span className="text-xs text-slate-400 mt-0.5">câu hỏi</span>
+        </div>
+
+        {/* Card 4: Bỏ qua */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs flex flex-col items-center justify-center text-center">
+          <div className="w-8 h-8 rounded-full bg-slate-400 text-white flex items-center justify-center mb-2 shadow-2xs">
+            <Minus size={18} strokeWidth={3} />
+          </div>
+          <span className="text-slate-500 font-semibold text-sm">Bỏ qua</span>
+          <span className="text-3xl font-extrabold text-slate-900 mt-1">{skippedCount}</span>
+          <span className="text-xs text-slate-400 mt-0.5">câu hỏi</span>
+        </div>
+      </div>
+
+      {/* 3. PHÂN TÍCH CHI TIẾT */}
+      <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs space-y-4">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900">
+          Phân tích chi tiết
+        </h2>
+
+
+        {/* Bảng phân tích chi tiết */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-900 font-semibold">
+                <th className="py-3 px-3">Phân loại câu hỏi</th>
+                <th className="py-3 px-3 text-center">Số câu đúng</th>
+                <th className="py-3 px-3 text-center">Số câu sai</th>
+                <th className="py-3 px-3 text-center">Số câu bỏ qua</th>
+                <th className="py-3 px-3 text-center">Độ chính xác</th>
+                <th className="py-3 px-3">Danh sách câu hỏi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {CATEGORIES_SUMMARY.map((cat, idx) => {
+                const totalInCat = cat.correct + cat.wrong + cat.skipped;
+                const catAccuracy = ((cat.correct / totalInCat) * 100).toFixed(2);
+
+                return (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3.5 px-3 font-medium text-slate-800">{cat.name}</td>
+                    <td className="py-3.5 px-3 text-center">{cat.correct}</td>
+                    <td className="py-3.5 px-3 text-center">{cat.wrong}</td>
+                    <td className="py-3.5 px-3 text-center">{cat.skipped}</td>
+                    <td className="py-3.5 px-3 text-center">{catAccuracy}%</td>
+                    <td className="py-3.5 px-3">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {cat.questions.map((qId) => {
+                          const question = QUESTIONS_DATA.find((q) => q.id === qId);
+                          const isCorrect = question?.isCorrect;
+
+                          return (
+                            <button
+                              key={qId}
+                              type="button"
+                              onClick={() => setSelectedQuestionId(qId)}
+                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border transition-transform hover:scale-110 cursor-pointer ${
+                                isCorrect
+                                  ? 'border-emerald-500 text-emerald-600 hover:bg-emerald-50'
+                                  : 'border-rose-400 text-rose-500 hover:bg-rose-50'
+                              }`}
+                            >
+                              {qId}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {/* Dòng Total */}
+              <tr className="font-bold text-slate-900 border-t border-slate-200 bg-slate-50/50">
+                <td className="py-3.5 px-3">Total</td>
+                <td className="py-3.5 px-3 text-center">{correctCount}</td>
+                <td className="py-3.5 px-3 text-center">{wrongCount}</td>
+                <td className="py-3.5 px-3 text-center">{skippedCount}</td>
+                <td className="py-3.5 px-3 text-center">
+                  {((correctCount / totalQuestions) * 100).toFixed(2)}%
+                </td>
+                <td className="py-3.5 px-3"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* 4. BẢNG ĐÁP ÁN CÂU HỎI MÀ CHÚNG TA ĐÃ CHỌN */}
+      <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs space-y-4">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900">
+          Bảng đáp án câu hỏi
+        </h2>
+        {/* TODO: MOCK DATA NOTE 
+            Hiện tại đang sử dụng dữ liệu tĩnh (QUESTIONS_DATA).
+            Khi có API hoặc Redux (ví dụ: state.examResult.passages), 
+            cần map qua danh sách các passage và group câu hỏi theo từng passage.
+            Ví dụ: 
+            passages.map(passage => (
+               <div key={passage.id}>
+                  <h3>{passage.title}</h3>
+                  <div className="grid...">...</div>
+               </div>
+            ))
+        */}
+        <div className="space-y-4 pt-2">
+          {/* Static group header since mock data is all from one passage */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-slate-900">Passage 1</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+              {QUESTIONS_DATA.map((q) => {
+                return (
+                  <div key={q.id} className="flex items-center gap-2.5 py-2 border-b border-slate-100 last:border-0">
+                    {/* Circle Question Number */}
+                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-800 font-bold text-xs shrink-0">
                       {q.id}
                     </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                      Part {q.part} • {q.type}
+                    
+                    {/* Correct Answer */}
+                    <span className="font-bold text-slate-800 text-sm truncate max-w-[120px]" title={q.correctAnswer}>
+                      {q.correctAnswer}:
                     </span>
-                    {q.isFlagged && (
-                      <span className="text-[11px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
-                        🚩 Đã gắn cờ
-                      </span>
-                    )}
-                  </div>
-
-                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                    q.isCorrect
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {q.isCorrect ? '✓ Chính xác (+1)' : '✗ Chưa chính xác (0/1)'}
-                  </span>
-                </div>
-
-                <p className="font-heading font-semibold text-slate-900 text-sm sm:text-[15px] mb-3 leading-relaxed">
-                  {q.questionText}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-4 text-xs font-medium mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500">Lựa chọn của bạn:</span>
-                    <span className={`font-bold px-2 py-0.5 rounded ${
-                      q.isCorrect ? 'bg-emerald-100 text-emerald-900' : 'bg-red-100 text-red-900 line-through'
-                    }`}>
-                      {q.userAnswer}
+                    
+                    {/* User Answer */}
+                    <span className={`text-sm font-medium truncate max-w-[120px] ${!q.isCorrect ? 'text-slate-400 line-through' : 'text-slate-800'}`} title={q.userAnswer}>
+                      {q.userAnswer || '-'}
                     </span>
+                    
+                    {/* Tick or Cross */}
+                    <div className="flex-1 flex items-center gap-2">
+                      {q.isCorrect ? (
+                        <Check size={18} className="text-emerald-500 stroke-[3] shrink-0" />
+                      ) : (
+                        <X size={18} className="text-rose-500 stroke-[3] shrink-0" />
+                      )}
+                      
+                      {/* Chi tiết link */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedQuestionId(q.id)}
+                        className="ml-auto text-amber-600 hover:text-amber-700 font-semibold text-xs cursor-pointer transition-colors shrink-0"
+                      >
+                        [Chi tiết]
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500">Đáp án chính xác:</span>
-                    <span className="font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900">
-                      {q.correctAnswer}
-                    </span>
-                  </div>
-                </div>
-
-                {/* AI Explanation & Citation */}
-                <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 text-xs text-slate-800 space-y-2">
-                  <div className="font-heading font-bold text-amber-900 flex items-center gap-1.5">
-                    <span>💡</span>
-                    <span>Giải thích chi tiết:</span>
-                  </div>
-                  <p className="leading-relaxed text-slate-700">{q.explanation}</p>
-                  {q.citation && (
-                    <blockquote className="pt-2 border-t border-amber-200/60 text-slate-600 italic">
-                      {q.citation}
-                    </blockquote>
-                  )}
-                </div>
-              </article>
-            ))}
+                );
+              })}
+            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+
+      {/* 5. POP-UP / MODAL ĐÁP ÁN CHI TIẾT */}
+      {selectedQuestion && createPortal(
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex items-start justify-between bg-slate-50/50">
+              <div className="space-y-1">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900">
+                  Đáp án chi tiết #{selectedQuestion.id}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  IELTS Collection 1 Reading Test 1
+                </p>
+                <span className="inline-block px-2.5 py-0.5 bg-slate-200 text-slate-700 rounded text-xs font-semibold mt-1">
+                  #{selectedQuestion.category}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedQuestionId(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Đóng"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-6 text-sm text-slate-700">
+              
+              {/* Prompt instruction */}
+              <p className="text-xs text-slate-500 italic">
+                {selectedQuestion.promptText}
+              </p>
+
+              {/* Passage Preview */}
+              <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h4 className="font-bold text-slate-900 text-base">
+                  {selectedQuestion.passageTitle}
+                </h4>
+                <div className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line max-h-48 overflow-y-auto pr-2">
+                  {selectedQuestion.passageText}
+                </div>
+              </div>
+
+              {/* Question & Chosen Answer Box */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-start gap-3">
+                  <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    {selectedQuestion.id}
+                  </span>
+                  <p className="font-semibold text-slate-900 text-sm sm:text-base leading-snug">
+                    {selectedQuestion.questionText}
+                  </p>
+                </div>
+
+                {/* Box đáp án người dùng đã chọn */}
+                <div className="ml-10">
+                  <div
+                    className={`p-3 rounded-lg border text-sm font-medium ${
+                      selectedQuestion.isCorrect
+                        ? 'border-emerald-400 bg-emerald-50/50 text-emerald-900'
+                        : 'border-rose-400 bg-slate-100 text-slate-900'
+                    }`}
+                  >
+                    {selectedQuestion.userAnswer}
+                  </div>
+
+                  {/* Đáp án đúng */}
+                  <div className="mt-2 text-sm font-bold text-emerald-600">
+                    Đáp án đúng: {selectedQuestion.correctAnswer}
+                  </div>
+                </div>
+              </div>
+
+              {/* Accordion: Giải thích chi tiết đáp án */}
+              <div className="pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsExplanationOpen(!isExplanationOpen)}
+                  className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+                >
+                  <span>Giải thích chi tiết đáp án</span>
+                  {isExplanationOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+
+                {isExplanationOpen && (
+                  <div className="mt-3 p-4 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-2 text-xs sm:text-sm">
+                    <div className="font-bold text-slate-900">
+                      Trích đoạn chứa đáp án:
+                    </div>
+                    <blockquote className="italic text-slate-700 border-l-2 border-amber-400 pl-3 leading-relaxed">
+                      "{selectedQuestion.citation}"
+                    </blockquote>
+                    <p className="text-slate-600 leading-relaxed pt-1">
+                      {selectedQuestion.explanation}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      , document.body)}
+
     </div>
   );
 };

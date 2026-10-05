@@ -92,6 +92,20 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+  /* Type Scale (based on 1rem = 16px) */
+  --text-xs:   0.75rem;   /* 12px – labels, captions, badges */
+  --text-sm:   0.875rem;  /* 14px – secondary text, meta info */
+  --text-base: 1rem;      /* 16px – default body text */
+  --text-md:   1.0625rem; /* 17px – slightly emphasized body */
+  --text-lg:   1.125rem;  /* 18px – sub-headings, card titles */
+  --text-xl:   1.25rem;   /* 20px – section headings */
+  --text-2xl:  1.5rem;    /* 24px – page headings */
+  --text-3xl:  1.875rem;  /* 30px – hero headings */
+
+  /* Line heights */
+  --leading-tight:  1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
 }
 
 @layer base {
@@ -99,16 +113,36 @@
     box-sizing: border-box;
   }
 
+  html {
+    font-size: 16px; /* 1rem = 16px globally */
+  }
+
   body {
     font-family: var(--font-body);
+    font-size: var(--text-base); /* 16px – base */
+    line-height: var(--leading-normal);
     background-color: #f9fafb;
     color: #111827;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6, button {
+  h1 { font-family: var(--font-heading); font-size: var(--text-3xl); font-weight: 800; line-height: var(--leading-tight); }
+  h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: 700; line-height: var(--leading-tight); }
+  h3 { font-family: var(--font-heading); font-size: var(--text-xl);  font-weight: 700; line-height: var(--leading-tight); }
+  h4 { font-family: var(--font-heading); font-size: var(--text-lg);  font-weight: 600; line-height: var(--leading-tight); }
+  h5, h6 { font-family: var(--font-heading); font-size: var(--text-base); font-weight: 600; }
+
+  button {
     font-family: var(--font-heading);
+    font-size: var(--text-sm); /* 14px – consistent for all buttons */
+  }
+
+  small, .text-xs { font-size: var(--text-xs); }
+  label         { font-size: var(--text-sm); }
+  input, select, textarea {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
   }
 
   /* Custom scrollbar */
@@ -151,7 +185,7 @@
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--text-sm); /* 14px – standard button text */
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
@@ -186,7 +220,7 @@
 
 /* Badges */
 .badge {
-  font-size: 0.75rem;
+  font-size: var(--text-xs); /* 12px */
   font-weight: 600;
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
@@ -204,8 +238,8 @@
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s ease;
+  font-family: var(--font-body);
+  font-size: var(--text-base); /* 16px */
 }
 
 .input-field:focus {

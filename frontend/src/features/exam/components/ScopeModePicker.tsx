@@ -10,21 +10,21 @@ interface ScopeModePickerProps {
   error: string | null;
 }
 
-const SCOPE_OPTIONS: { value: TestScope; label: string; desc: string; icon: string }[] = [
-  { value: 'FULL_EXAM', label: 'Toàn bộ đề', desc: 'Đầy đủ tất cả các phần và câu hỏi', icon: '📋' },
-  { value: 'SINGLE_SKILL', label: 'Một kỹ năng', desc: 'Chọn 1 kỹ năng trọng tâm để luyện tập', icon: '🎯' },
-  { value: 'SINGLE_PART', label: 'Một phần', desc: 'Luyện riêng từng Part trong kỹ năng', icon: '📌' },
+const SCOPE_OPTIONS: { value: TestScope; label: string; desc: string }[] = [
+  { value: 'FULL_EXAM', label: 'Toàn bộ đề', desc: 'Đầy đủ tất cả các phần và câu hỏi' },
+  { value: 'SINGLE_SKILL', label: 'Một kỹ năng', desc: 'Chọn 1 kỹ năng trọng tâm' },
+  { value: 'SINGLE_PART', label: 'Một phần', desc: 'Luyện riêng từng Part' },
 ];
 
-const MODE_OPTIONS: { value: TestMode; label: string; desc: string; icon: string; activeColor: string }[] = [
-  { value: 'MOCK_TEST', label: 'Mock Test', desc: 'Đồng hồ đếm ngược, tự động nộp bài khi hết giờ', icon: '⏱️', activeColor: '#d97706' },
-  { value: 'PRACTICE', label: 'Practice', desc: 'Không giới hạn thời gian, tự do tra từ AI', icon: '📖', activeColor: '#059669' },
+const MODE_OPTIONS: { value: TestMode; label: string; desc: string; activeColor: string }[] = [
+  { value: 'MOCK_TEST', label: 'Mock Test', desc: 'Đồng hồ đếm ngược, tự động nộp bài', activeColor: '#d97706' },
+  { value: 'PRACTICE', label: 'Practice', desc: 'Không giới hạn thời gian, tự do tra từ AI', activeColor: '#059669' },
 ];
 
 const SECTION_OPTIONS = [
-  { value: '1', label: '📖 Reading' },
-  { value: '2', label: '🎧 Listening' },
-  { value: '3', label: '✍️ Writing' },
+  { value: '1', label: 'Reading' },
+  { value: '2', label: 'Listening' },
+  { value: '3', label: 'Writing' },
 ];
 
 const PART_OPTIONS = [
@@ -33,54 +33,89 @@ const PART_OPTIONS = [
   { value: '3', label: 'Part 3' },
 ];
 
-const cardBase: React.CSSProperties = {
+// --- Styles ---
+const scopeButtonBase: React.CSSProperties = {
   textAlign: 'left',
-  padding: '1.125rem',
-  borderRadius: '0.875rem',
-  border: '1px solid #e5e7eb',
+  padding: '0.6rem 0.875rem',
+  borderRadius: '0.625rem',
+  border: '1.5px solid #e5e7eb',
   background: '#ffffff',
   cursor: 'pointer',
-  transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
+  transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
   width: '100%',
   color: 'inherit',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
 };
 
-const cardActiveAmber: React.CSSProperties = {
-  ...cardBase,
-  border: '2px solid #d97706',
+const scopeButtonActive: React.CSSProperties = {
+  ...scopeButtonBase,
+  border: '1.5px solid #d97706',
   background: '#fffbeb',
-  boxShadow: '0 4px 12px rgba(217,119,6,0.12)',
+  boxShadow: '0 2px 8px rgba(217,119,6,0.1)',
 };
 
-const cardActiveGreen: React.CSSProperties = {
-  ...cardBase,
-  border: '2px solid #059669',
+const modeButtonBase: React.CSSProperties = {
+  textAlign: 'left',
+  padding: '0.625rem 0.875rem',
+  borderRadius: '0.625rem',
+  border: '1.5px solid #e5e7eb',
+  background: '#ffffff',
+  cursor: 'pointer',
+  transition: 'border-color 0.15s, background 0.15s',
+  width: '100%',
+  color: 'inherit',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+};
+
+const modeButtonAmber: React.CSSProperties = {
+  ...modeButtonBase,
+  border: '1.5px solid #d97706',
+  background: '#fffbeb',
+};
+
+const modeButtonGreen: React.CSSProperties = {
+  ...modeButtonBase,
+  border: '1.5px solid #059669',
   background: '#ecfdf5',
-  boxShadow: '0 4px 12px rgba(5,150,105,0.12)',
 };
 
 const pillBase: React.CSSProperties = {
-  padding: '0.375rem 1rem',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
+  padding: '0.3rem 0.875rem',
+  borderRadius: '0.375rem',
+  fontSize: '0.8rem',
   fontWeight: 600,
-  border: '1px solid #d1d5db',
+  border: '1.5px solid #d1d5db',
   background: '#ffffff',
   color: '#4b5563',
   cursor: 'pointer',
-  transition: 'all 0.2s',
+  transition: 'all 0.15s',
   fontFamily: 'var(--font-heading)',
 };
 
 const pillActive: React.CSSProperties = {
   ...pillBase,
   background: '#d97706',
-  border: '1px solid #d97706',
+  border: '1.5px solid #d97706',
   color: '#ffffff',
-  boxShadow: '0 2px 4px rgba(217,119,6,0.25)',
 };
 
+// --- Step header ---
+const StepHeader = ({ num, label }: { num: number; label: string }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
+    <span style={{
+      width: '1.25rem', height: '1.25rem', borderRadius: '50%',
+      background: '#d97706', color: '#fff',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: '0.7rem', fontWeight: 800, flexShrink: 0,
+    }}>{num}</span>
+    <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#374151' }}>
+      {label}
+    </span>
+  </div>
+);
+
+// --- Spinner ---
 const Spinner = () => (
   <svg style={{ animation: 'spin 1s linear infinite', height: '1rem', width: '1rem', display: 'inline' }} viewBox="0 0 24 24" fill="none">
     <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
@@ -122,154 +157,128 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} aria-label="Thiết lập phiên thi" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <form onSubmit={handleSubmit} aria-label="Thiết lập phiên thi" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0 }}>
+      {/* Scrollable area */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-      {/* Step 1: Scope */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
-          <span style={{
-            width: '1.5rem', height: '1.5rem', borderRadius: '50%',
-            background: '#d97706', color: '#fff',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.75rem', fontWeight: 800, flexShrink: 0,
-          }}>1</span>
-          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#111827' }}>
-            Chọn phạm vi bài thi
-          </span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem' }}>
-          {SCOPE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { setScope(opt.value); setSectionId(''); setPartId(''); }}
-              style={scope === opt.value ? cardActiveAmber : cardBase}
-            >
-              <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{opt.icon}</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.95rem', color: '#111827', marginBottom: '0.25rem' }}>{opt.label}</div>
-              <div style={{ fontSize: '0.8rem', color: '#4b5563', lineHeight: 1.5 }}>{opt.desc}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Section picker */}
-      {needsSection && (
-        <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.75rem' }}>
-            ↳ Chọn kỹ năng:
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {SECTION_OPTIONS.map((opt) => (
-              <button key={opt.value} type="button" onClick={() => { setSectionId(opt.value); setPartId(''); }}
-                style={sectionId === opt.value ? pillActive : pillBase}>
-                {opt.label}
+        {/* Step 1: Scope */}
+        <div>
+          <StepHeader num={1} label="Chọn phạm vi bài thi" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+            {SCOPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { setScope(opt.value); setSectionId(''); setPartId(''); }}
+                style={scope === opt.value ? scopeButtonActive : scopeButtonBase}
+              >
+                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.8rem', color: '#111827', marginBottom: '0.125rem' }}>{opt.label}</div>
+                <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>{opt.desc}</div>
               </button>
             ))}
           </div>
         </div>
-      )}
 
-      {needsPart && sectionId && (
-        <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.75rem' }}>
-            ↳ Chọn phần:
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {PART_OPTIONS.map((opt) => (
-              <button key={opt.value} type="button" onClick={() => setPartId(opt.value)}
-                style={partId === opt.value ? pillActive : pillBase}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Mode */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.875rem' }}>
-          <span style={{
-            width: '1.5rem', height: '1.5rem', borderRadius: '50%',
-            background: '#d97706', color: '#fff',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.75rem', fontWeight: 800, flexShrink: 0,
-          }}>2</span>
-          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#111827' }}>
-            Chọn chế độ làm bài
-          </span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.875rem' }}>
-          {MODE_OPTIONS.map((opt) => {
-            const isActive = mode === opt.value;
-            const style: React.CSSProperties = isActive
-              ? (opt.activeColor === '#059669' ? cardActiveGreen : cardActiveAmber)
-              : cardBase;
-            return (
-              <button key={opt.value} type="button" onClick={() => setMode(opt.value)} style={style}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <div style={{ fontSize: '1.75rem' }}>{opt.icon}</div>
-                  {opt.value === 'MOCK_TEST' && (
-                    <span className="badge-orange" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                      Khuyên dùng
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.95rem', color: '#111827', marginBottom: '0.25rem' }}>
+        {/* Section sub-picker */}
+        {needsSection && (
+          <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Kỹ năng:
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {SECTION_OPTIONS.map((opt) => (
+                <button key={opt.value} type="button" onClick={() => { setSectionId(opt.value); setPartId(''); }}
+                  style={sectionId === opt.value ? pillActive : pillBase}>
                   {opt.label}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#4b5563', lineHeight: 1.5 }}>
-                  {opt.desc}
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Part sub-picker */}
+        {needsPart && sectionId && (
+          <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Phần:
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {PART_OPTIONS.map((opt) => (
+                <button key={opt.value} type="button" onClick={() => setPartId(opt.value)}
+                  style={partId === opt.value ? pillActive : pillBase}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Mode */}
+        <div>
+          <StepHeader num={2} label="Chọn chế độ làm bài" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+            {MODE_OPTIONS.map((opt) => {
+              const isActive = mode === opt.value;
+              const activeStyle = opt.activeColor === '#059669' ? modeButtonGreen : modeButtonAmber;
+              return (
+                <button key={opt.value} type="button" onClick={() => setMode(opt.value)}
+                  style={isActive ? activeStyle : modeButtonBase}>
+                  {/* Color indicator dot */}
+                  <span style={{
+                    width: '0.5rem', height: '0.5rem', borderRadius: '50%', flexShrink: 0,
+                    background: isActive ? opt.activeColor : '#d1d5db',
+                    transition: 'background 0.15s',
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.82rem', color: '#111827' }}>{opt.label}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4, marginTop: '0.0625rem' }}>{opt.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div role="alert" style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            background: '#fee2e2', border: '1px solid #fca5a5',
+            borderRadius: '0.5rem', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 500,
+          }}>
+            ⚠ {error}
+          </div>
+        )}
+
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div role="alert" style={{
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-          padding: '0.875rem 1.25rem',
-          background: '#fee2e2', border: '1px solid #fca5a5',
-          borderRadius: '0.75rem', color: '#b91c1c', fontSize: '0.875rem', fontWeight: 500,
-          animation: 'fadeIn 0.2s ease-out',
-        }}>
-          ⚠️ {error}
-        </div>
-      )}
-
-      {/* Submit Button */}
-      <button
-        type="submit"
-        id="btn-start-exam"
-        disabled={!isValid || isLoading}
-        style={{
-          width: '100%', padding: '1rem',
-          borderRadius: '0.875rem',
-          fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.05rem',
-          border: 'none', cursor: isValid && !isLoading ? 'pointer' : 'not-allowed',
-          transition: 'all 0.2s ease',
-          ...(isValid && !isLoading
-            ? {
-                background: '#d97706', color: '#ffffff',
-                boxShadow: '0 4px 16px rgba(217,119,6,0.3)',
-              }
-            : {
-                background: '#f3f4f6', color: '#9ca3af',
-                border: '1px solid #e5e7eb',
-              }),
-        }}
-        onMouseEnter={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#b45309'; }}
-        onMouseLeave={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#d97706'; }}
-      >
-        {isLoading ? (
-          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Spinner /> Đang tạo phiên thi...
-          </span>
-        ) : 'Bắt đầu làm bài →'}
-      </button>
+      {/* Sticky Submit */}
+      <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb', backgroundColor: '#fff', flexShrink: 0 }}>
+        <button
+          type="submit"
+          id="btn-start-exam"
+          disabled={!isValid || isLoading}
+          style={{
+            width: '100%', padding: '0.875rem',
+            borderRadius: '0.75rem',
+            fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.95rem',
+            border: 'none', cursor: isValid && !isLoading ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s ease',
+            ...(isValid && !isLoading
+              ? { background: '#d97706', color: '#ffffff', boxShadow: '0 4px 14px rgba(217,119,6,0.3)' }
+              : { background: '#f3f4f6', color: '#9ca3af', border: '1px solid #e5e7eb' }),
+          }}
+          onMouseEnter={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#b45309'; }}
+          onMouseLeave={e => { if (isValid && !isLoading) (e.currentTarget as HTMLButtonElement).style.background = '#d97706'; }}
+        >
+          {isLoading ? (
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <Spinner /> Đang tạo phiên thi...
+            </span>
+          ) : 'Bắt đầu làm bài →'}
+        </button>
+      </div>
     </form>
   );
 };
