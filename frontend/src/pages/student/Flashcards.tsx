@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { vocabApi } from '../../core/api/vocabApi';
 import type {
   DeckSummary,
@@ -12,14 +12,29 @@ import { SrsStudyView } from '../../components/vocab/SrsStudyView';
 import { DeckModal } from '../../components/vocab/DeckModal';
 import { CardModal } from '../../components/vocab/CardModal';
 import { ConfirmDeleteCardModal } from '../../components/vocab/ConfirmDeleteCardModal';
+import { ConfirmDeleteDeckModal } from '../../components/vocab/ConfirmDeleteDeckModal';
+
+// Code-splitting Lazy Loading cho các chế độ học tập nâng cao để tối ưu kích thước bundle ban đầu
+const QuizPracticeView = lazy(() =>
+  import('../../components/vocab/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
+);
+const VocabTestView = lazy(() =>
+  import('../../components/vocab/VocabTestView').then((m) => ({ default: m.VocabTestView }))
+);
+const MatchGameView = lazy(() =>
+  import('../../components/vocab/MatchGameView').then((m) => ({ default: m.MatchGameView }))
+);
 
 /**
  * Kiểu dữ liệu xác định các chế độ hiển thị trên màn hình Sổ tay & Bộ thẻ từ vựng:
  * - 'DECKS_LIST': Xem danh sách tổng quan các bộ thẻ
  * - 'DECK_DETAIL': Xem danh sách các thẻ từ vựng trong 1 bộ thẻ cụ thể
- * - 'STUDY_MODE': Chế độ lật thẻ 3D ôn tập Spaced Repetition (SRS)
+ * - 'STUDY_MODE': Chế độ lật thẻ ôn tập Spaced Repetition (SRS)
+ * - 'PRACTICE_MODE': Chế độ Luyện tập trắc nghiệm 4 đáp án
+ * - 'TEST_MODE': Chế độ Thi thử kiểm tra từ vựng tính giờ
+ * - 'MATCH_MODE': Chế độ Trò chơi Ghép từ tốc độ 60 giây
  */
-type ViewMode = 'DECKS_LIST' | 'DECK_DETAIL' | 'STUDY_MODE';
+type ViewMode = 'DECKS_LIST' | 'DECK_DETAIL' | 'STUDY_MODE' | 'PRACTICE_MODE' | 'TEST_MODE' | 'MATCH_MODE';
 
 /**
  * Component Trang chính Quản lý Sổ tay & Bộ thẻ từ vựng (Flashcards.tsx).
@@ -33,13 +48,16 @@ type ViewMode = 'DECKS_LIST' | 'DECK_DETAIL' | 'STUDY_MODE';
 const Flashcards: React.FC = () => {
   // --- Quản lý Chế độ hiển thị và Bộ thẻ đang chọn ---
   const [viewMode, setViewMode] = useState<ViewMode>('DECKS_LIST');
-  const [selectedDeck, setSelectedDeck] = useState<DeckSummary | null>(null);
+  const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
 
   // --- Quản lý Danh sách dữ liệu từ Backend ---
   const [decks, setDecks] = useState<DeckSummary[]>([]);          // Danh sách các bộ thẻ
   const [cards, setCards] = useState<Flashcard[]>([]);              // Danh sách các thẻ trong bộ thẻ đang chọn
   const [loadingDecks, setLoadingDecks] = useState(false);          // Loading khi fetch decks
   const [loadingCards, setLoadingCards] = useState(false);          // Loading khi fetch cards
+
+  // Tự động tìm bộ thẻ đang chọn từ mảng decks; tự đồng bộ khi decks thay đổi mà không gây re-render loop
+  const selectedDeck = decks.find((d) => d.id === selectedDeckId) || null;
 
   // --- Quản lý Trạng thái hiển thị Modal ---
   const [isDeckModalOpen, setIsDeckModalOpen] = useState(false);    // Mở modal tạo/sửa bộ thẻ
@@ -51,6 +69,9 @@ const Flashcards: React.FC = () => {
   const [deletingCard, setDeletingCard] = useState<Flashcard | null>(null); // Dữ liệu thẻ đang chờ xác nhận xóa
   const [isDeletingCard, setIsDeletingCard] = useState(false);
 
+  const [deletingDeck, setDeletingDeck] = useState<DeckSummary | null>(null); // Dữ liệu bộ thẻ đang chờ xác nhận xóa
+  const [isDeletingDeck, setIsDeletingDeck] = useState(false);
+
   /**
    * 1. Tải danh sách toàn bộ bộ thẻ từ vựng của người dùng từ Backend API
    */
@@ -59,17 +80,12 @@ const Flashcards: React.FC = () => {
       setLoadingDecks(true);
       const data = await vocabApi.getDecks();
       setDecks(data);
-      // Nếu đang xem 1 bộ thẻ, đồng bộ lại thông tin của bộ thẻ đó (số thẻ, thẻ cần ôn)
-      if (selectedDeck) {
-        const updated = data.find((d) => d.id === selectedDeck.id);
-        if (updated) setSelectedDeck(updated);
-      }
     } catch (err) {
       console.error('Lỗi khi tải danh sách bộ thẻ:', err);
     } finally {
       setLoadingDecks(false);
     }
-  }, [selectedDeck]);
+  }, []);
 
   /**
    * 2. Tải danh sách thẻ từ vựng trong bộ thẻ đang chọn (hỗ trợ lọc từ khóa và trạng thái)
@@ -116,7 +132,7 @@ const Flashcards: React.FC = () => {
    * Người dùng click vào 1 bộ thẻ để xem chi tiết danh sách từ vựng
    */
   const handleSelectDeck = (deck: DeckSummary) => {
-    setSelectedDeck(deck);
+    setSelectedDeckId(deck.id);
     setViewMode('DECK_DETAIL');
     fetchCards(deck.id);
   };
@@ -125,7 +141,7 @@ const Flashcards: React.FC = () => {
    * Người dùng click vào nút 'Ôn tập ngay (SRS)' của bộ thẻ
    */
   const handleStudyDeck = (deck: DeckSummary) => {
-    setSelectedDeck(deck);
+    setSelectedDeckId(deck.id);
     setViewMode('STUDY_MODE');
     fetchCards(deck.id);
   };
@@ -162,25 +178,34 @@ const Flashcards: React.FC = () => {
   };
 
   /**
-   * Xử lý xóa một bộ thẻ (kèm hộp thoại xác nhận)
+   * Mở modal xác nhận xóa an toàn một bộ thẻ
    */
-  const handleDeleteDeck = async (deck: DeckSummary) => {
-    const isConfirmed = window.confirm(
-      `Bạn có chắc chắn muốn xóa bộ thẻ "${deck.name}" không?\nToàn bộ ${deck.totalCards} thẻ từ vựng bên trong cũng sẽ bị xóa vĩnh viễn.`
-    );
-    if (!isConfirmed) return;
+  const handleDeleteDeck = (deck: DeckSummary) => {
+    setDeletingDeck(deck);
+  };
+
+  /**
+   * Thực thi xóa bộ thẻ khi người dùng bấm 'Xác nhận xóa' trên ConfirmDeleteDeckModal
+   */
+  const handleConfirmDeleteDeck = async () => {
+    if (!deletingDeck) return;
 
     try {
-      await vocabApi.deleteDeck(deck.id);
+      setIsDeletingDeck(true);
+      const targetDeckId = deletingDeck.id;
+      await vocabApi.deleteDeck(targetDeckId);
+      setDeletingDeck(null);
       await fetchDecks();
       // Nếu đang xem chi tiết bộ thẻ bị xóa thì quay về danh sách
-      if (selectedDeck?.id === deck.id) {
+      if (selectedDeckId === targetDeckId) {
         setViewMode('DECKS_LIST');
-        setSelectedDeck(null);
+        setSelectedDeckId(null);
       }
     } catch (err) {
       console.error('Lỗi khi xóa bộ thẻ:', err);
       alert('Không thể xóa bộ thẻ. Vui lòng thử lại!');
+    } finally {
+      setIsDeletingDeck(false);
     }
   };
 
@@ -217,6 +242,9 @@ const Flashcards: React.FC = () => {
         customMeaning: data.customMeaning || '',
         exampleSentence: data.exampleSentence,
         customImageUrl: data.customImageUrl,
+        phonetic: data.phonetic,
+        pos: data.pos,
+        level: data.level,
       });
     } else {
       // Thêm thẻ từ vựng mới vào bộ thẻ hiện tại
@@ -291,9 +319,12 @@ const Flashcards: React.FC = () => {
           loading={loadingCards}
           onBack={() => {
             setViewMode('DECKS_LIST');
-            setSelectedDeck(null);
+            setSelectedDeckId(null);
           }}
           onStudyClick={() => setViewMode('STUDY_MODE')}
+          onQuizClick={() => setViewMode('PRACTICE_MODE')}
+          onTestClick={() => setViewMode('TEST_MODE')}
+          onMatchGameClick={() => setViewMode('MATCH_MODE')}
           onAddCardClick={handleOpenAddCard}
           onEditCard={handleOpenEditCard}
           onDeleteCard={handleOpenDeleteCard}
@@ -301,17 +332,49 @@ const Flashcards: React.FC = () => {
         />
       )}
 
-      {/* 3. MÀN HÌNH CHẾ ĐỘ ÔN TẬP SRS 3D FLIP */}
+      {/* 3. MÀN HÌNH CHẾ ĐỘ ÔN TẬP FLASHCARD SRS */}
       {viewMode === 'STUDY_MODE' && selectedDeck && (
         <SrsStudyView
           deck={selectedDeck}
           cards={cards}
           onBack={() => setViewMode('DECK_DETAIL')}
           onFinish={() => {
-            // Khi hoàn thành, đồng bộ lại dữ liệu
             fetchDecks();
           }}
         />
+      )}
+
+      {/* 4. MÀN HÌNH CHẾ ĐỘ LUYỆN TẬP TRẮC NGHIỆM (Lazy Loaded) */}
+      {viewMode === 'PRACTICE_MODE' && selectedDeck && (
+        <Suspense fallback={<div className="vocab-loading-spinner-box">Đang tải phòng luyện tập...</div>}>
+          <QuizPracticeView
+            deck={selectedDeck}
+            cards={cards}
+            onBack={() => setViewMode('DECK_DETAIL')}
+          />
+        </Suspense>
+      )}
+
+      {/* 5. MÀN HÌNH CHẾ ĐỘ THI THỬ TÍNH GIỜ (Lazy Loaded) */}
+      {viewMode === 'TEST_MODE' && selectedDeck && (
+        <Suspense fallback={<div className="vocab-loading-spinner-box">Đang tải phòng thi thử...</div>}>
+          <VocabTestView
+            deck={selectedDeck}
+            cards={cards}
+            onBack={() => setViewMode('DECK_DETAIL')}
+          />
+        </Suspense>
+      )}
+
+      {/* 6. MÀN HÌNH CHẾ ĐỘ GHÉP TỪ TỐC ĐỘ (Lazy Loaded) */}
+      {viewMode === 'MATCH_MODE' && selectedDeck && (
+        <Suspense fallback={<div className="vocab-loading-spinner-box">Đang chuẩn bị trò chơi ghép từ...</div>}>
+          <MatchGameView
+            deck={selectedDeck}
+            cards={cards}
+            onBack={() => setViewMode('DECK_DETAIL')}
+          />
+        </Suspense>
       )}
 
       {/* ========================================================
@@ -345,6 +408,15 @@ const Flashcards: React.FC = () => {
         onClose={() => setDeletingCard(null)}
         onConfirm={handleConfirmDeleteCard}
         isDeleting={isDeletingCard}
+      />
+
+      {/* Modal Xác nhận Xóa bộ thẻ an toàn */}
+      <ConfirmDeleteDeckModal
+        isOpen={Boolean(deletingDeck)}
+        deck={deletingDeck}
+        onClose={() => !isDeletingDeck && setDeletingDeck(null)}
+        onConfirm={handleConfirmDeleteDeck}
+        isDeleting={isDeletingDeck}
       />
     </div>
   );
