@@ -448,38 +448,40 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
 
   if (wizardMode === 'START') {
     return (
-      <div style={{ background: 'var(--bg-secondary)', padding: '3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2rem' }}>Bắt đầu tạo Đề thi</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', width: '100%', maxWidth: '900px' }}>
+      <div style={{ background: 'var(--bg-secondary)', padding: '3rem 2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-md)' }}>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', textAlign: 'center' }}>Bắt đầu tạo Đề thi</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1rem', textAlign: 'center' }}>Chọn phương thức phù hợp để xây dựng cấu trúc đề thi của bạn.</p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', width: '100%', maxWidth: '900px' }}>
           
-          <div className="ed-card flex-center" style={{ flexDirection: 'column', padding: '2rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', border: '2px solid transparent' }} onClick={() => setWizardMode('FULL')} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <AlignLeft size={32} color="var(--primary)" />
+          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('FULL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.3)' }}>
+              <AlignLeft size={28} color="white" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>1. Tạo Full Đề</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Sinh toàn bộ cấu trúc chuẩn của một đề thi (IELTS, TOEIC...)</p>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>1. Tạo Full Đề</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Sinh toàn bộ cấu trúc chuẩn của một đề thi hoàn chỉnh (IELTS, TOEIC, NLTV...)</p>
           </div>
 
-          <div className="ed-card flex-center" style={{ flexDirection: 'column', padding: '2rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', border: '2px solid transparent' }} onClick={() => setWizardMode('SKILL')} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <Zap size={32} color="var(--primary)" />
+          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('SKILL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)' }}>
+              <Zap size={28} color="white" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>2. Tạo 1 Kỹ năng</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Chỉ tạo toàn bộ phần Reading, Listening hoặc Writing</p>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>2. Tạo 1 Kỹ năng</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tạo nhanh toàn bộ cấu trúc cho một kỹ năng riêng biệt (Reading, Listening...)</p>
           </div>
 
-          <div className="ed-card flex-center" style={{ flexDirection: 'column', padding: '2rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', border: '2px solid transparent' }} onClick={() => setWizardMode('PART')} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <Plus size={32} color="var(--primary)" />
+          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('PART')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)' }}>
+              <Plus size={28} color="white" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>3. Tạo 1 Part Lẻ</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Chỉ tạo 1 đoạn văn (Passage) hoặc 1 part trắc nghiệm nhỏ</p>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>3. Tạo 1 Part Lẻ</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Chỉ tạo một đoạn văn (Passage) hoặc một part trắc nghiệm nhỏ bất kỳ</p>
           </div>
 
         </div>
         
         {parts.length > 0 && (
-          <button className="btn btn-outline" style={{ marginTop: '2rem' }} onClick={() => setWizardMode('BUILDER')}>
+          <button className="btn btn-outline" style={{ marginTop: '2.5rem', padding: '0.65rem 1.5rem', borderRadius: 'var(--radius-full)', fontWeight: 600 }} onClick={() => setWizardMode('BUILDER')}>
             Đóng & Quay lại Trình chỉnh sửa
           </button>
         )}
@@ -570,24 +572,54 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
   }
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-      <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Trình tạo Đề thi Trực quan</h3>
+    <div style={{ background: 'var(--bg-secondary)', paddingBottom: '3rem', borderRadius: 'var(--radius-md)' }}>
+      {/* Builder Top Banner */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
+        padding: '2rem 1.5rem', 
+        borderRadius: 'var(--radius-lg)',
+        color: 'white',
+        marginBottom: '1.5rem',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Background Pattern */}
+        <div style={{ position: 'absolute', right: '-5%', top: '-20%', opacity: 0.05, transform: 'scale(1.5)', pointerEvents: 'none' }}>
+          <Settings size={200} />
+        </div>
+        
+        <div className="flex-between" style={{ position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.35rem', letterSpacing: '-0.5px' }}>Trình Tạo Đề Thi Nâng Cao</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Thiết kế và tùy chỉnh cấu trúc đề thi một cách trực quan.</p>
+          </div>
+          <div className="flex-center" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button className="btn" style={{ padding: '0.6rem 1.25rem', borderRadius: 'var(--radius-full)', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }} onClick={() => setWizardMode('START')}>
+              <Plus size={16} style={{ marginRight: '0.4rem' }} /> Thêm Nội Dung
+            </button>
+            <button className="btn" style={{ padding: '0.6rem 1.25rem', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(234,88,12,0.3)', fontWeight: 600, fontSize: '0.9rem' }} onClick={handleSave}>
+              <Save size={16} style={{ marginRight: '0.4rem' }} /> Lưu & Xuất JSON
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="ed-card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Tên đề thi</label>
-            <input type="text" className="input-field" value={examTitle} onChange={e => setExamTitle(e.target.value)} />
+      {/* Basic Info Card */}
+      <div className="ed-card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)' }}>
+        <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>Thông tin Cơ bản</h4>
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 300px' }}>
+            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tên đề thi</label>
+            <input type="text" className="input-field" value={examTitle} onChange={e => setExamTitle(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }} />
           </div>
-          <div style={{ width: '200px' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Loại đề thi</label>
-            <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)}>
+          <div style={{ width: '250px', flexGrow: 0 }}>
+            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loại chứng chỉ</label>
+            <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
               <option value="IELTS_ACADEMIC">IELTS Academic</option>
-              <option value="TOEIC_LISTENING">TOEIC Listening</option>
-              <option value="TOEIC_READING">TOEIC Reading</option>
-              <option value="VSTEP">VSTEP (Tiếng Việt)</option>
+              <option value="TOEIC_LISTENING_READING">TOEIC Listening & Reading</option>
+              <option value="TOEIC_WRITING">TOEIC Writing</option>
+              <option value="VSTEP">Năng Lực Tiếng Việt (NLTV)</option>
             </select>
           </div>
         </div>
