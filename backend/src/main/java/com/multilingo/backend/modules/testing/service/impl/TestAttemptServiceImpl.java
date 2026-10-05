@@ -31,6 +31,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.TransactionDefinition;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -52,6 +55,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final ObjectMapper objectMapper;
     private final GradingAdapter gradingAdapter;
     private final ObjectiveGradingService gradingService;
+    private final PlatformTransactionManager transactionManager;
 
     @Override
     @Transactional
@@ -97,20 +101,32 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
                         "Attempt not found or access denied: " + attemptId));
 
+        attempt = ensureFinalized(attempt, userId);
+
+        return toWorkspaceResponse(attempt);
+    }
+
+    private TestAttempt ensureFinalized(TestAttempt attempt, Integer userId) {
         if (attempt.getTestMode() == TestMode.MOCK_TEST
                 && attempt.getStatus() == AttemptStatus.IN_PROGRESS
                 && attempt.getDeadline() != null
-                && Instant.now().isAfter(attempt.getDeadline())) {
-            // Lazy Finalize when querying expired attempt
-            TestAttempt lockedAttempt = testAttemptRepository.findByIdAndUserIdForUpdate(attemptId, userId)
-                    .orElse(attempt);
-            if (lockedAttempt.getStatus() == AttemptStatus.IN_PROGRESS) {
-                finalizeAndGradeAttempt(lockedAttempt, SubmitReason.TIMEOUT_SERVER, null, userId);
-                attempt = lockedAttempt;
-            }
+                && Instant.now().isAfter(attempt.getDeadline().plusSeconds(15))) {
+            
+            // Lazy Finalize in a new transaction
+            TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+            transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            
+            TestAttempt finalized = transactionTemplate.execute(status -> {
+                TestAttempt lockedAttempt = testAttemptRepository.findByIdAndUserIdForUpdate(attempt.getId(), userId)
+                        .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Attempt not found"));
+                if (lockedAttempt.getStatus() == AttemptStatus.IN_PROGRESS) {
+                    finalizeAndGradeAttempt(lockedAttempt, SubmitReason.TIMEOUT_SERVER, null, userId);
+                }
+                return lockedAttempt;
+            });
+            return finalized != null ? finalized : attempt;
         }
-
-        return toWorkspaceResponse(attempt);
+        return attempt;
     }
 
     @Override
@@ -235,6 +251,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             attempt.setOverallScore(gradingResult.getTotalScore());
             Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
             attempt.setSectionScores(sectionMap);
+            attempt.setResultSummary(objectMapper.writeValueAsString(gradingResult));
 
             boolean hasWriting = checkHasWriting(attempt);
             if (hasWriting) {
@@ -300,6 +317,107 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             attempt.setLockedSections(locked);
             testAttemptRepository.save(attempt);
         }
+    }
+
+    @Override
+    @Transactional
+    public com.multilingo.backend.modules.testing.dto.response.ExamResultResponse getAttemptResult(Integer attemptId) {
+        Integer userId = identityAdapter.getCurrentUserId();
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Attempt not found"));
+
+        attempt = ensureFinalized(attempt, userId);
+
+        if (attempt.getStatus() == AttemptStatus.IN_PROGRESS) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Attempt is not submitted yet");
+        }
+
+        Map<String, Object> resultSummary = null;
+        if (attempt.getResultSummary() != null) {
+            try {
+                resultSummary = objectMapper.readValue(attempt.getResultSummary(), Map.class);
+            } catch (Exception e) {
+                log.error("Failed to parse result summary for attempt {}", attemptId, e);
+            }
+        }
+
+        return com.multilingo.backend.modules.testing.dto.response.ExamResultResponse.builder()
+                .attemptId(attempt.getId())
+                .status(attempt.getStatus())
+                .testScope(attempt.getTestScope())
+                .testMode(attempt.getTestMode())
+                .startTime(attempt.getStartTime())
+                .endTime(attempt.getEndTime())
+                .timeSpentSeconds(attempt.getTimeSpentSeconds())
+                .overallScore(attempt.getOverallScore())
+                .resultSummary(resultSummary)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse getAttemptReview(Integer attemptId, Integer partId) {
+        Integer userId = identityAdapter.getCurrentUserId();
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Attempt not found"));
+
+        attempt = ensureFinalized(attempt, userId);
+
+        if (attempt.getStatus() == AttemptStatus.IN_PROGRESS) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Attempt is not submitted yet");
+        }
+
+        Object examData = extractPartData(attempt.getExamSnapshot(), partId);
+
+        AttemptAnswer answer = attemptAnswerRepository.findByAttemptIdAndPartId(attemptId, partId).orElse(null);
+        Map<String, Object> userAnswers = null;
+        Map<String, Object> partResult = null;
+
+        if (answer != null) {
+            if (answer.getUserAnswers() != null) {
+                try {
+                    // userAnswers is already a Map<String, Object> because of SqlTypes.JSON mapping in entity
+                    userAnswers = answer.getUserAnswers();
+                } catch (Exception ignored) {}
+            }
+            if (attempt.getResultSummary() != null) {
+                try {
+                    Map<String, Object> summary = objectMapper.readValue(attempt.getResultSummary(), Map.class);
+                    Map<String, Object> partResults = (Map<String, Object>) summary.get("partResults");
+                    if (partResults != null) {
+                        partResult = (Map<String, Object>) partResults.get(String.valueOf(partId));
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        return com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse.builder()
+                .attemptId(attemptId)
+                .partId(partId)
+                .partResult(partResult)
+                .userAnswers(userAnswers)
+                .examData(examData)
+                .build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object extractPartData(Map<String, Object> snapshot, Integer partId) {
+        if (snapshot == null) return null;
+        List<Map<String, Object>> sections = (List<Map<String, Object>>) snapshot.get("sections");
+        if (sections != null) {
+            for (Map<String, Object> section : sections) {
+                List<Map<String, Object>> parts = (List<Map<String, Object>>) section.get("parts");
+                if (parts != null) {
+                    for (Map<String, Object> part : parts) {
+                        Object pid = part.get("id");
+                        if (pid != null && Integer.valueOf(pid.toString()).equals(partId)) {
+                            return part;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private void saveAnswersInternal(TestAttempt attempt, List<AutosaveAnswersRequest.PartAnswerDto> answers) {

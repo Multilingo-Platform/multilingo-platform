@@ -29,6 +29,18 @@ public interface TestAttemptService {
     WorkspaceResponse getAttemptWorkspace(Integer attemptId);
 
     /**
+     * Returns the final result summary of an attempt.
+     * Triggers Lazy Finalize if the attempt is past deadline.
+     */
+    com.multilingo.backend.modules.testing.dto.response.ExamResultResponse getAttemptResult(Integer attemptId);
+
+    /**
+     * Returns detailed review info (exam snapshot, user answers, grading results) for a specific part.
+     * Triggers Lazy Finalize if the attempt is past deadline.
+     */
+    com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse getAttemptReview(Integer attemptId, Integer partId);
+
+    /**
      * Autosaves draft answers for an attempt.
      * Upserts answers into attempt_answers table per partId.
      */
