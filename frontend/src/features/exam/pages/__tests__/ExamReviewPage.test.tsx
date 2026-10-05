@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ExamReviewPage from '../ExamReviewPage';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -86,5 +86,41 @@ describe('ExamReviewPage', () => {
     expect(screen.getByText('What is the capital of France?')).toBeInTheDocument();
     expect(screen.getByText('Paris is the capital of France.')).toBeInTheDocument();
     expect(screen.getByText('Quay lại bảng điểm')).toBeInTheDocument();
+  });
+
+  it('renders Part navigation tabs and switches parts when clicked', async () => {
+    const mockData = {
+      attemptId: 1,
+      partId: 1,
+      partResult: {},
+      userAnswers: {},
+      examData: {
+        questions: [{ id: 101, content: 'Q1' }],
+      },
+    };
+
+    const hookSpy = vi.spyOn(reviewHook, 'useExamReview').mockReturnValue({
+      data: mockData as any,
+      loading: false,
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/attempts/1/review']}>
+        <Routes>
+          <Route path="/attempts/:attemptId/review" element={<ExamReviewPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    // Verify part tabs exist
+    const part2Tab = screen.getByRole('button', { name: /Part 2/i });
+    expect(part2Tab).toBeInTheDocument();
+
+    // Click Part 2 tab
+    fireEvent.click(part2Tab);
+    await waitFor(() => {
+      expect(hookSpy).toHaveBeenCalledWith(1, 2);
+    });
   });
 });
