@@ -213,12 +213,12 @@ const ExamResultPage: React.FC = () => {
 
             {/* CTAs (Right 3 cols) */}
             <div className="lg:col-span-3 flex flex-col gap-2.5 justify-center">
-              <a
-                href="#questions-section"
-                className="btn-primary text-center justify-center text-sm py-2.5"
+              <Link
+                to={`/attempts/${attemptId || 1}/review`}
+                className="btn-primary text-center justify-center text-sm py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-sm"
               >
-                Xem lại chi tiết từng câu ↓
-              </a>
+                🔍 Chế độ Ôn tập & Giải thích
+              </Link>
               <Link
                 to="/exams/1/start"
                 className="btn-outline text-center justify-center text-sm py-2"
