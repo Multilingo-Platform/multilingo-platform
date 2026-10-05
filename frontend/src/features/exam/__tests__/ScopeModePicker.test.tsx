@@ -38,8 +38,8 @@ describe('ScopeModePicker', () => {
     fireEvent.click(screen.getByText('Một phần'));
     // Select mode
     fireEvent.click(screen.getByText('Practice'));
-    // Select section — click the pill button with the exact label "📖 Reading"
-    const readingPill = screen.getAllByRole('button').find(b => b.textContent?.trim() === '📖 Reading');
+    // Select section — click the pill button with the exact label "Reading"
+    const readingPill = screen.getAllByRole('button').find(b => b.textContent?.trim() === 'Reading');
     expect(readingPill).toBeDefined();
     fireEvent.click(readingPill!);
     // Part not selected — button should remain disabled
