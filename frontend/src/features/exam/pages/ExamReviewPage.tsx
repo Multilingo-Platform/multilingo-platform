@@ -3,6 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useExamReview } from '../hooks/useExamReview';
 import { ReviewPalette } from '../components/review/ReviewPalette';
 import { ExplanationBox } from '../components/review/ExplanationBox';
+import type { ExamReviewQuestion, ExamReviewOption } from '../types/api.types';
+
+const DEFAULT_PARTS = [1, 2, 3, 4];
 
 const ExamReviewPage: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
@@ -51,10 +54,10 @@ const ExamReviewPage: React.FC = () => {
     );
   }
 
-  // Support both examData and examSnapshot shapes
-  const questions: any[] = data.examData?.questions || (data as any).examSnapshot?.questions || [];
+  const questions: ExamReviewQuestion[] =
+    data.examData?.questions || data.examSnapshot?.questions || [];
   const userAnswers: Record<string, any> = data.userAnswers || {};
-  const isCorrectFlags: Record<string, boolean> = (data as any).isCorrectFlags || {};
+  const isCorrectFlags: Record<string, boolean> = data.isCorrectFlags || {};
 
   return (
     <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
@@ -68,6 +71,28 @@ const ExamReviewPage: React.FC = () => {
             Bài thi #{attemptId} - Part {partId}
           </h1>
         </div>
+
+        {/* Part Navigation Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+          {DEFAULT_PARTS.map((p) => {
+            const isActive = partId === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPartId(p)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                }`}
+              >
+                Part {p}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex items-center gap-4">
           <Link
             to={`/attempts/${attemptId}/result`}
@@ -90,7 +115,10 @@ const ExamReviewPage: React.FC = () => {
           ) : (
             questions.map((q, idx) => {
               const qKey = q.id.toString();
-              const hasAnswer = userAnswers[qKey] !== undefined && userAnswers[qKey] !== null && userAnswers[qKey] !== '';
+              const hasAnswer =
+                userAnswers[qKey] !== undefined &&
+                userAnswers[qKey] !== null &&
+                userAnswers[qKey] !== '';
               const isCorrect = isCorrectFlags[qKey] === true;
               const isSelected = selectedQuestionId === q.id;
 
@@ -134,15 +162,18 @@ const ExamReviewPage: React.FC = () => {
                   {/* Options */}
                   {Array.isArray(q.options) && q.options.length > 0 && (
                     <div className="space-y-2 mb-4">
-                      {q.options.map((opt: any) => {
-                        const isUserChoice = userAnswers[qKey] === opt.id || userAnswers[qKey] === opt.content;
+                      {q.options.map((opt: ExamReviewOption) => {
+                        const isUserChoice =
+                          userAnswers[qKey] === opt.id || userAnswers[qKey] === opt.content;
                         const isCorrectOption = opt.isCorrect === true;
 
                         let optionStyle = 'border-gray-200 bg-white text-gray-700';
                         if (isCorrectOption) {
-                          optionStyle = 'border-[#16A34A] bg-green-50 text-[#16A34A] font-semibold';
+                          optionStyle =
+                            'border-[#16A34A] bg-green-50 text-[#16A34A] font-semibold';
                         } else if (isUserChoice && !isCorrectOption) {
-                          optionStyle = 'border-[#DC2626] bg-red-50 text-[#DC2626] line-through';
+                          optionStyle =
+                            'border-[#DC2626] bg-red-50 text-[#DC2626] line-through';
                         }
 
                         return (
@@ -161,7 +192,9 @@ const ExamReviewPage: React.FC = () => {
                               <span>{opt.content}</span>
                             </div>
                             <div className="text-xs font-bold">
-                              {isCorrectOption && <span className="text-[#16A34A]">Đáp án đúng</span>}
+                              {isCorrectOption && (
+                                <span className="text-[#16A34A]">Đáp án đúng</span>
+                              )}
                               {isUserChoice && !isCorrectOption && (
                                 <span className="text-[#DC2626]">Lựa chọn của bạn</span>
                               )}
