@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { authApi } from '../api/authApi';
+import type { RegisterRequest } from '../types';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
@@ -13,14 +16,43 @@ const GoogleIcon = () => (
 const RegisterForm = () => {
   const navigate = useNavigate();
 
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  const registerMutation = useMutation({
+    mutationFn: (data: RegisterRequest) => authApi.register(data),
+    onSuccess: (res) => {
+      if (res.success) {
+        alert('Đăng ký thành công! Vui lòng đăng nhập.');
+        navigate('/login');
+      }
+    },
+  });
+
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Gắn logic gọi API đăng ký vào đây
-    navigate('/onboarding');
+    setValidationError('');
+    if (password !== confirmPassword) {
+      setValidationError('Mật khẩu xác nhận không khớp!');
+      return;
+    }
+    registerMutation.mutate({ fullName, phone, email, passwordHash: password });
   };
 
   return (
     <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {validationError && (
+        <div style={{ color: 'red', fontSize: '0.875rem' }}>{validationError}</div>
+      )}
+      {registerMutation.isError && (
+        <div style={{ color: 'red', fontSize: '0.875rem' }}>
+          {(registerMutation.error as any)?.response?.data?.message || 'Đăng ký thất bại'}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
@@ -28,6 +60,8 @@ const RegisterForm = () => {
           </label>
           <input 
             type="text" 
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
             className="auth-input-field" 
             placeholder="Nguyễn Văn A" 
             required 
@@ -39,6 +73,8 @@ const RegisterForm = () => {
           </label>
           <input 
             type="tel" 
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             className="auth-input-field" 
             placeholder="0912 345 678" 
           />
@@ -51,6 +87,8 @@ const RegisterForm = () => {
         </label>
         <input 
           type="email" 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="auth-input-field" 
           placeholder="john.doe@example.com" 
           required 
@@ -64,9 +102,12 @@ const RegisterForm = () => {
           </label>
           <input 
             type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="auth-input-field" 
             placeholder="••••••••" 
             required 
+            minLength={6}
           />
         </div>
         <div style={{ flex: 1 }}>
@@ -75,6 +116,8 @@ const RegisterForm = () => {
           </label>
           <input 
             type="password" 
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             className="auth-input-field" 
             placeholder="••••••••" 
             required 
@@ -82,8 +125,8 @@ const RegisterForm = () => {
         </div>
       </div>
 
-      <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }}>
-        Hoàn tất Đăng ký
+      <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }} disabled={registerMutation.isPending}>
+        {registerMutation.isPending ? 'Đang xử lý...' : 'Hoàn tất Đăng ký'}
       </button>
       
       <div className="flex-center" style={{ gap: '0.75rem', margin: '0.45rem 0' }}>

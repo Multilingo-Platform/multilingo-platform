@@ -1,5 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { useDispatch } from 'react-redux';
+import { authApi } from '../api/authApi';
+import { setCredentials } from '../store/authSlice';
+import type { LoginRequest } from '../types';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
@@ -12,21 +17,40 @@ const GoogleIcon = () => (
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const loginMutation = useMutation({
+    mutationFn: (data: LoginRequest) => authApi.login(data),
+    onSuccess: (res) => {
+      if (res.success) {
+        dispatch(setCredentials(res.data));
+        navigate('/student/dashboard');
+      }
+    },
+  });
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Gắn logic gọi API đăng nhập vào đây
-    navigate('/student/dashboard');
+    loginMutation.mutate({ email, password });
   };
 
   return (
     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+      {loginMutation.isError && (
+        <div style={{ color: 'red', fontSize: '0.875rem' }}>
+          {(loginMutation.error as any)?.response?.data?.message || 'Đăng nhập thất bại'}
+        </div>
+      )}
       <div>
         <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
           Email của bạn
         </label>
         <input 
           type="email" 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="auth-input-field" 
           placeholder="john.doe@example.com" 
           required 
@@ -40,14 +64,16 @@ const LoginForm = () => {
         </div>
         <input 
           type="password" 
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className="auth-input-field" 
           placeholder="••••••••" 
           required 
         />
       </div>
 
-      <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }}>
-        Đăng nhập ngay
+      <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }} disabled={loginMutation.isPending}>
+        {loginMutation.isPending ? 'Đang xử lý...' : 'Đăng nhập ngay'}
       </button>
       
       <div className="flex-center" style={{ gap: '0.75rem', margin: '0.45rem 0' }}>
