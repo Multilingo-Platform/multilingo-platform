@@ -1,0 +1,655 @@
+{
+  "info": {
+    "_postman_id": "c012-flashcard-deck-multilingual-v1",
+    "name": "Multilingo - UC012 Vocab Decks & Flashcards API",
+    "description": "Postman Collection kiểm thử toàn diện toàn bộ API của tính năng UC012: Quản lý Sổ tay & Bộ thẻ từ vựng (Vocab Decks & Flashcards Management) hỗ trợ Đa ngôn ngữ (Multilingual Pairs) và Spaced Repetition (SRS).\n\n### Hướng dẫn sử dụng:\n1. Import file JSON này vào Postman (hoặc Thunder Client / Bruno / Insomnia).\n2. Cấu hình biến môi trường `baseUrl` (mặc định: `http://localhost:8080`).\n3. Header xác thực người dùng được mô phỏng qua `X-User-Id` (mặc định: `1` cho Owner, `2` cho User khác để test phân quyền / IDOR).\n4. Chạy tuần tự các request từ trên xuống dưới: Request tạo Deck sẽ tự động lưu `deckId`, Request tạo Card sẽ tự động lưu `cardId` vào biến môi trường Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8088",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "otherUserId",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "deckId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "cardId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Quản lý Bộ thẻ (Flashcard Decks)",
+      "item": [
+        {
+          "name": "1.1 Lấy danh sách bộ thẻ của User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text",
+                "description": "ID người dùng đang đăng nhập"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks"]
+            },
+            "description": "Lấy toàn bộ danh sách bộ thẻ từ vựng của người dùng kèm theo các số liệu thống kê (tổng số thẻ, thẻ mới, thẻ đang học, thẻ thành thạo, và thẻ cần ôn tập hôm nay)."
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Tạo bộ thẻ mới (Học Tiếng Anh giải nghĩa Tiếng Việt: EN -> VI)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"deckId\", jsonData.data.id);",
+                  "    console.log(\"Saved deckId:\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"IELTS Academic Vocabulary 2026\",\n  \"description\": \"Bộ từ vựng trọng tâm 3000 từ ôn thi IELTS Academic\",\n  \"targetLanguage\": \"en\",\n  \"sourceLanguage\": \"vi\",\n  \"isPublic\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks"]
+            },
+            "description": "Tạo bộ thẻ mới với cấu hình cặp ngôn ngữ đa dạng: `targetLanguage` là ngôn ngữ từ vựng cần học, `sourceLanguage` là ngôn ngữ của người học để giải nghĩa."
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Tạo bộ thẻ Đa ngôn ngữ khác (Học Tiếng Hàn giải nghĩa Tiếng Trung: KO -> ZH)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TOPIK II Essential Words\",\n  \"description\": \"Chuyên đề từ vựng TOPIK II cho người bản xứ nói tiếng Trung\",\n  \"targetLanguage\": \"ko\",\n  \"sourceLanguage\": \"zh\",\n  \"isPublic\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks"]
+            },
+            "description": "Kiểm thử khả năng lưu trữ cặp ngôn ngữ độc lập, linh hoạt cho người học đa quốc gia."
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 [Validation Test] Lỗi tạo bộ thẻ (Tên trống, mã ngôn ngữ sai định dạng)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"targetLanguage\": \"english_invalid_code\",\n  \"sourceLanguage\": \"vietnamese_invalid_code\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks"]
+            },
+            "description": "Kiểm tra cơ chế Bean Validation: Tên không được rỗng, mã ISO ngôn ngữ tối đa 10 ký tự."
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 Xem chi tiết bộ thẻ (Kèm thông tin ngôn ngữ & cấu hình)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}"]
+            },
+            "description": "Xem chi tiết một bộ thẻ cụ thể theo ID."
+          },
+          "response": []
+        },
+        {
+          "name": "1.6 Cập nhật thông tin bộ thẻ (Đổi tên, mô tả, quyền riêng tư)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"IELTS Academic Vocabulary 2026 - Master Edition\",\n  \"description\": \"Phiên bản cập nhật đầy đủ bài tập và phát âm\",\n  \"targetLanguage\": \"en\",\n  \"sourceLanguage\": \"vi\",\n  \"isPublic\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}"]
+            },
+            "description": "Cập nhật metadata của bộ thẻ. Hệ thống kiểm tra quyền sở hữu của người dùng hiện tại."
+          },
+          "response": []
+        },
+        {
+          "name": "1.7 [Security/IDOR Test] User khác sửa bộ thẻ (Expect 403 Forbidden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{otherUserId}}",
+                "type": "text",
+                "description": "User B (không phải owner)"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hack Deck Name\",\n  \"targetLanguage\": \"en\",\n  \"sourceLanguage\": \"vi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}"]
+            },
+            "description": "Kiểm thử lỗ hổng IDOR: Người dùng User B cố tình cập nhật bộ thẻ của User A. Backend phải chặn và trả về HTTP 403."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Quản lý Thẻ Từ vựng (Flashcards Management)",
+      "item": [
+        {
+          "name": "2.1 Thêm thẻ từ vựng thủ công (Tự nhập nghĩa & câu ví dụ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"cardId\", jsonData.data.id);",
+                  "    console.log(\"Saved cardId:\", jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customWord\": \"ubiquitous\",\n  \"customMeaning\": \"có mặt ở khắp mọi nơi, nhan nhản (tính từ)\",\n  \"exampleSentence\": \"Smartphones have become ubiquitous in daily modern life.\",\n  \"customImageUrl\": \"https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400\",\n  \"wordId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/cards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "cards"]
+            },
+            "description": "Thêm thẻ từ vựng với định dạng tự nhập hoàn toàn (wordId = null)."
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Thêm thẻ tự động trích xuất nghĩa từ Từ điển (Auto-extract theo sourceLanguage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customWord\": \"ephemeral\",\n  \"customMeaning\": null,\n  \"exampleSentence\": \"Fame in the age of internet can be ephemeral.\",\n  \"wordId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/cards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "cards"]
+            },
+            "description": "Khi cung cấp wordId (ID từ trong bảng từ điển DictionaryWord) và để trống customMeaning, hệ thống tự động bốc nghĩa tương ứng với ngôn ngữ của bộ thẻ (ví dụ `sourceLanguage = 'vi'` thì lấy nghĩa tiếng Việt)."
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 [Conflict Test] Thêm từ đã tồn tại trong bộ thẻ (Expect 409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 409 Conflict\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customWord\": \"UBIQUITOUS\",\n  \"customMeaning\": \"Trùng lặp từ (không phân biệt hoa thường)\",\n  \"wordId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/cards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "cards"]
+            },
+            "description": "Hệ thống kiểm tra chống trùng lặp từ vựng trong cùng một bộ thẻ (không phân biệt chữ hoa, chữ thường)."
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Lấy danh sách toàn bộ thẻ trong bộ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/cards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "cards"]
+            },
+            "description": "Lấy danh sách các thẻ trong bộ thẻ."
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Lấy danh sách thẻ có tìm kiếm theo từ khóa (keyword=ubi)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/cards?keyword=ubi",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "cards"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "ubi",
+                  "description": "Tìm kiếm theo từ hoặc nghĩa"
+                }
+              ]
+            },
+            "description": "Tìm kiếm thẻ từ vựng theo từ khóa."
+          },
+          "response": []
+        },
+        {
+          "name": "2.6 Lấy danh sách thẻ lọc theo trạng thái SRS (status=NEW)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/cards?status=NEW",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "cards"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "NEW",
+                  "description": "Trạng thái thẻ (NEW, LEARNING, REVIEW, MASTERED)"
+                }
+              ]
+            },
+            "description": "Lọc các thẻ từ vựng theo tiến độ học Spaced Repetition."
+          },
+          "response": []
+        },
+        {
+          "name": "2.7 Cập nhật thông tin thẻ (Sửa nghĩa, ví dụ câu, ghi chú)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customWord\": \"ubiquitous\",\n  \"customMeaning\": \"Hiện diện ở khắp nơi, rất phổ biến (tính từ trang trọng)\",\n  \"exampleSentence\": \"In big cities, coffee shops have become ubiquitous.\",\n  \"customImageUrl\": \"https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/cards/{{cardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "cards", "{{cardId}}"]
+            },
+            "description": "Chỉnh sửa thông tin thẻ cá nhân của người học."
+          },
+          "response": []
+        },
+        {
+          "name": "2.8 Xóa một thẻ từ vựng khỏi bộ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/cards/{{cardId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "cards", "{{cardId}}"]
+            },
+            "description": "Xóa vĩnh viễn thẻ từ vựng theo ID thẻ."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Xóa Bộ thẻ & Kiểm tra Dọn dẹp (Deck Deletion & Cleanup)",
+      "item": [
+        {
+          "name": "3.1 Xóa bộ thẻ (Cascade xóa thẻ con)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}"]
+            },
+            "description": "Xóa vĩnh viễn bộ thẻ và các thẻ từ vựng con nằm trong bộ thẻ đó."
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 Kiểm tra sau khi xóa (Expect 404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404 Not Found\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vocab", "decks", "{{deckId}}"]
+            },
+            "description": "Sau khi xóa, truy vấn lại bộ thẻ sẽ ném lỗi 404 Not Found (DECK_NOT_FOUND)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

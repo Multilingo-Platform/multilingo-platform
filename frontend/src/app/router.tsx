@@ -7,6 +7,11 @@ import axiosClient from '../core/api/axiosClient';
 import AudioUploader from '../components/common/AudioUploader';
 import StudentExamView from '../features/exams/components/StudentExamView';
 
+// --- CBT EXAM PAGES ---
+import ExamStartPage from '../features/exam/pages/ExamStartPage';
+import WorkspacePage from '../features/exam/pages/WorkspacePage';
+import ExamResultPage from '../features/exam/pages/ExamResultPage';
+
 // --- MEMBER 2 PAGES & LAYOUTS ---
 import PublicLayout from '../components/layout/PublicLayout';
 import UserLayout from '../components/layout/UserLayout';
@@ -20,6 +25,8 @@ import ExamBuilderPage from '../features/exams/pages/admin/ExamBuilderPage';
 import LandingPage from '../features/public/pages/LandingPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
+import ProtectedRoute from '../features/auth/components/ProtectedRoute';
+import Flashcards from '../pages/student/Flashcards';
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -31,38 +38,6 @@ const RootRoute = () => {
 
   // Nếu chưa đăng nhập, hiển thị PublicLayout (giao diện public)
   return <PublicLayout />;
-};
-
-// Component phụ cho Dev Route để lấy backend status
-const DevTestRoute = () => {
-  const [backendMessage, setBackendMessage] = useState<string>('Loading from backend...');
-
-  useEffect(() => {
-    axiosClient.get('/test/hello')
-      .then((res: any) => {
-        setBackendMessage(res.message || 'Connected successfully!');
-      })
-      .catch((err) => {
-        console.error(err);
-        setBackendMessage('Failed to connect to backend.');
-      });
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white p-8 rounded-xl shadow-lg">
-        <h1 className="text-3xl font-bold text-indigo-600 mb-4 text-center">Dev Test Route</h1>
-        <div className="bg-indigo-50 p-4 rounded text-indigo-700 font-medium mb-6 text-center">
-          Backend Status: {backendMessage}
-        </div>
-        <nav className="flex justify-center gap-4 mb-8">
-          <Link to="/dev/test-audio" className="text-indigo-600 hover:underline font-medium">Upload Audio</Link>
-          <Link to="/dev/test-student" className="text-indigo-600 hover:underline font-medium">Student View</Link>
-          <Link to="/onboarding" className="text-green-600 hover:underline font-bold">Go to App</Link>
-        </nav>
-      </div>
-    </div>
-  );
 };
 
 export const router = createBrowserRouter([
@@ -94,6 +69,10 @@ export const router = createBrowserRouter([
     path: '/onboarding',
     element: <OnboardingPage />
   },
+  {
+    path: '/flashcards',
+    element: <Navigate to="/student/flashcards" replace />
+  },
 
   // --- MÀN HÌNH STUDENT ---
   {
@@ -115,7 +94,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'flashcards',
-        element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng của Thành viên 5 (Flashcards)</h1></div>
+        element: <Flashcards />
       },
       {
         path: 'settings',
@@ -153,21 +132,29 @@ export const router = createBrowserRouter([
   },
 
   // --- DEV / TEST ROUTES (Tạm thời giữ lại) ---
+  
+  // --- CBT EXAM ROUTES (PROTECTED) ---
   {
-    path: '/dev',
-    element: <Outlet />,
+    element: <ProtectedRoute />,
     children: [
       {
-        index: true,
-        element: <DevTestRoute />
+        path: '/exams/:examId/start',
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamStartPage /> }]
       },
       {
-        path: 'test-audio',
-        element: <AudioUploader />
+        path: '/student/exam/:examId',
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamStartPage /> }]
       },
       {
-        path: 'test-student',
-        element: <StudentExamView />
+        path: '/attempts/:attemptId',
+        element: <WorkspacePage />
+      },
+      {
+        path: '/attempts/:attemptId/result',
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamResultPage /> }]
       }
     ]
   }

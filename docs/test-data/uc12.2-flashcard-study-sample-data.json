@@ -1,0 +1,178 @@
+{
+  "deckInfo": {
+    "deckId": 1,
+    "deckName": "IELTS Academic Core",
+    "description": "Bộ 500 từ vựng cốt lõi học thuật ôn thi IELTS band 7.0+",
+    "targetLanguage": "en",
+    "sourceLanguage": "vi",
+    "totalCards": 5
+  },
+  "mockStudySession": {
+    "request": {
+      "method": "GET",
+      "endpoint": "/api/v1/vocab/decks/1/study-session",
+      "headers": {
+        "X-User-Id": "1",
+        "Accept": "application/json"
+      }
+    },
+    "response": {
+      "success": true,
+      "code": 200,
+      "message": "Khởi tạo phiên học thành công",
+      "data": {
+        "deckId": 1,
+        "deckName": "IELTS Academic Core",
+        "targetLanguage": "en",
+        "sourceLanguage": "vi",
+        "totalSessionCards": 5,
+        "cards": [
+          {
+            "id": 101,
+            "customWord": "ubiquitous",
+            "phonetic": "/juːˈbɪk.wɪ.təs/",
+            "pos": "adj",
+            "maskedSentence": "Smartphones have become _______ in daily modern life.",
+            "customMeaning": "có mặt ở khắp mọi nơi, rất phổ biến",
+            "fullSentence": "Smartphones have become ubiquitous in daily modern life.",
+            "customImageUrl": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9",
+            "reviewCount": 2,
+            "status": "LEARNING"
+          },
+          {
+            "id": 102,
+            "customWord": "ephemeral",
+            "phonetic": "/ɪˈfem.ər.əl/",
+            "pos": "adj",
+            "maskedSentence": "Fame in the digital age can be remarkably _______.",
+            "customMeaning": "phù du, sớm nở tối tàn, ngắn ngủi",
+            "fullSentence": "Fame in the digital age can be remarkably ephemeral.",
+            "customImageUrl": null,
+            "reviewCount": 1,
+            "status": "LEARNING"
+          },
+          {
+            "id": 103,
+            "customWord": "pragmatic",
+            "phonetic": "/præɡˈmæt.ɪk/",
+            "pos": "adj",
+            "maskedSentence": "We need to adopt a _______ approach to solve this complex problem.",
+            "customMeaning": "thực dụng, dựa trên thực tế hơn là lý thuyết",
+            "fullSentence": "We need to adopt a pragmatic approach to solve this complex problem.",
+            "customImageUrl": null,
+            "reviewCount": 0,
+            "status": "NEW"
+          },
+          {
+            "id": 104,
+            "customWord": "serendipity",
+            "phonetic": "/ˌser.ənˈdɪp.ə.ti/",
+            "pos": "noun",
+            "maskedSentence": "Discovering this quiet cafe was pure _______.",
+            "customMeaning": "sự may mắn tình cờ, duyên số ngẫu nhiên",
+            "fullSentence": "Discovering this quiet cafe was pure serendipity.",
+            "customImageUrl": null,
+            "reviewCount": 3,
+            "status": "LEARNING"
+          },
+          {
+            "id": 105,
+            "customWord": "tenacious",
+            "phonetic": "/təˈneɪ.ʃəs/",
+            "pos": "adj",
+            "maskedSentence": "She is known for her _______ pursuit of academic excellence.",
+            "customMeaning": "kiên trì, bền bỉ, không chịu bỏ cuộc",
+            "fullSentence": "She is known for her tenacious pursuit of academic excellence.",
+            "customImageUrl": null,
+            "reviewCount": 4,
+            "status": "MASTERED"
+          }
+        ]
+      }
+    }
+  },
+  "mockCardReviews": {
+    "rememberedScenario": {
+      "description": "Học viên đánh giá 'Đã thuộc'. Tăng interval từ 3 lên 7 ngày.",
+      "request": {
+        "method": "POST",
+        "endpoint": "/api/v1/vocab/cards/101/review",
+        "headers": {
+          "X-User-Id": "1",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "rating": "REMEMBERED"
+        }
+      },
+      "response": {
+        "success": true,
+        "code": 200,
+        "message": "Ghi nhận đánh giá SRS thành công",
+        "data": {
+          "cardId": 101,
+          "status": "LEARNING",
+          "reviewCount": 3,
+          "intervalDays": 7,
+          "easeFactor": 2.50,
+          "nextReviewDate": "2026-10-11T00:15:00Z"
+        }
+      }
+    },
+    "forgottenScenario": {
+      "description": "Học viên đánh giá 'Quên'. Reset interval về 1 ngày, phạt giảm easeFactor 0.20.",
+      "request": {
+        "method": "POST",
+        "endpoint": "/api/v1/vocab/cards/102/review",
+        "headers": {
+          "X-User-Id": "1",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "rating": "FORGOTTEN"
+        }
+      },
+      "response": {
+        "success": true,
+        "code": 200,
+        "message": "Ghi nhận đánh giá SRS thành công",
+        "data": {
+          "cardId": 102,
+          "status": "LEARNING",
+          "reviewCount": 1,
+          "intervalDays": 1,
+          "easeFactor": 2.30,
+          "nextReviewDate": "2026-10-05T00:15:00Z"
+        }
+      }
+    }
+  },
+  "mockFinishSession": {
+    "description": "Hoàn thành phiên học 5 thẻ (4 thuộc, 1 quên) trong 180 giây.",
+    "request": {
+      "method": "POST",
+      "endpoint": "/api/v1/vocab/decks/1/finish-session",
+      "headers": {
+        "X-User-Id": "1",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "cardsReviewed": 5,
+        "cardsRemembered": 4,
+        "cardsForgotten": 1,
+        "durationSeconds": 180
+      }
+    },
+    "response": {
+      "success": true,
+      "code": 200,
+      "message": "Lưu kết quả phiên học thành công",
+      "data": {
+        "earnedXp": 18,
+        "currentStreak": 5,
+        "totalMasteredCards": 2,
+        "cardsReviewed": 5
+      }
+    }
+  }
+}

@@ -12,9 +12,12 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(404, HttpStatus.NOT_FOUND, "Không tìm thấy tài nguyên yêu cầu"),
     METHOD_NOT_ALLOWED(405, HttpStatus.METHOD_NOT_ALLOWED, "Phương thức HTTP không được hỗ trợ"),
     CONFLICT(409, HttpStatus.CONFLICT, "Dữ liệu bị trùng lặp hoặc xung đột"),
+    ATTEMPT_EXPIRED(409, HttpStatus.CONFLICT, "Bài thi đã hết thời gian làm bài"),
+    ATTEMPT_ALREADY_SUBMITTED(409, HttpStatus.CONFLICT, "Bài thi đã được nộp trước đó"),
     VALIDATION_FAILED(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu đầu vào không hợp lệ"),
     QUOTA_EXCEEDED(429, HttpStatus.TOO_MANY_REQUESTS, "Đã vượt quá hạn mức sử dụng tính năng"),
     UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định"),
+    GRADING_DATA_ERROR(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu answer key lỗi hoặc không xác định loại câu"),
     
     // Validation Errors cho Auth (900 - 999)
     EMAIL_REQUIRED(900, HttpStatus.BAD_REQUEST, "Email không được để trống"),
@@ -33,7 +36,22 @@ public enum ErrorCode {
     INVALID_NAME_LENGTH(911, HttpStatus.BAD_REQUEST, "Độ dài họ và tên không hợp lệ"),
     INVALID_AVATAR_URL_LENGTH(912, HttpStatus.BAD_REQUEST, "Độ dài đường dẫn ảnh không hợp lệ"),
     INVALID_OTP(913, HttpStatus.BAD_REQUEST, "Mã OTP không chính xác"),
-    OTP_EXPIRED(914, HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn");
+    OTP_EXPIRED(914, HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn"),
+
+    // Vocab & Flashcards module (12xx)
+    DECK_NAME_REQUIRED(1201, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được để trống"),
+    DECK_NAME_TOO_LONG(1202, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được vượt quá 200 ký tự"),
+    DECK_DESCRIPTION_TOO_LONG(1203, HttpStatus.UNPROCESSABLE_ENTITY, "Mô tả không được vượt quá 2000 ký tự"),
+    FLASHCARD_WORD_REQUIRED(1204, HttpStatus.UNPROCESSABLE_ENTITY, "Từ vựng không được để trống"),
+    FLASHCARD_WORD_TOO_LONG(1205, HttpStatus.UNPROCESSABLE_ENTITY, "Từ vựng không được vượt quá 150 ký tự"),
+    FLASHCARD_MEANING_REQUIRED(1206, HttpStatus.UNPROCESSABLE_ENTITY, "Nghĩa từ vựng không được để trống"),
+    FLASHCARD_IMAGE_URL_TOO_LONG(1207, HttpStatus.UNPROCESSABLE_ENTITY, "Đường dẫn ảnh không được vượt quá 500 ký tự"),
+    FLASHCARD_DECK_NOT_FOUND(1208, HttpStatus.NOT_FOUND, "Không tìm thấy bộ thẻ yêu cầu"),
+    FLASHCARD_NOT_FOUND(1209, HttpStatus.NOT_FOUND, "Không tìm thấy thẻ từ vựng yêu cầu"),
+    FLASHCARD_WORD_DUPLICATE(1210, HttpStatus.CONFLICT, "Từ vựng này đã tồn tại trong bộ thẻ"),
+    FLASHCARD_LANG_INVALID(1211, HttpStatus.UNPROCESSABLE_ENTITY, "Mã ngôn ngữ không hợp lệ"),
+    DECK_EMPTY(1212, HttpStatus.BAD_REQUEST, "Bộ thẻ chưa có từ vựng nào để ôn tập"),
+    INVALID_SRS_RATING(1213, HttpStatus.BAD_REQUEST, "Mức độ đánh giá SRS không hợp lệ (chỉ chấp nhận REMEMBERED hoặc FORGOTTEN)");
 
     private final int code;
     private final HttpStatus httpStatus;

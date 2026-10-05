@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { FileText, Upload, Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ExamManagement = () => {

@@ -1,0 +1,33 @@
+{
+  "part_title": "Invalid Reading Part",
+  "instruction": "This fixture contains deliberate schema violations for validation tests.",
+  "shared_media": null,
+  "question_groups": [
+    {
+      "group_id": "rg-invalid",
+      "context_html": "<p>Invalid context.</p>",
+      "questions": [
+        {
+          "question_id": "duplicate-q-id",
+          "question_number": 1,
+          "question_type": "SINGLE_CHOICE",
+          "question_text": "Question missing correct_answer",
+          "options": [
+            { "id": "A", "text": "Option A" }
+          ],
+          "correct_answer": null,
+          "explanation": "Invalid: correct_answer cannot be null for SINGLE_CHOICE."
+        },
+        {
+          "question_id": "duplicate-q-id",
+          "question_number": 2,
+          "question_type": "UNSUPPORTED_QUESTION_TYPE_FOOBAR",
+          "question_text": "Question with duplicate ID and unsupported type",
+          "options": null,
+          "correct_answer": "Invalid",
+          "explanation": "Invalid: duplicate question_id and unknown type."
+        }
+      ]
+    }
+  ]
+}
