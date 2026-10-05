@@ -309,4 +309,90 @@ class UserFlashcardServiceTest {
         assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
         verify(userFlashcardRepository, never()).delete(any());
     }
+
+    @Test
+    @DisplayName("TC_VOCAB_CARD_08: addCard lưu phiên âm và loại từ vào DictionaryWord khi tạo mới thẻ")
+    void testAddCard_withPhoneticAndPos_createsOrLinksDictionaryWord() {
+        when(flashcardDeckRepository.findById(10)).thenReturn(Optional.of(sampleDeck));
+        when(userFlashcardRepository.existsByDeckIdAndCustomWordIgnoreCase(10, "ubiquitous"))
+                .thenReturn(false);
+        when(dictionaryWordRepository.findFirstByWordIgnoreCaseAndLanguageCode("ubiquitous", "en"))
+                .thenReturn(Optional.empty());
+        when(dictionaryWordRepository.save(any(DictionaryWord.class))).thenAnswer(i -> {
+            DictionaryWord dw = i.getArgument(0);
+            dw.setId(200);
+            return dw;
+        });
+        when(userFlashcardRepository.save(any(UserFlashcard.class))).thenAnswer(i -> {
+            UserFlashcard c = i.getArgument(0);
+            c.setId(101);
+            return c;
+        });
+
+        CreateFlashcardRequest req = CreateFlashcardRequest.builder()
+                .customWord("ubiquitous")
+                .customMeaning("có mặt ở khắp nơi")
+                .phonetic("/juːˈbɪk.wɪ.təs/")
+                .pos("adjective")
+                .build();
+
+        FlashcardResponse res = userFlashcardService.addCard(10, req, userId);
+
+        assertNotNull(res);
+        assertEquals("ubiquitous", res.getCustomWord());
+        assertEquals("/juːˈbɪk.wɪ.təs/", res.getPhonetic());
+        assertEquals("adjective", res.getPos());
+        verify(dictionaryWordRepository, times(1)).save(any(DictionaryWord.class));
+    }
+
+    @Test
+    @DisplayName("TC_VOCAB_CARD_09: updateCard khi đổi customWord sang từ mới phải reset và liên kết DictionaryWord mới, không ghi đè DictionaryWord cũ")
+    void testUpdateCard_changeWord_relinksNewDictionaryWord() {
+        DictionaryWord oldWord = DictionaryWord.builder()
+                .word("apple")
+                .languageCode("en")
+                .phonetic("/ˈæp.əl/")
+                .pos("noun")
+                .build();
+        oldWord.setId(1);
+
+        UserFlashcard existingCard = UserFlashcard.builder()
+                .userId(userId)
+                .deck(sampleDeck)
+                .customWord("apple")
+                .customMeaning("quả táo")
+                .word(oldWord)
+                .build();
+        existingCard.setId(100);
+
+        when(userFlashcardRepository.findById(100)).thenReturn(Optional.of(existingCard));
+        when(userFlashcardRepository.existsByDeckIdAndCustomWordIgnoreCase(10, "banana")).thenReturn(false);
+        when(dictionaryWordRepository.findFirstByWordIgnoreCaseAndLanguageCode("banana", "en"))
+                .thenReturn(Optional.empty());
+        when(dictionaryWordRepository.save(any(DictionaryWord.class))).thenAnswer(i -> {
+            DictionaryWord dw = i.getArgument(0);
+            dw.setId(2);
+            return dw;
+        });
+        when(userFlashcardRepository.save(any(UserFlashcard.class))).thenAnswer(i -> i.getArgument(0));
+
+        UpdateFlashcardRequest updateReq = UpdateFlashcardRequest.builder()
+                .customWord("banana")
+                .customMeaning("quả chuối")
+                .phonetic("/bəˈnæn.ə/")
+                .pos("noun")
+                .build();
+
+        FlashcardResponse res = userFlashcardService.updateCard(100, updateReq, userId);
+
+        assertNotNull(res);
+        assertEquals("banana", res.getCustomWord());
+        assertEquals("/bəˈnæn.ə/", res.getPhonetic());
+        // Đảm bảo từ điển cũ không bị ghi đè phiên âm của từ mới
+        assertEquals("apple", oldWord.getWord());
+        assertEquals("/ˈæp.əl/", oldWord.getPhonetic());
+        // Thẻ phải được liên kết sang DictionaryWord mới có id=2
+        assertEquals(Integer.valueOf(2), existingCard.getWord().getId());
+        assertEquals("banana", existingCard.getWord().getWord());
+    }
 }

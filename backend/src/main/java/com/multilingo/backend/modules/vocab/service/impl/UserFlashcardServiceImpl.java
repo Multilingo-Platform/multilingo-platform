@@ -125,6 +125,44 @@ public class UserFlashcardServiceImpl implements UserFlashcardService {
                     }
                 }
             }
+        } else {
+            String targetLang = deck.getTargetLanguage() != null ? deck.getTargetLanguage() : "en";
+            DictionaryWord dictionaryWord = dictionaryWordRepository
+                    .findFirstByWordIgnoreCaseAndLanguageCode(word, targetLang)
+                    .orElse(null);
+
+            if (dictionaryWord != null) {
+                if (request.getPhonetic() != null && !request.getPhonetic().trim().isEmpty() && dictionaryWord.getPhonetic() == null) {
+                    dictionaryWord.setPhonetic(request.getPhonetic().trim());
+                    dictionaryWordRepository.save(dictionaryWord);
+                }
+                if (request.getPos() != null && !request.getPos().trim().isEmpty() && dictionaryWord.getPos() == null) {
+                    dictionaryWord.setPos(request.getPos().trim());
+                    dictionaryWordRepository.save(dictionaryWord);
+                }
+                if (request.getLevel() != null && !request.getLevel().trim().isEmpty() && dictionaryWord.getLevel() == null) {
+                    dictionaryWord.setLevel(request.getLevel().trim());
+                    dictionaryWordRepository.save(dictionaryWord);
+                }
+                card.setWord(dictionaryWord);
+            } else if ((request.getPhonetic() != null && !request.getPhonetic().trim().isEmpty())
+                    || (request.getPos() != null && !request.getPos().trim().isEmpty())
+                    || (request.getLevel() != null && !request.getLevel().trim().isEmpty())) {
+                String sourceLang = deck.getSourceLanguage() != null ? deck.getSourceLanguage() : "vi";
+                String meaning = card.getCustomMeaning() != null ? card.getCustomMeaning().trim() : "";
+                java.util.Map<String, Object> meaningMap = meaning.isEmpty() ? new java.util.HashMap<>() : new java.util.HashMap<>(java.util.Map.of(sourceLang, meaning));
+                DictionaryWord newWord = DictionaryWord.builder()
+                        .word(word)
+                        .languageCode(targetLang)
+                        .phonetic(request.getPhonetic() != null ? request.getPhonetic().trim() : null)
+                        .pos(request.getPos() != null ? request.getPos().trim() : null)
+                        .level(request.getLevel() != null ? request.getLevel().trim() : null)
+                        .defaultMeaning(meaningMap)
+                        .exampleSentence(card.getExampleSentence())
+                        .build();
+                newWord = dictionaryWordRepository.save(newWord);
+                card.setWord(newWord);
+            }
         }
 
         // 7. Bắt buộc nghĩa của từ không được để trống
@@ -164,11 +202,16 @@ public class UserFlashcardServiceImpl implements UserFlashcardService {
         String newWord = request.getCustomWord().trim();
 
         // 4. Nếu đổi từ vựng, kiểm tra xem từ mới có bị trùng trong deck không
-        if (!card.getCustomWord().equalsIgnoreCase(newWord)) {
+        boolean wordChanged = !card.getCustomWord().equalsIgnoreCase(newWord);
+        if (wordChanged) {
             Integer deckId = card.getDeck().getId();
             if (userFlashcardRepository.existsByDeckIdAndCustomWordIgnoreCase(deckId, newWord)) {
                 log.warn("Cập nhật trùng từ vựng trong bộ thẻ: deckId={}, word='{}'", deckId, newWord);
                 throw new AppException(ErrorCode.FLASHCARD_WORD_DUPLICATE, "Từ vựng này đã tồn tại trong bộ thẻ");
+            }
+            // Giải phóng liên kết từ điển cũ nếu từ vựng thay đổi để tránh ghi đè dữ liệu từ cũ
+            if (card.getWord() != null && !card.getWord().getWord().equalsIgnoreCase(newWord)) {
+                card.setWord(null);
             }
         }
 
@@ -177,6 +220,69 @@ public class UserFlashcardServiceImpl implements UserFlashcardService {
         card.setCustomMeaning(request.getCustomMeaning().trim());
         card.setExampleSentence(request.getExampleSentence());
         card.setCustomImageUrl(request.getCustomImageUrl());
+
+        // Cập nhật thông tin bổ trợ (phiên âm, loại từ, level) hoặc đồng bộ DictionaryWord cho từ mới
+        String targetLang = card.getDeck() != null && card.getDeck().getTargetLanguage() != null
+                ? card.getDeck().getTargetLanguage() : "en";
+
+        if (card.getWord() == null) {
+            DictionaryWord dictWord = dictionaryWordRepository
+                    .findFirstByWordIgnoreCaseAndLanguageCode(newWord, targetLang)
+                    .orElse(null);
+
+            if (dictWord != null) {
+                if (request.getPhonetic() != null && !request.getPhonetic().trim().isEmpty() && dictWord.getPhonetic() == null) {
+                    dictWord.setPhonetic(request.getPhonetic().trim());
+                    dictionaryWordRepository.save(dictWord);
+                }
+                if (request.getPos() != null && !request.getPos().trim().isEmpty() && dictWord.getPos() == null) {
+                    dictWord.setPos(request.getPos().trim());
+                    dictionaryWordRepository.save(dictWord);
+                }
+                if (request.getLevel() != null && !request.getLevel().trim().isEmpty() && dictWord.getLevel() == null) {
+                    dictWord.setLevel(request.getLevel().trim());
+                    dictionaryWordRepository.save(dictWord);
+                }
+                card.setWord(dictWord);
+            } else if ((request.getPhonetic() != null && !request.getPhonetic().trim().isEmpty())
+                    || (request.getPos() != null && !request.getPos().trim().isEmpty())
+                    || (request.getLevel() != null && !request.getLevel().trim().isEmpty())) {
+                String sourceLang = card.getDeck() != null && card.getDeck().getSourceLanguage() != null
+                        ? card.getDeck().getSourceLanguage() : "vi";
+                String meaning = card.getCustomMeaning() != null ? card.getCustomMeaning().trim() : "";
+                java.util.Map<String, Object> meaningMap = meaning.isEmpty() ? new java.util.HashMap<>() : new java.util.HashMap<>(java.util.Map.of(sourceLang, meaning));
+                DictionaryWord newDictWord = DictionaryWord.builder()
+                        .word(newWord)
+                        .languageCode(targetLang)
+                        .phonetic(request.getPhonetic() != null ? request.getPhonetic().trim() : null)
+                        .pos(request.getPos() != null ? request.getPos().trim() : null)
+                        .level(request.getLevel() != null ? request.getLevel().trim() : null)
+                        .defaultMeaning(meaningMap)
+                        .exampleSentence(card.getExampleSentence())
+                        .build();
+                newDictWord = dictionaryWordRepository.save(newDictWord);
+                card.setWord(newDictWord);
+            }
+        } else {
+            // Từ vựng không đổi, cập nhật bổ sung thuộc tính nếu có
+            DictionaryWord dictWord = card.getWord();
+            boolean changed = false;
+            if (request.getPhonetic() != null && !request.getPhonetic().trim().isEmpty()) {
+                dictWord.setPhonetic(request.getPhonetic().trim());
+                changed = true;
+            }
+            if (request.getPos() != null && !request.getPos().trim().isEmpty()) {
+                dictWord.setPos(request.getPos().trim());
+                changed = true;
+            }
+            if (request.getLevel() != null && !request.getLevel().trim().isEmpty()) {
+                dictWord.setLevel(request.getLevel().trim());
+                changed = true;
+            }
+            if (changed) {
+                dictionaryWordRepository.save(dictWord);
+            }
+        }
 
         // 6. Lưu thẻ đã cập nhật
         UserFlashcard updated = userFlashcardRepository.save(card);

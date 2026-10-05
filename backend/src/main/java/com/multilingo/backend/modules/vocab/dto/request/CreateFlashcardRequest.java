@@ -26,4 +26,13 @@ public class CreateFlashcardRequest {
     private String customImageUrl;
 
     private Integer wordId;
+
+    @Size(max = 150, message = "FLASHCARD_PHONETIC_TOO_LONG")
+    private String phonetic;
+
+    @Size(max = 50, message = "FLASHCARD_POS_TOO_LONG")
+    private String pos;
+
+    @Size(max = 10, message = "FLASHCARD_LEVEL_TOO_LONG")
+    private String level;
 }
