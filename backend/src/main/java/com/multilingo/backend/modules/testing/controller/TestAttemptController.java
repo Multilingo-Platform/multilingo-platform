@@ -97,10 +97,10 @@ public class TestAttemptController {
     /**
      * Get the detailed review of a specific part in an attempt.
      */
-    @GetMapping("/{id}/review")
+    @GetMapping("/{id}/review/{partId}")
     public ResponseEntity<ApiResponse<com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse>> getAttemptReview(
             @PathVariable Integer id,
-            @RequestParam Integer partId) {
+            @PathVariable Integer partId) {
         com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse review = testAttemptService.getAttemptReview(id, partId);
         return ResponseEntity.ok(ApiResponse.success(review));
     }

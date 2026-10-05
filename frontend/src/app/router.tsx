@@ -37,38 +37,6 @@ const RootRoute = () => {
   return <PublicLayout />;
 };
 
-// Component phụ cho Dev Route để lấy backend status
-const DevTestRoute = () => {
-  const [backendMessage, setBackendMessage] = useState<string>('Loading from backend...');
-
-  useEffect(() => {
-    axiosClient.get('/test/hello')
-      .then((res: any) => {
-        setBackendMessage(res.message || 'Connected successfully!');
-      })
-      .catch((err) => {
-        console.error(err);
-        setBackendMessage('Failed to connect to backend.');
-      });
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white p-8 rounded-xl shadow-lg">
-        <h1 className="text-3xl font-bold text-indigo-600 mb-4 text-center">Dev Test Route</h1>
-        <div className="bg-indigo-50 p-4 rounded text-indigo-700 font-medium mb-6 text-center">
-          Backend Status: {backendMessage}
-        </div>
-        <nav className="flex justify-center gap-4 mb-8">
-          <Link to="/dev/test-audio" className="text-indigo-600 hover:underline font-medium">Upload Audio</Link>
-          <Link to="/dev/test-student" className="text-indigo-600 hover:underline font-medium">Student View</Link>
-          <Link to="/onboarding" className="text-green-600 hover:underline font-bold">Go to App</Link>
-        </nav>
-      </div>
-    </div>
-  );
-};
-
 export const router = createBrowserRouter([
   // --- CHÍNH THỨC: MEMBER 2 ROUTES ---
   {
@@ -157,25 +125,7 @@ export const router = createBrowserRouter([
   },
 
   // --- DEV / TEST ROUTES (Tạm thời giữ lại) ---
-  {
-    path: '/dev',
-    element: <Outlet />,
-    children: [
-      {
-        index: true,
-        element: <DevTestRoute />
-      },
-      {
-        path: 'test-audio',
-        element: <AudioUploader />
-      },
-      {
-        path: 'test-student',
-        element: <StudentExamView />
-      }
-    ]
-  }
-,
+  
   // --- CBT EXAM ROUTES ---
   {
     path: '/exams/:examId/start',

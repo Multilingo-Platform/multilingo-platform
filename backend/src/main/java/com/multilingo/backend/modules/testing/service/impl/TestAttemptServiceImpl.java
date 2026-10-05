@@ -35,6 +35,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.TransactionDefinition;
 
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -56,6 +57,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final GradingAdapter gradingAdapter;
     private final ObjectiveGradingService gradingService;
     private final PlatformTransactionManager transactionManager;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -116,15 +118,16 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
             transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
             
-            TestAttempt finalized = transactionTemplate.execute(status -> {
+            transactionTemplate.execute(status -> {
                 TestAttempt lockedAttempt = testAttemptRepository.findByIdAndUserIdForUpdate(attempt.getId(), userId)
                         .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Attempt not found"));
                 if (lockedAttempt.getStatus() == AttemptStatus.IN_PROGRESS) {
                     finalizeAndGradeAttempt(lockedAttempt, SubmitReason.TIMEOUT_SERVER, null, userId);
                 }
-                return lockedAttempt;
+                return null;
             });
-            return finalized != null ? finalized : attempt;
+            entityManager.refresh(attempt);
+            return attempt;
         }
         return attempt;
     }
@@ -251,7 +254,11 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             attempt.setOverallScore(gradingResult.getTotalScore());
             Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
             attempt.setSectionScores(sectionMap);
-            attempt.setResultSummary(objectMapper.writeValueAsString(gradingResult));
+            try {
+                attempt.setResultSummary(objectMapper.writeValueAsString(gradingResult));
+            } catch (Exception e) {
+                log.error("Failed to serialize grading result for attempt {}", attempt.getId(), e);
+            }
 
             boolean hasWriting = checkHasWriting(attempt);
             if (hasWriting) {
