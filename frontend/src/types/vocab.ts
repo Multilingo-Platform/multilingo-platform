@@ -106,6 +106,9 @@ export interface CreateFlashcardRequest {
   exampleSentence?: string;
   customImageUrl?: string;
   wordId?: number;
+  phonetic?: string;
+  pos?: string;
+  level?: string;
 }
 
 export interface UpdateFlashcardRequest {
@@ -113,4 +116,7 @@ export interface UpdateFlashcardRequest {
   customMeaning: string;
   exampleSentence?: string;
   customImageUrl?: string;
+  phonetic?: string;
+  pos?: string;
+  level?: string;
 }
