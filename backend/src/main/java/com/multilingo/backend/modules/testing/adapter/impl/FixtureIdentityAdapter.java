@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  *       Replace with JwtIdentityAdapter that extracts userId from SecurityContextHolder.
  */
 @Component
-@Profile({"dev", "test"})
+@Profile("test")
 public class FixtureIdentityAdapter implements IdentityAdapter {
 
     @Override
