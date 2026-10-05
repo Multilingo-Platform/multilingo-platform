@@ -5,8 +5,19 @@ import type {
   CreateAttemptRequest,
   SubmitResult,
   WorkspaceResponse,
+  ExamResultResponse,
+  ExamReviewResponse
 } from '../types/api.types';
 import type { PartAnswers } from '../types/answer.types';
+
+export class ResultNotReadyError extends Error {
+  retryAfter: number;
+  constructor(message: string, retryAfter: number = 2) {
+    super(message);
+    this.name = 'ResultNotReadyError';
+    this.retryAfter = retryAfter;
+  }
+}
 
 function normalizeWorkspace(data: any, serverTimeOffset = 0): WorkspaceResponse {
   return {
@@ -90,7 +101,7 @@ export interface SubmitAttemptApiRequest {
 
 /**
  * POST /api/v1/attempts/:id/submit
- * Submit attempt. Idempotent — safe to call multiple times.
+ * Submit attempt. Idempotent - safe to call multiple times.
  */
 export async function submitAttempt(
   attemptId: number,
@@ -128,4 +139,36 @@ export async function lockSection(attemptId: number, sectionId: number): Promise
   if (!res.success) {
     throw new Error(res.message || 'Lock section failed');
   }
+}
+
+/**
+ * GET /api/v1/attempts/:id/result
+ */
+export async function getAttemptResult(attemptId: number): Promise<ExamResultResponse> {
+  try {
+    const res = await axiosClient.get<unknown, ApiResponse<ExamResultResponse>>(`/v1/attempts/${attemptId}/result`);
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Failed to fetch result');
+    }
+    return res.data;
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      const retryAfter = error.response.headers?.['retry-after'] 
+        ? parseInt(error.response.headers['retry-after'], 10) 
+        : 2;
+      throw new ResultNotReadyError(error.response.data?.message || 'Result not ready', retryAfter);
+    }
+    throw error;
+  }
+}
+
+/**
+ * GET /api/v1/attempts/:id/review/:partId
+ */
+export async function getAttemptReview(attemptId: number, partId: number): Promise<ExamReviewResponse> {
+  const res = await axiosClient.get<unknown, ApiResponse<ExamReviewResponse>>(`/v1/attempts/${attemptId}/review/${partId}`);
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Failed to fetch review');
+  }
+  return res.data;
 }
