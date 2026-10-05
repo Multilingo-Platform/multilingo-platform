@@ -1,0 +1,164 @@
+[
+  {
+    "code": "TOEIC_MOCK_01",
+    "title": "TOEIC ETS Mini Practice Exam 2026",
+    "type": "TOEIC",
+    "examLanguage": "en",
+    "isPublished": true,
+    "isVipOnly": false,
+    "durationMinutes": 120,
+    "thumbnailUrl": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500",
+    "sections": [
+      {
+        "skillType": "LISTENING",
+        "title": "Listening Comprehension",
+        "durationMinutes": 45,
+        "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        "orderIndex": 1,
+        "parts": [
+          {
+            "partNumber": 1,
+            "contentData": {
+              "title": "Part 1: Photographs",
+              "instruction": "For each question in this part, you will hear four statements about a picture. Choose the statement that best describes what you see in the picture.",
+              "questions": [
+                {
+                  "question_id": "q_1",
+                  "question_number": 1,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "[Photo 1: A woman working at a computer desk near a large window]",
+                  "options": [
+                    { "id": "A", "text": "She is typing on a keyboard." },
+                    { "id": "B", "text": "She is closing the office blinds." },
+                    { "id": "C", "text": "She is drinking from a coffee mug." },
+                    { "id": "D", "text": "She is organizing folders on a shelf." }
+                  ],
+                  "correct_answer": "A",
+                  "explanation": "<strong>Phân tích:</strong> Trong bức tranh, người phụ nữ đang đặt hai tay lên bàn phím và nhìn vào màn hình máy tính.<br/>Đáp án đúng là <strong>A</strong> (She is typing on a keyboard)."
+                },
+                {
+                  "question_id": "q_2",
+                  "question_number": 2,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "[Photo 2: Construction workers wearing safety helmets reviewing blueprints]",
+                  "options": [
+                    { "id": "A", "text": "They are climbing down a ladder." },
+                    { "id": "B", "text": "They are examining architectural plans." },
+                    { "id": "C", "text": "They are operating heavy machinery." },
+                    { "id": "D", "text": "They are unloading building materials." }
+                  ],
+                  "correct_answer": "B",
+                  "explanation": "<strong>Phân tích:</strong> Các công nhân đang cùng nhau nhìn vào bản thiết kế (blueprints / architectural plans).<br/>Đáp án đúng là <strong>B</strong>."
+                }
+              ]
+            }
+          },
+          {
+            "partNumber": 2,
+            "contentData": {
+              "title": "Part 2: Question-Response",
+              "instruction": "You will hear a question or statement and three responses spoken in English. Select the best response to the question or statement.",
+              "questions": [
+                {
+                  "question_id": "q_3",
+                  "question_number": 3,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "Where did you leave the keys to the conference room?",
+                  "options": [
+                    { "id": "A", "text": "On Ms. Davis's reception desk." },
+                    { "id": "B", "text": "Yes, we reserved it for 2 PM." },
+                    { "id": "C", "text": "To discuss the marketing campaign." }
+                  ],
+                  "correct_answer": "A",
+                  "explanation": "<strong>Phân tích:</strong> Câu hỏi bắt đầu bằng từ để hỏi 'Where' (Ở đâu?). Câu trả lời chỉ địa điểm là <strong>A</strong> (On Ms. Davis's reception desk)."
+                },
+                {
+                  "question_id": "q_4",
+                  "question_number": 4,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "When will the quarterly financial report be published?",
+                  "options": [
+                    { "id": "A", "text": "By the end of next week." },
+                    { "id": "B", "text": "About fifteen pages long." },
+                    { "id": "C", "text": "In the central auditorium." }
+                  ],
+                  "correct_answer": "A",
+                  "explanation": "<strong>Phân tích:</strong> Câu hỏi thời gian 'When' (Khi nào?). Đáp án phù hợp về thời gian là <strong>A</strong> (By the end of next week)."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "skillType": "READING",
+        "title": "Reading Comprehension",
+        "durationMinutes": 75,
+        "orderIndex": 2,
+        "parts": [
+          {
+            "partNumber": 5,
+            "contentData": {
+              "title": "Part 5: Incomplete Sentences",
+              "instruction": "A word or phrase is missing in each of the sentences below. Four answer choices are given below each sentence. Select the best answer to complete the sentence.",
+              "questions": [
+                {
+                  "question_id": "q_5",
+                  "question_number": 101,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "Mr. Henderson reviewed the annual proposal _______ before submitting it to the executive board.",
+                  "options": [
+                    { "id": "A", "text": "thorough" },
+                    { "id": "B", "text": "thoroughly" },
+                    { "id": "C", "text": "thoroughness" },
+                    { "id": "D", "text": "more thorough" }
+                  ],
+                  "correct_answer": "B",
+                  "explanation": "<strong>Ngữ pháp:</strong> Động từ 'reviewed' cần một trạng từ (adverb) đứng sau để bổ nghĩa cho hành động duyệt hồ sơ.<br/>Đáp án đúng là trạng từ có đuôi '-ly': <strong>thoroughly</strong>."
+                },
+                {
+                  "question_id": "q_6",
+                  "question_number": 102,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "All passengers are advised to keep their boarding passes _______ throughout the security checkpoint.",
+                  "options": [
+                    { "id": "A", "text": "accessible" },
+                    { "id": "B", "text": "access" },
+                    { "id": "C", "text": "accessibility" },
+                    { "id": "D", "text": "accessibly" }
+                  ],
+                  "correct_answer": "A",
+                  "explanation": "<strong>Ngữ pháp:</strong> Cấu trúc 'keep + object + adjective' (giữ cho cái gì ở trạng thái như thế nào).<br/>'accessible' (tính từ: có sẵn, dễ lấy) là đáp án chính xác <strong>A</strong>."
+                }
+              ]
+            }
+          },
+          {
+            "partNumber": 7,
+            "contentData": {
+              "title": "Part 7: Reading Comprehension",
+              "instruction": "Read a selection of texts and choose the best answer to each question.",
+              "passage": "<div class='p-4 bg-slate-50 border rounded'><p><strong>To:</strong> All Staff &lt;staff@novatech.com&gt;<br/><strong>From:</strong> IT Support &lt;support@novatech.com&gt;<br/><strong>Date:</strong> October 5, 2026<br/><strong>Subject:</strong> Scheduled Cloud Server Maintenance</p><p class='mt-2'>Please be aware that our primary database server will undergo scheduled maintenance this Saturday, October 10, between 1:00 AM and 5:00 AM UTC. During this 4-hour window, internal tools and file storage will be temporarily offline. Please ensure all unsaved documents are synchronized prior to Friday evening.</p></div>",
+              "questions": [
+                {
+                  "question_id": "q_7",
+                  "question_number": 147,
+                  "type": "SINGLE_CHOICE",
+                  "question_text": "What is the primary purpose of the email?",
+                  "options": [
+                    { "id": "A", "text": "To announce new IT hiring policies" },
+                    { "id": "B", "text": "To notify employees about server maintenance" },
+                    { "id": "C", "text": "To request feedback on cloud software" },
+                    { "id": "D", "text": "To celebrate a successful system upgrade" }
+                  ],
+                  "correct_answer": "B",
+                  "explanation": "<strong>Phân tích:</strong> Tiêu đề thư là 'Scheduled Cloud Server Maintenance' và nội dung nói về thời gian bảo trì hệ thống. Đáp án đúng là <strong>B</strong>."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

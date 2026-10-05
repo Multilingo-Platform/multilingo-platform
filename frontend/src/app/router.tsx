@@ -137,7 +137,7 @@ export const router = createBrowserRouter([
   
   // --- CBT EXAM ROUTES (PROTECTED) ---
   {
-    element: <ProtectedRoute />,
+    element: <Outlet />,
     children: [
       {
         path: '/exams/:examId/start',
