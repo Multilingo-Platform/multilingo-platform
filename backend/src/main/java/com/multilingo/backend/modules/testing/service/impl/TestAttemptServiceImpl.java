@@ -255,7 +255,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
             attempt.setSectionScores(sectionMap);
             try {
-                attempt.setResultSummary(objectMapper.writeValueAsString(gradingResult));
+                attempt.setResultSummary(objectMapper.valueToTree(gradingResult));
             } catch (Exception e) {
                 log.error("Failed to serialize grading result for attempt {}", attempt.getId(), e);
             }
@@ -342,7 +342,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         Map<String, Object> resultSummary = null;
         if (attempt.getResultSummary() != null) {
             try {
-                resultSummary = objectMapper.readValue(attempt.getResultSummary(), Map.class);
+                resultSummary = objectMapper.convertValue(attempt.getResultSummary(), Map.class);
             } catch (Exception e) {
                 log.error("Failed to parse result summary for attempt {}", attemptId, e);
             }
@@ -389,7 +389,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
             if (attempt.getResultSummary() != null) {
                 try {
-                    Map<String, Object> summary = objectMapper.readValue(attempt.getResultSummary(), Map.class);
+                    Map<String, Object> summary = objectMapper.convertValue(attempt.getResultSummary(), Map.class);
                     Map<String, Object> partResults = (Map<String, Object>) summary.get("partResults");
                     if (partResults != null) {
                         partResult = (Map<String, Object>) partResults.get(String.valueOf(partId));
