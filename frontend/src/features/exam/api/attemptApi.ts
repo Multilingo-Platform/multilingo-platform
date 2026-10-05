@@ -16,6 +16,7 @@ export class ResultNotReadyError extends Error {
     super(message);
     this.name = 'ResultNotReadyError';
     this.retryAfter = retryAfter;
+    Object.setPrototypeOf(this, ResultNotReadyError.prototype);
   }
 }
 
@@ -166,9 +167,13 @@ export async function getAttemptResult(attemptId: number): Promise<ExamResultRes
  * GET /api/v1/attempts/:id/review/:partId
  */
 export async function getAttemptReview(attemptId: number, partId: number): Promise<ExamReviewResponse> {
-  const res = await axiosClient.get<unknown, ApiResponse<ExamReviewResponse>>(`/v1/attempts/${attemptId}/review/${partId}`);
-  if (!res.success || !res.data) {
-    throw new Error(res.message || 'Failed to fetch review');
+  try {
+    const res = await axiosClient.get<unknown, ApiResponse<ExamReviewResponse>>(`/v1/attempts/${attemptId}/review/${partId}`);
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Failed to fetch review');
+    }
+    return res.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch review');
   }
-  return res.data;
 }

@@ -18,6 +18,9 @@ export function useExamResult(attemptId: number): UseExamResultReturn {
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    
+    setResult(null);
+    setIsPolling(false);
 
     const fetchData = async () => {
       try {
@@ -41,7 +44,7 @@ export function useExamResult(attemptId: number): UseExamResultReturn {
           setError(err instanceof Error ? err.message : 'Lỗi khi tải kết quả');
         }
       } finally {
-        if (!cancelled && !isPolling) {
+        if (!cancelled) {
           setLoading(false);
         }
       }

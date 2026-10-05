@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { useExamResult } from '../hooks/useExamResult';
 import { getAttemptReview } from '../api/attemptApi';
 import type { ExamReviewResponse } from '../types/api.types';
@@ -47,6 +48,7 @@ const ExamResultPage: React.FC = () => {
     if (id && selectedPartId !== null) {
       setReviewLoading(true);
       setReviewError(null);
+      setReviewData(null);
       getAttemptReview(id, selectedPartId)
         .then(data => {
           setReviewData(data);
@@ -96,44 +98,48 @@ const ExamResultPage: React.FC = () => {
 
   const objSummary = result.resultSummary?.objective;
   
-  // Parse review data robustly
-  const parsedQuestions: FormattedQuestion[] = [];
-  if (reviewData) {
-    const questionsList = reviewData.examData?.questions || [];
-    const questionsArray = Array.isArray(questionsList) ? questionsList : Object.values(questionsList);
-    
-    for (const q of questionsArray as any[]) {
-      const qId = String(q.id || q.questionId || Math.random());
-      const pResult = reviewData.partResult?.[qId] || {};
-      const uAnswer = reviewData.userAnswers?.[qId] || {};
+  const parsedQuestions: FormattedQuestion[] = React.useMemo(() => {
+    const list: FormattedQuestion[] = [];
+    if (reviewData) {
+      const questionsList = reviewData.examData?.questions || [];
+      const questionsArray = Array.isArray(questionsList) ? questionsList : Object.values(questionsList);
       
-      let uAnsString = 'Chưa trả lời';
-      if (Array.isArray(uAnswer)) {
-         uAnsString = uAnswer.join(', ') || 'Chưa trả lời';
-      } else if (typeof uAnswer === 'object' && uAnswer !== null) {
-         // handle object shape if needed, e.g. { selectedOption: 'A' }
-         uAnsString = JSON.stringify(uAnswer);
-      } else if (uAnswer !== undefined && uAnswer !== null) {
-         uAnsString = String(uAnswer);
+      for (const q of questionsArray as any[]) {
+        const qId = String(q.id || q.questionId || Math.random());
+        const pResult = reviewData.partResult?.[qId] || {};
+        const uAnswer = reviewData.userAnswers?.[qId] || {};
+        
+        let uAnsString = 'Chưa trả lời';
+        if (Array.isArray(uAnswer)) {
+           uAnsString = uAnswer.join(', ') || 'Chưa trả lời';
+        } else if (typeof uAnswer === 'object' && uAnswer !== null) {
+           uAnsString = JSON.stringify(uAnswer);
+        } else if (uAnswer !== undefined && uAnswer !== null) {
+           uAnsString = String(uAnswer);
+        }
+        
+        let cAnsString = pResult.correctAnswer || '';
+        if (Array.isArray(cAnsString)) cAnsString = cAnsString.join(', ');
+        
+        // Parse isFlagged from userAnswers if it has the flag metadata, otherwise default false
+        const isFlagged = typeof uAnswer === 'object' && uAnswer !== null ? !!uAnswer.isFlagged : false;
+
+        list.push({
+          id: qId,
+          part: selectedPartId || 1,
+          type: q.type || 'Unknown',
+          questionText: q.text || q.questionText || q.content || 'Câu hỏi',
+          userAnswer: uAnsString,
+          correctAnswer: cAnsString,
+          isCorrect: !!pResult.isCorrect,
+          explanation: pResult.explanation || 'Không có giải thích.',
+          citation: pResult.citation,
+          isFlagged
+        });
       }
-      
-      let cAnsString = pResult.correctAnswer || '';
-      if (Array.isArray(cAnsString)) cAnsString = cAnsString.join(', ');
-      
-      parsedQuestions.push({
-        id: qId,
-        part: selectedPartId || 1,
-        type: q.type || 'Unknown',
-        questionText: q.text || q.questionText || q.content || 'Câu hỏi',
-        userAnswer: uAnsString,
-        correctAnswer: cAnsString,
-        isCorrect: !!pResult.isCorrect,
-        explanation: pResult.explanation || 'Không có giải thích.',
-        citation: pResult.citation,
-        isFlagged: false // Could be passed in userAnswers/flags if supported
-      });
     }
-  }
+    return list;
+  }, [reviewData, selectedPartId]);
 
   const filteredQuestions = parsedQuestions.filter((q) => {
     if (filter === 'CORRECT') return q.isCorrect;
@@ -348,6 +354,11 @@ const ExamResultPage: React.FC = () => {
                       <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                         Part {q.part} • {q.type}
                       </span>
+                      {q.isFlagged && (
+                        <span className="text-[11px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
+                          🚩 Đã gắn cờ
+                        </span>
+                      )}
                     </div>
 
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
@@ -359,8 +370,8 @@ const ExamResultPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <p className="font-heading font-semibold text-slate-900 text-sm sm:text-[15px] mb-3 leading-relaxed"
-                     dangerouslySetInnerHTML={{ __html: q.questionText }} 
+                  <div className="font-heading font-semibold text-slate-900 text-sm sm:text-[15px] mb-3 leading-relaxed"
+                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(q.questionText) }} 
                   />
 
                   <div className="flex flex-wrap items-center gap-4 text-xs font-medium mb-3">
