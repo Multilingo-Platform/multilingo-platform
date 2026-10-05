@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch, RootState } from '../../../store/store';
+import type { AppDispatch, RootState } from '../../../app/store';
 import {
   markSavePending,
   markSaveSuccess,
@@ -50,7 +50,7 @@ export function useAutosave(attemptId: number | null): void {
       // Chuyển answers Record thành mảng PartAnswers
       const answers = Object.entries(currentAnswersState.answers).map(([partId, qMap]) => ({
         part_id: Number(partId),
-        answers: Object.entries(qMap).map(([question_id, answer]) => ({ question_id, answer })),
+        answers: Object.entries(qMap as any).map(([question_id, answer]) => ({ question_id, answer: answer as any })),
       }));
 
       try {

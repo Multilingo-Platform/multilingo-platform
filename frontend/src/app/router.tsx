@@ -5,6 +5,11 @@ import axiosClient from '../core/api/axiosClient';
 import AudioUploader from '../components/common/AudioUploader';
 import StudentExamView from '../features/exams/components/StudentExamView';
 
+// --- CBT EXAM PAGES ---
+import ExamStartPage from '../features/exam/pages/ExamStartPage';
+import WorkspacePage from '../features/exam/pages/WorkspacePage';
+import ExamResultPage from '../features/exam/pages/ExamResultPage';
+
 // --- MEMBER 2 PAGES & LAYOUTS ---
 import PublicLayout from '../components/layout/PublicLayout';
 import UserLayout from '../components/layout/UserLayout';
@@ -160,4 +165,26 @@ export const router = createBrowserRouter([
       }
     ]
   }
+,
+  // --- CBT EXAM ROUTES ---
+  {
+    path: '/exams/:examId/start',
+    element: <UserLayout />,
+    children: [{ index: true, element: <ExamStartPage /> }]
+  },
+  {
+    path: '/student/exam/:examId',
+    element: <UserLayout />,
+    children: [{ index: true, element: <ExamStartPage /> }]
+  },
+  {
+    path: '/attempts/:attemptId',
+    element: <WorkspacePage />
+  },
+  {
+    path: '/attempts/:attemptId/result',
+    element: <UserLayout />,
+    children: [{ index: true, element: <ExamResultPage /> }]
+  }
+
 ]);
