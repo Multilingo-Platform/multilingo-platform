@@ -75,7 +75,7 @@ public class TestAttempt extends BaseEntity {
     private Map<String, Object> examSnapshot;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "result_summary", columnDefinition = "jsonb")
+    @Column(name = "result_summary", columnDefinition = "json")
     private com.fasterxml.jackson.databind.JsonNode resultSummary;
 
     @Builder.Default
