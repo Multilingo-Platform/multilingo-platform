@@ -11,6 +11,7 @@ import StudentExamView from '../features/exams/components/StudentExamView';
 import ExamStartPage from '../features/exam/pages/ExamStartPage';
 import WorkspacePage from '../features/exam/pages/WorkspacePage';
 import ExamResultPage from '../features/exam/pages/ExamResultPage';
+import ExamReviewPage from '../features/exam/pages/ExamReviewPage';
 
 // --- MEMBER 2 PAGES & LAYOUTS ---
 import PublicLayout from '../components/layout/PublicLayout';
@@ -156,6 +157,11 @@ export const router = createBrowserRouter([
         path: '/attempts/:attemptId/result',
         element: <UserLayout />,
         children: [{ index: true, element: <ExamResultPage /> }]
+      },
+      {
+        path: '/attempts/:attemptId/review',
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamReviewPage /> }]
       }
     ]
   }
