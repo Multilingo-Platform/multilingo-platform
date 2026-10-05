@@ -23,6 +23,7 @@ import ExamBuilderPage from '../features/exams/pages/admin/ExamBuilderPage';
 import LandingPage from '../features/public/pages/LandingPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
+import ProtectedRoute from '../features/auth/components/ProtectedRoute';
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -126,25 +127,29 @@ export const router = createBrowserRouter([
 
   // --- DEV / TEST ROUTES (Tạm thời giữ lại) ---
   
-  // --- CBT EXAM ROUTES ---
+  // --- CBT EXAM ROUTES (PROTECTED) ---
   {
-    path: '/exams/:examId/start',
-    element: <UserLayout />,
-    children: [{ index: true, element: <ExamStartPage /> }]
-  },
-  {
-    path: '/student/exam/:examId',
-    element: <UserLayout />,
-    children: [{ index: true, element: <ExamStartPage /> }]
-  },
-  {
-    path: '/attempts/:attemptId',
-    element: <WorkspacePage />
-  },
-  {
-    path: '/attempts/:attemptId/result',
-    element: <UserLayout />,
-    children: [{ index: true, element: <ExamResultPage /> }]
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '/exams/:examId/start',
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamStartPage /> }]
+      },
+      {
+        path: '/student/exam/:examId',
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamStartPage /> }]
+      },
+      {
+        path: '/attempts/:attemptId',
+        element: <WorkspacePage />
+      },
+      {
+        path: '/attempts/:attemptId/result',
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamResultPage /> }]
+      }
+    ]
   }
-
 ]);
