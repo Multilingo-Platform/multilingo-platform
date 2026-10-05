@@ -269,6 +269,7 @@ describe('WorkspacePage submit flow', () => {
   it('renders dynamic skill header "Task 1 / 2" instead of "Passage" when in Writing section', async () => {
     const mockWritingWorkspace = {
       ...baseWorkspace,
+      test_mode: 'PRACTICE' as const,
       exam_snapshot: {
         exam_id: 1,
         code: 'IE01',
