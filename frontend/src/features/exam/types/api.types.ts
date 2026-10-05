@@ -24,7 +24,7 @@ export interface WorkspaceResponse {
   lockedSections?: number[];
   /** ISO-8601 UTC Instant timestamp from server */
   serverTime?: string | null;
-  /** ms: serverClock − clientClock at workspace fetch time. 0 if unknown. */
+  /** ms: serverClock - clientClock at workspace fetch time. 0 if unknown. */
   serverTimeOffset: number;
 }
 
@@ -47,3 +47,59 @@ export interface SubmitResult {
   redirect_url: string;
 }
 
+export interface ExamResultResponse {
+  attemptId: number;
+  status: AttemptStatus;
+  testScope: TestScope;
+  testMode: TestMode;
+  startTime: string;
+  endTime: string;
+  timeSpentSeconds: number;
+  overallScore: number;
+  resultSummary: {
+    objective?: {
+      scoreUnit: string;
+      correct: number;
+      incorrect: number;
+      unanswered: number;
+      total: number;
+      accuracy: number;
+      bySkill: Array<{
+        skill: string;
+        correct: number;
+        incorrect: number;
+        unanswered: number;
+        total: number;
+        accuracy: number;
+      }>;
+      byPart: Array<{
+        partId: number;
+        label: string;
+        skill: string;
+        correct: number;
+        incorrect: number;
+        unanswered: number;
+        total: number;
+      }>;
+    };
+    writing?: {
+      status: string;
+      tasks: Array<{
+        partId: number;
+        label: string;
+        status: string;
+        wordCount: number;
+        score: number | null;
+        maxScore: number;
+      }>;
+    };
+  } | null;
+}
+
+export interface ExamReviewResponse {
+  attemptId: number;
+  partId: number;
+  partResult: Record<string, any>;
+  userAnswers: Record<string, any>;
+  examData: Record<string, any>;
+}
