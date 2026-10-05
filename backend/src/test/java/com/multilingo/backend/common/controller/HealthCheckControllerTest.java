@@ -1,5 +1,8 @@
 package com.multilingo.backend.common.controller;
 
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.multilingo.backend.modules.auth.security.JwtAuthenticationFilter;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(HealthCheckController.class)
 @ActiveProfiles("test")
 class HealthCheckControllerTest {
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private MockMvc mockMvc;

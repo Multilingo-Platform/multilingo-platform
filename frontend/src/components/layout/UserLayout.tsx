@@ -1,36 +1,70 @@
 import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { Flame } from 'lucide-react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Flame, Crown, User, LogOut } from 'lucide-react';
 import Header from './Header';
 import ProfileDropdown from '../common/ProfileDropdown';
+import Footer from './Footer';
 
 const UserLayout = () => {
+  const navigate = useNavigate();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       {/* Top Navbar */}
-      <Header 
+      <Header
         navItems={
           <>
-            <NavLink to="/student/dashboard" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 1.5rem', display: 'flex', alignItems: 'center' }}>
+            <NavLink to="/student/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
               Bảng điều khiển
             </NavLink>
-            <NavLink to="/student/library" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 1.5rem', display: 'flex', alignItems: 'center' }}>
+            <NavLink to="/student/library" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
               Thư viện Đề thi
             </NavLink>
-            <NavLink to="/student/history" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 1.5rem', display: 'flex', alignItems: 'center' }}>
+            <NavLink to="/student/history" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
               Lịch sử làm bài
             </NavLink>
-            <NavLink to="/student/flashcards" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 1.5rem', display: 'flex', alignItems: 'center' }}>
+            <NavLink to="/student/flashcards" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
               Từ vựng SRS
             </NavLink>
+            <NavLink to="/student/settings" className={({ isActive }) => `nav-item mobile-only-nav ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', gap: '0.5rem' }}>
+              <User size={18} /> Hồ sơ & Cài đặt
+            </NavLink>
+            <div className="nav-item mobile-only-nav" onClick={() => navigate('/')} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', cursor: 'pointer', color: 'var(--danger)', gap: '0.5rem' }}>
+              <LogOut size={18} /> Đăng xuất
+            </div>
           </>
         }
         rightActions={
           <>
-            <div className="badge badge-orange flex-center" style={{ gap: '0.25rem', padding: '0.4rem 0.75rem', borderRadius: '50px' }}>
-              <Flame size={16} fill="currentColor" /> 5 ngày
+            <button 
+              style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                flexDirection: 'row',
+                gap: '0.375rem', 
+                padding: '0.4rem 1rem', 
+                borderRadius: '50px',
+                background: 'linear-gradient(90deg, #FFB800 0%, #FF8A00 100%)',
+                color: 'white',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(255, 138, 0, 0.25)',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                height: '38px'
+              }}
+            >
+              <Crown size={18} fill="currentColor" />
+              <span>Nâng cấp PRO</span>
+            </button>
+            <div className="badge badge-orange" style={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: '0.25rem', padding: '0.4rem 0.75rem', borderRadius: '50px', whiteSpace: 'nowrap', height: '38px', fontSize: '0.9rem' }}>
+              <Flame size={16} fill="currentColor" /> 
+              <span>5 ngày</span>
             </div>
-            <ProfileDropdown />
+            <div className="desktop-only">
+              <ProfileDropdown />
+            </div>
           </>
         }
       />
@@ -41,11 +75,7 @@ const UserLayout = () => {
       </main>
 
       {/* Footer */}
-      <footer style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-light)', padding: '2rem 0', marginTop: 'auto' }}>
-        <div className="container flex-center" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          &copy; 2026 Multilingo Platform.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

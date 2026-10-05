@@ -3,6 +3,7 @@ package com.multilingo.backend.modules.auth.entity;
 import com.multilingo.backend.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +15,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Role extends BaseEntity {
 
     @Column(name = "name", length = 50, unique = true, nullable = false)

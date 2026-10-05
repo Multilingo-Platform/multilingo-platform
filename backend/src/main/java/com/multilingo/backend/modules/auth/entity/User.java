@@ -1,5 +1,8 @@
 package com.multilingo.backend.modules.auth.entity;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
+
 import com.multilingo.backend.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,49 +16,50 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class User extends BaseEntity {
 
     @Column(name = "email", length = 255, unique = true, nullable = false)
-    private String email;
+    String email;
 
     @Column(name = "password_hash", length = 255)
-    private String passwordHash;
+    String passwordHash;
 
     @Column(name = "full_name", length = 150)
-    private String fullName;
+    String fullName;
 
     @Column(name = "avatar_url", length = 500)
-    private String avatarUrl;
+    String avatarUrl;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
+    Role role;
 
     @Builder.Default
     @Column(name = "native_language", length = 10, nullable = false)
-    private String nativeLanguage = "vi";
+    String nativeLanguage = "vi";
 
     @Builder.Default
     @Column(name = "target_language", length = 10, nullable = false)
-    private String targetLanguage = "en";
+    String targetLanguage = "en";
 
     @Builder.Default
     @Column(name = "subscription_tier", length = 20, nullable = false)
-    private String subscriptionTier = "FREE";
+    String subscriptionTier = "FREE";
 
     @Column(name = "premium_expires_at")
-    private Instant premiumExpiresAt;
+    Instant premiumExpiresAt;
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    Boolean isActive = true;
 
     @Column(name = "google_id", length = 255, unique = true)
-    private String googleId;
+    String googleId;
 
     @Column(name = "last_login_at")
-    private Instant lastLoginAt;
+    Instant lastLoginAt;
 
     @Column(name = "last_login_ip", length = 45)
-    private String lastLoginIp;
+    String lastLoginIp;
 }

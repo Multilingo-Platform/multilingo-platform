@@ -18,3 +18,24 @@
 - Bắt buộc áp dụng Feature-based Architecture (Feature-Sliced Design).
 - Giao diện, API, logic và Redux slice của tính năng nào phải nằm gọn trong thư mục `features/<tên-tính-năng>/`.
 - Thư mục `components` ở gốc chỉ dành cho UI components tái sử dụng chung.
+
+## 4. Hướng dẫn kích hoạt Skill (Skill Triggers)
+
+| Nhóm | Tên Skill | Khi nào cần gọi (Trigger Condition) |
+| :--- | :--- | :--- |
+| **UI/UX & Design** | `ui-ux-pro-max` | Bắt đầu thiết kế màn hình mới, cần tư vấn layout, phong cách thẩm mỹ, bảng màu và font chữ chuẩn UX. |
+| | `ui-styling` | Viết code component giao diện (CSS / Tailwind / shadcn/ui), tinh chỉnh Responsive đa màn hình, làm Dark Mode. |
+| | `design-system` | Khởi tạo / quy chuẩn Design Tokens (biến CSS màu sắc, typography, spacing, radius) dùng chung toàn app. |
+| | `banner-design` | Thiết kế Banner quảng bá, Hero Section trang chủ hoặc hình ảnh quảng bá sự kiện. |
+| | `design` | Tạo bộ Icon SVG vector (cúp danh hiệu, ngọn lửa streak, badge...), thiết kế logo hoặc mockup sản phẩm. |
+| | `brand` | Định hình văn phong (Tone of Voice), viết câu thông báo UI (chúc mừng, khích lệ khi làm đúng/sai bài tập). |
+| | `slides` | Tạo bài trình chiếu thuyết trình đồ án / báo cáo tiến độ dạng HTML & Chart.js tương tác. |
+| **Phát triển Tính năng** | `multilingo-feature-development` | Bắt đầu luồng phát triển tính năng mới từ A–Z theo chuẩn Multilingo Platform. |
+| | `brainstorming` | Khám phá yêu cầu, thảo luận ý tưởng, đối soát tài liệu `docs/DacTa/` và viết Spec. |
+| | `multilingo-crud-generator` | Cần sinh nhanh bộ mã CRUD đầy đủ chuẩn kiến trúc (Entity, DTO, Repository, Service, Controller, Tests). |
+| | `test-driven-development` | Viết code tính năng hoặc fix bug theo chu trình TDD (Red -> Green -> Refactor). |
+| **Chất lượng & Quy trình** | `acceptance-criteria-and-test-design` | Chuẩn hóa Scope, AC (Gherkin), Ma trận kiểm thử 6 khía cạnh và Bảng Test Cases 7 cột trước khi lập plan. |
+| | `writing-plans` | Chia nhỏ công việc thành các bước thực thi cụ thể (2–5 phút/task) sau khi đã có Spec và AC. |
+| | `systematic-debugging` / `multilingo-debugging` | Gặp lỗi runtime, test failure hoặc hành vi bất thường cần truy tìm nguyên nhân gốc rễ. |
+| | `requesting-code-review` / `receiving-code-review` | Hoàn thành một task lớn, cần rà soát lại chất lượng mã nguồn hoặc xử lý feedback review. |
+| | `verification-before-completion` | Trước khi tuyên bố hoàn thành task, nghiệm thu kết quả và xác nhận `mvn clean test` PASS. |
