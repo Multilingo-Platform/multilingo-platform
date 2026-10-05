@@ -1,0 +1,190 @@
+<mxfile host="app.diagrams.net" compressed="false" pages="3">
+  <diagram id="tv3-usecase-workspace" name="01 - Không gian làm bài">
+    <mxGraphModel dx="2323" dy="1121" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tv3-usecase-workspace-boundary" connectable="0" parent="1" style="rounded=0;fillColor=none;strokeColor=#475569;strokeWidth=1.5;container=0;" value="" vertex="1">
+          <mxGeometry height="800" width="1100" x="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-student" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;labelWidth=170;overflow=visible;spacingTop=8;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.5;" value="Học viên" vertex="1">
+          <mxGeometry height="100" width="60" x="80" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-gemini" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;labelWidth=170;overflow=visible;spacingTop=8;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.5;" value="Hệ thống Gemini AI" vertex="1">
+          <mxGeometry height="100" width="60" x="1420" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-uc08" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC08&#xa;Làm bài thi thử&#xa;&amp; luyện tập từng phần" vertex="1">
+          <mxGeometry height="120" width="300" x="600" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-uc081" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC08.1&#xa;Highlight đoạn văn bài đọc" vertex="1">
+          <mxGeometry height="100" width="300" x="300" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-uc084" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC08.4&#xa;Gợi ý dàn ý &amp; từ vựng AI&#xa;(Writing Hints)" vertex="1">
+          <mxGeometry height="100" width="300" x="300" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-uc085" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC08.5&#xa;Tự động thu bài khi hết giờ" vertex="1">
+          <mxGeometry height="100" width="300" x="990" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-a01" edge="1" parent="1" source="tv3-usecase-workspace-student" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-workspace-uc08" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-a02" edge="1" parent="1" source="tv3-usecase-workspace-student" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-workspace-uc081" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="180" y="440" />
+              <mxPoint x="180" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-a03" edge="1" parent="1" source="tv3-usecase-workspace-student" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-workspace-uc084" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="190" y="480" />
+              <mxPoint x="190" y="750" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-a04" edge="1" parent="1" source="tv3-usecase-workspace-gemini" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-workspace-uc084" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-e01" edge="1" parent="1" source="tv3-usecase-workspace-uc081" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=open;endFill=0;dashed=1;dashPattern=6 4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-workspace-uc08" value="&lt;&lt;extend&gt;&gt;&#xa;[Reading; chọn Highlight]">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+            <Array as="points">
+              <mxPoint x="750" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-e02" edge="1" parent="1" source="tv3-usecase-workspace-uc084" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=open;endFill=0;dashed=1;dashPattern=6 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-workspace-uc08" value="&lt;&lt;extend&gt;&gt;&#xa;[Luyện Writing; yêu cầu Hints]">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+            <Array as="points">
+              <mxPoint x="450" y="610" />
+              <mxPoint x="750" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-e03" edge="1" parent="1" source="tv3-usecase-workspace-uc085" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=open;endFill=0;dashed=1;dashPattern=6 4;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-workspace-uc08" value="&lt;&lt;extend&gt;&gt;&#xa;[Mock Test; đồng hồ về 00:00]">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-60" as="offset" />
+            <Array as="points">
+              <mxPoint x="1140" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-workspace-note-0" connectable="0" parent="1" style="text;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;fontSize=14;fontColor=#64748B;align=left;verticalAlign=middle;spacing=0;" value="Tiền điều kiện: Học viên đã đăng nhập. UC08 bao gồm chế độ Mock Test và Practice; không tách thành nghiệp vụ mới." vertex="1">
+          <mxGeometry height="40" width="1260" x="260" y="920" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="tv3-usecase-grading" name="02 - Chấm điểm">
+    <mxGraphModel dx="1913" dy="924" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="880" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tv3-usecase-grading-boundary" connectable="0" parent="1" style="rounded=0;fillColor=none;strokeColor=#475569;strokeWidth=1.5;container=0;" value="" vertex="1">
+          <mxGeometry height="650" width="1100" x="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-student" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;labelWidth=170;overflow=visible;spacingTop=8;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.5;" value="Học viên" vertex="1">
+          <mxGeometry height="100" width="60" x="80" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-gemini" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;labelWidth=170;overflow=visible;spacingTop=8;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.5;" value="Hệ thống Gemini AI" vertex="1">
+          <mxGeometry height="100" width="60" x="1420" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-uc08" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC08&#xa;Làm bài thi thử&#xa;&amp; luyện tập từng phần" vertex="1">
+          <mxGeometry height="120" width="300" x="350" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-uc09" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC09 (gồm UC09.1)&#xa;Chấm điểm trắc nghiệm&#xa;&amp; điền từ tự động" vertex="1">
+          <mxGeometry height="120" width="360" x="800" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-uc092" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC09.2&#xa;Chấm điểm Writing&#xa;bằng Gemini AI" vertex="1">
+          <mxGeometry height="120" width="360" x="800" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-a01" edge="1" parent="1" source="tv3-usecase-grading-student" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-grading-uc08" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-a02" edge="1" parent="1" source="tv3-usecase-grading-gemini" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-grading-uc092" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-e01" edge="1" parent="1" source="tv3-usecase-grading-uc09" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=open;endFill=0;dashed=1;dashPattern=6 4;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-grading-uc08" value="&lt;&lt;extend&gt;&gt;&#xa;[Có câu trắc nghiệm/điền từ&#xa;cần chấm]">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-40" as="offset" />
+            <Array as="points">
+              <mxPoint x="500" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-e02" edge="1" parent="1" source="tv3-usecase-grading-uc092" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=open;endFill=0;dashed=1;dashPattern=6 4;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-grading-uc08" value="&lt;&lt;extend&gt;&gt;&#xa;[Có bài Writing được nộp]">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="35" as="offset" />
+            <Array as="points">
+              <mxPoint x="500" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-grading-note-1" connectable="0" parent="1" style="text;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;fontSize=14;fontColor=#64748B;align=left;verticalAlign=middle;spacing=0;" value="Chấm điểm được kích hoạt từ quá trình làm/nộp bài; Học viên không gọi trực tiếp các thao tác chấm điểm nội bộ." vertex="1">
+          <mxGeometry height="30" width="1260" x="260" y="815" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="tv3-usecase-results" name="03 - Kết quả và chữa bài">
+    <mxGraphModel dx="2323" dy="1121" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="840" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tv3-usecase-results-boundary" connectable="0" parent="1" style="rounded=0;fillColor=none;strokeColor=#475569;strokeWidth=1.5;container=0;" value="" vertex="1">
+          <mxGeometry height="600" width="1000" x="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-results-student" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;labelWidth=170;overflow=visible;spacingTop=8;fillColor=#FFFFFF;strokeColor=#334155;strokeWidth=1.5;" value="Học viên" vertex="1">
+          <mxGeometry height="100" width="60" x="80" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-results-uc10" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC10 (gồm UC10.1)&#xa;Xem kết quả bài thi&#xa;&amp; lời giải chi tiết" vertex="1">
+          <mxGeometry height="130" width="340" x="350" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-results-uc102" parent="1" style="ellipse;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;align=center;verticalAlign=middle;spacing=10;fillColor=#F1F5F9;strokeColor=#64748B;strokeWidth=1.5;" value="UC10.2&#xa;Xem nhận xét AI&#xa;&amp; Diff-View sửa lỗi" vertex="1">
+          <mxGeometry height="120" width="320" x="840" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-results-a01" edge="1" parent="1" source="tv3-usecase-results-student" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-results-uc10" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-results-a02" edge="1" parent="1" source="tv3-usecase-results-student" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=none;endFill=0;dashed=0;dashPattern=6 4;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-results-uc102" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="190" y="310" />
+              <mxPoint x="190" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-results-e01" edge="1" parent="1" source="tv3-usecase-results-uc102" style="edgeStyle=segmentEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;fontFamily=Arial;fontSize=14;fontColor=#374151;labelBackgroundColor=#FFFFFF;labelBorderColor=none;whiteSpace=wrap;labelWidth=270;strokeColor=#475569;strokeWidth=1.25;startArrow=none;endArrow=open;endFill=0;dashed=1;dashPattern=6 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitPerimeter=1;entryPerimeter=1;" target="tv3-usecase-results-uc10" value="&lt;&lt;extend&gt;&gt;&#xa;[Chọn tab Writing;&#xa;có ai_feedback]">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-40" as="offset" />
+            <Array as="points">
+              <mxPoint x="1000" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tv3-usecase-results-note-0" connectable="0" parent="1" style="text;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;fontSize=14;fontColor=#64748B;align=left;verticalAlign=middle;spacing=0;" value="UC10.1 (lời giải chi tiết) được gộp trong UC10 theo bảng phân công. Tiền điều kiện: đã có kết quả bài làm." vertex="1">
+          <mxGeometry height="40" width="1100" x="260" y="725" as="geometry" />
+        </mxCell>
+        <mxCell id="tv3-usecase-results-note-1" connectable="0" parent="1" style="text;fontFamily=Arial;fontSize=16;fontColor=#1F2937;html=0;whiteSpace=wrap;overflow=hidden;fontSize=14;fontColor=#64748B;align=left;verticalAlign=middle;spacing=0;" value="UC10.2 hiển thị ai_feedback đã lưu; không gọi Gemini API nên không có Association tới Actor Gemini AI." vertex="1">
+          <mxGeometry height="40" width="1100" x="260" y="780" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

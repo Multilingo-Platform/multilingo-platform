@@ -1,0 +1,131 @@
+import axiosClient from '../../../core/api/axiosClient';
+import type {
+  ApiResponse,
+  AutosaveRequest,
+  CreateAttemptRequest,
+  SubmitResult,
+  WorkspaceResponse,
+} from '../types/api.types';
+import type { PartAnswers } from '../types/answer.types';
+
+function normalizeWorkspace(data: any, serverTimeOffset = 0): WorkspaceResponse {
+  return {
+    attempt_id: data.attemptId ?? data.attempt_id,
+    status: data.status,
+    test_scope: data.testScope ?? data.test_scope,
+    test_mode: data.testMode ?? data.test_mode,
+    deadline: data.deadline ?? null,
+    exam_snapshot: data.examSnapshot ?? data.exam_snapshot ?? {},
+    version: data.version ?? 0,
+    lockedSections: data.lockedSections ?? data.locked_sections ?? [],
+    saved_answers: data.savedAnswers ?? data.saved_answers ?? [],
+    serverTime: data.serverTime ?? data.server_time ?? null,
+    serverTimeOffset,
+  };
+}
+
+/**
+ * POST /api/v1/attempts
+ * Creates a new test attempt. Returns workspace without correct_answer.
+ */
+export async function createAttempt(req: CreateAttemptRequest): Promise<WorkspaceResponse> {
+  const payload = {
+    examId: req.exam_id,
+    testScope: req.test_scope,
+    testMode: req.test_mode,
+    targetSectionId: req.section_id,
+    targetPartId: req.part_id,
+  };
+  const res = await axiosClient.post<unknown, ApiResponse<any>>('/v1/attempts', payload);
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Failed to create attempt');
+  }
+  return normalizeWorkspace(res.data);
+}
+
+/**
+ * GET /api/v1/attempts/:id/workspace
+ * Loads workspace for an existing attempt. Returns workspace without correct_answer.
+ */
+export async function getWorkspace(attemptId: number): Promise<WorkspaceResponse> {
+  const clientBefore = Date.now();
+  const res = await axiosClient.get<unknown, ApiResponse<any>>(`/v1/attempts/${attemptId}/workspace`);
+  const clientAfter = Date.now();
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Attempt not found');
+  }
+  // Compute server-client clock offset if backend provides serverTime in response body
+  const serverTimeRaw = res.data.serverTime ?? res.data.server_time ?? res.data.serverNow ?? res.data.server_now;
+  const serverNowMs: number = serverTimeRaw
+    ? (typeof serverTimeRaw === 'number' ? serverTimeRaw : new Date(serverTimeRaw).getTime())
+    : 0;
+  const serverTimeOffset =
+    serverNowMs > 0
+      ? serverNowMs - Math.round((clientBefore + clientAfter) / 2)
+      : 0;
+  return normalizeWorkspace(res.data, serverTimeOffset);
+}
+
+/**
+ * PUT /api/v1/attempts/:id/answers
+ * Autosave draft answers. Called by useAutosave hook every 15s when isDirty=true.
+ */
+export async function autosaveAnswers(attemptId: number, req: AutosaveRequest): Promise<void> {
+  const res = await axiosClient.put<unknown, ApiResponse<null>>(
+    `/v1/attempts/${attemptId}/answers`,
+    { version: req.version, answers: req.answers }
+  );
+  if (!res.success) {
+    throw new Error(res.message || 'Autosave failed');
+  }
+}
+
+export interface SubmitAttemptApiRequest {
+  reason?: 'MANUAL' | 'TIMEOUT_CLIENT' | 'TIMEOUT_SERVER';
+  version?: number;
+  baseVersion?: number;
+  answers?: PartAnswers[];
+  finalAnswers?: PartAnswers[];
+}
+
+/**
+ * POST /api/v1/attempts/:id/submit
+ * Submit attempt. Idempotent — safe to call multiple times.
+ */
+export async function submitAttempt(
+  attemptId: number,
+  req?: SubmitAttemptApiRequest
+): Promise<SubmitResult> {
+  const payload: Record<string, any> = {
+    version: req?.version ?? 0,
+    answers: req?.answers ?? [],
+  };
+  if (req?.reason) {
+    payload.reason = req.reason;
+  }
+  if (req?.baseVersion !== undefined) {
+    payload.baseVersion = req.baseVersion;
+  }
+  if (req?.finalAnswers !== undefined) {
+    payload.finalAnswers = req.finalAnswers;
+  }
+  const res = await axiosClient.post<unknown, ApiResponse<any>>(
+    `/v1/attempts/${attemptId}/submit`,
+    payload
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.message || 'Submit failed');
+  }
+  return {
+    attempt_id: res.data.attemptId ?? res.data.attempt_id,
+    status: res.data.status,
+    redirect_url: res.data.redirectUrl ?? res.data.redirect_url,
+  };
+}
+
+export async function lockSection(attemptId: number, sectionId: number): Promise<void> {
+  const res = await axiosClient.post<unknown, ApiResponse<null>>(`/v1/attempts/${attemptId}/sections/${sectionId}/lock`);
+  if (!res.success) {
+    throw new Error(res.message || 'Lock section failed');
+  }
+}

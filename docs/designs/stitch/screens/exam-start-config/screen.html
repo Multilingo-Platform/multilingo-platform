@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Thiết lập và Khởi tạo Phiên thi - Multilingo</title>
+<!-- Google Fonts: Plus Jakarta Sans & Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-container": "#825100",
+            "on-background": "#131b2e",
+            "outline-variant": "#c4c5d7",
+            "on-secondary-container": "#00714d",
+            "on-surface": "#131b2e",
+            "on-tertiary": "#ffffff",
+            "error": "#ba1a1a",
+            "surface-container-highest": "#dae2fd",
+            "surface-tint": "#2151da",
+            "on-tertiary-fixed": "#2a1700",
+            "surface-bright": "#faf8ff",
+            "secondary": "#006c49",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed-variant": "#005236",
+            "inverse-primary": "#b7c4ff",
+            "surface-container-high": "#e2e7ff",
+            "tertiary-fixed": "#ffddb8",
+            "inverse-on-surface": "#eef0ff",
+            "background": "#faf8ff",
+            "primary-container": "#1d4ed8",
+            "outline": "#747686",
+            "surface-variant": "#dae2fd",
+            "secondary-fixed": "#6ffbbe",
+            "tertiary-fixed-dim": "#ffb95f",
+            "on-error-container": "#93000a",
+            "secondary-container": "#6cf8bb",
+            "primary-fixed": "#dce1ff",
+            "on-tertiary-container": "#ffcb8f",
+            "on-primary": "#ffffff",
+            "on-primary-fixed-variant": "#0039b5",
+            "on-error": "#ffffff",
+            "inverse-surface": "#283044",
+            "on-secondary-fixed": "#002113",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed-variant": "#653e00",
+            "primary": "#0037b0",
+            "on-primary-fixed": "#001551",
+            "surface": "#faf8ff",
+            "surface-container-low": "#f2f3ff",
+            "on-primary-container": "#cad3ff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container": "#eaedff",
+            "on-surface-variant": "#434655",
+            "secondary-fixed-dim": "#4edea3",
+            "primary-fixed-dim": "#b7c4ff",
+            "tertiary": "#623c00",
+            "surface-dim": "#d2d9f4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-mobile": "1rem",
+            "gutter-mobile": "0.75rem",
+            "space-lg": "1.5rem",
+            "gutter": "1.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "space-xl": "2rem",
+            "margin": "2rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "display-lg": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "title-md": ["Plus Jakarta Sans"],
+            "mono-timer": ["Inter"],
+            "body-lg": ["Inter"],
+            "label-md": ["Inter"],
+            "display-lg-mobile": ["Plus Jakarta Sans"],
+            "body-md": ["Inter"],
+            "headline-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "display-lg": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "label-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.04em", fontWeight: "700" }],
+            "body-sm": ["13px", { lineHeight: "20px", fontWeight: "400" }],
+            "headline-md": ["22px", { lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "title-md": ["18px", { lineHeight: "26px", fontWeight: "600" }],
+            "mono-timer": ["16px", { lineHeight: "20px", fontWeight: "600" }],
+            "body-lg": ["17px", { lineHeight: "28px", fontWeight: "400" }],
+            "label-md": ["13px", { lineHeight: "18px", letterSpacing: "0.01em", fontWeight: "600" }],
+            "display-lg-mobile": ["30px", { lineHeight: "38px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "body-md": ["15px", { lineHeight: "24px", fontWeight: "400" }],
+            "headline-lg": ["28px", { lineHeight: "36px", letterSpacing: "-0.015em", fontWeight: "600" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    @keyframes equalizer {
+      0%, 100% { height: 4px; }
+      50% { height: 18px; }
+    }
+    .eq-bar {
+      animation: equalizer 0.8s ease-in-out infinite;
+    }
+    .eq-bar:nth-child(2) { animation-delay: 0.15s; }
+    .eq-bar:nth-child(3) { animation-delay: 0.3s; }
+    .eq-bar:nth-child(4) { animation-delay: 0.45s; }
+    .eq-bar:nth-child(5) { animation-delay: 0.2s; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-on-surface font-body-md antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-primary pb-28">
+<!-- ================= TOP APP BAR (from Shared Components JSON) ================= -->
+<header class="bg-surface-container-lowest sticky top-0 z-40 shadow-sm border-b border-outline-variant">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+<!-- Brand & Assessment System -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-xl bg-primary-container flex items-center justify-center text-on-primary shadow-sm shadow-blue-500/20">
+<span class="material-symbols-outlined text-2xl" data-icon="school">school</span>
+</div>
+<span class="text-headline-md font-headline-md font-bold text-primary tracking-tight">Multilingo</span>
+</div>
+<span class="hidden md:inline-block text-outline-variant">/</span>
+<div class="hidden md:flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>CBT Assessment Core</span>
+</div>
+</div>
+<!-- Navigation Links from JSON (Active State Logic: Mock Exams) -->
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors duration-150 font-label-md text-label-md" href="#">Dashboard</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-label-md text-label-md" href="#">Mock Exams</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors duration-150 font-label-md text-label-md" href="#">Practice Hub</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors duration-150 font-label-md text-label-md" href="#">Performance Analytics</a>
+</nav>
+<!-- Trailing Actions & Profile -->
+<div class="flex items-center gap-3">
+<!-- Target Badge -->
+<div class="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-surface-container-high rounded-full border border-outline-variant/60">
+<span class="material-symbols-outlined text-primary text-base" data-icon="flag">flag</span>
+<span class="font-label-md text-label-md text-primary font-bold">IELTS 7.5 Target</span>
+</div>
+<!-- Language Switch -->
+<button class="flex items-center gap-1 px-2.5 py-1.5 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors text-label-md font-label-md" title="Đổi ngôn ngữ">
+<span class="material-symbols-outlined text-lg" data-icon="translate">translate</span>
+<span class="font-bold">VIE</span>
+<span class="material-symbols-outlined text-sm" data-icon="expand_more">expand_more</span>
+</button>
+<!-- Trailing Icon Actions from JSON -->
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors" title="Volume Control">
+<span class="material-symbols-outlined" data-icon="volume_up">volume_up</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors relative" title="Thông báo">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
+</button>
+<!-- User Profile Avatar -->
+<div class="flex items-center gap-2 pl-2 border-l border-outline-variant">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center font-bold text-label-md ring-1 ring-outline-variant">
+            NT
+          </div>
+</div>
+</div>
+</div>
+</header>
+<!-- ================= BREADCRUMBS & CONTEXT ================= -->
+<div class="bg-surface-container-lowest/60 border-b border-outline-variant/40 backdrop-blur-sm">
+<div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between text-label-md font-label-md">
+<nav class="flex items-center gap-2 text-on-surface-variant">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-base" data-icon="home">home</span>
+<span>Thư viện đề thi</span>
+</a>
+<span class="material-symbols-outlined text-sm text-outline-variant" data-icon="chevron_right">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">IELTS Academic Mock Test 2026</a>
+<span class="material-symbols-outlined text-sm text-outline-variant" data-icon="chevron_right">chevron_right</span>
+<span class="text-primary font-bold bg-primary/10 px-2 py-0.5 rounded text-xs">Thiết lập phiên thi</span>
+</nav>
+<!-- Trailing Action from JSON -->
+<a class="hidden md:flex items-center gap-1 text-on-surface-variant hover:text-error transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-base" data-icon="logout">logout</span>
+<span>Exit to Dashboard</span>
+</a>
+</div>
+</div>
+<!-- ================= MAIN CONTENT CONTAINER ================= -->
+<main class="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-8">
+<!-- 2. EXAM OVERVIEW HERO SECTION (Bento Hero Style) -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant/70 p-6 md:p-8 shadow-sm relative overflow-hidden">
+<div class="absolute -right-16 -top-16 w-72 h-72 bg-gradient-to-br from-primary-fixed/30 to-secondary-fixed/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 space-y-6">
+<!-- Badges Cluster -->
+<div class="flex flex-wrap items-center gap-2.5">
+<span class="px-3 py-1 rounded-full text-label-sm font-label-sm bg-primary/10 text-primary border border-primary/20 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="verified">verified</span>
+            Chuẩn khảo thí CBT 2026
+          </span>
+<span class="px-3 py-1 rounded-full text-label-sm font-label-sm bg-tertiary-fixed text-on-tertiary-fixed-variant border border-tertiary-container/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="military_tech">military_tech</span>
+            Target 6.5 - 8.0
+          </span>
+<span class="px-3 py-1 rounded-full text-label-sm font-label-sm bg-secondary-container/40 text-on-secondary-container border border-secondary/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="update">update</span>
+            Đã cập nhật Q1/2026
+          </span>
+<span class="ml-auto hidden lg:inline-flex items-center gap-1 text-outline font-label-sm text-label-sm">
+            Mã đề: <span class="font-mono text-on-surface font-semibold">IEL-ACAD-26-VOL12</span>
+</span>
+</div>
+<!-- Title & Cambridge Description -->
+<div class="max-w-4xl space-y-2">
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">
+            IELTS Academic Mock Test - Full Vol 12
+          </h1>
+<p class="text-body-md font-body-md text-on-surface-variant leading-relaxed">
+            Bộ đề thi chuẩn hóa bám sát cấu trúc đề thi chính thức của Cambridge Assessment English và IDP Education. Đánh giá toàn diện 3 kỹ năng học thuật thông qua hệ thống giao diện chấm điểm tự động và thuật toán dự đoán Band điểm chuẩn xác 98.4%.
+          </p>
+</div>
+<!-- Metadata Stat Pills (Grid) -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+<div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/50 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest text-primary flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-xl" data-icon="schedule">schedule</span>
+</div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">Thời lượng</p>
+<p class="text-title-md font-title-md text-on-surface">180 Phút</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/50 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest text-secondary flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-xl" data-icon="menu_book">menu_book</span>
+</div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">Kỹ năng</p>
+<p class="text-title-md font-title-md text-on-surface">3 Kỹ năng (R-L-W)</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/50 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest text-primary-container flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-xl" data-icon="check_circle">check_circle</span>
+</div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">Số câu hỏi</p>
+<p class="text-title-md font-title-md text-on-surface">82 Câu chuẩn hóa</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/50 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest text-tertiary flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-xl" data-icon="groups">groups</span>
+</div>
+<div>
+<p class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">Lượt làm bài</p>
+<p class="text-title-md font-title-md text-on-surface">18,420 lượt</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- TWO-COLUMN WORKFLOW: CONFIGURATION vs SIDEBAR RULES -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- LEFT 8-COL: TEST CONFIGURATION -->
+<div class="lg:col-span-8 space-y-8">
+<!-- 3. SCOPE SELECTOR -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant/70 p-6 shadow-sm space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="w-7 h-7 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-label-md">1</span>
+<h2 class="text-title-md font-title-md text-on-surface">Chọn Phạm vi Làm bài (Test Scope)</h2>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Bắt buộc</span>
+</div>
+<div class="space-y-3.5" id="scope-selector-group">
+<!-- Scope 1: Full Exam (Active) -->
+<label class="relative block border-2 border-primary bg-primary-fixed/20 rounded-xl p-4 cursor-pointer transition-all duration-150 hover:border-primary">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3">
+<input checked="" class="mt-1 w-4 h-4 text-primary focus:ring-primary" name="test_scope" type="radio" value="full"/>
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md text-on-surface font-bold">Toàn bộ đề thi (Full Exam)</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-container text-on-secondary-container font-semibold">Khuyên dùng</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                      Trọn vẹn 3 kỹ năng Reading (60m) + Listening (40m) + Writing (80m) theo đúng chuẩn thi quốc tế.
+                    </p>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="inline-block px-2.5 py-1 rounded bg-surface-container text-primary font-label-md text-label-md font-semibold">
+                    82 câu hỏi • 180 phút
+                  </span>
+</div>
+</div>
+</label>
+<!-- Scope 2: Single Skill -->
+<label class="relative block border border-outline-variant rounded-xl p-4 cursor-pointer hover:bg-surface-container-low transition-all duration-150">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3 flex-1">
+<input class="mt-1 w-4 h-4 text-primary focus:ring-primary" name="test_scope" type="radio" value="single_skill"/>
+<div class="space-y-3 flex-1">
+<div>
+<span class="font-title-md text-title-md text-on-surface font-semibold">Luyện từng kỹ năng (Single Skill)</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                        Tập trung chuyên sâu vào một kỹ năng mong muốn để khắc phục điểm yếu.
+                      </p>
+</div>
+<!-- Embedded Dropdown Selector -->
+<div class="pt-1">
+<select class="w-full md:w-80 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary">
+<option value="reading">Reading - 3 Passages (60m, 40 câu)</option>
+<option value="listening">Listening - 4 Sections (40m, 40 câu)</option>
+<option value="writing">Writing - Task 1 &amp; Task 2 (80m, 2 tasks)</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</label>
+<!-- Scope 3: Single Part -->
+<label class="relative block border border-outline-variant rounded-xl p-4 cursor-pointer hover:bg-surface-container-low transition-all duration-150">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3 flex-1">
+<input class="mt-1 w-4 h-4 text-primary focus:ring-primary" name="test_scope" type="radio" value="single_part"/>
+<div class="space-y-3 flex-1">
+<div>
+<span class="font-title-md text-title-md text-on-surface font-semibold">Luyện từng phần nhỏ (Single Part)</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                        Luyện đề tốc độ cao từng Task hoặc từng bài đọc độc lập khi bạn có quỹ thời gian ngắn.
+                      </p>
+</div>
+<!-- Embedded Dropdown Selector -->
+<div class="pt-1">
+<select class="w-full md:w-80 text-body-sm font-body-sm bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary">
+<option value="r_p1">Reading Passage 1 (20 phút, 13 câu)</option>
+<option value="r_p2">Reading Passage 2 (20 phút, 13 câu)</option>
+<option value="r_p3">Reading Passage 3 (20 phút, 14 câu)</option>
+<option value="l_p1">Listening Section 1 (8 phút, 10 câu)</option>
+<option value="l_p2">Listening Section 2 (8 phút, 10 câu)</option>
+<option value="l_p3">Listening Section 3 (10 phút, 10 câu)</option>
+<option value="l_p4">Listening Section 4 (10 phút, 10 câu)</option>
+<option value="w_t1">Writing Task 1 - Report / Chart (20 phút)</option>
+<option value="w_t2">Writing Task 2 - Discursive Essay (40 phút)</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</label>
+</div>
+</section>
+<!-- 4. TEST MODE SELECTOR -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant/70 p-6 shadow-sm space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="w-7 h-7 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-label-md">2</span>
+<h2 class="text-title-md font-title-md text-on-surface">Chọn Chế độ Thi (Exam Mode)</h2>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Cơ chế chấm điểm</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Mode 1: Simulation Mock Test (Active) -->
+<label class="relative block border-2 border-primary bg-primary-fixed/20 rounded-xl p-5 cursor-pointer transition-all duration-150 flex flex-col justify-between shadow-xs">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="p-2 bg-primary/10 text-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="timer">timer</span>
+</span>
+<span class="px-2 py-0.5 rounded text-label-sm font-label-sm bg-primary text-on-primary font-bold">
+                    CBT PROTOCOL 100%
+                  </span>
+</div>
+<div class="flex items-start gap-2.5">
+<input checked="" class="mt-1 w-4 h-4 text-primary focus:ring-primary" name="test_mode" type="radio" value="simulation"/>
+<div>
+<h3 class="font-title-md text-title-md text-on-surface font-bold">Thi thử mô phỏng (Simulation)</h3>
+<p class="text-label-sm font-label-sm text-primary font-semibold">Strict Real Exam Environment</p>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed pt-1">
+                  Mô phỏng 100% áp lực phòng thi thật. Đồng hồ đếm ngược chạy liên tục không thể tạm dừng, tự động khóa và thu bài khi hết giờ (00:00). Không có gợi ý AI hay đáp án trong quá trình làm bài. Đánh giá xếp hạng chuẩn CEFR.
+                </p>
+</div>
+<div class="mt-4 pt-3 border-t border-primary/20 flex items-center justify-between text-label-sm font-label-sm text-primary">
+<span class="flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-base" data-icon="lock">lock</span>
+                  Không tạm dừng
+                </span>
+<span class="flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-base" data-icon="analytics">analytics</span>
+                  Báo cáo phân tích Band
+                </span>
+</div>
+</label>
+<!-- Mode 2: Practice Mode -->
+<label class="relative block border border-outline-variant bg-surface-container-lowest rounded-xl p-5 cursor-pointer hover:border-outline transition-all duration-150 flex flex-col justify-between">
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="p-2 bg-surface-container text-on-surface-variant rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="auto_stories">auto_stories</span>
+</span>
+<span class="px-2 py-0.5 rounded text-label-sm font-label-sm bg-secondary-fixed text-on-secondary-fixed font-bold">
+                    FLEXIBLE &amp; LEARNING
+                  </span>
+</div>
+<div class="flex items-start gap-2.5">
+<input class="mt-1 w-4 h-4 text-primary focus:ring-primary" name="test_mode" type="radio" value="practice"/>
+<div>
+<h3 class="font-title-md text-title-md text-on-surface font-semibold">Luyện tập tự do (Practice Mode)</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant font-semibold">Self-paced with AI Assistance</p>
+</div>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed pt-1">
+                  Môi trường luyện tập thư giãn, không tính thời gian hoặc cho phép tạm dừng. Hỗ trợ tra từ điển ngữ cảnh AI tức thì bằng popup và xem giải thích chi tiết từng câu ngay sau khi gửi đáp án.
+                </p>
+</div>
+<div class="mt-4 pt-3 border-t border-outline-variant/60 flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-base text-secondary" data-icon="pause_circle">pause_circle</span>
+                  Cho phép dừng
+                </span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-base text-primary" data-icon="psychology">psychology</span>
+                  Hỗ trợ AI Context
+                </span>
+</div>
+</label>
+</div>
+</section>
+</div>
+<!-- RIGHT 4-COL: HARDWARE CHECKLIST, RULES & SESSION STATS -->
+<div class="lg:col-span-4 space-y-6">
+<!-- 5. HARDWARE DIAGNOSTICS & SYSTEM READINESS -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant/70 p-6 shadow-sm space-y-5">
+<div class="flex items-center gap-2.5 border-b border-outline-variant/50 pb-3">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="perm_device_information">perm_device_information</span>
+<h3 class="font-title-md text-title-md text-on-surface">Kiểm tra Phần cứng &amp; Âm thanh</h3>
+</div>
+<!-- Sound Check Card -->
+<div class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/50 space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-on-surface font-semibold">Thử tai nghe / Loa</span>
+<span class="text-label-sm font-label-sm text-secondary flex items-center gap-1 font-bold">
+<span class="w-2 h-2 rounded-full bg-secondary inline-block"></span>
+                Output Sẵn sàng
+              </span>
+</div>
+<!-- Audio Test Control -->
+<button class="w-full flex items-center justify-between px-4 py-2.5 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-lg text-primary text-label-md font-label-md transition-all active:scale-[0.98]" id="testAudioBtn">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="volume_up">volume_up</span>
+<span>Phát âm thanh thử nghiệm</span>
+</span>
+<!-- Equalizer Indicator -->
+<div class="flex items-end gap-1 h-5">
+<span class="w-1 bg-primary rounded-full eq-bar" style="height: 6px;"></span>
+<span class="w-1 bg-primary rounded-full eq-bar" style="height: 14px;"></span>
+<span class="w-1 bg-primary rounded-full eq-bar" style="height: 8px;"></span>
+<span class="w-1 bg-primary rounded-full eq-bar" style="height: 16px;"></span>
+<span class="w-1 bg-primary rounded-full eq-bar" style="height: 5px;"></span>
+</div>
+</button>
+<!-- Confirmation Toggle -->
+<label class="flex items-center gap-2.5 pt-1 cursor-pointer">
+<input checked="" class="w-4 h-4 rounded text-secondary focus:ring-secondary border-outline-variant" type="checkbox"/>
+<span class="text-body-sm font-body-sm text-on-surface font-medium">Tôi đã nghe rõ âm lượng bài test</span>
+</label>
+</div>
+<!-- Cloud Sync & Autosave Notice -->
+<div class="flex items-start gap-3 p-3 bg-secondary-container/20 border border-secondary/20 rounded-xl">
+<span class="material-symbols-outlined text-secondary text-xl shrink-0 mt-0.5" data-icon="cloud_sync">cloud_sync</span>
+<div class="space-y-0.5">
+<h4 class="text-label-md font-label-md text-on-surface font-semibold">Tự động đồng bộ Cloud</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                Hệ thống tự động lưu nháp đáp án an toàn lên Cloud mỗi 15 giây. Trong trường hợp mất mạng hoặc tải lại trang, phiên thi sẽ được khôi phục 100%.
+              </p>
+</div>
+</div>
+<!-- Security Regulations Notice -->
+<div class="flex items-start gap-3 p-3 bg-error-container/30 border border-error/20 rounded-xl">
+<span class="material-symbols-outlined text-error text-xl shrink-0 mt-0.5" data-icon="gavel">gavel</span>
+<div class="space-y-0.5">
+<h4 class="text-label-md font-label-md text-error font-semibold">Quy chế phòng thi CBT</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                Nghiêm cấm mở tab trình duyệt khác hoặc chuyển cửa sổ ứng dụng. Hệ thống sẽ ghi nhận vi phạm sau 3 lần cảnh báo tự động.
+              </p>
+</div>
+</div>
+</section>
+<!-- Proctor Guidelines Card (Shared Components Link) -->
+<section class="bg-surface-container-low rounded-xl border border-outline-variant/60 p-5 space-y-3">
+<div class="flex items-center justify-between">
+<h4 class="text-title-md font-title-md text-on-surface">Cần hỗ trợ kỹ thuật?</h4>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="support_agent">support_agent</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+            Gặp sự cố về đường truyền hoặc micro? Giám thị trực tuyến luôn thường trực để giải quyết yêu cầu trước giờ làm bài.
+          </p>
+<a class="inline-flex items-center gap-1.5 text-primary font-label-md text-label-md hover:underline font-semibold" href="#">
+<span>Mở Help &amp; Proctor Center</span>
+<span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</a>
+</section>
+</div>
+</div>
+</main>
+<!-- ================= 6. STICKY BOTTOM ACTION BAR (CALL-TO-ACTION BAR) ================= -->
+<footer class="fixed bottom-0 inset-x-0 bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant z-50 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]">
+<div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+<!-- Left side: Summary Pill with Live Green Pulse Indicator -->
+<div class="flex items-center gap-3 w-full md:w-auto">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-secondary-container/30 border border-secondary/30 rounded-full">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
+</span>
+<span class="text-label-sm font-label-sm font-bold text-on-secondary-container">Hệ thống sẵn sàng</span>
+</div>
+<div class="hidden sm:block text-body-sm font-body-sm text-on-surface-variant truncate">
+<span class="font-semibold text-on-surface">Đang cấu hình:</span>
+<span>Toàn bộ đề thi (Full Exam)</span> • 
+          <span>Thi thử mô phỏng (180 phút)</span> • 
+          <span>82 câu hỏi</span>
+</div>
+</div>
+<!-- Right side: Actions -->
+<div class="flex items-center gap-3 w-full md:w-auto justify-end">
+<!-- Secondary Button -->
+<a class="px-5 py-2.5 rounded-lg border border-outline-variant hover:bg-surface-container text-on-surface font-label-md text-label-md transition-all duration-150 text-center" href="#">
+          Quay lại Thư viện
+        </a>
+<!-- Primary CTA Button (Sapphire Blue #1D4ED8) -->
+<button class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-7 py-3 bg-primary-container hover:bg-blue-800 text-on-primary font-title-md text-title-md rounded-lg shadow-md shadow-blue-600/25 transition-all duration-150 active:scale-[0.98]">
+<span>Bắt đầu làm bài thi ngay</span>
+<span class="material-symbols-outlined text-xl" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</footer>
+<!-- Light Micro-interaction Script -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const audioBtn = document.getElementById('testAudioBtn');
+      let isPlaying = false;
+
+      if (audioBtn) {
+        audioBtn.addEventListener('click', () => {
+          isPlaying = !isPlaying;
+          const textSpan = audioBtn.querySelector('span span');
+          if (isPlaying) {
+            textSpan.textContent = 'Đang phát âm thanh mẫu (1000Hz)...';
+            audioBtn.classList.add('bg-primary/5', 'border-primary');
+            setTimeout(() => {
+              textSpan.textContent = 'Phát âm thanh thử nghiệm';
+              audioBtn.classList.remove('bg-primary/5', 'border-primary');
+              isPlaying = false;
+            }, 3000);
+          }
+        });
+      }
+    });
+  </script>
+</body></html>
