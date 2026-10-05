@@ -1,0 +1,242 @@
+{
+  "info": {
+    "_postman_id": "c012b2a1-e234-4b56-8a78-9b12d345f678",
+    "name": "Multilingo - UC012.2 Ôn tập Flashcard SRS",
+    "description": "Bộ sưu tập API kiểm thử phân hệ Ôn tập Flashcard theo thuật toán Spaced Repetition (SRS SM-2) của Multilingo Platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8088",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "deckId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "cardId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Khởi tạo phiên ôn tập (Study Session)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/study-session",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "study-session"]
+        },
+        "description": "Tải danh sách các thẻ từ vựng ưu tiên tới hạn ôn tập (nextReviewDate <= CURRENT_TIMESTAMP), nếu không có thẻ tới hạn sẽ lấy toàn bộ thẻ trong bộ. Mỗi thẻ tự động sinh maskedSentence che từ vựng đích."
+      },
+      "response": [
+        {
+          "name": "200 OK - Khởi tạo thành công",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"message\": \"Khởi tạo phiên học thành công\",\n  \"data\": {\n    \"deckId\": 1,\n    \"deckName\": \"IELTS Academic Core\",\n    \"targetLanguage\": \"en\",\n    \"sourceLanguage\": \"vi\",\n    \"totalSessionCards\": 3,\n    \"cards\": [\n      {\n        \"id\": 1,\n        \"customWord\": \"ubiquitous\",\n        \"phonetic\": \"/juːˈbɪk.wɪ.təs/\",\n        \"pos\": \"adj\",\n        \"maskedSentence\": \"Smartphones have become _______ in daily modern life.\",\n        \"customMeaning\": \"có mặt ở khắp mọi nơi, phổ biến\",\n        \"fullSentence\": \"Smartphones have become ubiquitous in daily modern life.\",\n        \"customImageUrl\": null,\n        \"reviewCount\": 2,\n        \"status\": \"LEARNING\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Đánh giá thẻ SRS - Đã thuộc (REMEMBERED)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": \"REMEMBERED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/vocab/cards/{{cardId}}/review",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "vocab", "cards", "{{cardId}}", "review"]
+        },
+        "description": "Ghi nhận đánh giá 'Đã thuộc'. Hệ thống tăng reviewCount, tính khoảng cách interval mới theo độ dễ easeFactor. Nếu interval >= 21 ngày, thẻ nâng cấp thành MASTERED."
+      },
+      "response": [
+        {
+          "name": "200 OK - Đánh giá thành công",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"message\": \"Ghi nhận đánh giá SRS thành công\",\n  \"data\": {\n    \"cardId\": 1,\n    \"status\": \"LEARNING\",\n    \"reviewCount\": 3,\n    \"intervalDays\": 7,\n    \"easeFactor\": 2.50,\n    \"nextReviewDate\": \"2026-10-11T00:15:00Z\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Đánh giá thẻ SRS - Quên (FORGOTTEN)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": \"FORGOTTEN\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/vocab/cards/{{cardId}}/review",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "vocab", "cards", "{{cardId}}", "review"]
+        },
+        "description": "Ghi nhận đánh giá 'Quên'. Hệ thống reset interval về 1 ngày (ôn lại ngày mai), giảm độ dễ easeFactor đi 0.20 (không dưới sàn 1.30) và giữ trạng thái LEARNING."
+      },
+      "response": [
+        {
+          "name": "200 OK - Đặt lại lịch ôn tập",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"message\": \"Ghi nhận đánh giá SRS thành công\",\n  \"data\": {\n    \"cardId\": 1,\n    \"status\": \"LEARNING\",\n    \"reviewCount\": 2,\n    \"intervalDays\": 1,\n    \"easeFactor\": 2.30,\n    \"nextReviewDate\": \"2026-10-05T00:15:00Z\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Hoàn tất phiên học (Finish Session)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cardsReviewed\": 10,\n  \"cardsRemembered\": 8,\n  \"cardsForgotten\": 2,\n  \"durationSeconds\": 150\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/vocab/decks/{{deckId}}/finish-session",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "vocab", "decks", "{{deckId}}", "finish-session"]
+        },
+        "description": "Lưu kết quả học tập vào daily_study_logs, cộng điểm kinh nghiệm (10 XP cơ bản + 2 XP/thẻ thuộc = 26 XP), và cập nhật chuỗi ngày học liên tục (streak)."
+      },
+      "response": [
+        {
+          "name": "200 OK - Hoàn tất phiên học",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"code\": 200,\n  \"message\": \"Lưu kết quả phiên học thành công\",\n  \"data\": {\n    \"earnedXp\": 26,\n    \"currentStreak\": 4,\n    \"totalMasteredCards\": 5,\n    \"cardsReviewed\": 10\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "5. Test Lỗi: Đánh giá rating không hợp lệ (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": \"NOT_SURE\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/vocab/cards/{{cardId}}/review",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "vocab", "cards", "{{cardId}}", "review"]
+        }
+      },
+      "response": [
+        {
+          "name": "400 Bad Request",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n  \"success\": false,\n  \"code\": 1213,\n  \"message\": \"Mức độ đánh giá SRS không hợp lệ (chỉ chấp nhận REMEMBERED hoặc FORGOTTEN)\",\n  \"data\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "6. Test Lỗi: Validation đầu vào để trống rating (422)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/vocab/cards/{{cardId}}/review",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "vocab", "cards", "{{cardId}}", "review"]
+        }
+      },
+      "response": [
+        {
+          "name": "422 Unprocessable Entity",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "body": "{\n  \"success\": false,\n  \"code\": 422,\n  \"message\": \"Mức độ đánh giá không được để trống\",\n  \"data\": null\n}"
+        }
+      ]
+    }
+  ]
+}

@@ -92,8 +92,39 @@ Nếu tính năng bạn muốn phát triển **chưa có file đặc tả** tron
 ```
 [Bối cảnh]: Tôi đang làm tính năng gì / ở bước nào
 [Mục tiêu]: Tôi muốn AI làm gì cụ thể
-[Ràng buộc]: Tuân thủ quy trình nào (nếu cần nhấn mạnh)
+[Skill / Ràng buộc]: Sử dụng skill @[tên-skill] để thực hiện
 [Tham chiếu]: @[file liên quan] nếu có
+```
+
+### 3.3. Cách Tag & Kích Hoạt Trực Tiếp Skill (Skill Chaining)
+
+Bạn có thể kích hoạt chính xác kỹ năng mong muốn theo 2 cách:
+* **Cách 1 (Gõ trực tiếp tên skill):** Trong câu prompt chỉ định: `"Sử dụng skill <tên-skill> để..."`
+* **Cách 2 (Tag file skill bằng `@`):** Gõ `@` rồi chọn file `SKILL.md` tương ứng trong `.agents/skills/<tên-skill>/SKILL.md`.
+
+#### 🔗 Chuỗi Skill chuẩn cho Tính Năng Mới (Skill Chaining Flow)
+
+```
+Bước 1: @brainstorming hoặc @multilingo-feature-development
+  │   (Khảo sát yêu cầu & viết Spec)
+  ▼
+Bước 2: @acceptance-criteria-and-test-design
+  │   (Soạn AC Gherkin & Ma trận 6 khía cạnh Test Cases)
+  ▼
+Bước 3: @writing-plans
+  │   (Lập Implementation Plan chia nhỏ task 2-5 phút)
+  ▼
+Bước 4: @test-driven-development (TDD)
+  │   (Red → Green → Refactor cho từng task)
+  │   ├── Kết hợp @multilingo-crud-generator (nếu sinh CRUD Backend)
+  │   ├── Kết hợp @api-and-interface-design (nếu làm REST API Contract)
+  │   └── Kết hợp @frontend-ui-engineering (nếu dựng UI React)
+  ▼
+Bước 5: @verification-before-completion
+  │   (Chạy mvn clean test & npm run build, chứng minh bằng log)
+  ▼
+Bước 6: @code-review-and-quality / @requesting-code-review
+      (Review code, xin phép trước khi git commit)
 ```
 
 ---
@@ -197,16 +228,25 @@ cd frontend && npm run lint && npm run build
 
 ---
 
-## PHỤ LỤC: BẢNG THAM CHIẾU NHANH
+## PHỤ LỤC: BẢNG TRA CỨU SKILL & CHUỖI GỌI (SKILL CHEATSHEET)
 
-| Tôi muốn... | Prompt bắt đầu bằng... |
-| :--- | :--- |
-| Phát triển Use Case mới | "Triển khai UC... theo quy trình Superpowers @[GEMINI.md]" |
-| Tính năng chưa có spec | "Brainstorming và viết đặc tả cho tính năng..." |
-| Thiết kế AC & Test Cases | "Thiết kế Tiêu chí nghiệm thu & Ma trận Test Cases cho..." |
-| Tạo CRUD nhanh | "Tạo bộ CRUD cho bảng ... theo quy chuẩn Base Architecture" |
-| Sửa lỗi | "[Paste error] Phân tích root cause và sửa" |
-| Kiểm tra kiến trúc | "Kiểm tra cấu trúc module ... có tuân thủ @[GEMINI.md] không" |
-| Viết test | "Viết unit test cho ... theo TDD" |
-| Refactor Docker | "Kiểm tra và tối ưu cấu hình Docker cho ..." |
-| Hỏi về dự án | "Giải thích cấu trúc / luồng / nghiệp vụ của ..." |
+Dưới đây là bảng tra cứu chính xác skill cần tag cho từng công việc cụ thể:
+
+| Công việc muốn làm | Skill cần tag / kích hoạt | Bước / Skill tiếp theo | Ví dụ Prompt tag mẫu |
+| :--- | :--- | :--- | :--- |
+| **Phát triển Use Case có sẵn đặc tả** | `@multilingo-feature-development` | `@acceptance-criteria-and-test-design` | *"Dùng @multilingo-feature-development đối soát @[docs/DacTa/AD_UC...md] và chuẩn bị spec."* |
+| **Làm tính năng mới chưa có đặc tả** | `@brainstorming` | `@acceptance-criteria-and-test-design` | *"Dùng @brainstorming phỏng vấn tôi để viết spec cho tính năng [Tên tính năng] vào docs/superpowers/specs/."* |
+| **Thiết kế Tiêu chí & Test Cases** | `@acceptance-criteria-and-test-design` | `@writing-plans` | *"Dùng @acceptance-criteria-and-test-design thiết kế AC Gherkin và ma trận 6 khía cạnh test cases cho spec vừa tạo."* |
+| **Lập kế hoạch phân rã Task (Plan)** | `@writing-plans` | `@test-driven-development` | *"Dùng @writing-plans lập kế hoạch chia nhỏ task (2-5 phút) vào docs/superpowers/plans/ dựa trên AC và Test Cases."* |
+| **Code tính năng theo chuẩn TDD** | `@test-driven-development` | `@verification-before-completion` | *"Triển khai Task 1 trong plan theo @test-driven-development: viết test FAIL trước, sau đó mới viết code."* |
+| **Sinh nhanh trọn bộ CRUD Backend** | `@multilingo-crud-generator` | `@verification-before-completion` | *"Dùng @multilingo-crud-generator tạo bộ Entity, DTO, Repo, Service, Controller cho bảng [tên_bảng]."* |
+| **Thiết kế REST API & DTO chuẩn** | `@api-and-interface-design` | `@test-driven-development` | *"Dùng @api-and-interface-design thiết kế contract API và DTO cho endpoint [tên_endpoint]."* |
+| **Xây dựng Giao diện React/UI** | `@frontend-ui-engineering` | `@browser-testing-with-devtools` | *"Dùng @frontend-ui-engineering dựng component [tên UI] theo Feature-based, chuẩn responsive và Tailwind."* |
+| **Sửa lỗi / Fix bug / Test fail** | `@systematic-debugging` (hoặc `@multilingo-debugging`) | `@verification-before-completion` | *"Dùng @systematic-debugging điều tra root cause lỗi sau: [paste log], giải thích và vá lỗi có test guard."* |
+| **Làm sạch / Đơn giản hóa code** | `@code-simplification` | `@verification-before-completion` | *"Dùng @code-simplification tối ưu file [đường dẫn], giữ nguyên logic nghiệp vụ và test."* |
+| **Kiểm tra bảo mật / OWASP / Auth** | `@security-and-hardening` | `@verification-before-completion` | *"Dùng @security-and-hardening rà soát lỗ hổng bảo mật, SQLi và IDOR trong module [tên module]."* |
+| **Tối ưu truy vấn & hiệu năng** | `@performance-optimization` | `@verification-before-completion` | *"Dùng @performance-optimization kiểm tra và xử lý N+1 query tại service [tên service]."* |
+| **Chạy kiểm thử & Nghiệm thu** | `@verification-before-completion` | `@requesting-code-review` | *"Dùng @verification-before-completion chạy mvn clean test & npm run build, xuất log chứng minh PASS 100%."* |
+| **Review code & Trước khi Commit** | `@requesting-code-review` (hoặc `@code-review-and-quality`) | Người dùng xác nhận commit | *"Dùng @requesting-code-review review diff các file đã sửa, tóm tắt thay đổi để tôi duyệt trước khi commit."* |
+| **Hoàn tất nhánh & Dọn branch** | `@finishing-a-development-branch` | Hoàn thành | *"Dùng @finishing-a-development-branch hướng dẫn tôi merge/rebase nhánh feature này vào develop."* |
+

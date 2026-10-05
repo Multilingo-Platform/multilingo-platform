@@ -27,14 +27,31 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
-        String details = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining(", "));
-
-        log.warn("Lỗi Validation đầu vào: {}", details);
+        FieldError fieldError = ex.getBindingResult().getFieldError();
+        String messageKey = fieldError != null ? fieldError.getDefaultMessage() : null;
 
         ErrorCode errorCode = ErrorCode.VALIDATION_FAILED;
-        ApiResponse<Void> response = ApiResponse.error(errorCode.getCode(), details);
+        String message = null;
+
+        if (messageKey != null) {
+            try {
+                errorCode = ErrorCode.valueOf(messageKey);
+                message = errorCode.getMessage();
+            } catch (IllegalArgumentException ignored) {
+                // Fallback nếu message là chuỗi text thông thường
+                message = ex.getBindingResult().getFieldErrors().stream()
+                        .map(FieldError::getDefaultMessage)
+                        .collect(Collectors.joining(", "));
+            }
+        }
+
+        if (message == null) {
+            message = errorCode.getMessage();
+        }
+
+        log.warn("Lỗi Validation đầu vào: code={}, message={}", errorCode.getCode(), message);
+
+        ApiResponse<Void> response = ApiResponse.error(errorCode.getCode(), message);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
     }
 
