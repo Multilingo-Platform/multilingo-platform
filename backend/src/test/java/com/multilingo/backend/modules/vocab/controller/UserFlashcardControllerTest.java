@@ -29,11 +29,18 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.test.context.ActiveProfiles;
+import com.multilingo.backend.modules.auth.security.JwtAuthenticationFilter;
+
 @WebMvcTest(UserFlashcardController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
+@ActiveProfiles("test")
 @DisplayName("UserFlashcardController WebMvc Tests")
 class UserFlashcardControllerTest {
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private MockMvc mockMvc;

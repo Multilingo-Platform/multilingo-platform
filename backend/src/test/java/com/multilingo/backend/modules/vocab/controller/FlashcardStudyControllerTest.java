@@ -33,11 +33,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.test.context.ActiveProfiles;
+import com.multilingo.backend.modules.auth.security.JwtAuthenticationFilter;
+
 @WebMvcTest(FlashcardStudyController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
+@ActiveProfiles("test")
 @DisplayName("FlashcardStudyController WebMvc Tests - UC012.2 SRS")
 class FlashcardStudyControllerTest {
+
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private MockMvc mockMvc;
