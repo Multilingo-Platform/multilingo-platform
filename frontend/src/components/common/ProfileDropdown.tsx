@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { useMutation } from '@tanstack/react-query';
+import { logout } from '../../features/auth/store/authSlice';
+import { authApi } from '../../features/auth/api/authApi';
 
 const ProfileDropdown = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -16,6 +21,19 @@ const ProfileDropdown = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const logoutMutation = useMutation({
+    mutationFn: () => authApi.logout(),
+    onSettled: () => {
+      dispatch(logout());
+      navigate('/');
+    }
+  });
+
+  const handleLogout = () => {
+    setShowProfileMenu(false);
+    logoutMutation.mutate();
+  };
 
   return (
     <div ref={profileMenuRef} style={{ position: 'relative' }}>
@@ -54,7 +72,7 @@ const ProfileDropdown = () => {
           
           <div 
             className="flex-center"
-            onClick={() => { setShowProfileMenu(false); navigate('/'); }}
+            onClick={handleLogout}
             style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: 500, justifyContent: 'flex-start', gap: '0.75rem', color: 'var(--danger)' }}
           >
             <LogOut size={18} /> Đăng xuất
