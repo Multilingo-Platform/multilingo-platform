@@ -96,10 +96,44 @@ export interface ExamResultResponse {
   } | null;
 }
 
+export interface ExamReviewOption {
+  id: number;
+  content: string;
+  isCorrect?: boolean;
+}
+
+export interface ExamReviewQuestion {
+  id: number;
+  content: string;
+  explanation?: string | null;
+  options?: ExamReviewOption[];
+  [key: string]: any;
+}
+
+export interface ExamReviewPartData {
+  id?: number;
+  partNumber?: number;
+  title?: string;
+  name?: string;
+  questions?: ExamReviewQuestion[];
+  [key: string]: any;
+}
+
 export interface ExamReviewResponse {
   attemptId: number;
   partId: number;
-  partResult: Record<string, any>;
-  userAnswers: Record<string, any>;
-  examData: Record<string, any>;
+  partResult?: {
+    score?: number;
+    correctCount?: number;
+    totalQuestions?: number;
+    isCorrectFlags?: Record<string, boolean>;
+    [key: string]: any;
+  } | null;
+  userAnswers?: Record<string, any> | null;
+  examData?: ExamReviewPartData | null;
+  examSnapshot?: {
+    questions?: ExamReviewQuestion[];
+    [key: string]: any;
+  } | null;
+  isCorrectFlags?: Record<string, boolean>;
 }
