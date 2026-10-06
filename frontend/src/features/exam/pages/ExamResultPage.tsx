@@ -255,6 +255,13 @@ export const ExamResultPage: React.FC = () => {
           </button>
           <button 
             type="button"
+            onClick={() => navigate('/student/history')}
+            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium rounded-md shadow-2xs transition-colors cursor-pointer"
+          >
+            Lịch sử làm bài
+          </button>
+          <button 
+            type="button"
             onClick={() => navigate('/student/library')}
             className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-sm font-medium rounded-md shadow-2xs transition-colors cursor-pointer"
           >
