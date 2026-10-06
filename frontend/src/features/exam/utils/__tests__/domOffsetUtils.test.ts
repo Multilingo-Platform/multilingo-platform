@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rangeToOffsets } from '../domOffsetUtils';
+import { rangeToOffsets, trimOffsets } from '../domOffsetUtils';
 
 describe('domOffsetUtils', () => {
   it('calculates absolute text offsets accurately across HTML tags', () => {
@@ -16,5 +16,11 @@ describe('domOffsetUtils', () => {
 
     const offsets = rangeToOffsets(container, range);
     expect(offsets).toEqual({ start: 4, end: 8 });
+  });
+
+  it('adjusts start and end offsets to trim leading and trailing whitespace', () => {
+    // @ts-expect-error test before implementation
+    const adjusted = trimOffsets('  hello world   ', { start: 10, end: 26 });
+    expect(adjusted).toEqual({ start: 12, end: 23 });
   });
 });
