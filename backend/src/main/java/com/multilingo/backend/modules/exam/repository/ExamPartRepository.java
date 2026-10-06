@@ -13,4 +13,6 @@ public interface ExamPartRepository extends JpaRepository<ExamPart, Integer> {
     @Modifying
     @Query("DELETE FROM ExamPart p WHERE p.section.id IN :sectionIds")
     void deleteBySection_IdIn(@Param("sectionIds") List<Integer> sectionIds);
+
+    List<ExamPart> findBySection_Id(Integer sectionId);
 }

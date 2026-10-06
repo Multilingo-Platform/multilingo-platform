@@ -66,6 +66,21 @@ public class AdminExamServiceImpl implements AdminExamService {
         saveSectionsAndParts(exam, request.getSections());
     }
 
+    @Override
+    public void deleteExam(Integer id) {
+        if (!examRepository.existsById(id)) {
+            throw new AppException(ErrorCode.EXAM_NOT_FOUND);
+        }
+        
+        List<Integer> sectionIds = sectionRepository.findByExam_Id(id).stream().map(ExamSection::getId).toList();
+        if (!sectionIds.isEmpty()) {
+            partRepository.deleteBySection_IdIn(sectionIds);
+            sectionRepository.deleteByExam_Id(id);
+        }
+        
+        examRepository.deleteById(id);
+    }
+
     private void saveSectionsAndParts(Exam exam, List<SectionBuilderRequest> sectionRequests) {
         if (sectionRequests == null) return;
         
@@ -89,5 +104,31 @@ public class AdminExamServiceImpl implements AdminExamService {
                 }
             }
         }
+    }
+
+    @Override
+    public List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse> getAllExams() {
+        return examRepository.findAll().stream().map(exam -> {
+            com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse resp = new com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse();
+            resp.setId(exam.getId());
+            resp.setCode(exam.getCode());
+            resp.setTitle(exam.getTitle());
+            resp.setType(exam.getType());
+            resp.setIsPublished(exam.getIsPublished());
+            resp.setDurationMinutes(exam.getDurationMinutes());
+            resp.setUpdatedAt(exam.getUpdatedAt());
+            
+            // Basic counts for now
+            List<ExamSection> sections = sectionRepository.findByExam_Id(exam.getId());
+            int partsCount = 0;
+            for (ExamSection s : sections) {
+                partsCount += partRepository.findBySection_Id(s.getId()).size();
+            }
+            resp.setParts(partsCount);
+            resp.setQuestions(0); // Complex to calculate from JSONB, leave 0 or approximate
+            resp.setJoins(0);
+            
+            return resp;
+        }).toList();
     }
 }

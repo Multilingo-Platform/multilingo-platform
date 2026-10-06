@@ -111,4 +111,27 @@ class AdminExamServiceImplTest {
         verify(sectionRepository, times(1)).save(any(ExamSection.class));
         verify(partRepository, times(1)).save(any());
     }
+
+    @Test
+    void deleteExam_NotFound() {
+        when(examRepository.existsById(99)).thenReturn(false);
+
+        assertThatThrownBy(() -> examService.deleteExam(99))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("Không tìm thấy đề thi yêu cầu");
+    }
+
+    @Test
+    void deleteExam_Success() {
+        when(examRepository.existsById(1)).thenReturn(true);
+        ExamSection existingSection = new ExamSection();
+        existingSection.setId(10);
+        when(sectionRepository.findByExam_Id(1)).thenReturn(List.of(existingSection));
+
+        examService.deleteExam(1);
+
+        verify(partRepository, times(1)).deleteBySection_IdIn(List.of(10));
+        verify(sectionRepository, times(1)).deleteByExam_Id(1);
+        verify(examRepository, times(1)).deleteById(1);
+    }
 }

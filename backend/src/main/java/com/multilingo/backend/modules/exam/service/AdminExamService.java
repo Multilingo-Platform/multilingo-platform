@@ -7,4 +7,8 @@ public interface AdminExamService {
     Integer createExam(ExamBuilderRequest request);
 
     void updateExam(Integer id, ExamBuilderRequest request);
+
+    void deleteExam(Integer id);
+
+    java.util.List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse> getAllExams();
 }

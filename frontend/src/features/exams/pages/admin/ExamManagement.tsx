@@ -1,24 +1,54 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Search, Filter, BookOpen, CheckCircle, FileText, BarChart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Search, Filter, BookOpen, CheckCircle, FileText, BarChart, FileSpreadsheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axiosClient from '../../../../core/api/axiosClient';
 
 const ExamManagement = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [exams, setExams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const exams = [
-    { id: 'cam-18-1', title: 'Cambridge IELTS 18 - Test 1', type: 'IELTS', parts: 4, questions: 40, status: 'Active', joins: 1240, lastEdited: '2026-10-02' },
-    { id: 'cam-18-2', title: 'Cambridge IELTS 18 - Test 2', type: 'IELTS', parts: 4, questions: 40, status: 'Active', joins: 890, lastEdited: '2026-10-01' },
-    { id: 'toeic-2023', title: 'TOEIC ETS 2023 - Test 1', type: 'TOEIC', parts: 7, questions: 200, status: 'Active', joins: 3450, lastEdited: '2026-09-28' },
-    { id: 'vstep-b1-1', title: 'NLTV B1 - Đề thi thử số 1', type: 'NLTV', parts: 3, questions: 35, status: 'Draft', joins: 0, lastEdited: '2026-10-04' },
-    { id: 'cam-18-4', title: 'Cambridge IELTS 18 - Test 4', type: 'IELTS', parts: 4, questions: 40, status: 'Draft', joins: 0, lastEdited: '2026-10-04' },
-  ];
+  const fetchExams = async () => {
+    try {
+      setLoading(true);
+      const res = await axiosClient.get<any, any>('/v1/admin/exams');
+      if (res.success && res.data) {
+        setExams(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch exams', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExams();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Bạn có chắc muốn xóa đề thi này không?')) return;
+    try {
+      const res = await axiosClient.delete<any, any>(`/v1/admin/exams/${id}`);
+      if (res.success) {
+        alert('Đã xóa thành công!');
+        fetchExams();
+      } else {
+        alert('Lỗi: ' + res.message);
+      }
+    } catch (err: any) {
+      alert('Có lỗi xảy ra: ' + err.message);
+    }
+  };
+
+  const filteredExams = exams.filter(e => e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || e.code?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const stats = [
     { label: 'Tổng số đề thi', value: exams.length, icon: <BookOpen size={24} />, color: 'var(--primary)' },
-    { label: 'Đang hoạt động', value: exams.filter(e => e.status === 'Active').length, icon: <CheckCircle size={24} />, color: 'var(--success)' },
-    { label: 'Bản nháp', value: exams.filter(e => e.status === 'Draft').length, icon: <FileText size={24} />, color: 'var(--warning)' },
-    { label: 'Tổng lượt thi', value: exams.reduce((acc, curr) => acc + curr.joins, 0), icon: <BarChart size={24} />, color: '#8b5cf6' },
+    { label: 'Đang hoạt động', value: exams.filter(e => e.isPublished).length, icon: <CheckCircle size={24} />, color: 'var(--success)' },
+    { label: 'Bản nháp', value: exams.filter(e => !e.isPublished).length, icon: <FileText size={24} />, color: 'var(--warning)' },
+    { label: 'Tổng lượt thi', value: exams.reduce((acc, curr) => acc + (curr.joins || 0), 0), icon: <BarChart size={24} />, color: '#8b5cf6' },
   ];
 
   return (
@@ -29,13 +59,54 @@ const ExamManagement = () => {
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Quản lý Đề thi</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Biên soạn, xuất bản và quản lý tất cả các đề thi trên hệ thống.</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate('/admin/exams/create')}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: 'var(--radius-full)', boxShadow: '0 4px 6px -1px rgba(234, 88, 12, 0.2)' }}
-        >
-          <Plus size={20} /> Tạo Đề thi Mới
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <label
+            className="btn btn-outline"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: 'var(--radius-full)', cursor: 'pointer' }}
+          >
+            <input
+              type="file"
+              accept=".xlsx, .xls, .json"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  
+                  // Use a toast or alert here in real app, assuming fetch
+                  const token = localStorage.getItem('token');
+                  const res = await fetch('http://localhost:8080/api/v1/admin/exams/import', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                  });
+                  
+                  if (res.ok) {
+                    alert('Import thành công!');
+                    fetchExams();
+                  } else {
+                    const data = await res.json();
+                    alert('Lỗi import: ' + (data.message || res.statusText));
+                  }
+                } catch (err: any) {
+                  alert('Có lỗi xảy ra: ' + err.message);
+                }
+              }}
+            />
+            <FileSpreadsheet size={20} /> Nhập Excel/JSON
+          </label>
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate('/admin/exams/create')}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: 'var(--radius-full)', boxShadow: '0 4px 6px -1px rgba(234, 88, 12, 0.2)' }}
+          >
+            <Plus size={20} /> Tạo Đề thi Mới
+          </button>
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -90,6 +161,9 @@ const ExamManagement = () => {
 
         {/* Table */}
         <div style={{ overflowX: 'auto' }}>
+          {loading ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Đang tải dữ liệu...</div>
+          ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '2px solid var(--border-light)' }}>
@@ -102,14 +176,14 @@ const ExamManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {exams.map((exam, idx) => (
+              {filteredExams.map((exam, idx) => (
                 <tr key={exam.id} style={{ borderBottom: '1px solid var(--border-light)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)', transition: 'background-color 0.2s' }} className="hover-bg-tertiary">
                   <td style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', fontSize: '0.95rem' }}>{exam.id.toUpperCase()}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', fontSize: '0.95rem' }}>{exam.code?.toUpperCase()}</div>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{exam.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cập nhật: {exam.lastEdited} • Loại: {exam.type}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cập nhật: {new Date(exam.updatedAt).toLocaleDateString()} • Loại: {exam.type}</div>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     <div className="flex-center" style={{ gap: '0.75rem', justifyContent: 'flex-start' }}>
@@ -118,7 +192,7 @@ const ExamManagement = () => {
                     </div>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{exam.joins.toLocaleString('vi-VN')}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{(exam.joins || 0).toLocaleString('vi-VN')}</div>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     <span className="flex-center" style={{
@@ -128,12 +202,12 @@ const ExamManagement = () => {
                       borderRadius: 'var(--radius-full)',
                       fontSize: '0.75rem',
                       fontWeight: 700,
-                      backgroundColor: exam.status === 'Active' ? 'var(--success-light)' : 'var(--warning-light)',
-                      color: exam.status === 'Active' ? 'var(--success-dark)' : 'var(--warning-dark)',
-                      border: `1px solid ${exam.status === 'Active' ? 'var(--success)' : 'var(--warning)'}`
+                      backgroundColor: exam.isPublished ? 'var(--success-light)' : 'var(--warning-light)',
+                      color: exam.isPublished ? 'var(--success-dark)' : 'var(--warning-dark)',
+                      border: `1px solid ${exam.isPublished ? 'var(--success)' : 'var(--warning)'}`
                     }}>
-                      {exam.status === 'Active' ? <CheckCircle size={14} /> : <FileText size={14} />}
-                      {exam.status === 'Active' ? 'Xuất bản' : 'Bản nháp'}
+                      {exam.isPublished ? <CheckCircle size={14} /> : <FileText size={14} />}
+                      {exam.isPublished ? 'Xuất bản' : 'Bản nháp'}
                     </span>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
@@ -141,7 +215,7 @@ const ExamManagement = () => {
                       <button className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Chỉnh sửa">
                         <Edit size={18} />
                       </button>
-                      <button className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Xóa">
+                      <button onClick={() => handleDelete(exam.id)} className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Xóa">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -150,6 +224,7 @@ const ExamManagement = () => {
               ))}
             </tbody>
           </table>
+          )}
 
           {exams.length === 0 && (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>

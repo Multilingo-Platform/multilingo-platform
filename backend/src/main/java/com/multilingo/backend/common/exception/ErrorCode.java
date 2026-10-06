@@ -54,7 +54,8 @@ public enum ErrorCode {
     INVALID_SRS_RATING(1213, HttpStatus.BAD_REQUEST, "Mức độ đánh giá SRS không hợp lệ (chỉ chấp nhận REMEMBERED hoặc FORGOTTEN)"),
 
     // Exam Builder Errors (14xx)
-    EXAM_NOT_FOUND(1401, HttpStatus.NOT_FOUND, "Không tìm thấy đề thi yêu cầu");
+    EXAM_NOT_FOUND(1401, HttpStatus.NOT_FOUND, "Không tìm thấy đề thi yêu cầu"),
+    INVALID_IMPORT_FILE(1402, HttpStatus.BAD_REQUEST, "Định dạng file không hợp lệ hoặc cấu trúc sai");
 
     private final int code;
     private final HttpStatus httpStatus;
