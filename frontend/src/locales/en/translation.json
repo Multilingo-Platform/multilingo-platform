@@ -74,5 +74,26 @@
     "logout": "Log out",
     "upgrade_pro": "Upgrade to PRO",
     "streak_days": "{{count}} days"
+  },
+  "settings": {
+    "title": "Profile & Settings",
+    "tab_general": "General Info",
+    "tab_password": "Change Password",
+    "fullname": "Full Name",
+    "phone": "Phone Number",
+    "email": "Email",
+    "save_changes": "Save Changes",
+    "update_success": "Updated successfully",
+    "update_failed": "Update failed",
+    "old_password": "Old Password",
+    "new_password": "New Password",
+    "confirm_password": "Confirm Password",
+    "change_password_btn": "Update Password",
+    "password_success": "Password changed successfully",
+    "password_failed": "Password change failed",
+    "joined_date": "Joined Date",
+    "account_type": "Account Type",
+    "pro_badge": "PREMIUM",
+    "free_badge": "FREE"
   }
 }

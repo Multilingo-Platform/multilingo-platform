@@ -74,5 +74,26 @@
     "logout": "Đăng xuất",
     "upgrade_pro": "Nâng cấp PRO",
     "streak_days": "{{count}} ngày"
+  },
+  "settings": {
+    "title": "Hồ sơ & Cài đặt",
+    "tab_general": "Thông tin chung",
+    "tab_password": "Đổi mật khẩu",
+    "fullname": "Họ và tên",
+    "phone": "Số điện thoại",
+    "email": "Email",
+    "save_changes": "Lưu thay đổi",
+    "update_success": "Cập nhật thành công",
+    "update_failed": "Cập nhật thất bại",
+    "old_password": "Mật khẩu cũ",
+    "new_password": "Mật khẩu mới",
+    "confirm_password": "Xác nhận mật khẩu",
+    "change_password_btn": "Cập nhật mật khẩu",
+    "password_success": "Đổi mật khẩu thành công",
+    "password_failed": "Đổi mật khẩu thất bại",
+    "joined_date": "Ngày tham gia",
+    "account_type": "Loại tài khoản",
+    "pro_badge": "PREMIUM",
+    "free_badge": "FREE"
   }
 }

@@ -1,13 +1,13 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Flame, Crown, User, LogOut } from 'lucide-react';
+import { Flame, Crown, User, LogOut, Globe } from 'lucide-react';
 import Header from './Header';
 import ProfileDropdown from '../common/ProfileDropdown';
 import Footer from './Footer';
 import { useTranslation } from 'react-i18next';
 
 const UserLayout = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -34,18 +34,21 @@ const UserLayout = () => {
             <div className="nav-item mobile-only-nav" onClick={() => navigate('/')} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', cursor: 'pointer', color: 'var(--danger)', gap: '0.5rem' }}>
               <LogOut size={18} /> {t('userLayout.logout')}
             </div>
+            <div className="nav-item mobile-only-nav" onClick={() => i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', cursor: 'pointer', gap: '0.5rem' }}>
+              <Globe size={18} /> {i18n.language === 'vi' ? 'Chuyển sang Tiếng Anh' : 'Switch to Vietnamese'}
+            </div>
           </>
         }
         rightActions={
           <>
             <button 
               onClick={() => navigate('/student/premium')}
-              style={{ 
+              style={{
                 display: 'flex',
                 alignItems: 'center',
                 flexDirection: 'row',
-                gap: '0.375rem', 
-                padding: '0.4rem 1rem', 
+                gap: '0.375rem',
+                padding: '0.4rem 1rem',
                 borderRadius: '50px',
                 background: 'linear-gradient(90deg, #FFB800 0%, #FF8A00 100%)',
                 color: 'white',
@@ -62,7 +65,7 @@ const UserLayout = () => {
               <span>{t('userLayout.upgrade_pro')}</span>
             </button>
             <div className="badge badge-orange" style={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: '0.25rem', padding: '0.4rem 0.75rem', borderRadius: '50px', whiteSpace: 'nowrap', height: '38px', fontSize: '0.9rem' }}>
-              <Flame size={16} fill="currentColor" /> 
+              <Flame size={16} fill="currentColor" />
               <span>{t('userLayout.streak_days', { count: 5 })}</span>
             </div>
             <div className="desktop-only">

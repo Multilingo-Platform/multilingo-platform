@@ -4,6 +4,8 @@ import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.auth.dto.request.UserCreationRequest;
 import com.multilingo.backend.modules.auth.dto.request.UserUpdateRequest;
+import com.multilingo.backend.modules.auth.dto.request.UpdateProfileRequest;
+import com.multilingo.backend.modules.auth.dto.request.ChangePasswordRequest;
 import com.multilingo.backend.modules.auth.dto.response.UserResponse;
 import com.multilingo.backend.modules.auth.entity.Role;
 import com.multilingo.backend.modules.auth.entity.User;
@@ -70,6 +72,46 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
                 
         return userMapper.toUserResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateMyInfo(UpdateProfileRequest request) {
+        var context = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+        
+        User user = userRepository.findByEmail(name)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (request.getFullName() != null && !request.getFullName().isEmpty()) {
+            user.setFullName(request.getFullName());
+        }
+        
+        // Note: Phone is optional but can be updated or cleared
+        user.setPhone(request.getPhone());
+                
+        return userMapper.toUserResponse(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new AppException(ErrorCode.NEW_PASSWORD_MISMATCH);
+        }
+
+        var context = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+        
+        User user = userRepository.findByEmail(name)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new AppException(ErrorCode.PASSWORD_NOT_MATCH);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     @Override
