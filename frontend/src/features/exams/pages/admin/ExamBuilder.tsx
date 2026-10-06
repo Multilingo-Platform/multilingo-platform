@@ -717,7 +717,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}><Image size={14} color="var(--accent)" /> Shared Image (VD: Bản đồ/Biểu đồ)</label>
-                            <MediaUploadButton type="image" onUploadSuccess={(url) => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: url, display_config: { size_preset: 'medium', alignment: 'center' } })} label="Upload Image" />
+                            <MediaUploadButton type="images" onUploadSuccess={(url) => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: url, display_config: { size_preset: 'medium', alignment: 'center' } })} label="Upload Image" />
                           </div>
                           <input type="text" className="input-field" value={group.shared_media?.url || ''} onChange={e => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: e.target.value, display_config: { size_preset: 'medium', alignment: 'center' } })} placeholder="Nhập Link Ảnh..." />
                           {group.shared_media?.url && (
