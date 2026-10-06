@@ -771,7 +771,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                         )}
 
                         {/* Questions List */}
-                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        <div>
                           {group.questions.map((q, qIndex) => (
                             <div key={qIndex} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', background: 'white', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginBottom: '0.75rem' }}>
                               {!isWriting && (
