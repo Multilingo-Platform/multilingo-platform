@@ -1,8 +1,32 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Settings, LogOut, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Settings, LogOut, ShieldAlert, Crown } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { useMutation } from '@tanstack/react-query';
+import { logout } from '../../features/auth/store/authSlice';
+import { authApi } from '../../features/auth/api/authApi';
+import { alertUtil } from '../../utils/alert';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const logoutMutation = useMutation({
+    mutationFn: () => authApi.logout(),
+    onSuccess: () => {
+      alertUtil.toast('Đăng xuất thành công', 'success');
+    },
+    onSettled: () => {
+      dispatch(logout());
+      navigate('/');
+    }
+  });
+
+  const handleLogout = async () => {
+    const isConfirmed = await alertUtil.confirm('Bạn có chắc chắn muốn đăng xuất?', 'Đăng xuất', 'Hủy');
+    if (isConfirmed) {
+      logoutMutation.mutate();
+    }
+  };
 
   return (
     <div className="layout-container" style={{ background: 'var(--bg-primary)' }}>
@@ -23,6 +47,9 @@ const AdminLayout = () => {
           <NavLink to="/admin/exams" className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <FileText size={20} /> Quản lý Đề thi
           </NavLink>
+          <NavLink to="/admin/premium" className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+            <Crown size={20} /> Quản lý Gói Premium
+          </NavLink>
           
           <div style={{ marginTop: '2rem', padding: '0 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Bảo mật</div>
           <NavLink to="/admin/audit" className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
@@ -34,8 +61,8 @@ const AdminLayout = () => {
         </nav>
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
-          <button className="flex-center" style={{ width: '100%', gap: '0.75rem', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }} onClick={() => navigate('/')}>
-            <LogOut size={20} /> Đăng xuất
+          <button className="flex-center" style={{ width: '100%', gap: '0.75rem', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }} onClick={handleLogout} disabled={logoutMutation.isPending}>
+            <LogOut size={20} /> {logoutMutation.isPending ? 'Đang đăng xuất...' : 'Đăng xuất'}
           </button>
         </div>
       </aside>

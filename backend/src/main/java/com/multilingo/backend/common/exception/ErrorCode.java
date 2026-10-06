@@ -55,7 +55,17 @@ public enum ErrorCode {
 
     // Exam Builder Errors (14xx)
     EXAM_NOT_FOUND(1401, HttpStatus.NOT_FOUND, "Không tìm thấy đề thi yêu cầu"),
-    INVALID_IMPORT_FILE(1402, HttpStatus.BAD_REQUEST, "Định dạng file không hợp lệ hoặc cấu trúc sai");
+    INVALID_IMPORT_FILE(1402, HttpStatus.BAD_REQUEST, "Định dạng file không hợp lệ hoặc cấu trúc sai"),
+
+    // Billing & Subscriptions (15xx)
+    PLAN_CODE_REQUIRED(1501, HttpStatus.BAD_REQUEST, "Mã gói không được để trống"),
+    PLAN_NAME_REQUIRED(1502, HttpStatus.BAD_REQUEST, "Tên gói không được để trống"),
+    PLAN_PRICE_REQUIRED(1503, HttpStatus.BAD_REQUEST, "Giá tiền không được để trống"),
+    PLAN_PRICE_MIN(1504, HttpStatus.BAD_REQUEST, "Giá tiền phải lớn hơn 0"),
+    PLAN_DURATION_REQUIRED(1505, HttpStatus.BAD_REQUEST, "Thời hạn không được để trống"),
+    PLAN_DURATION_MIN(1506, HttpStatus.BAD_REQUEST, "Thời hạn phải lớn hơn 0"),
+    PLAN_CODE_EXISTED(1507, HttpStatus.CONFLICT, "Mã gói đã tồn tại"),
+    PLAN_NOT_FOUND(1508, HttpStatus.NOT_FOUND, "Không tìm thấy gói cước yêu cầu");
 
     private final int code;
     private final HttpStatus httpStatus;

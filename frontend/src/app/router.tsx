@@ -21,12 +21,14 @@ import ExamLibrary from '../features/exams/pages/student/ExamLibrary';
 import TestHistory from '../features/history/pages/student/TestHistory';
 import ExamManagement from '../features/exams/pages/admin/ExamManagement';
 import ExamBuilderPage from '../features/exams/pages/admin/ExamBuilderPage';
+import AdminPremiumPage from '../features/admin/premium/pages/AdminPremiumPage';
 
 import LandingPage from '../features/public/pages/LandingPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
 import ProtectedRoute from '../features/auth/components/ProtectedRoute';
 import Flashcards from '../pages/student/Flashcards';
+import PremiumUpgradePage from '../features/premium/pages/PremiumUpgradePage';
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -99,6 +101,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng của Thành viên 1 (Settings)</h1></div>
+      },
+      {
+        path: 'premium',
+        element: <PremiumUpgradePage />
       }
     ]
   },
@@ -127,6 +133,18 @@ export const router = createBrowserRouter([
       {
         path: 'users',
         element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng Quản lý Người dùng</h1></div>
+      },
+      {
+        path: 'settings',
+        element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng Cài đặt (Admin)</h1></div>
+      },
+      {
+        path: 'audit',
+        element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng Logs Hệ thống</h1></div>
+      },
+      {
+        path: 'premium',
+        element: <AdminPremiumPage />
       }
     ]
   },

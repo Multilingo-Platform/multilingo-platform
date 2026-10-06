@@ -39,6 +39,7 @@ const UserLayout = () => {
         rightActions={
           <>
             <button 
+              onClick={() => navigate('/student/premium')}
               style={{ 
                 display: 'flex',
                 alignItems: 'center',
