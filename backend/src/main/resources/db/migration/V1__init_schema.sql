@@ -191,7 +191,6 @@ CREATE TABLE IF NOT EXISTS dictionary_words (
     level VARCHAR(10),
     default_meaning JSONB NOT NULL,
     example_sentence TEXT,
-    audio_url VARCHAR(500),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -201,6 +200,8 @@ CREATE TABLE IF NOT EXISTS flashcard_decks (
     user_id INT NOT NULL,
     name VARCHAR(200) NOT NULL,
     description TEXT,
+    target_language VARCHAR(10) DEFAULT 'en' NOT NULL,
+    source_language VARCHAR(10) DEFAULT 'vi' NOT NULL,
     is_public BOOLEAN DEFAULT FALSE NOT NULL,
     clones_count INT DEFAULT 0 NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,

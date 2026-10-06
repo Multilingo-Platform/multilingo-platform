@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createBrowserRouter, Link, Navigate, Outlet } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import type { RootState } from './store';
 import axiosClient from '../core/api/axiosClient';
 
 import AudioUploader from '../components/common/AudioUploader';
@@ -24,14 +26,14 @@ import LandingPage from '../features/public/pages/LandingPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
 import ProtectedRoute from '../features/auth/components/ProtectedRoute';
+import Flashcards from '../pages/student/Flashcards';
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
-  // TODO: Sau này thay bằng state thật (ví dụ: const { token } = useSelector((state) => state.auth))
-  const isAuthenticated = false; 
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   if (isAuthenticated) {
-    return <Navigate to="/onboarding" replace />;
+    return <UserLayout />;
   }
 
   // Nếu chưa đăng nhập, hiển thị PublicLayout (giao diện public)
@@ -67,6 +69,10 @@ export const router = createBrowserRouter([
     path: '/onboarding',
     element: <OnboardingPage />
   },
+  {
+    path: '/flashcards',
+    element: <Navigate to="/student/flashcards" replace />
+  },
 
   // --- MÀN HÌNH STUDENT ---
   {
@@ -88,7 +94,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'flashcards',
-        element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng của Thành viên 5 (Flashcards)</h1></div>
+        element: <Flashcards />
       },
       {
         path: 'settings',

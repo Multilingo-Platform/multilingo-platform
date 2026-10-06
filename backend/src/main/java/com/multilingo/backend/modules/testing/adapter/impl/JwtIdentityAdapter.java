@@ -4,6 +4,7 @@ import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.auth.security.CustomUserDetails;
 import com.multilingo.backend.modules.testing.adapter.IdentityAdapter;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
  * Active only in non-test profiles; test profile uses FixtureIdentityAdapter instead.
  */
 @Component
+@Primary
 @Profile("!test")
 public class JwtIdentityAdapter implements IdentityAdapter {
 
