@@ -187,7 +187,6 @@ describe('answerSlice', () => {
     it('handles highlight addition and removal', () => {
       let state = reducer(
         initialState,
-        // @ts-expect-error test before implementation
         addHighlightRecord({
           passageId: 'p1',
           contentHash: 'hash1',
@@ -200,7 +199,6 @@ describe('answerSlice', () => {
 
       state = reducer(
         state,
-        // @ts-expect-error test before implementation
         removeHighlightRecord({
           passageId: 'p1',
           offset: 7,

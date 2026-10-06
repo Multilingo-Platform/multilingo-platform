@@ -19,7 +19,6 @@ describe('domOffsetUtils', () => {
   });
 
   it('adjusts start and end offsets to trim leading and trailing whitespace', () => {
-    // @ts-expect-error test before implementation
     const adjusted = trimOffsets('  hello world   ', { start: 10, end: 26 });
     expect(adjusted).toEqual({ start: 12, end: 23 });
   });
