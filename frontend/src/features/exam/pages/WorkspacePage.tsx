@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import useWorkspace from '../hooks/useWorkspace';
@@ -12,7 +13,11 @@ import { TimeUpModal } from '../components/TimeUpModal';
 import { QuestionPalette } from '../components/QuestionPalette';
 import QuestionRenderer from '../components/renderers/QuestionRenderer';
 import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
-import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
+import { setAnswer, toggleFlag, selectSaveStatus, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
+import { useTextSelection } from '../hooks/useTextSelection';
+import { SelectionToolbar } from '../components/content/SelectionToolbar';
+import { rangeToOffsets } from '../utils/domOffsetUtils';
+import { applyHighlights } from '../utils/htmlHighlight';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
 import type { AppDispatch, RootState } from '../../../app/store';
@@ -162,7 +167,10 @@ const WorkspacePage: React.FC = () => {
           answers: Object.entries(qMap as any).map(([question_id, answer]) => ({ question_id, answer: answer as any })),
         }));
         await autosaveAnswers(attemptId, { version: answersState.version, answers });
-        try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
+        try {
+          localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(answersState.highlights));
+          localStorage.removeItem(`exam_draft_${attemptId}`);
+        } catch { /* ignore */ }
       }
       const result = await submitAttempt(attemptId, {
         version: answersState.version,
@@ -170,14 +178,20 @@ const WorkspacePage: React.FC = () => {
         reason: isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL',
       });
       // Always clean up localStorage draft after successful submit
-      try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(answersState.highlights));
+        localStorage.removeItem(`exam_draft_${attemptId}`);
+      } catch { /* ignore */ }
       if (isTimeout) {
         setSubmitResultUrl(result.redirect_url);
       } else {
         navigate(result.redirect_url);
       }
     } catch (err: any) {
-      try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(answersState.highlights));
+        localStorage.removeItem(`exam_draft_${attemptId}`);
+      } catch { /* ignore */ }
       const resultUrl = `/attempts/${attemptId}/result`;
       if (isTimeout) {
         setSubmitResultUrl(resultUrl);
@@ -209,23 +223,91 @@ const WorkspacePage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExpired, showTimeUp, showOverlay, isSubmitting, workspace]);
 
-  // Handle text selection in Reading Passage for AI Dictionary popup
-  const handlePassageMouseUp = () => {
-    const selection = window.getSelection();
-    const text = selection?.toString().trim();
-    if (text && text.length > 1 && text.length < 35 && /^[a-zA-Z\s-]+$/.test(text)) {
-      const range = selection?.getRangeAt(0);
-      const rect = range?.getBoundingClientRect();
-      if (rect) {
-        setDictTooltip({
-          word: text,
-          x: Math.max(16, rect.left + rect.width / 2 - 140),
-          y: Math.max(70, rect.bottom + 8),
-        });
-        setSavedFlashcard(false);
+  // Passage and Highlight state
+  const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html || '';
+  const passageId = String((currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1);
+  const passageHash = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < passageHtml.length; i++) {
+      hash = ((hash << 5) - hash) + passageHtml.charCodeAt(i);
+      hash |= 0;
+    }
+    return String(hash);
+  }, [passageHtml]);
+
+  const highlightsData = useSelector((state: RootState) => selectHighlights(state, passageId));
+  const highlights = highlightsData?.contentHash === passageHash ? highlightsData.items : [];
+
+  const highlightEnabled = currentSkill === 'READING' && (workspace?.test_mode === 'PRACTICE' || workspace?.test_mode === 'MOCK_TEST');
+  const { selection, setSelection } = useTextSelection(readingContainerRef, !!highlightEnabled);
+  const [deleteTooltip, setDeleteTooltip] = useState<{ offset: number; top: number; left: number } | null>(null);
+
+  const handleHighlight = () => {
+    if (!selection || !readingContainerRef.current) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      const { start, end } = rangeToOffsets(readingContainerRef.current, range);
+      if (start < end) {
+        dispatch(addHighlightRecord({
+          passageId,
+          contentHash: passageHash,
+          highlight: { id: Date.now().toString(), start, end, text: selection.text.substring(0, 50) }
+        }));
       }
+      sel.removeAllRanges();
+      setSelection(null);
     }
   };
+
+  const handleAiLookup = () => {
+    if (!selection) return;
+    setDictTooltip({
+      word: selection.text,
+      x: Math.max(16, selection.rect.left + selection.rect.width / 2 - 140),
+      y: Math.max(70, selection.rect.bottom + 8),
+    });
+    setSavedFlashcard(false);
+    setSelection(null);
+  };
+
+  const handlePassageClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const mark = target.closest('mark[data-hl-id]');
+
+    if (mark && window.getSelection()?.isCollapsed) {
+      let range: Range | null = null;
+      if (document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      } else if ((document as any).caretPositionFromPoint) {
+        const pos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
+        if (pos) {
+          range = document.createRange();
+          range.setStart(pos.offsetNode, pos.offset);
+          range.setEnd(pos.offsetNode, pos.offset);
+        }
+      }
+      if (range && readingContainerRef.current) {
+        const { start } = rangeToOffsets(readingContainerRef.current, range);
+        setDeleteTooltip({
+          offset: start,
+          top: e.clientY + window.scrollY + 8,
+          left: e.clientX + window.scrollX,
+        });
+        return;
+      }
+    }
+    setDeleteTooltip(null);
+  };
+
+  const handleDeleteHighlight = () => {
+    if (deleteTooltip) {
+      dispatch(removeHighlightRecord({ passageId, offset: deleteTooltip.offset }));
+      setDeleteTooltip(null);
+    }
+  };
+
+  const finalHtml = useMemo(() => applyHighlights(passageHtml, highlights), [passageHtml, highlights]);
 
   if (loading) {
     return (
@@ -269,7 +351,6 @@ const WorkspacePage: React.FC = () => {
     return null;
   }
 
-  const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html;
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
   const partTitle = currentPart?.title || currentPart?.content?.part_title || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
   const isMockFull = workspace.test_mode === 'MOCK_TEST' && workspace.test_scope === 'FULL_EXAM';
@@ -417,7 +498,6 @@ const WorkspacePage: React.FC = () => {
             {/* Passage / Prompt Text Content */}
             <div
               ref={readingContainerRef}
-              onMouseUp={isPractice && currentSkill === 'READING' ? handlePassageMouseUp : undefined}
               className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
             >
               {currentSkill === 'WRITING' ? (
@@ -445,7 +525,8 @@ const WorkspacePage: React.FC = () => {
                 </div>
               ) : passageHtml ? (
                 <div
-                  dangerouslySetInnerHTML={{ __html: passageHtml }}
+                  dangerouslySetInnerHTML={{ __html: finalHtml }}
+                  onClick={handlePassageClick}
                   className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
                 />
               ) : partInstruction ? (
@@ -753,6 +834,25 @@ const WorkspacePage: React.FC = () => {
             {savedFlashcard ? '✓ Đã lưu vào Flashcards' : '+ Lưu Flashcard'}
           </button>
         </div>
+      )}
+
+      {/* 4b. SELECTION TOOLBAR & DELETE TOOLTIP */}
+      <SelectionToolbar
+        selection={selection}
+        showAi={isPractice && selection !== null && selection.text.length > 1 && selection.text.length < 35 && /^[a-zA-Z\s-]+$/.test(selection.text)}
+        onHighlight={handleHighlight}
+        onAiLookup={handleAiLookup}
+      />
+
+      {deleteTooltip && createPortal(
+        <div
+          className="absolute z-50 flex items-center bg-white border border-gray-200 shadow-lg rounded-md px-3 py-1 cursor-pointer hover:bg-gray-50"
+          style={{ top: deleteTooltip.top, left: deleteTooltip.left }}
+          onClick={handleDeleteHighlight}
+        >
+          <span className="text-sm font-medium text-red-600">Xóa highlight</span>
+        </div>,
+        document.body
       )}
 
       {/* 5. MODALS & SUBMIT OVERLAYS */}
