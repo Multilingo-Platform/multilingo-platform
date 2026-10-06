@@ -62,6 +62,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public UserResponse getMyInfo() {
+        var context = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+        
+        User user = userRepository.findByEmail(name)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                
+        return userMapper.toUserResponse(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<UserResponse> getAllUser() {
         return userRepository.findAll().stream()
                 .map(userMapper::toUserResponse)

@@ -1,5 +1,5 @@
 import axiosClient from '../../../core/api/axiosClient';
-import type { LoginRequest, RegisterRequest, AuthResponse } from '../types';
+import type { LoginRequest, RegisterRequest, AuthResponse, UserResponse } from '../types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -18,6 +18,10 @@ export const authApi = {
   },
   logout: async () => {
     const res = await axiosClient.post<any, ApiResponse<null>>('/auth/logout');
+    return res;
+  },
+  getMyInfo: async () => {
+    const res = await axiosClient.get<any, ApiResponse<UserResponse>>('/users/me');
     return res;
   }
 };

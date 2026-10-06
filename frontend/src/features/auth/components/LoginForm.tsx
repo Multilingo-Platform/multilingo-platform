@@ -5,6 +5,8 @@ import { useDispatch } from 'react-redux';
 import { authApi } from '../api/authApi';
 import { setCredentials } from '../store/authSlice';
 import type { LoginRequest } from '../types';
+import { alertUtil } from '../../../utils/alert';
+import { useTranslation } from 'react-i18next';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
@@ -16,6 +18,7 @@ const GoogleIcon = () => (
 );
 
 const LoginForm = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [email, setEmail] = useState('');
@@ -25,10 +28,14 @@ const LoginForm = () => {
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (res) => {
       if (res.success) {
+        alertUtil.toast(t('auth.login_success'), 'success');
         dispatch(setCredentials(res.data));
         navigate('/student/dashboard');
       }
     },
+    onError: (error: any) => {
+      alertUtil.toast(error?.response?.data?.message || t('auth.login_failed'), 'error');
+    }
   });
 
   const handleLogin = (e: React.FormEvent) => {
@@ -38,52 +45,47 @@ const LoginForm = () => {
 
   return (
     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-      {loginMutation.isError && (
-        <div style={{ color: 'red', fontSize: '0.875rem' }}>
-          {(loginMutation.error as any)?.response?.data?.message || 'Đăng nhập thất bại'}
-        </div>
-      )}
       <div>
         <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
-          Email của bạn
+          {t('auth.email_label')}
         </label>
         <input 
           type="email" 
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="auth-input-field" 
-          placeholder="john.doe@example.com" 
+          placeholder="john.doe@example.com"
           required 
         />
       </div>
       
       <div>
         <div className="flex-between" style={{ marginBottom: '0.35rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>Mật khẩu</label>
-          <span style={{ fontSize: '0.825rem', color: '#c25e2e', cursor: 'pointer', fontWeight: 600 }}>Quên mật khẩu?</span>
+          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>{t('auth.password_label')}</label>
+          <span style={{ fontSize: '0.825rem', color: '#c25e2e', cursor: 'pointer', fontWeight: 600 }}>{t('auth.forgot_password')}</span>
         </div>
         <input 
           type="password" 
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="auth-input-field" 
-          placeholder="••••••••" 
+          placeholder="••••••••"
           required 
         />
       </div>
 
       <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }} disabled={loginMutation.isPending}>
-        {loginMutation.isPending ? 'Đang xử lý...' : 'Đăng nhập ngay'}
+        {loginMutation.isPending ? t('auth.processing') : t('auth.login_btn')}
       </button>
       
       <div className="flex-center" style={{ gap: '0.75rem', margin: '0.45rem 0' }}>
         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
-        <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>HOẶC</span>
+        <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>{t('auth.or')}</span>
         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
       </div>
 
       <button type="button" className="auth-btn-google">
-        <GoogleIcon /> Đăng nhập với Google
+        <GoogleIcon /> {t('auth.login_google')}
       </button>
     </form>
   );
