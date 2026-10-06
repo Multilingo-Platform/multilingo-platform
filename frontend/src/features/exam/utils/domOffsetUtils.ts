@@ -23,3 +23,16 @@ export function rangeToOffsets(container: Node, range: Range): { start: number; 
 
   return { start: Math.min(start, end), end: Math.max(start, end) };
 }
+
+export function trimOffsets(
+  rawText: string,
+  offsets: { start: number; end: number }
+): { start: number; end: number } {
+  const leading = rawText.match(/^\s*/)?.[0].length ?? 0;
+  const trailing = rawText.match(/\s*$/)?.[0].length ?? 0;
+
+  const start = offsets.start + leading;
+  const end = Math.max(start, offsets.end - trailing);
+
+  return { start, end };
+}

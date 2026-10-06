@@ -16,7 +16,7 @@ import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
 import { setAnswer, toggleFlag, selectSaveStatus, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
 import { useTextSelection } from '../hooks/useTextSelection';
 import { SelectionToolbar } from '../components/content/SelectionToolbar';
-import { rangeToOffsets } from '../utils/domOffsetUtils';
+import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
 import { applyHighlights } from '../utils/htmlHighlight';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
@@ -247,7 +247,9 @@ const WorkspacePage: React.FC = () => {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
-      const { start, end } = rangeToOffsets(readingContainerRef.current, range);
+      const rawText = sel.toString();
+      const rawOffsets = rangeToOffsets(readingContainerRef.current, range);
+      const { start, end } = trimOffsets(rawText, rawOffsets);
       if (start < end) {
         dispatch(addHighlightRecord({
           passageId,
