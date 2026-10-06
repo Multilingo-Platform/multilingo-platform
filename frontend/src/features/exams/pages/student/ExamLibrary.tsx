@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom';
 
 const ExamLibrary = () => {
   const navigate = useNavigate();
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const exams = [
-    { id: 'cam-18-1', title: 'Cambridge IELTS 18 - Test 1', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 1240, tags: ['Listening', 'Reading', 'Writing'], color: 'from-blue-500 to-indigo-600' },
-    { id: 'cam-18-2', title: 'Cambridge IELTS 18 - Test 2', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 980, tags: ['Listening', 'Reading', 'Writing'], color: 'from-blue-500 to-indigo-600' },
-    { id: 'cam-18-3', title: 'Cambridge IELTS 18 - Test 3', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 1100, tags: ['Listening', 'Reading', 'Writing'], color: 'from-blue-500 to-indigo-600' },
-    { id: 'toeic-ets-2023', title: 'TOEIC ETS 2023 - Test 1', type: 'TOEIC', level: 'General', time: '120 phút', joins: 3450, tags: ['Listening', 'Reading'], color: 'from-emerald-500 to-teal-600' },
-    { id: 'nltv-b1', title: 'NLTV B1 - Đề số 1', type: 'NLTV', level: 'B1', time: '135 phút', joins: 540, tags: ['Đọc hiểu', 'Nghe hiểu', 'Viết'], color: 'from-amber-500 to-orange-600' },
+    { id: 1, title: 'Cambridge IELTS 18 - Test 1', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 1240, tags: ['Listening', 'Reading', 'Writing'], color: 'from-blue-500 to-indigo-600' },
+    { id: 2, title: 'Cambridge IELTS 18 - Test 2', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 980, tags: ['Listening', 'Reading', 'Writing'], color: 'from-blue-500 to-indigo-600' },
+    { id: 3, title: 'Cambridge IELTS 18 - Test 3', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 1100, tags: ['Listening', 'Reading', 'Writing'], color: 'from-blue-500 to-indigo-600' },
+    { id: 4, title: 'TOEIC ETS 2023 - Test 1', type: 'TOEIC', level: 'General', time: '120 phút', joins: 3450, tags: ['Listening', 'Reading'], color: 'from-emerald-500 to-teal-600' },
+    { id: 5, title: 'NLTV B1 - Đề số 1', type: 'NLTV', level: 'B1', time: '135 phút', joins: 540, tags: ['Đọc hiểu', 'Nghe hiểu', 'Viết'], color: 'from-amber-500 to-orange-600' },
   ];
 
   return (

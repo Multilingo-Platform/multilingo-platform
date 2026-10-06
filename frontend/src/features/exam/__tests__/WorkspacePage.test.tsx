@@ -37,6 +37,7 @@ function makeStore(isDirty = false) {
         saveStatus: 'idle' as const,
         pendingVersion: isDirty ? 1 : 0,
         flags: {},
+        highlights: {},
       },
     },
   });
