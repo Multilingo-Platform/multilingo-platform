@@ -1,14 +1,15 @@
-export interface User {
-  id: number;
+export interface UserResponse {
+  id: string;
   email: string;
   fullName: string;
-  roles?: string[];
+  avatarUrl?: string;
+  role?: string;
 }
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
-  user: User;
+  user?: UserResponse;
 }
 
 export interface LoginRequest {

@@ -25,4 +25,10 @@ public class UserController {
         UserResponse userResponse = userService.createUser(request);
         return ResponseEntity.ok(ApiResponse.success("Tạo tài khoản người dùng thành công", userResponse));
     }
+
+    @org.springframework.web.bind.annotation.GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getMyInfo() {
+        UserResponse userResponse = userService.getMyInfo();
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin người dùng thành công", userResponse));
+    }
 }

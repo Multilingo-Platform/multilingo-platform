@@ -4,8 +4,10 @@ import { Flame, Crown, User, LogOut } from 'lucide-react';
 import Header from './Header';
 import ProfileDropdown from '../common/ProfileDropdown';
 import Footer from './Footer';
+import { useTranslation } from 'react-i18next';
 
 const UserLayout = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -15,22 +17,22 @@ const UserLayout = () => {
         navItems={
           <>
             <NavLink to="/student/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-              Bảng điều khiển
+              {t('userLayout.dashboard')}
             </NavLink>
             <NavLink to="/student/library" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-              Thư viện Đề thi
+              {t('userLayout.library')}
             </NavLink>
             <NavLink to="/student/history" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-              Lịch sử làm bài
+              {t('userLayout.history')}
             </NavLink>
             <NavLink to="/student/flashcards" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-              Từ vựng SRS
+              {t('userLayout.flashcards')}
             </NavLink>
             <NavLink to="/student/settings" className={({ isActive }) => `nav-item mobile-only-nav ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', gap: '0.5rem' }}>
-              <User size={18} /> Hồ sơ & Cài đặt
+              <User size={18} /> {t('userLayout.profile_settings')}
             </NavLink>
             <div className="nav-item mobile-only-nav" onClick={() => navigate('/')} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', cursor: 'pointer', color: 'var(--danger)', gap: '0.5rem' }}>
-              <LogOut size={18} /> Đăng xuất
+              <LogOut size={18} /> {t('userLayout.logout')}
             </div>
           </>
         }
@@ -56,11 +58,11 @@ const UserLayout = () => {
               }}
             >
               <Crown size={18} fill="currentColor" />
-              <span>Nâng cấp PRO</span>
+              <span>{t('userLayout.upgrade_pro')}</span>
             </button>
             <div className="badge badge-orange" style={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: '0.25rem', padding: '0.4rem 0.75rem', borderRadius: '50px', whiteSpace: 'nowrap', height: '38px', fontSize: '0.9rem' }}>
               <Flame size={16} fill="currentColor" /> 
-              <span>5 ngày</span>
+              <span>{t('userLayout.streak_days', { count: 5 })}</span>
             </div>
             <div className="desktop-only">
               <ProfileDropdown />

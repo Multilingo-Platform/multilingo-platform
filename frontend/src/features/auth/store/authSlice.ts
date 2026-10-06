@@ -1,9 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { User, AuthResponse } from '../types';
+import type { UserResponse, AuthResponse } from '../types';
 
 interface AuthState {
-  user: User | null;
+  user: UserResponse | null;
   token: string | null;
   isAuthenticated: boolean;
 }
@@ -25,7 +25,7 @@ const authSlice = createSlice({
       action: PayloadAction<AuthResponse>
     ) => {
       const { user, accessToken } = action.payload;
-      state.user = user;
+      state.user = user || null;
       state.token = accessToken;
       state.isAuthenticated = true;
       localStorage.setItem('token', accessToken);
