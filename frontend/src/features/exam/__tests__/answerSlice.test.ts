@@ -14,6 +14,8 @@ import answerReducer, {
   toggleFlag,
   clearFlags,
   selectIsQuestionFlagged,
+  addHighlightRecord,
+  removeHighlightRecord,
 } from '../store/answerSlice';
 
 function makeStore() {
@@ -180,6 +182,32 @@ describe('answerSlice', () => {
       state = reducer(state, markSaveSuccess({ savedAt: 2000, version: 1 }));
       expect(state.isDirty).toBe(false);
       expect(state.lastSavedAt).toBe(2000);
+    });
+
+    it('handles highlight addition and removal', () => {
+      let state = reducer(
+        initialState,
+        // @ts-expect-error test before implementation
+        addHighlightRecord({
+          passageId: 'p1',
+          contentHash: 'hash1',
+          highlight: { id: '1', start: 5, end: 10, text: 'abc' },
+        })
+      );
+
+      expect(state.highlights['p1'].items).toHaveLength(1);
+      expect(state.isDirty).toBe(true);
+
+      state = reducer(
+        state,
+        // @ts-expect-error test before implementation
+        removeHighlightRecord({
+          passageId: 'p1',
+          offset: 7,
+        })
+      );
+
+      expect(state.highlights['p1'].items).toHaveLength(0);
     });
   });
 });
