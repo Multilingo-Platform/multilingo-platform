@@ -63,7 +63,7 @@ class AdminExamControllerTest {
 
         when(examService.createExam(any())).thenReturn(1);
 
-        mockMvc.perform(post("/api/admin/exams")
+        mockMvc.perform(post("/api/v1/admin/exams")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -83,7 +83,7 @@ class AdminExamControllerTest {
 
         doNothing().when(examService).updateExam(eq(1), any());
 
-        mockMvc.perform(put("/api/admin/exams/1")
+        mockMvc.perform(put("/api/v1/admin/exams/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -104,7 +104,7 @@ class AdminExamControllerTest {
         doThrow(new AppException(ErrorCode.EXAM_NOT_FOUND))
                 .when(examService).updateExam(eq(99), any());
 
-        mockMvc.perform(put("/api/admin/exams/99")
+        mockMvc.perform(put("/api/v1/admin/exams/99")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -115,7 +115,7 @@ class AdminExamControllerTest {
     void deleteExam_Success() throws Exception {
         doNothing().when(examService).deleteExam(1);
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/exams/1"))
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/admin/exams/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message").value("Success"));
@@ -126,7 +126,7 @@ class AdminExamControllerTest {
         doThrow(new AppException(ErrorCode.EXAM_NOT_FOUND))
                 .when(examService).deleteExam(99);
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/exams/99"))
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/admin/exams/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(1401));
     }
@@ -146,7 +146,7 @@ class AdminExamControllerTest {
         
         org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile("file", "test.json", "application/json", "{}".getBytes());
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/admin/exams/import")
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/v1/admin/exams/import")
                         .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
