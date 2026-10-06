@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap } from 'lucide-react';
+import MediaUploadButton from '../../../../components/common/MediaUploadButton';
 
 interface QuestionMetadata {
   options?: string[];
@@ -431,38 +432,40 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
 
   if (wizardMode === 'START') {
     return (
-      <div style={{ background: 'var(--bg-secondary)', padding: '3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2rem' }}>Bắt đầu tạo Đề thi</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', width: '100%', maxWidth: '900px' }}>
+      <div style={{ background: 'var(--bg-secondary)', padding: '3rem 2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-md)' }}>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', textAlign: 'center' }}>Bắt đầu tạo Đề thi</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1rem', textAlign: 'center' }}>Chọn phương thức phù hợp để xây dựng cấu trúc đề thi của bạn.</p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', width: '100%', maxWidth: '900px' }}>
           
-          <div className="ed-card flex-center" style={{ flexDirection: 'column', padding: '2rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', border: '2px solid transparent' }} onClick={() => setWizardMode('FULL')} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <AlignLeft size={32} color="var(--primary)" />
+          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('FULL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.3)' }}>
+              <AlignLeft size={28} color="white" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>1. Tạo Full Đề</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Sinh toàn bộ cấu trúc chuẩn của một đề thi (IELTS, TOEIC...)</p>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>1. Tạo Full Đề</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Sinh toàn bộ cấu trúc chuẩn của một đề thi hoàn chỉnh (IELTS, TOEIC, NLTV...)</p>
           </div>
 
-          <div className="ed-card flex-center" style={{ flexDirection: 'column', padding: '2rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', border: '2px solid transparent' }} onClick={() => setWizardMode('SKILL')} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <Zap size={32} color="var(--primary)" />
+          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('SKILL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)' }}>
+              <Zap size={28} color="white" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>2. Tạo 1 Kỹ năng</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Chỉ tạo toàn bộ phần Reading, Listening hoặc Writing</p>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>2. Tạo 1 Kỹ năng</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tạo nhanh toàn bộ cấu trúc cho một kỹ năng riêng biệt (Reading, Listening...)</p>
           </div>
 
-          <div className="ed-card flex-center" style={{ flexDirection: 'column', padding: '2rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', border: '2px solid transparent' }} onClick={() => setWizardMode('PART')} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <Plus size={32} color="var(--primary)" />
+          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('PART')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)' }}>
+              <Plus size={28} color="white" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>3. Tạo 1 Part Lẻ</h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Chỉ tạo 1 đoạn văn (Passage) hoặc 1 part trắc nghiệm nhỏ</p>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>3. Tạo 1 Part Lẻ</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Chỉ tạo một đoạn văn (Passage) hoặc một part trắc nghiệm nhỏ bất kỳ</p>
           </div>
 
         </div>
         
         {parts.length > 0 && (
-          <button className="btn btn-outline" style={{ marginTop: '2rem' }} onClick={() => setWizardMode('BUILDER')}>
+          <button className="btn btn-outline" style={{ marginTop: '2.5rem', padding: '0.65rem 1.5rem', borderRadius: 'var(--radius-full)', fontWeight: 600 }} onClick={() => setWizardMode('BUILDER')}>
             Đóng & Quay lại Trình chỉnh sửa
           </button>
         )}
@@ -553,24 +556,46 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
   }
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-      <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Trình tạo Đề thi Trực quan</h3>
+    <div style={{ background: 'var(--bg-secondary)', paddingBottom: '3rem', borderRadius: 'var(--radius-md)' }}>
+      {/* Builder Top Banner */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
+        padding: '2rem 1.5rem', 
+        borderRadius: 'var(--radius-lg)',
+        color: 'white',
+        marginBottom: '1.5rem',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Background Pattern */}
+        <div style={{ position: 'absolute', right: '-5%', top: '-20%', opacity: 0.05, transform: 'scale(1.5)', pointerEvents: 'none' }}>
+          <Settings size={200} />
+        </div>
+        
+        <div className="flex-between" style={{ position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.35rem', letterSpacing: '-0.5px' }}>Trình Tạo Đề Thi Nâng Cao</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Thiết kế và tùy chỉnh cấu trúc đề thi một cách trực quan.</p>
+          </div>
+        </div>
       </div>
 
-      <div className="ed-card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Tên đề thi</label>
-            <input type="text" className="input-field" value={examTitle} onChange={e => setExamTitle(e.target.value)} />
+      {/* Basic Info Card */}
+      <div className="ed-card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)' }}>
+        <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>Thông tin Cơ bản</h4>
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 300px' }}>
+            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tên đề thi *</label>
+            <input type="text" className="input-field" value={examTitle} onChange={e => setExamTitle(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }} />
           </div>
-          <div style={{ width: '200px' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Loại đề thi</label>
-            <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)}>
+          <div style={{ width: '250px', flexGrow: 0 }}>
+            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loại chứng chỉ</label>
+            <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
               <option value="IELTS_ACADEMIC">IELTS Academic</option>
-              <option value="TOEIC_LISTENING">TOEIC Listening</option>
-              <option value="TOEIC_READING">TOEIC Reading</option>
-              <option value="VSTEP">VSTEP (Tiếng Việt)</option>
+              <option value="TOEIC_LISTENING_READING">TOEIC Listening & Reading</option>
+              <option value="TOEIC_WRITING">TOEIC Writing</option>
+              <option value="VSTEP">Năng Lực Tiếng Việt (NLTV)</option>
             </select>
           </div>
         </div>
@@ -644,8 +669,14 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                   {/* CHỈ HIỆN AUDIO NẾU LÀ KỸ NĂNG NGHE */}
                   {(part.part_title.toLowerCase().includes('listen') || part.part_title.toLowerCase().includes('nghe')) && (
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><Music size={14} color="var(--primary)" /> Shared Audio URL</label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}><Music size={14} color="var(--primary)" /> Shared Audio URL</label>
+                        <MediaUploadButton type="audio" onUploadSuccess={(url) => updatePart(pIndex, 'shared_audio', { url: url, duration_seconds: 0 })} label="Upload Audio" />
+                      </div>
                       <input type="text" className="input-field" value={part.shared_audio?.url || ''} onChange={e => updatePart(pIndex, 'shared_audio', { url: e.target.value, duration_seconds: 0 })} placeholder="Nhập Link Mp3 cho Part này..." />
+                      {part.shared_audio?.url && (
+                        <audio controls src={part.shared_audio.url} style={{ width: '100%', marginTop: '0.5rem', height: '36px' }} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -684,8 +715,16 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                           <input type="text" className="input-field" value={group.instruction || ''} onChange={e => updateGroup(pIndex, gIndex, 'instruction', e.target.value)} placeholder="Choose the correct letter..." />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><Image size={14} color="var(--accent)" /> Shared Image (VD: Bản đồ/Biểu đồ)</label>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}><Image size={14} color="var(--accent)" /> Shared Image (VD: Bản đồ/Biểu đồ)</label>
+                            <MediaUploadButton type="images" onUploadSuccess={(url) => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: url, display_config: { size_preset: 'medium', alignment: 'center' } })} label="Upload Image" />
+                          </div>
                           <input type="text" className="input-field" value={group.shared_media?.url || ''} onChange={e => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: e.target.value, display_config: { size_preset: 'medium', alignment: 'center' } })} placeholder="Nhập Link Ảnh..." />
+                          {group.shared_media?.url && (
+                            <div style={{ marginTop: '0.5rem', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', padding: '0.5rem', background: 'white', display: 'inline-block' }}>
+                              <img src={group.shared_media.url} alt="Preview" style={{ maxHeight: '150px', maxWidth: '100%', objectFit: 'contain' }} />
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -732,7 +771,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                         )}
 
                         {/* Questions List */}
-                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        <div>
                           {group.questions.map((q, qIndex) => (
                             <div key={qIndex} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', background: 'white', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginBottom: '0.75rem' }}>
                               {!isWriting && (
@@ -746,21 +785,98 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                                 </select>
                                 <input type="text" className="input-field" value={q.question_text} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'question_text', e.target.value)} placeholder={isWriting ? "Yêu cầu bài viết..." : "Nội dung câu hỏi..."} style={{ marginBottom: '0.5rem', padding: '0.4rem 0.75rem' }} />
                                 
-                                {q.metadata.options && q.metadata.options.length > 0 && (
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                    {q.metadata.options.map((opt, oIdx) => (
-                                      <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ fontWeight: 700, fontSize: '0.875rem', width: '20px' }}>{String.fromCharCode(65 + oIdx)}.</div>
-                                        <input type="text" className="input-field" value={opt} onChange={(e) => {
-                                            const newOpts = [...(q.metadata.options || [])]; newOpts[oIdx] = e.target.value;
-                                            updateQuestionMetadata(pIndex, gIndex, qIndex, 'options', newOpts);
-                                          }} style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }} />
+                                {q.metadata.options !== undefined && (
+                                  <div style={{ marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Các lựa chọn (Options):</span>
+                                      <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', borderRadius: 'var(--radius-sm)' }} onClick={() => {
+                                        const newOpts = [...(q.metadata.options || []), `Lựa chọn mới`];
+                                        updateQuestionMetadata(pIndex, gIndex, qIndex, 'options', newOpts);
+                                      }}>
+                                        <Plus size={12} style={{ marginRight: '0.2rem' }} /> Thêm đáp án
+                                      </button>
+                                    </div>
+                                    {q.metadata.options.length > 0 ? (
+                                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                        {q.metadata.options.map((opt, oIdx) => {
+                                          const isMulti = q.type === 'MULTIPLE_CHOICE_MULTI';
+                                          const isChecked = isMulti 
+                                            ? Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.includes(opt)
+                                            : q.metadata.correct_answer === opt;
+                                            
+                                          return (
+                                            <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', border: `1px solid ${isChecked ? 'var(--success)' : 'var(--border-light)'}` }}>
+                                              <input 
+                                                type={isMulti ? "checkbox" : "radio"} 
+                                                name={`q_${pIndex}_${gIndex}_${qIndex}`}
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                  if (isMulti) {
+                                                    let currentArr = Array.isArray(q.metadata.correct_answer) ? [...q.metadata.correct_answer] : [];
+                                                    if (e.target.checked) currentArr.push(opt);
+                                                    else currentArr = currentArr.filter(item => item !== opt);
+                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', currentArr);
+                                                  } else {
+                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', opt);
+                                                  }
+                                                }}
+                                                style={{ cursor: 'pointer', accentColor: 'var(--success)', width: '16px', height: '16px', flexShrink: 0 }}
+                                                title="Chọn làm đáp án đúng"
+                                              />
+                                              <div style={{ fontWeight: 700, fontSize: '0.875rem', width: '20px', color: isChecked ? 'var(--success)' : 'inherit', flexShrink: 0 }}>{String.fromCharCode(65 + oIdx)}.</div>
+                                              <input type="text" className="input-field" value={opt} onChange={(e) => {
+                                                  const oldVal = opt;
+                                                  const newVal = e.target.value;
+                                                  
+                                                  // Update options array
+                                                  const newOpts = [...(q.metadata.options || [])]; 
+                                                  newOpts[oIdx] = newVal;
+                                                  updateQuestionMetadata(pIndex, gIndex, qIndex, 'options', newOpts);
+                                                  
+                                                  // Sync correct_answer if the option text changes
+                                                  if (isMulti) {
+                                                    let currentArr = Array.isArray(q.metadata.correct_answer) ? [...q.metadata.correct_answer] : [];
+                                                    if (currentArr.includes(oldVal)) {
+                                                      currentArr = currentArr.map(v => v === oldVal ? newVal : v);
+                                                      updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', currentArr);
+                                                    }
+                                                  } else {
+                                                    if (q.metadata.correct_answer === oldVal) {
+                                                      updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newVal);
+                                                    }
+                                                  }
+                                                }} style={{ padding: '0.2rem', fontSize: '0.875rem', border: 'none', flex: 1, background: 'transparent' }} />
+                                              <button className="btn" style={{ padding: '0.2rem', color: 'var(--text-muted)', background: 'transparent', border: 'none', flexShrink: 0 }} onClick={() => {
+                                                const newOpts = [...(q.metadata.options || [])];
+                                                const removedVal = newOpts.splice(oIdx, 1)[0];
+                                                updateQuestionMetadata(pIndex, gIndex, qIndex, 'options', newOpts);
+                                                
+                                                // Remove from correct_answer if deleted
+                                                if (isMulti) {
+                                                  let currentArr = Array.isArray(q.metadata.correct_answer) ? [...q.metadata.correct_answer] : [];
+                                                  if (currentArr.includes(removedVal)) {
+                                                    currentArr = currentArr.filter(item => item !== removedVal);
+                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', currentArr);
+                                                  }
+                                                } else {
+                                                  if (q.metadata.correct_answer === removedVal) {
+                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', '');
+                                                  }
+                                                }
+                                              }}>
+                                                <Trash2 size={14} />
+                                              </button>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
-                                    ))}
+                                    ) : (
+                                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>Chưa có đáp án nào. Bấm "Thêm đáp án" để tạo.</p>
+                                    )}
                                   </div>
                                 )}
 
-                                {!isWriting && (
+                                {!isWriting && (!q.metadata.options || q.metadata.options.length === 0) && (
                                   <div className="flex-center" style={{ justifyContent: 'flex-start', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
                                     <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>Đáp án đúng:</span>
                                     <input type="text" className="input-field" value={typeof q.metadata.correct_answer === 'string' ? q.metadata.correct_answer : (q.metadata.correct_answer || []).join(', ')} onChange={(e) => {
@@ -827,7 +943,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
       )}
 
       <div className="flex-center" style={{ gap: '1rem', marginTop: '2rem', justifyContent: 'flex-end', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
-        <button className="btn btn-outline" onClick={onCancel}>Hủy</button>
+        <button className="btn btn-outline" onClick={() => { if(window.confirm('Bạn có chắc chắn muốn hủy? Toàn bộ nội dung sẽ bị xóa.')) { setWizardMode('START'); setParts([]); } }}>Hủy</button>
         <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Xuất cấu trúc JSON chuẩn</button>
       </div>
     </div>
