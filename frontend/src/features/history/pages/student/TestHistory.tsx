@@ -4,7 +4,7 @@ import { Search, Filter, Calendar, Clock, CheckCircle, Target, ArrowRight, BarCh
 
 const mockHistory = [
   {
-    id: 'att-001',
+    id: '3',
     examTitle: 'Cambridge IELTS 18 - Test 1',
     mode: 'MOCK_TEST',
     date: '2026-10-01T08:30:00Z',
@@ -138,7 +138,7 @@ const TestHistory = () => {
               }}
               onMouseEnter={() => setHoveredId(item.id)}
               onMouseLeave={() => setHoveredId(null)}
-              onClick={() => navigate(`/student/exam/${item.id}/result`)}
+              onClick={() => navigate(`/attempts/${item.id}/result`)}
             >
               {/* Score Box */}
               <div style={{

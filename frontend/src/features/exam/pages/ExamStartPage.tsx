@@ -27,9 +27,10 @@ const ExamStartPage: React.FC = () => {
     }
   };
 
-  if (!examId) return (
+  const numericExamId = parseInt(examId || '', 10);
+  if (!examId || isNaN(numericExamId)) return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#ef4444', fontWeight: 600 }}>Exam ID không hợp lệ</div>
+      <div style={{ color: '#ef4444', fontWeight: 600 }}>Exam ID không hợp lệ (Phải là số nguyên)</div>
     </div>
   );
 
@@ -127,7 +128,7 @@ const ExamStartPage: React.FC = () => {
         <div className="lg:col-span-5">
           <div className="ed-card lg:sticky lg:top-24 flex flex-col overflow-hidden" style={{ padding: '0', maxHeight: 'calc(100vh - 120px)' }}>
             <ScopeModePicker
-              examId={parseInt(examId, 10)}
+              examId={numericExamId}
               initialMode={initialMode}
               initialScope={initialScope}
               onSubmit={handleSubmit}
