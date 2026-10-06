@@ -36,9 +36,12 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       localStorage.removeItem('token');
     },
+    updateUser: (state, action: PayloadAction<UserResponse>) => {
+      state.user = action.payload;
+    },
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, logout, updateUser } = authSlice.actions;
 
 export default authSlice.reducer;

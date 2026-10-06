@@ -13,6 +13,7 @@
 - Mọi Entity kế thừa `BaseEntity` (Primary key là `INT / Integer`, tự tăng `GenerationType.IDENTITY`).
 - Mọi Controller trả về `ResponseEntity<ApiResponse<T>>`.
 - Ném lỗi nghiệp vụ qua `AppException(ErrorCode.XYZ)` và xử lý tập trung tại `GlobalExceptionHandler`.
+- **Database Migration (Flyway):** Tên file migrate bắt buộc theo format `VYYYYMMDDHHMMSS__<mo-ta>.sql` (Ví dụ: `V20261006165504__add_phone_to_users.sql`).
 
 ## 3. Tiêu chuẩn kiến trúc Frontend (Feature-based)
 - Bắt buộc áp dụng Feature-based Architecture (Feature-Sliced Design).
