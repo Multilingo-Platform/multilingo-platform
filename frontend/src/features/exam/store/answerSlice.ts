@@ -1,9 +1,10 @@
 import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import type { AnswerValue, PartAnswers } from '../types/answer.types';
+import { normalize, removeAt, type Highlight } from '../utils/highlightUtils';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
-interface AnswerState {
+export interface AnswerState {
   attemptId: number | null;
   version: number;
   /** answers[partId][questionId] = AnswerValue */
@@ -21,6 +22,8 @@ interface AnswerState {
   pendingVersion: number;
   /** flags[partId][questionId] = boolean */
   flags: Record<number, Record<string, boolean>>;
+  /** highlights[passageId] = { contentHash, items: Highlight[] } */
+  highlights: Record<string, { contentHash: string; items: Highlight[] }>;
 }
 
 export const initialState: AnswerState = {
@@ -32,6 +35,7 @@ export const initialState: AnswerState = {
   saveStatus: 'idle',
   pendingVersion: 0,
   flags: {},
+  highlights: {},
 };
 
 const answerSlice = createSlice({
@@ -112,6 +116,33 @@ const answerSlice = createSlice({
     clearAnswers() {
       return initialState;
     },
+
+    addHighlightRecord(
+      state,
+      action: PayloadAction<{ passageId: string; contentHash: string; highlight: Highlight }>
+    ) {
+      const { passageId, contentHash, highlight } = action.payload;
+      if (!state.highlights) state.highlights = {};
+      if (!state.highlights[passageId] || state.highlights[passageId].contentHash !== contentHash) {
+        state.highlights[passageId] = { contentHash, items: [] };
+      }
+      state.highlights[passageId].items.push(highlight);
+      state.highlights[passageId].items = normalize(state.highlights[passageId].items);
+      state.isDirty = true;
+      state.pendingVersion += 1;
+    },
+
+    removeHighlightRecord(
+      state,
+      action: PayloadAction<{ passageId: string; offset: number }>
+    ) {
+      const { passageId, offset } = action.payload;
+      if (state.highlights?.[passageId]) {
+        state.highlights[passageId].items = removeAt(state.highlights[passageId].items, offset);
+        state.isDirty = true;
+        state.pendingVersion += 1;
+      }
+    },
   },
 });
 
@@ -124,9 +155,15 @@ export const {
   toggleFlag,
   clearFlags,
   clearAnswers,
+  addHighlightRecord,
+  removeHighlightRecord,
 } = answerSlice.actions;
 
 type RootLike = { answers: AnswerState };
+
+export function selectHighlights(state: RootLike, passageId: string) {
+  return state.answers.highlights?.[passageId];
+}
 
 export function selectAnswer(state: RootLike, partId: number, questionId: string): AnswerValue {
   return state.answers.answers?.[partId]?.[questionId] ?? null;
