@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '../api/authApi';
 import type { RegisterRequest } from '../types';
+import { alertUtil } from '../../../utils/alert';
+import { useTranslation } from 'react-i18next';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
@@ -14,6 +16,7 @@ const GoogleIcon = () => (
 );
 
 const RegisterForm = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState('');
@@ -21,23 +24,24 @@ const RegisterForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [validationError, setValidationError] = useState('');
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
     onSuccess: (res) => {
       if (res.success) {
-        alert('Đăng ký thành công! Vui lòng đăng nhập.');
+        alertUtil.popup(t('auth.register_success'), 'success');
         navigate('/login');
       }
     },
+    onError: (error: any) => {
+      alertUtil.toast(error?.response?.data?.message || t('auth.register_failed'), 'error');
+    }
   });
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError('');
     if (password !== confirmPassword) {
-      setValidationError('Mật khẩu xác nhận không khớp!');
+      alertUtil.toast(t('auth.password_mismatch'), 'warning');
       return;
     }
     registerMutation.mutate({ fullName, phone, email, passwordHash: password });
@@ -45,18 +49,10 @@ const RegisterForm = () => {
 
   return (
     <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {validationError && (
-        <div style={{ color: 'red', fontSize: '0.875rem' }}>{validationError}</div>
-      )}
-      {registerMutation.isError && (
-        <div style={{ color: 'red', fontSize: '0.875rem' }}>
-          {(registerMutation.error as any)?.response?.data?.message || 'Đăng ký thất bại'}
-        </div>
-      )}
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
-            Họ và Tên
+            {t('auth.fullname_label')}
           </label>
           <input 
             type="text" 
@@ -69,7 +65,7 @@ const RegisterForm = () => {
         </div>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
-            Số điện thoại
+            {t('auth.phone_label')}
           </label>
           <input 
             type="tel" 
@@ -83,7 +79,7 @@ const RegisterForm = () => {
 
       <div>
         <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
-          Email của bạn
+          {t('auth.email_label')}
         </label>
         <input 
           type="email" 
@@ -98,7 +94,7 @@ const RegisterForm = () => {
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
-            Mật khẩu
+            {t('auth.password_label')}
           </label>
           <input 
             type="password" 
@@ -112,7 +108,7 @@ const RegisterForm = () => {
         </div>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>
-            Xác nhận Mật khẩu
+            {t('auth.confirm_password_label')}
           </label>
           <input 
             type="password" 
@@ -126,17 +122,17 @@ const RegisterForm = () => {
       </div>
 
       <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }} disabled={registerMutation.isPending}>
-        {registerMutation.isPending ? 'Đang xử lý...' : 'Hoàn tất Đăng ký'}
+        {registerMutation.isPending ? t('auth.processing') : t('auth.register_btn')}
       </button>
       
       <div className="flex-center" style={{ gap: '0.75rem', margin: '0.45rem 0' }}>
         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
-        <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>HOẶC</span>
+        <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 600 }}>{t('auth.or')}</span>
         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
       </div>
 
       <button type="button" className="auth-btn-google">
-        <GoogleIcon /> Đăng ký bằng Google
+        <GoogleIcon /> {t('auth.register_google')}
       </button>
     </form>
   );

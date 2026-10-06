@@ -25,5 +25,54 @@
     "f2_desc": "Cập nhật liên tục đề thi của các ngôn ngữ phổ biến nhất.",
     "f3_title": "Từ vựng Spaced Repetition",
     "f3_desc": "Tra từ ngay trong lúc đọc, tự động nhắc nhở ôn tập."
+  },
+  "auth": {
+    "login_title": "Đăng nhập vào hệ thống",
+    "login_subtitle": "Chào mừng bạn quay trở lại với nền tảng.",
+    "register_title": "Đăng ký Tài khoản mới",
+    "register_subtitle": "Chỉ mất chưa đầy 1 phút để tạo tài khoản miễn phí.",
+    "back_home": "Trang chủ",
+    "no_account": "Chưa có tài khoản?",
+    "has_account": "Đã có tài khoản?",
+    "register_now": "Đăng ký ngay",
+    "login_now": "Đăng nhập",
+    
+    "email_label": "Email của bạn",
+    "password_label": "Mật khẩu",
+    "forgot_password": "Quên mật khẩu?",
+    "login_btn": "Đăng nhập ngay",
+    "processing": "Đang xử lý...",
+    "or": "HOẶC",
+    "login_google": "Đăng nhập với Google",
+    
+    "fullname_label": "Họ và Tên",
+    "phone_label": "Số điện thoại",
+    "confirm_password_label": "Xác nhận Mật khẩu",
+    "register_btn": "Hoàn tất Đăng ký",
+    "register_google": "Đăng ký bằng Google",
+    
+    "login_success": "Đăng nhập thành công",
+    "login_failed": "Đăng nhập thất bại",
+    "register_success": "Đăng ký thành công! Vui lòng đăng nhập.",
+    "register_failed": "Đăng ký thất bại",
+    "password_mismatch": "Mật khẩu xác nhận không khớp!",
+    
+    "logout": "Đăng xuất",
+    "logout_confirm": "Bạn có chắc chắn muốn đăng xuất?",
+    "cancel": "Hủy",
+    "logout_success": "Đã đăng xuất",
+    "profile_settings": "Hồ sơ & Cài đặt",
+    "default_user": "Người dùng",
+    "loading": "Đang tải..."
+  },
+  "userLayout": {
+    "dashboard": "Bảng điều khiển",
+    "library": "Thư viện Đề thi",
+    "history": "Lịch sử làm bài",
+    "flashcards": "Từ vựng SRS",
+    "profile_settings": "Hồ sơ & Cài đặt",
+    "logout": "Đăng xuất",
+    "upgrade_pro": "Nâng cấp PRO",
+    "streak_days": "{{count}} ngày"
   }
 }

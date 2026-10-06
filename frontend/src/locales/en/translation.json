@@ -25,5 +25,54 @@
     "f2_desc": "Continuously updated real exams for the most popular languages.",
     "f3_title": "Spaced Repetition Vocab",
     "f3_desc": "Look up words while reading, get automatic review reminders."
+  },
+  "auth": {
+    "login_title": "Log in to your account",
+    "login_subtitle": "Welcome back to the platform.",
+    "register_title": "Create a new Account",
+    "register_subtitle": "It takes less than 1 minute to create a free account.",
+    "back_home": "Home",
+    "no_account": "Don't have an account?",
+    "has_account": "Already have an account?",
+    "register_now": "Sign up now",
+    "login_now": "Log in",
+    
+    "email_label": "Your Email",
+    "password_label": "Password",
+    "forgot_password": "Forgot password?",
+    "login_btn": "Log in",
+    "processing": "Processing...",
+    "or": "OR",
+    "login_google": "Log in with Google",
+    
+    "fullname_label": "Full Name",
+    "phone_label": "Phone Number",
+    "confirm_password_label": "Confirm Password",
+    "register_btn": "Complete Registration",
+    "register_google": "Sign up with Google",
+    
+    "login_success": "Login successful",
+    "login_failed": "Login failed",
+    "register_success": "Registration successful! Please log in.",
+    "register_failed": "Registration failed",
+    "password_mismatch": "Passwords do not match!",
+    
+    "logout": "Log out",
+    "logout_confirm": "Are you sure you want to log out?",
+    "cancel": "Cancel",
+    "logout_success": "Logged out",
+    "profile_settings": "Profile & Settings",
+    "default_user": "User",
+    "loading": "Loading..."
+  },
+  "userLayout": {
+    "dashboard": "Dashboard",
+    "library": "Exam Library",
+    "history": "Test History",
+    "flashcards": "SRS Flashcards",
+    "profile_settings": "Profile & Settings",
+    "logout": "Log out",
+    "upgrade_pro": "Upgrade to PRO",
+    "streak_days": "{{count}} days"
   }
 }

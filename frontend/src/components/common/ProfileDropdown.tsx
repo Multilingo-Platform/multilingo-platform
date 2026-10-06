@@ -1,16 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Globe } from 'lucide-react';
 import { useDispatch } from 'react-redux';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { logout } from '../../features/auth/store/authSlice';
 import { authApi } from '../../features/auth/api/authApi';
+import { alertUtil } from '../../utils/alert';
+import { useTranslation } from 'react-i18next';
 
 const ProfileDropdown = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  const { data: myInfoResponse } = useQuery({
+    queryKey: ['myInfo'],
+    queryFn: () => authApi.getMyInfo()
+  });
+
+  const myInfo = myInfoResponse?.data;
+  const avatarLetter = myInfo?.fullName ? myInfo.fullName.charAt(0).toUpperCase() : 'U';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -24,24 +35,30 @@ const ProfileDropdown = () => {
 
   const logoutMutation = useMutation({
     mutationFn: () => authApi.logout(),
+    onSuccess: () => {
+      alertUtil.toast(t('auth.logout_success'), 'success');
+    },
     onSettled: () => {
       dispatch(logout());
       navigate('/');
     }
   });
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowProfileMenu(false);
-    logoutMutation.mutate();
+    const isConfirmed = await alertUtil.confirm(t('auth.logout_confirm'), t('auth.logout'), t('auth.cancel'));
+    if (isConfirmed) {
+      logoutMutation.mutate();
+    }
   };
 
   return (
     <div ref={profileMenuRef} style={{ position: 'relative' }}>
-      <div 
+      <div
         style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
         onClick={() => setShowProfileMenu(!showProfileMenu)}
       >
-        J
+        {avatarLetter}
       </div>
 
       {showProfileMenu && (
@@ -58,24 +75,36 @@ const ProfileDropdown = () => {
           gap: '0.25rem'
         }}>
           <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-light)', marginBottom: '0.5rem' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>John Doe</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>john@example.com</div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{myInfo?.fullName || t('auth.default_user')}</div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{myInfo?.email || t('auth.loading')}</div>
           </div>
-          
-          <div 
+
+          <div
             className="flex-center"
             onClick={() => { setShowProfileMenu(false); navigate('/student/settings'); }}
             style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: 500, justifyContent: 'flex-start', gap: '0.75rem', color: 'var(--text-primary)' }}
           >
-            <User size={18} color="var(--text-secondary)" /> Hồ sơ & Cài đặt
+            <User size={18} color="var(--text-secondary)" /> {t('auth.profile_settings')}
           </div>
-          
-          <div 
+
+          <div
+            className="flex-center"
+            onClick={() => {
+              i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi');
+              setShowProfileMenu(false);
+            }}
+            style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: 500, justifyContent: 'flex-start', gap: '0.75rem', color: 'var(--text-primary)' }}
+          >
+            <Globe size={18} color="var(--text-secondary)" />
+            {i18n.language === 'vi' ? 'Chuyển sang Tiếng Anh' : 'Switch to Vietnamese'}
+          </div>
+
+          <div
             className="flex-center"
             onClick={handleLogout}
             style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: 500, justifyContent: 'flex-start', gap: '0.75rem', color: 'var(--danger)' }}
           >
-            <LogOut size={18} /> Đăng xuất
+            <LogOut size={18} /> {t('auth.logout')}
           </div>
         </div>
       )}

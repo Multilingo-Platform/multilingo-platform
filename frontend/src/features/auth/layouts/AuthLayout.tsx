@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface AuthLayoutProps {
   title: string;
@@ -10,6 +11,7 @@ interface AuthLayoutProps {
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, children, isLogin, onToggleMode }) => {
+  const { t } = useTranslation();
   return (
     <div className="auth-page-wrapper">
       <div className="auth-bg-decor" />
@@ -27,7 +29,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, children, isLo
             </Link>
 
             <Link to="/" className="auth-back-btn">
-              ← Trang chủ
+              ← {t('auth.back_home')}
             </Link>
           </div>
 
@@ -44,7 +46,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, children, isLo
 
           {/* Toggle Login/Register */}
           <div style={{ textAlign: 'center', marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #f3f4f6', fontSize: '0.875rem', color: '#6b7280' }}>
-            {isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
+            {isLogin ? t('auth.no_account') : t('auth.has_account')}
             <button
               type="button"
               style={{
@@ -58,7 +60,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, children, isLo
               }}
               onClick={onToggleMode}
             >
-              {isLogin ? 'Đăng ký ngay' : 'Đăng nhập'}
+              {isLogin ? t('auth.register_now') : t('auth.login_now')}
             </button>
           </div>
         </div>
