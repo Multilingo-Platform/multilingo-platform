@@ -37,6 +37,8 @@ public enum ErrorCode {
     INVALID_AVATAR_URL_LENGTH(912, HttpStatus.BAD_REQUEST, "Độ dài đường dẫn ảnh không hợp lệ"),
     INVALID_OTP(913, HttpStatus.BAD_REQUEST, "Mã OTP không chính xác"),
     OTP_EXPIRED(914, HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn"),
+    PASSWORD_NOT_MATCH(915, HttpStatus.BAD_REQUEST, "Mật khẩu cũ không chính xác"),
+    NEW_PASSWORD_MISMATCH(916, HttpStatus.BAD_REQUEST, "Xác nhận mật khẩu không khớp"),
 
     // Vocab & Flashcards module (12xx)
     DECK_NAME_REQUIRED(1201, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được để trống"),

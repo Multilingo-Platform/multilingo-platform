@@ -25,6 +25,7 @@ import ExamBuilderPage from '../features/exams/pages/admin/ExamBuilderPage';
 import LandingPage from '../features/public/pages/LandingPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
+import { SettingsPage } from '../features/auth/pages/SettingsPage';
 import ProtectedRoute from '../features/auth/components/ProtectedRoute';
 import Flashcards from '../pages/student/Flashcards';
 
@@ -98,7 +99,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <div className="container"><h1 style={{ fontSize: '2rem', marginTop: '2rem' }}>Tính năng của Thành viên 1 (Settings)</h1></div>
+        element: <SettingsPage />
       }
     ]
   },

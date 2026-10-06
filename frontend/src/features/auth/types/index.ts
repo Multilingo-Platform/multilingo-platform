@@ -4,6 +4,8 @@ export interface UserResponse {
   fullName: string;
   avatarUrl?: string;
   role?: string;
+  phone?: string;
+  subscriptionTier?: string;
 }
 
 export interface AuthResponse {
@@ -22,4 +24,15 @@ export interface RegisterRequest {
   passwordHash: string;
   fullName: string;
   phone?: string;
+}
+
+export interface UpdateProfileRequest {
+  fullName: string;
+  phone?: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 }
