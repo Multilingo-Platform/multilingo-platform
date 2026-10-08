@@ -11,4 +11,8 @@ public interface AdminExamService {
     void deleteExam(Integer id);
 
     java.util.List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse> getAllExams();
+    
+    ExamBuilderRequest getExamDetail(Integer id);
+    
+    void updateExamStatus(Integer id, boolean isPublished);
 }

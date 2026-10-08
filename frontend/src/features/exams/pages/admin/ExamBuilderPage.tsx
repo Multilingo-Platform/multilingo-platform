@@ -1,17 +1,37 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import ExamBuilder from './ExamBuilder';
 import axiosClient from '../../../../core/api/axiosClient';
+import Swal from 'sweetalert2';
 
 const ExamBuilderPage = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const [initialData, setInitialData] = useState<any>(null);
+  const [loading, setLoading] = useState(!!id);
+
+  useEffect(() => {
+    if (id) {
+      axiosClient.get<any, any>(`/v1/admin/exams/${id}`)
+        .then((res: any) => {
+          if (res.success) {
+            setInitialData(res.data);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          Swal.fire('Lỗi tải đề thi', err.message, 'error');
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [id]);
 
   const handleSave = async (jsonStruct: string) => {
     try {
       const data = JSON.parse(jsonStruct);
       
       if (!data.exam_title) {
-        alert('Vui lòng nhập Tên đề thi ở phần thông tin cơ bản!');
+        Swal.fire('Thiếu thông tin', 'Vui lòng nhập Tên đề thi ở phần thông tin cơ bản!', 'warning');
         return;
       }
       
@@ -49,17 +69,22 @@ const ExamBuilderPage = () => {
         title: data.exam_title,
         type: data.exam_type,
         examLanguage: "ENGLISH", 
-        isPublished: true,
+        published: data.is_published !== false,
+        isPublished: data.is_published !== false, // sending both just in case
         sections: Object.values(sectionsMap)
       };
 
       console.log("Sending Payload:", payload);
-      await axiosClient.post('/v1/admin/exams', payload);
-      alert("Đã lưu đề thi thành công!");
+      if (id) {
+        await axiosClient.put(`/v1/admin/exams/${id}`, payload);
+      } else {
+        await axiosClient.post('/v1/admin/exams', payload);
+      }
+      Swal.fire({ title: 'Thành công!', text: 'Đã lưu đề thi thành công', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/admin/exams');
     } catch (error: any) {
       console.error(error);
-      alert("Lỗi khi lưu đề thi: " + (error.response?.data?.message || error.message));
+      Swal.fire('Lỗi khi lưu đề thi', error.response?.data?.message || error.message, 'error');
     }
   };
 
@@ -67,16 +92,20 @@ const ExamBuilderPage = () => {
     navigate('/admin/exams');
   };
 
+  if (loading) {
+    return <div style={{ padding: '3rem', textAlign: 'center' }}>Đang tải dữ liệu đề thi...</div>;
+  }
+
   return (
     <div className="slide-up">
       <div className="flex-between" style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Tạo Đề thi Mới</h1>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{id ? 'Chỉnh sửa Đề thi' : 'Tạo Đề thi Mới'}</h1>
         <button className="btn btn-outline" onClick={handleCancel}>
           Trở về Danh sách
         </button>
       </div>
 
-      <ExamBuilder onSave={handleSave} onCancel={handleCancel} />
+      <ExamBuilder initialData={initialData} onSave={handleSave} onCancel={handleCancel} />
     </div>
   );
 };

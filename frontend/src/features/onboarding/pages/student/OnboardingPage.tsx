@@ -70,7 +70,7 @@ const OnboardingPage = () => {
               >
                 <option value="IELTS">IELTS Academic</option>
                 <option value="TOEIC">TOEIC L&R</option>
-                <option value="VSTEP">VSTEP B1-C1</option>
+                <option value="NLTV">NLTV B1-C1</option>
               </select>
               
               <select 
@@ -93,7 +93,7 @@ const OnboardingPage = () => {
                     <option value="900">900+ Điểm</option>
                   </>
                 )}
-                {targetCert === 'VSTEP' && (
+                {targetCert === 'NLTV' && (
                   <>
                     <option value="B1">Bậc 3 (B1)</option>
                     <option value="B2">Bậc 4 (B2)</option>

@@ -1,6 +1,9 @@
-import { useState } from 'react';
-import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap, CheckCircle, FileText, Upload, Download } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import MediaUploadButton from '../../../../components/common/MediaUploadButton';
+import Swal from 'sweetalert2';
 
 interface QuestionMetadata {
   options?: string[];
@@ -46,7 +49,7 @@ const QUESTION_TYPES = [
 ];
 
 const getPartBounds = (partTitle: string, examType: string) => {
-  if (examType === 'IELTS_ACADEMIC') {
+  if (examType.startsWith('IELTS')) {
     if (partTitle.includes('Listening Part 1')) return { start: 1, end: 10 };
     if (partTitle.includes('Listening Part 2')) return { start: 11, end: 20 };
     if (partTitle.includes('Listening Part 3')) return { start: 21, end: 30 };
@@ -55,7 +58,7 @@ const getPartBounds = (partTitle: string, examType: string) => {
     if (partTitle.includes('Reading Passage 2')) return { start: 14, end: 26 };
     if (partTitle.includes('Reading Passage 3')) return { start: 27, end: 40 };
   }
-  if (examType === 'TOEIC_LISTENING_READING') {
+  if (examType.startsWith('TOEIC') && !examType.includes('WRITING')) {
     if (partTitle.includes('Part 1')) return { start: 1, end: 6 };
     if (partTitle.includes('Part 2')) return { start: 7, end: 31 };
     if (partTitle.includes('Part 3')) return { start: 32, end: 70 };
@@ -64,7 +67,7 @@ const getPartBounds = (partTitle: string, examType: string) => {
     if (partTitle.includes('Part 6')) return { start: 131, end: 146 };
     if (partTitle.includes('Part 7')) return { start: 147, end: 200 };
   }
-  if (examType === 'VSTEP') {
+  if (examType.startsWith('NLTV')) {
     if (partTitle.includes('Nghe - Phần 1')) return { start: 1, end: 8 };
     if (partTitle.includes('Nghe - Phần 2')) return { start: 9, end: 20 };
     if (partTitle.includes('Nghe - Phần 3')) return { start: 21, end: 35 };
@@ -72,6 +75,35 @@ const getPartBounds = (partTitle: string, examType: string) => {
     if (partTitle.includes('Đọc - Phần 2')) return { start: 11, end: 20 };
     if (partTitle.includes('Đọc - Phần 3')) return { start: 21, end: 30 };
     if (partTitle.includes('Đọc - Phần 4')) return { start: 31, end: 40 };
+  }
+  return null;
+}
+
+const getMaxGroupsForPart = (partTitle: string, examType: string) => {
+  if (examType.startsWith('TOEIC') && !examType.includes('WRITING')) {
+    if (partTitle.includes('Part 1')) return 6;
+    if (partTitle.includes('Part 2')) return 1;
+    if (partTitle.includes('Part 3')) return 13;
+    if (partTitle.includes('Part 4')) return 10;
+    if (partTitle.includes('Part 5')) return 1;
+    if (partTitle.includes('Part 6')) return 4;
+    if (partTitle.includes('Part 7')) return 15;
+  }
+  if (examType.startsWith('TOEIC_WRITING')) {
+    if (partTitle.includes('Part 1')) return 5;
+    if (partTitle.includes('Part 2')) return 2;
+    if (partTitle.includes('Part 3')) return 1;
+  }
+  if (examType.startsWith('NLTV')) {
+    if (partTitle.includes('Nghe - Phần 1')) return 8;
+    if (partTitle.includes('Nghe - Phần 2')) return 3;
+    if (partTitle.includes('Nghe - Phần 3')) return 3;
+    if (partTitle.includes('Đọc - Phần 1')) return 1;
+    if (partTitle.includes('Đọc - Phần 2')) return 1;
+    if (partTitle.includes('Đọc - Phần 3')) return 1;
+    if (partTitle.includes('Đọc - Phần 4')) return 1;
+    if (partTitle.includes('Viết - Bài 1')) return 1;
+    if (partTitle.includes('Viết - Bài 2')) return 1;
   }
   return null;
 }
@@ -89,14 +121,43 @@ const getNextStartForPart = (part: ExamPart, bounds: {start: number, end: number
   return currentMax + 1;
 };
 
-const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onCancel: () => void }) => {
+const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onSave: (json: string) => void, onCancel: () => void }) => {
   const [examTitle, setExamTitle] = useState('Đề thi Mới');
   const [examType, setExamType] = useState('IELTS_ACADEMIC');
+  const [isPublished, setIsPublished] = useState(true);
   const [parts, setParts] = useState<ExamPart[]>([]);
   const [activePartIndex, setActivePartIndex] = useState(0);
   const [selectedSpecificPart, setSelectedSpecificPart] = useState('IELTS_L1');
   const [selectedSkill, setSelectedSkill] = useState('IELTS_LISTENING');
   const [wizardMode, setWizardMode] = useState<'START' | 'FULL' | 'SKILL' | 'PART' | 'BUILDER'>('START');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initialData) {
+      setExamTitle(initialData.title || 'Đề thi Mới');
+      setExamType(initialData.type || 'IELTS_ACADEMIC');
+      
+      const publishedState = initialData.published !== undefined ? initialData.published : initialData.isPublished;
+      setIsPublished(publishedState !== false);
+      
+      const loadedParts: ExamPart[] = [];
+      initialData.sections?.forEach((s: any) => {
+        s.parts?.forEach((p: any) => {
+          loadedParts.push({
+            part_title: p.contentData?.part_title || '',
+            instruction: p.contentData?.instruction || '',
+            shared_audio: p.contentData?.shared_audio,
+            shared_content_html: p.contentData?.shared_content_html,
+            question_groups: p.contentData?.question_groups || []
+          });
+        });
+      });
+      setParts(loadedParts);
+      if (loadedParts.length > 0) {
+        setWizardMode('BUILDER');
+      }
+    }
+  }, [initialData]);
 
   // Local state for batch generation
   const [batchSettings, setBatchSettings] = useState<Record<string, { type: string; start: number; end: number }>>({});
@@ -170,11 +231,14 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
       case 'TOEIC_P7': newPart = { part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [] }; break;
       case 'TW_P1': newPart = { part_title: 'Part 1: Write a Sentence Based on a Picture', instruction: 'Questions 1-5', question_groups: createToeicWritPart1Groups() }; break;
       case 'TW_P2': newPart = { part_title: 'Part 2: Respond to a Written Request', instruction: 'Questions 6-7', question_groups: createToeicWritPart2Groups() }; break;
-      case 'VSTEP_L': newPart = { part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: [] }; break;
-      case 'VSTEP_R': newPart = { part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc', question_groups: [] }; break;
-      case 'VSTEP_W': newPart = { part_title: 'Kỹ năng Viết - Bài 1', instruction: 'Viết thư/email', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Viết luận.', metadata: { correct_answer: '', explanation: '' } }] }] }; break;
+      case 'NLTV_L': newPart = { part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: [] }; break;
+      case 'NLTV_R': newPart = { part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc', question_groups: [] }; break;
+      case 'NLTV_W': newPart = { part_title: 'Kỹ năng Viết - Bài 1', instruction: 'Viết thư/email', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Viết luận.', metadata: { correct_answer: '', explanation: '' } }] }] }; break;
     }
     if (newPart) {
+      if (parts.length === 0) {
+        setExamType(partKey);
+      }
       setParts([...parts, newPart]);
       setActivePartIndex(parts.length);
     }
@@ -207,33 +271,41 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
       case 'TOEIC_READING':
         newPartsToAdd.push({ part_title: 'Part 5: Incomplete Sentences', instruction: 'Questions 101-130', question_groups: createToeicGroups(101, 1, 30, 4) });
         newPartsToAdd.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) });
-        newPartsToAdd.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [] });
+        newPartsToAdd.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [
+          ...createToeicGroups(147, 4, 2, 4),
+          ...createToeicGroups(155, 3, 3, 4),
+          ...createToeicGroups(164, 3, 4, 4),
+          ...createToeicGroups(176, 5, 5, 4)
+        ] });
         break;
-      case 'VSTEP_LISTENING':
-        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: [] });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: [] });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: [] });
+      case 'NLTV_LISTENING':
+        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
+        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
+        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
         break;
-      case 'VSTEP_READING':
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc', question_groups: [] });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn phần đọc', question_groups: [] });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn phần đọc', question_groups: [] });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn phần đọc', question_groups: [] });
+      case 'NLTV_READING':
+        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(1, 1, 10, 4) });
+        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(11, 1, 10, 4) });
+        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(21, 1, 10, 4) });
+        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(31, 1, 10, 4) });
         break;
-      case 'VSTEP_WRITING':
+      case 'NLTV_WRITING':
         newPartsToAdd.push({ part_title: 'Kỹ năng Viết - Bài 1', instruction: 'Viết thư/email', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Viết thư/email.', metadata: { correct_answer: '', explanation: '' } }] }] });
         newPartsToAdd.push({ part_title: 'Kỹ năng Viết - Bài 2', instruction: 'Viết bài luận', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Viết luận.', metadata: { correct_answer: '', explanation: '' } }] }] });
         break;
     }
     
     if (newPartsToAdd.length > 0) {
+      if (parts.length === 0) {
+        setExamType(skillKey);
+      }
       setParts([...parts, ...newPartsToAdd]);
       setActivePartIndex(parts.length);
     }
   };
 
   // --- FULL TEMPLATE GENERATORS ---
-  const applyTemplate = (type: 'IELTS' | 'TOEIC' | 'TOEIC_WRITING' | 'VSTEP') => {
+  const applyTemplate = (type: 'IELTS' | 'TOEIC' | 'TOEIC_WRITING' | 'NLTV') => {
     if (parts.length > 0 && !window.confirm(`Áp dụng Template ${type} sẽ xóa toàn bộ nội dung hiện tại. Bạn có chắc chắn?`)) return;
 
     const newParts: ExamPart[] = [];
@@ -243,15 +315,15 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
       setExamTitle('IELTS Academic Mock Test');
       
       // Listening
-      newParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: [] });
-      newParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: [] });
-      newParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: [] });
-      newParts.push({ part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: [] });
+      newParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
+      newParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: createToeicGroups(11, 1, 10, 4) });
+      newParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 1, 10, 4) });
+      newParts.push({ part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: createToeicGroups(31, 1, 10, 4) });
       
       // Reading
-      newParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: [] });
-      newParts.push({ part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: [] });
-      newParts.push({ part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: [] });
+      newParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
+      newParts.push({ part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: createToeicGroups(14, 1, 13, 4) });
+      newParts.push({ part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: createToeicGroups(27, 1, 14, 4) });
       
       // Writing
       newParts.push({ 
@@ -281,7 +353,12 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
       // TOEIC Reading (100 qs)
       newParts.push({ part_title: 'Part 5: Incomplete Sentences', instruction: 'Questions 101-130', question_groups: createToeicGroups(101, 1, 30, 4) }); // 1 group, 30 qs
       newParts.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) }); // 4 groups, 4 qs each
-      newParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [] });
+      newParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [
+        ...createToeicGroups(147, 4, 2, 4),
+        ...createToeicGroups(155, 3, 3, 4),
+        ...createToeicGroups(164, 3, 4, 4),
+        ...createToeicGroups(176, 5, 5, 4)
+      ] });
     }
     else if (type === 'TOEIC_WRITING') {
       setExamType('TOEIC_WRITING');
@@ -293,20 +370,20 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
         { group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_tw_008', type: 'WRITING_ESSAY', question_text: 'Write an essay...', metadata: { correct_answer: '', explanation: '' } }] }
       ] });
     }
-    else if (type === 'VSTEP') {
-      setExamType('VSTEP');
-      setExamTitle('Đánh giá Năng lực Tiếng Việt (VSTEP)');
+    else if (type === 'NLTV') {
+      setExamType('NLTV');
+      setExamTitle('Đánh giá Năng lực Tiếng Việt (NLTV)');
       
       // Listening
-      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần 1', shared_audio: { url: '' }, question_groups: [] });
-      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn phần 2', shared_audio: { url: '' }, question_groups: [] });
-      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn phần 3', shared_audio: { url: '' }, question_groups: [] });
+      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần 1', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
+      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn phần 2', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
+      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn phần 3', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
       
       // Reading
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc 1', question_groups: [] });
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn phần đọc 2', question_groups: [] });
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn phần đọc 3', question_groups: [] });
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn phần đọc 4', question_groups: [] });
+      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc 1', question_groups: createToeicGroups(1, 1, 10, 4) });
+      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn phần đọc 2', question_groups: createToeicGroups(11, 1, 10, 4) });
+      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn phần đọc 3', question_groups: createToeicGroups(21, 1, 10, 4) });
+      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn phần đọc 4', question_groups: createToeicGroups(31, 1, 10, 4) });
       
       // Writing
       newParts.push({ 
@@ -421,10 +498,383 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
     setParts(newParts);
   };
 
+  const generateExcelTemplate = async (partsData: ExamPart[], typeName: string) => {
+    if (partsData.length === 0) {
+      Swal.fire('Lỗi', 'Cấu trúc sườn đề trống, không thể xuất file mẫu.', 'error');
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Exam Template');
+
+    // Define columns
+    sheet.columns = [
+      { header: 'Phần (Part)', key: 'part', width: 25 },
+      { header: 'Nhóm (Group)', key: 'group', width: 15 },
+      { header: 'Loại câu hỏi (Type)', key: 'type', width: 25 },
+      { header: 'Hướng dẫn (Instruction)', key: 'instruction', width: 30 },
+      { header: 'Nội dung nhóm (Văn bản đọc/nghe)', key: 'passage', width: 40 },
+      { header: 'Câu hỏi (Question Text)', key: 'question', width: 40 },
+      { header: 'Lựa chọn A', key: 'optA', width: 20 },
+      { header: 'Lựa chọn B', key: 'optB', width: 20 },
+      { header: 'Lựa chọn C', key: 'optC', width: 20 },
+      { header: 'Lựa chọn D', key: 'optD', width: 20 },
+      { header: 'Đáp án đúng', key: 'correct', width: 15 },
+      { header: 'Giải thích', key: 'explanation', width: 30 },
+      { header: 'Audio/File chung (Phần)', key: 'partMedia', width: 25 },
+      { header: 'Đính kèm chung (Nhóm)', key: 'groupMedia', width: 25 },
+      { header: 'Đính kèm riêng (Câu hỏi)', key: 'qMedia', width: 25 }
+    ];
+
+    // Style headers
+    sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+
+    let rowIndex = 2;
+
+    partsData.forEach((part, pIdx) => {
+      const partName = `Part ${pIdx + 1}: ${part.part_title}`;
+      const partStartRow = rowIndex;
+      
+      part.question_groups.forEach((group, gIdx) => {
+        const groupName = `Group ${gIdx + 1}`;
+        const groupText = group.content_html ? group.content_html : '';
+        const groupStartRow = rowIndex;
+        
+        group.questions.forEach((q, qIdx) => {
+          const qType = q.type;
+          const qText = `Câu ${qIdx + 1}`;
+          
+          sheet.addRow({
+            part: partName,
+            group: groupName,
+            type: qType,
+            instruction: group.instruction || part.instruction || '',
+            passage: groupText,
+            question: qText,
+            optA: '', optB: '', optC: '', optD: '',
+            correct: '',
+            explanation: '',
+            partMedia: part.shared_audio?.url || '',
+            groupMedia: group.shared_media?.url || group.shared_audio?.url || '',
+            qMedia: ''
+          });
+
+          // Add Data Validation
+          sheet.getCell(`C${rowIndex}`).dataValidation = {
+            type: 'list',
+            allowBlank: true,
+            formulae: ['"MULTIPLE_CHOICE,MULTIPLE_CHOICE_MULTI,TRUE_FALSE_NOT_GIVEN,YES_NO_NOT_GIVEN,FILL_IN_THE_BLANK,MATCHING,SHORT_ANSWER"']
+          };
+          
+          sheet.getCell(`K${rowIndex}`).dataValidation = {
+            type: 'list',
+            allowBlank: true,
+            showErrorMessage: false, // Cho phép gõ chữ tự do đối với dạng Fill in the blank
+            errorStyle: 'warning',
+            errorTitle: 'Lưu ý',
+            error: 'Nếu là trắc nghiệm, hãy chọn từ danh sách. Nếu là điền từ, bạn có thể gõ tự do.',
+            formulae: ['"A,B,C,D,TRUE,FALSE,NOT GIVEN,YES,NO"']
+          };
+
+          rowIndex++;
+        });
+
+        if (rowIndex - 1 > groupStartRow) {
+          sheet.mergeCells(`B${groupStartRow}:B${rowIndex - 1}`);
+          sheet.mergeCells(`D${groupStartRow}:D${rowIndex - 1}`);
+          sheet.mergeCells(`E${groupStartRow}:E${rowIndex - 1}`);
+          sheet.mergeCells(`N${groupStartRow}:N${rowIndex - 1}`); // groupMedia
+          
+          sheet.getCell(`B${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`D${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`E${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`N${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        }
+      });
+
+      if (rowIndex - 1 > partStartRow) {
+        sheet.mergeCells(`A${partStartRow}:A${rowIndex - 1}`);
+        sheet.mergeCells(`M${partStartRow}:M${rowIndex - 1}`); // partMedia
+        sheet.getCell(`A${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        sheet.getCell(`M${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+      }
+    });
+
+    const guideSheet = workbook.addWorksheet('Hướng dẫn điền Form');
+    guideSheet.columns = [
+      { header: 'Vấn đề cần lưu ý', key: 'item', width: 30 },
+      { header: 'Hướng dẫn chi tiết cách điền', key: 'desc', width: 100 }
+    ];
+    guideSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    guideSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
+
+    guideSheet.addRow({ item: '1. GOM NHÓM BÀI ĐỌC/NGHE', desc: 'Các dòng (câu hỏi) có CÙNG tên ở cột "Phần (Part)" và CÙNG tên ở cột "Nhóm (Group)" sẽ tự động được gộp chung vào 1 bài đọc/nghe duy nhất.\n-> Bạn chỉ cần dán đoạn văn/bài đọc vào cột "Nội dung nhóm" của 1 dòng bất kỳ trong nhóm (hoặc dán cho tất cả các dòng thuộc nhóm đó đều được, hệ thống sẽ không bị lặp).' });
+    guideSheet.addRow({ item: '2. CÂU TRẮC NGHIỆM (A, B, C, D)', desc: 'Áp dụng cho Loại câu hỏi: MULTIPLE_CHOICE.\n-> Điền nội dung vào cột Lựa chọn A, B, C, D (Nếu câu hỏi chỉ có 3 đáp án thì bỏ trống cột D).\n-> Cột "Đáp án đúng": Bấm chọn A, B, C hoặc D từ danh sách thả xuống.' });
+    guideSheet.addRow({ item: '3. CÂU ĐÚNG / SAI / NOT GIVEN', desc: 'Áp dụng cho: TRUE_FALSE_NOT_GIVEN hoặc YES_NO_NOT_GIVEN.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": Bấm chọn TRUE, FALSE, hoặc NOT GIVEN từ danh sách thả xuống.' });
+    guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple). Mặc dù cột này có icon danh sách thả xuống của Excel, nhưng bạn vẫn gõ được bình thường mà không bị báo lỗi.' });
+
+    guideSheet.getColumn('desc').alignment = { wrapText: true, vertical: 'middle' };
+    guideSheet.getColumn('item').alignment = { vertical: 'middle', wrapText: true };
+    for (let i = 2; i <= 5; i++) {
+      guideSheet.getRow(i).height = 65;
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `Template_${typeName || 'Exam'}.xlsx`);
+  };
+
+  const handleExportTemplate = () => {
+    generateExcelTemplate(parts, examType);
+  };
+
+  const handleExportStandardTemplate = () => {
+    Swal.fire({
+      title: 'Chọn loại chứng chỉ để tải sườn mẫu',
+      input: 'select',
+      inputOptions: {
+        'Full Đề': {
+          'IELTS': 'Full IELTS Academic',
+          'TOEIC': 'Full TOEIC Listening & Reading',
+          'NLTV': 'Full Năng Lực Tiếng Việt',
+          'TOEIC_WRITING': 'Full TOEIC Writing'
+        },
+        'Từng Kỹ Năng (Skills)': {
+          'SKILL_IELTS_LISTENING': 'IELTS Listening (4 Parts)',
+          'SKILL_IELTS_READING': 'IELTS Reading (3 Passages)',
+          'SKILL_TOEIC_LISTENING': 'TOEIC Listening (Part 1-4)',
+          'SKILL_TOEIC_READING': 'TOEIC Reading (Part 5-7)',
+          'SKILL_NLTV_LISTENING': 'NLTV Kỹ năng Nghe',
+          'SKILL_NLTV_READING': 'NLTV Kỹ năng Đọc'
+        },
+        'Từng Part (Parts)': {
+          'PART_IELTS_L1': 'IELTS Listening Part 1',
+          'PART_IELTS_R1': 'IELTS Reading Passage 1',
+          'PART_TOEIC_1': 'TOEIC Part 1 (Photographs)',
+          'PART_TOEIC_2': 'TOEIC Part 2 (Question-Response)',
+          'PART_TOEIC_3': 'TOEIC Part 3 (Conversations)',
+          'PART_TOEIC_4': 'TOEIC Part 4 (Talks)',
+          'PART_TOEIC_5': 'TOEIC Part 5 (Incomplete Sentences)',
+          'PART_TOEIC_6': 'TOEIC Part 6 (Text Completion)',
+          'PART_TOEIC_7': 'TOEIC Part 7 (Reading Comp.)'
+        }
+      },
+      inputPlaceholder: 'Chọn một loại...',
+      showCancelButton: true,
+      confirmButtonText: 'Tải Xuống Excel',
+      cancelButtonText: 'Hủy'
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        const type = result.value;
+        const tempParts: ExamPart[] = [];
+        
+        // Replicate logic from applyTemplate to generate the structure
+        if (type === 'IELTS') {
+          tempParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
+          tempParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: createToeicGroups(11, 1, 10, 4) });
+          tempParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 1, 10, 4) });
+          tempParts.push({ part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: createToeicGroups(31, 1, 10, 4) });
+          tempParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
+          tempParts.push({ part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: createToeicGroups(14, 1, 13, 4) });
+          tempParts.push({ part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: createToeicGroups(27, 1, 14, 4) });
+          tempParts.push({ part_title: 'Writing Task 1', instruction: 'Write at least 150 words', question_groups: [{ group_id: 'g1', instruction: '', content_html: '', questions: [{ question_id: 'q_w_1', type: 'WRITING_ESSAY', question_text: 'Task 1', metadata: { correct_answer: '' } }] }] });
+          tempParts.push({ part_title: 'Writing Task 2', instruction: 'Write at least 250 words', question_groups: [{ group_id: 'g2', instruction: '', content_html: '', questions: [{ question_id: 'q_w_2', type: 'WRITING_ESSAY', question_text: 'Task 2', metadata: { correct_answer: '' } }] }] });
+        } else if (type === 'TOEIC') {
+          tempParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) });
+          tempParts.push({ part_title: 'Part 2: Question-Response', instruction: 'Questions 7-31', shared_audio: { url: '' }, question_groups: createToeicGroups(7, 1, 25, 3) });
+          tempParts.push({ part_title: 'Part 3: Conversations', instruction: 'Questions 32-70', shared_audio: { url: '' }, question_groups: createToeicGroups(32, 13, 3, 4) });
+          tempParts.push({ part_title: 'Part 4: Talks', instruction: 'Questions 71-100', shared_audio: { url: '' }, question_groups: createToeicGroups(71, 10, 3, 4) });
+          tempParts.push({ part_title: 'Part 5: Incomplete Sentences', instruction: 'Questions 101-130', question_groups: createToeicGroups(101, 1, 30, 4) });
+          tempParts.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) });
+          tempParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [...createToeicGroups(147, 4, 2, 4), ...createToeicGroups(155, 3, 3, 4), ...createToeicGroups(164, 3, 4, 4), ...createToeicGroups(176, 5, 5, 4)] });
+        } else if (type === 'NLTV') {
+          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn', question_groups: createToeicGroups(1, 1, 10, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn', question_groups: createToeicGroups(11, 1, 10, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn', question_groups: createToeicGroups(21, 1, 10, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn', question_groups: createToeicGroups(31, 1, 10, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Viết - Bài 1', instruction: 'Viết thư', question_groups: [{ group_id: 'g1', instruction: '', content_html: '', questions: [{ question_id: 'q1', type: 'WRITING_ESSAY', question_text: 'Viết', metadata: { correct_answer: '' } }] }] });
+          tempParts.push({ part_title: 'Kỹ năng Viết - Bài 2', instruction: 'Viết luận', question_groups: [{ group_id: 'g2', instruction: '', content_html: '', questions: [{ question_id: 'q2', type: 'WRITING_ESSAY', question_text: 'Viết', metadata: { correct_answer: '' } }] }] });
+        } else if (type === 'TOEIC_WRITING') {
+          tempParts.push({ part_title: 'Part 1: Write a Sentence Based on a Picture', instruction: 'Questions 1-5', question_groups: createToeicWritPart1Groups() });
+          tempParts.push({ part_title: 'Part 2: Respond to a Written Request', instruction: 'Questions 6-7', question_groups: createToeicWritPart2Groups() });
+          tempParts.push({ part_title: 'Part 3: Write an Opinion Essay', instruction: 'Question 8', question_groups: [{ group_id: 'g1', instruction: '', content_html: '', questions: [{ question_id: 'q8', type: 'WRITING_ESSAY', question_text: 'Write essay', metadata: { correct_answer: '' } }] }] });
+        } else if (type === 'SKILL_IELTS_LISTENING') {
+          tempParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
+          tempParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: createToeicGroups(11, 1, 10, 4) });
+          tempParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 1, 10, 4) });
+          tempParts.push({ part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: createToeicGroups(31, 1, 10, 4) });
+        } else if (type === 'SKILL_IELTS_READING') {
+          tempParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
+          tempParts.push({ part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: createToeicGroups(14, 1, 13, 4) });
+          tempParts.push({ part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: createToeicGroups(27, 1, 14, 4) });
+        } else if (type === 'SKILL_TOEIC_LISTENING') {
+          tempParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) });
+          tempParts.push({ part_title: 'Part 2: Question-Response', instruction: 'Questions 7-31', shared_audio: { url: '' }, question_groups: createToeicGroups(7, 1, 25, 3) });
+          tempParts.push({ part_title: 'Part 3: Conversations', instruction: 'Questions 32-70', shared_audio: { url: '' }, question_groups: createToeicGroups(32, 13, 3, 4) });
+          tempParts.push({ part_title: 'Part 4: Talks', instruction: 'Questions 71-100', shared_audio: { url: '' }, question_groups: createToeicGroups(71, 10, 3, 4) });
+        } else if (type === 'SKILL_TOEIC_READING') {
+          tempParts.push({ part_title: 'Part 5: Incomplete Sentences', instruction: 'Questions 101-130', question_groups: createToeicGroups(101, 1, 30, 4) });
+          tempParts.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) });
+          tempParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [...createToeicGroups(147, 4, 2, 4), ...createToeicGroups(155, 3, 3, 4), ...createToeicGroups(164, 3, 4, 4), ...createToeicGroups(176, 5, 5, 4)] });
+        } else if (type === 'SKILL_NLTV_LISTENING') {
+          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
+        } else if (type === 'SKILL_NLTV_READING') {
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn', question_groups: createToeicGroups(1, 1, 10, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn', question_groups: createToeicGroups(11, 1, 10, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn', question_groups: createToeicGroups(21, 1, 10, 4) });
+          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn', question_groups: createToeicGroups(31, 1, 10, 4) });
+        } else if (type === 'PART_IELTS_L1') {
+          tempParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
+        } else if (type === 'PART_IELTS_R1') {
+          tempParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
+        } else if (type === 'PART_TOEIC_1') {
+          tempParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) });
+        } else if (type === 'PART_TOEIC_2') {
+          tempParts.push({ part_title: 'Part 2: Question-Response', instruction: 'Questions 7-31', shared_audio: { url: '' }, question_groups: createToeicGroups(7, 1, 25, 3) });
+        } else if (type === 'PART_TOEIC_3') {
+          tempParts.push({ part_title: 'Part 3: Conversations', instruction: 'Questions 32-70', shared_audio: { url: '' }, question_groups: createToeicGroups(32, 13, 3, 4) });
+        } else if (type === 'PART_TOEIC_4') {
+          tempParts.push({ part_title: 'Part 4: Talks', instruction: 'Questions 71-100', shared_audio: { url: '' }, question_groups: createToeicGroups(71, 10, 3, 4) });
+        } else if (type === 'PART_TOEIC_5') {
+          tempParts.push({ part_title: 'Part 5: Incomplete Sentences', instruction: 'Questions 101-130', question_groups: createToeicGroups(101, 1, 30, 4) });
+        } else if (type === 'PART_TOEIC_6') {
+          tempParts.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) });
+        } else if (type === 'PART_TOEIC_7') {
+          tempParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [...createToeicGroups(147, 4, 2, 4), ...createToeicGroups(155, 3, 3, 4), ...createToeicGroups(164, 3, 4, 4), ...createToeicGroups(176, 5, 5, 4)] });
+        }
+        
+        generateExcelTemplate(tempParts, type);
+      }
+    });
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const buffer = await file.arrayBuffer();
+      await workbook.xlsx.load(buffer);
+
+      const sheet = workbook.getWorksheet(1);
+      if (!sheet) {
+        Swal.fire('Lỗi', 'File không đúng định dạng', 'error');
+        return;
+      }
+
+      const tempParts: ExamPart[] = [];
+      let currentPart: ExamPart | null = null;
+      let currentGroup: QuestionGroup | null = null;
+      let lastPartName = '';
+      let lastGroupName = '';
+
+      const getCellValue = (cell: ExcelJS.Cell) => {
+        if (cell.type === ExcelJS.ValueType.Merge) {
+          return cell.master.text ? cell.master.text.trim() : '';
+        }
+        return cell.text ? cell.text.trim() : '';
+      };
+
+      sheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header
+
+        const rawPartName = getCellValue(row.getCell(1));
+        const rawGroupName = getCellValue(row.getCell(2));
+        const type = getCellValue(row.getCell(3)) || 'MULTIPLE_CHOICE';
+        const rawInstruction = getCellValue(row.getCell(4));
+        const rawPassage = getCellValue(row.getCell(5));
+        
+        const questionText = getCellValue(row.getCell(6));
+        const optA = getCellValue(row.getCell(7));
+        const optB = getCellValue(row.getCell(8));
+        const optC = getCellValue(row.getCell(9));
+        const optD = getCellValue(row.getCell(10));
+        const correct = getCellValue(row.getCell(11));
+        const explanation = getCellValue(row.getCell(12));
+        
+        const rawPartMedia = getCellValue(row.getCell(13));
+        const rawGroupMedia = getCellValue(row.getCell(14));
+        const qMedia = getCellValue(row.getCell(15));
+
+        const partName = rawPartName || lastPartName;
+        const groupName = rawGroupName || lastGroupName;
+        
+        if (!partName) return; // Ignore empty rows
+
+        if (partName !== lastPartName) {
+          currentPart = {
+            part_title: partName.replace(/^Part \d+: /, ''),
+            instruction: '',
+            question_groups: [],
+            shared_audio: rawPartMedia ? { url: rawPartMedia } : undefined
+          };
+          tempParts.push(currentPart);
+          lastPartName = partName;
+          lastGroupName = ''; // reset group
+        }
+
+        if (groupName !== lastGroupName || !currentGroup) {
+          currentGroup = {
+            group_id: generateId('group'),
+            instruction: rawInstruction,
+            content_html: rawPassage,
+            questions: [],
+            shared_media: rawGroupMedia ? { type: 'image', url: rawGroupMedia } : undefined
+          };
+          if (currentPart) currentPart.question_groups.push(currentGroup);
+          lastGroupName = groupName;
+        }
+
+        const options = [];
+        if (optA) options.push(optA);
+        if (optB) options.push(optB);
+        if (optC) options.push(optC);
+        if (optD) options.push(optD);
+
+        const newQuestion: Question = {
+          question_id: generateId('q'),
+          type: type,
+          question_text: questionText,
+          metadata: {
+            options: options.length > 0 ? options : undefined,
+            correct_answer: correct,
+            explanation: explanation
+          }
+        };
+
+        if (qMedia) {
+          (newQuestion.metadata as any).media = { type: 'image', url: qMedia };
+        }
+
+        currentGroup.questions.push(newQuestion);
+      });
+
+      setParts(tempParts);
+      setWizardMode('BUILDER');
+      Swal.fire('Thành công', 'Đã trích xuất cấu trúc đề từ Excel!', 'success');
+      
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Lỗi', 'Không thể đọc file Excel. Vui lòng kiểm tra lại định dạng.', 'error');
+    }
+  };
+
   const handleSave = () => {
     const finalJson = {
       exam_title: examTitle,
       exam_type: examType,
+      is_published: isPublished,
       parts: parts
     };
     onSave(JSON.stringify(finalJson, null, 2));
@@ -436,9 +886,9 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
         <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', textAlign: 'center' }}>Bắt đầu tạo Đề thi</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1rem', textAlign: 'center' }}>Chọn phương thức phù hợp để xây dựng cấu trúc đề thi của bạn.</p>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', width: '100%', maxWidth: '900px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1.5rem', width: '100%', maxWidth: '1000px' }}>
           
-          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('FULL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('FULL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.3)' }}>
               <AlignLeft size={28} color="white" />
             </div>
@@ -446,7 +896,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Sinh toàn bộ cấu trúc chuẩn của một đề thi hoàn chỉnh (IELTS, TOEIC, NLTV...)</p>
           </div>
 
-          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('SKILL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('SKILL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)' }}>
               <Zap size={28} color="white" />
             </div>
@@ -454,12 +904,29 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tạo nhanh toàn bộ cấu trúc cho một kỹ năng riêng biệt (Reading, Listening...)</p>
           </div>
 
-          <div className="ed-card hover-bg-tertiary" style={{ flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('PART')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('PART')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)' }}>
               <Plus size={28} color="white" />
             </div>
             <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>3. Tạo 1 Part Lẻ</h4>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Chỉ tạo một đoạn văn (Passage) hoặc một part trắc nghiệm nhỏ bất kỳ</p>
+          </div>
+
+          <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls" onChange={handleImportExcel} />
+          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => fileInputRef.current?.click()} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #db2777 0%, #be185d 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(190, 24, 93, 0.3)' }}>
+              <Upload size={28} color="white" />
+            </div>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>4. Nhập Đề Từ Excel</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tải lên file Excel chuẩn để hệ thống tự động bóc tách và trích xuất toàn bộ cấu trúc & câu hỏi</p>
+          </div>
+
+          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={handleExportStandardTemplate} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(4, 120, 87, 0.3)' }}>
+              <Download size={28} color="white" />
+            </div>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>5. Xuất Excel</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tải xuống file Excel trắng được thiết lập chuẩn cấu trúc và dropdown để điền dữ liệu</p>
           </div>
 
         </div>
@@ -480,7 +947,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: '400px' }}>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('IELTS'); setWizardMode('BUILDER'); }}>Full IELTS Academic</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('TOEIC'); setWizardMode('BUILDER'); }}>Full TOEIC L&R</button>
-          <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('VSTEP'); setWizardMode('BUILDER'); }}>Full VSTEP B1-C1</button>
+          <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('NLTV'); setWizardMode('BUILDER'); }}>Full NLTV B1-C1</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('TOEIC_WRITING'); setWizardMode('BUILDER'); }}>Full TOEIC Writing</button>
         </div>
         <button className="btn" style={{ marginTop: '2rem' }} onClick={() => setWizardMode('START')}>Quay lại</button>
@@ -499,9 +966,9 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
             <option value="IELTS_WRITING">IELTS - Writing (2 Tasks)</option>
             <option value="TOEIC_LISTENING">TOEIC - Listening (Part 1-4)</option>
             <option value="TOEIC_READING">TOEIC - Reading (Part 5-7)</option>
-            <option value="VSTEP_LISTENING">VSTEP - Listening (3 Phần)</option>
-            <option value="VSTEP_READING">VSTEP - Reading (4 Phần)</option>
-            <option value="VSTEP_WRITING">VSTEP - Writing (2 Bài)</option>
+            <option value="NLTV_LISTENING">NLTV - Listening (3 Phần)</option>
+            <option value="NLTV_READING">NLTV - Reading (4 Phần)</option>
+            <option value="NLTV_WRITING">NLTV - Writing (2 Bài)</option>
           </select>
           <button className="btn btn-primary flex-center" style={{ padding: '0.75rem 1rem', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { addSkillTemplate(selectedSkill); setWizardMode('BUILDER'); }}>
             <Plus size={18} /> Thêm Kỹ Năng Này
@@ -540,10 +1007,10 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
               <option value="TW_P1">TOEIC Writing Part 1: Write a Sentence</option>
               <option value="TW_P2">TOEIC Writing Part 2: Respond to Request</option>
             </optgroup>
-            <optgroup label="VSTEP">
-              <option value="VSTEP_L">VSTEP Kỹ năng Nghe (1 Phần)</option>
-              <option value="VSTEP_R">VSTEP Kỹ năng Đọc (1 Phần)</option>
-              <option value="VSTEP_W">VSTEP Kỹ năng Viết (1 Bài)</option>
+            <optgroup label="NLTV">
+              <option value="NLTV_L">NLTV Kỹ năng Nghe (1 Phần)</option>
+              <option value="NLTV_R">NLTV Kỹ năng Đọc (1 Phần)</option>
+              <option value="NLTV_W">NLTV Kỹ năng Viết (1 Bài)</option>
             </optgroup>
           </select>
           <button className="btn btn-primary flex-center" style={{ padding: '0.75rem 1rem', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { addSpecificPart(selectedSpecificPart); setWizardMode('BUILDER'); }}>
@@ -591,12 +1058,39 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
           </div>
           <div style={{ width: '250px', flexGrow: 0 }}>
             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loại chứng chỉ</label>
-            <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
-              <option value="IELTS_ACADEMIC">IELTS Academic</option>
-              <option value="TOEIC_LISTENING_READING">TOEIC Listening & Reading</option>
-              <option value="TOEIC_WRITING">TOEIC Writing</option>
-              <option value="VSTEP">Năng Lực Tiếng Việt (NLTV)</option>
+            <select disabled className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-light)', cursor: 'not-allowed', color: 'var(--text-secondary)' }}>
+              <option value={examType}>{
+                examType.startsWith('IELTS') ? 'IELTS' :
+                examType.startsWith('TOEIC') || examType.startsWith('TW_') ? 'TOEIC' :
+                'Năng Lực Tiếng Việt (NLTV)'
+              } ({examType})</option>
             </select>
+          </div>
+          <div style={{ width: '220px', flexGrow: 0 }}>
+            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trạng thái hiển thị</label>
+            <div 
+              onClick={() => setIsPublished(!isPublished)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: '0.5rem', 
+                padding: '0.75rem 1rem', 
+                borderRadius: 'var(--radius-md)', 
+                border: `1px solid ${isPublished ? 'var(--success)' : 'var(--warning)'}`,
+                background: isPublished ? 'var(--success-light)' : 'var(--warning-light)',
+                color: isPublished ? 'var(--success-dark)' : 'var(--warning-dark)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                userSelect: 'none'
+              }}
+              title="Click để đổi trạng thái"
+            >
+              {isPublished ? <CheckCircle size={18} /> : <FileText size={18} />}
+              {isPublished ? 'Xuất bản (Hiển thị)' : 'Bản nháp (Ẩn)'}
+            </div>
           </div>
         </div>
       </div>
@@ -681,11 +1175,11 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                   )}
                 </div>
 
-                {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC VSTEP ĐỌC */}
-                {(part.part_title.toLowerCase().includes('passage') || (examType === 'VSTEP' && part.part_title.toLowerCase().includes('đọc'))) && (
+                {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC NLTV ĐỌC */}
+                {(part.part_title.toLowerCase().includes('passage') || (examType === 'NLTV' && part.part_title.toLowerCase().includes('đọc'))) && (
                   <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><AlignLeft size={14} color="var(--primary)" /> Nội dung Bài Đọc (Shared Reading Passage)</label>
-                    <textarea className="input-field" rows={6} value={part.shared_content_html || ''} onChange={e => updatePart(pIndex, 'shared_content_html', e.target.value)} placeholder="<p>Nhập mã HTML của toàn bộ bài đọc IELTS/VSTEP tại đây...</p>"></textarea>
+                    <textarea className="input-field" rows={6} value={part.shared_content_html || ''} onChange={e => updatePart(pIndex, 'shared_content_html', e.target.value)} placeholder="<p>Nhập mã HTML của toàn bộ bài đọc IELTS/NLTV tại đây...</p>"></textarea>
                   </div>
                 )}
 
@@ -716,7 +1210,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}><Image size={14} color="var(--accent)" /> Shared Image (VD: Bản đồ/Biểu đồ)</label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}><Image size={14} color="var(--accent)" /> Shared Image (VD: Bản đồ/Biểu đồ cho Task 1)</label>
                             <MediaUploadButton type="images" onUploadSuccess={(url) => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: url, display_config: { size_preset: 'medium', alignment: 'center' } })} label="Upload Image" />
                           </div>
                           <input type="text" className="input-field" value={group.shared_media?.url || ''} onChange={e => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: e.target.value, display_config: { size_preset: 'medium', alignment: 'center' } })} placeholder="Nhập Link Ảnh..." />
@@ -780,12 +1274,20 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                                 </div>
                               )}
                               <div style={{ flex: 1 }}>
-                                <select className="input-field" style={{ padding: '0.2rem', fontSize: '0.75rem', marginBottom: '0.25rem', width: '200px' }} value={q.type} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'type', e.target.value)}>
-                                  {QUESTION_TYPES.map(qt => <option key={qt.value} value={qt.value}>{qt.label}</option>)}
-                                </select>
-                                <input type="text" className="input-field" value={q.question_text} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'question_text', e.target.value)} placeholder={isWriting ? "Yêu cầu bài viết..." : "Nội dung câu hỏi..."} style={{ marginBottom: '0.5rem', padding: '0.4rem 0.75rem' }} />
+                                {!isWriting && (
+                                  <select className="input-field" style={{ padding: '0.2rem', fontSize: '0.75rem', marginBottom: '0.25rem', width: '200px' }} value={q.type} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'type', e.target.value)}>
+                                    {QUESTION_TYPES.map(qt => <option key={qt.value} value={qt.value}>{qt.label}</option>)}
+                                  </select>
+                                )}
+                                {!isWriting ? (
+                                  <input type="text" className="input-field" value={q.question_text} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'question_text', e.target.value)} placeholder="Nội dung câu hỏi..." style={{ marginBottom: '0.5rem', padding: '0.4rem 0.75rem' }} />
+                                ) : (
+                                  <div style={{ padding: '1rem', background: 'var(--bg-secondary)', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-sm)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                    <em>Khung nhập bài làm (văn bản) của thí sinh sẽ hiển thị tại đây. Đề bài đã được thiết lập ở phần trên.</em>
+                                  </div>
+                                )}
                                 
-                                {q.metadata.options !== undefined && (
+                                {!isWriting && q.metadata.options !== undefined && (
                                   <div style={{ marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                       <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Các lựa chọn (Options):</span>
@@ -887,9 +1389,11 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                                       }} style={{ padding: '0.25rem 0.5rem', flex: 1, borderColor: 'var(--success)' }} placeholder="Nhập đáp án đúng..." />
                                   </div>
                                 )}
-                                <div style={{ marginTop: '0.5rem' }}>
-                                  <input type="text" className="input-field" value={q.metadata.explanation || ''} onChange={e => updateQuestionMetadata(pIndex, gIndex, qIndex, 'explanation', e.target.value)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }} placeholder="Nhập lời giải thích (Explanation)..." />
-                                </div>
+                                {!isWriting && (
+                                  <div style={{ marginTop: '0.5rem' }}>
+                                    <input type="text" className="input-field" value={q.metadata.explanation || ''} onChange={e => updateQuestionMetadata(pIndex, gIndex, qIndex, 'explanation', e.target.value)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }} placeholder="Nhập lời giải thích (Explanation)..." />
+                                  </div>
+                                )}
                               </div>
                               {!isFixedStructure && (
                                 <button className="btn" style={{ padding: '0.25rem', color: 'var(--danger)', background: 'transparent', border: 'none' }} onClick={() => {
@@ -923,10 +1427,13 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                     (() => {
                       const boundsForPart = getPartBounds(part.part_title, examType);
                       const nextStartForPart = getNextStartForPart(part, boundsForPart);
-                      const isPartFull = boundsForPart && nextStartForPart > boundsForPart.end;
+                      const maxGroups = getMaxGroupsForPart(part.part_title, examType);
+                      
+                      const isPartFull = (boundsForPart && nextStartForPart > boundsForPart.end) || 
+                                         (maxGroups !== null && part.question_groups.length >= maxGroups);
                       
                       if (isPartFull) {
-                        return <div style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 600, padding: '1rem' }}>✓ Đã tạo đủ số lượng câu hỏi cho Part này.</div>;
+                        return <div style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 600, padding: '1rem' }}>✓ Đã tạo đủ số lượng theo cấu trúc chuẩn.</div>;
                       }
 
                       return (
@@ -943,8 +1450,26 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
       )}
 
       <div className="flex-center" style={{ gap: '1rem', marginTop: '2rem', justifyContent: 'flex-end', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
-        <button className="btn btn-outline" onClick={() => { if(window.confirm('Bạn có chắc chắn muốn hủy? Toàn bộ nội dung sẽ bị xóa.')) { setWizardMode('START'); setParts([]); } }}>Hủy</button>
-        <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Xuất cấu trúc JSON chuẩn</button>
+        <div className="flex-center" style={{ gap: '1rem' }}>
+          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-dark)', borderColor: 'var(--success)', background: 'var(--success-light)' }} onClick={handleExportTemplate}>
+            <FileText size={18} /> Xuất Excel
+          </button>
+          <button className="btn btn-outline" onClick={() => {
+            Swal.fire({
+              title: 'Hủy bỏ?',
+              text: 'Bạn có chắc chắn muốn hủy? Toàn bộ nội dung đang làm sẽ bị xóa.',
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'Đồng ý hủy',
+              cancelButtonText: 'Tiếp tục làm'
+            }).then((result) => {
+              if (result.isConfirmed) {
+                onCancel();
+              }
+            });
+          }}>Hủy</button>
+          <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Lưu Đề Thi</button>
+        </div>
       </div>
     </div>
   );
