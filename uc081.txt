@@ -1,0 +1,112 @@
+## 2. UC08.1: Highlight đoạn văn bài đọc
+
+<table border="1" cellpadding="6" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-family: 'Times New Roman', Times, serif, Arial, sans-serif; font-size: 15px; margin-bottom: 40px;">
+  <tr>
+    <td style="width: 18%; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">Mã Use case</td>
+    <td style="width: 28%; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">UC08.1</td>
+    <td style="width: 20%; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">Tên Use case</td>
+    <td style="width: 34%; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">Highlight đoạn văn bài đọc</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">Tác nhân</td>
+    <td colspan="3" style="border: 1px solid #000; padding: 7px 10px;">Người dùng (Học viên)</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">Sự kiện<br>kích hoạt</td>
+    <td colspan="3" style="border: 1px solid #000; padding: 7px 10px;">Học viên bôi đen đoạn văn bản trong bài đọc hiểu và chọn "Highlight".</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">Tiền điều<br>kiện</td>
+    <td colspan="3" style="border: 1px solid #000; padding: 7px 10px;">Học viên đang ở giao diện làm bài thi hoặc luyện tập có phần đọc hiểu.</td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 10px;">
+      Luồng sự<br>kiện chính<br><br>(Thành<br>công)
+    </td>
+    <td colspan="3" style="border: 1px solid #000; padding: 8px 10px;">
+      <table border="1" cellpadding="6" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #000;">
+        <tr>
+          <td style="width: 8%; font-weight: bold; text-align: center; border: 1px solid #000; padding: 6px 4px;">STT</td>
+          <td style="width: 20%; font-weight: bold; text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Thực hiện bởi</td>
+          <td style="font-weight: bold; text-align: center; border: 1px solid #000; padding: 6px 8px;">Hành động</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">1.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Người dùng</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Bôi đen đoạn văn bản cần đánh dấu trong bài đọc.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">2.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Hiển thị nút công cụ "Highlight" tại vị trí con trỏ chuột.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">3.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Người dùng</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Bấm nút "Highlight".</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">4.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Đổi màu nền đoạn văn bản được chọn sang màu vàng trực quan.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">5.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Lưu tọa độ đoạn highlight vào trạng thái phiên làm bài.</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 10px;">
+      Luồng sự<br>kiện thay<br>thế
+    </td>
+    <td colspan="3" style="border: 1px solid #000; padding: 8px 10px;">
+      <table border="1" cellpadding="6" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #000;">
+        <tr>
+          <td style="width: 8%; font-weight: bold; text-align: center; border: 1px solid #000; padding: 6px 4px;">STT</td>
+          <td style="width: 20%; font-weight: bold; text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Thực hiện bởi</td>
+          <td style="font-weight: bold; text-align: center; border: 1px solid #000; padding: 6px 8px;">Hành động</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">3a.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Người dùng</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Nhấp vào đoạn văn bản đã highlight trước đó.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">3a.1</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Hiển thị nút "Xóa highlight".</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">3a.2</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Người dùng</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Bấm nút "Xóa highlight".</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">3a.3</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Gỡ bỏ highlight và khôi phục màu nền ban đầu.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">3b.</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Người dùng</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Bôi đen vùng chọn vượt ra ngoài bài đọc.</td>
+        </tr>
+        <tr>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 4px;">3b.1</td>
+          <td style="text-align: center; border: 1px solid #000; padding: 6px 8px; white-space: nowrap;">Hệ thống</td>
+          <td style="border: 1px solid #000; padding: 6px 8px;">Tự động giới hạn vùng chọn trong phạm vi bài đọc.</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000; padding: 7px 10px;">Hậu điều<br>kiện</td>
+    <td colspan="3" style="border: 1px solid #000; padding: 7px 10px;">Đoạn văn bản được đánh dấu màu vàng trực quan và lưu trong phiên làm bài.</td>
+  </tr>
+</table>
+
+---
+

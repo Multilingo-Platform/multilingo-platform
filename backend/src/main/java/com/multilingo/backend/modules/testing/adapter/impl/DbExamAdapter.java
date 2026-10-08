@@ -15,15 +15,31 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
 @Primary
 @RequiredArgsConstructor
 public class DbExamAdapter implements ExamAdapter {
+
+    private static final Set<String> PRIVATE_GRADING_FIELDS = Set.of(
+            "correct_answer",
+            "explanation",
+            "ai_prompt_context",
+            "ai_feedback",
+            "grading_key",
+            "grading_keys",
+            "is_correct_flags",
+            "earned_score",
+            "skill_stats"
+    );
 
     private final ExamRepository examRepository;
     private final ExamSectionRepository examSectionRepository;
@@ -51,32 +67,59 @@ public class DbExamAdapter implements ExamAdapter {
                     sFixture.setName(section.getSkillType());
                     sFixture.setDurationMinutes(section.getDurationMinutes());
 
-                    List<ExamPart> entityParts = examPartRepository.findBySection_Id(section.getId());
+                    List<ExamPart> entityParts = new ArrayList<>(
+                            examPartRepository.findBySection_Id(section.getId()));
+                    entityParts.sort(Comparator
+                            .comparing(ExamPart::getPartNumber, Comparator.nullsLast(Comparator.naturalOrder()))
+                            .thenComparing(ExamPart::getId, Comparator.nullsLast(Comparator.naturalOrder())));
 
                     List<PartFixture> parts = entityParts.stream()
                             .map(part -> {
                                 PartFixture pFixture = new PartFixture();
                                 pFixture.setId(part.getId());
+                                pFixture.setPartNumber(part.getPartNumber());
                                 
                                 Map<String, Object> data = part.getContentData();
                                 if (data != null) {
-                                    if (data.containsKey("title")) {
-                                        pFixture.setTitle(data.get("title").toString());
+                                    Map<String, Object> safeData = (Map<String, Object>) sanitizeForClient(data);
+                                    Object partTitle = safeData.get("part_title");
+                                    if (partTitle == null) {
+                                        partTitle = safeData.get("title");
                                     }
-                                    if (data.containsKey("instruction")) {
-                                        pFixture.setInstruction(data.get("instruction").toString());
+                                    if (partTitle != null) {
+                                        pFixture.setTitle(partTitle.toString());
                                     }
-                                    if (data.containsKey("questions")) {
-                                        List<Map<String, Object>> rawQuestions = (List<Map<String, Object>>) data.get("questions");
-                                        
-                                        List<Object> strippedQuestions = rawQuestions.stream().map(q -> {
-                                            Map<String, Object> copy = objectMapper.convertValue(q, Map.class);
-                                            copy.remove("correct_answer");
-                                            copy.remove("explanation");
-                                            return (Object) copy;
-                                        }).collect(Collectors.toList());
-                                        pFixture.setQuestions(strippedQuestions);
+                                    if (safeData.get("part_title") != null) {
+                                        pFixture.setPartTitle(safeData.get("part_title").toString());
                                     }
+                                    if (safeData.get("instruction") != null) {
+                                        pFixture.setInstruction(safeData.get("instruction").toString());
+                                    }
+                                    if (safeData.get("content_html") != null) {
+                                        pFixture.setContentHtml(safeData.get("content_html").toString());
+                                    } else if (safeData.get("contentHtml") != null) {
+                                        pFixture.setContentHtml(safeData.get("contentHtml").toString());
+                                    }
+                                    pFixture.setSharedAudio(asMap(safeData.get("shared_audio")));
+                                    pFixture.setSharedMedia(asMap(safeData.get("shared_media")));
+
+                                    List<Object> questions = new ArrayList<>();
+                                    List<Object> questionGroups;
+                                    if (safeData.containsKey("question_groups")) {
+                                        questionGroups = requireQuestionGroups(safeData.get("question_groups"));
+                                        pFixture.setQuestionGroups(questionGroups);
+                                        for (Object group : questionGroups) {
+                                            Map<String, Object> groupMap = requireMap(group, "question group");
+                                            List<Object> groupQuestions = requireQuestions(groupMap.get("questions"));
+                                            questions.addAll(groupQuestions);
+                                        }
+                                    } else {
+                                        List<Object> legacyQuestions = asList(safeData.get("questions"));
+                                        if (legacyQuestions != null) {
+                                            questions.addAll(legacyQuestions);
+                                        }
+                                    }
+                                    pFixture.setQuestions(questions);
                                 }
                                 return pFixture;
                             })
@@ -89,5 +132,62 @@ public class DbExamAdapter implements ExamAdapter {
 
         fixture.setSections(sections);
         return fixture;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        return value instanceof Map<?, ?> ? (Map<String, Object>) value : null;
+    }
+
+    private List<Object> asList(Object value) {
+        return value instanceof List<?> list ? new ArrayList<>(list) : null;
+    }
+
+    private List<Object> requireQuestionGroups(Object value) {
+        if (!(value instanceof List<?> groups) || groups.isEmpty()) {
+            throw new IllegalArgumentException("question_groups must be a non-empty array");
+        }
+        return new ArrayList<>(groups);
+    }
+
+    private List<Object> requireQuestions(Object value) {
+        if (!(value instanceof List<?> questions) || questions.isEmpty()) {
+            throw new IllegalArgumentException("question group questions must be a non-empty array");
+        }
+        for (Object question : questions) {
+            if (!(question instanceof Map<?, ?>)) {
+                throw new IllegalArgumentException("question group questions must contain objects");
+            }
+        }
+        return new ArrayList<>(questions);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> requireMap(Object value, String fieldName) {
+        if (!(value instanceof Map<?, ?>)) {
+            throw new IllegalArgumentException(fieldName + " must be an object");
+        }
+        return (Map<String, Object>) value;
+    }
+
+    private Object sanitizeForClient(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> sanitized = new LinkedHashMap<>();
+            map.forEach((key, nestedValue) -> {
+                String fieldName = String.valueOf(key);
+                if (!PRIVATE_GRADING_FIELDS.contains(fieldName)) {
+                    sanitized.put(fieldName, sanitizeForClient(nestedValue));
+                }
+            });
+            return sanitized;
+        }
+
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(this::sanitizeForClient)
+                    .toList();
+        }
+
+        return value;
     }
 }
