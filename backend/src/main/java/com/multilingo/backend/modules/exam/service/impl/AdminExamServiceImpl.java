@@ -34,7 +34,12 @@ public class AdminExamServiceImpl implements AdminExamService {
     @Override
     public Integer createExam(ExamBuilderRequest request) {
         Exam exam = new Exam();
-        exam.setCode(java.util.UUID.randomUUID().toString()); // Simple auto code
+        
+        // Generate a shorter, human-readable code: e.g. IELTS-A8B9C2
+        String prefix = request.getType().split("_")[0].toUpperCase();
+        String shortCode = java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        exam.setCode(prefix + "-" + shortCode);
+        
         exam.setTitle(request.getTitle());
         exam.setType(request.getType());
         exam.setExamLanguage(request.getExamLanguage());
@@ -130,5 +135,44 @@ public class AdminExamServiceImpl implements AdminExamService {
             
             return resp;
         }).toList();
+    }
+
+    @Override
+    public ExamBuilderRequest getExamDetail(Integer id) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        List<SectionBuilderRequest> sectionRequests = sectionRepository.findByExam_Id(id).stream()
+                .map(section -> {
+                    List<PartBuilderRequest> partRequests = partRepository.findBySection_Id(section.getId()).stream()
+                            .map(part -> PartBuilderRequest.builder()
+                                    .partNumber(part.getPartNumber())
+                                    .contentData(part.getContentData())
+                                    .build())
+                            .toList();
+
+                    return SectionBuilderRequest.builder()
+                            .skillType(section.getSkillType())
+                            .durationMinutes(section.getDurationMinutes())
+                            .parts(partRequests)
+                            .build();
+                })
+                .toList();
+
+        return ExamBuilderRequest.builder()
+                .title(exam.getTitle())
+                .type(exam.getType())
+                .examLanguage(exam.getExamLanguage())
+                .isPublished(exam.getIsPublished())
+                .sections(sectionRequests)
+                .build();
+    }
+
+    @Override
+    public void updateExamStatus(Integer id, boolean isPublished) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+        exam.setIsPublished(isPublished);
+        examRepository.save(exam);
     }
 }

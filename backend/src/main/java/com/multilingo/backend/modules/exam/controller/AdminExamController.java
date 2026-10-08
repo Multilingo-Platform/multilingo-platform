@@ -62,4 +62,19 @@ public class AdminExamController {
     public ResponseEntity<ApiResponse<java.util.List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse>>> getAllExams() {
         return ResponseEntity.ok(ApiResponse.success(examService.getAllExams()));
     }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTENT_CREATOR')")
+    public ResponseEntity<ApiResponse<ExamBuilderRequest>> getExamDetail(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.success(examService.getExamDetail(id)));
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTENT_CREATOR')")
+    public ResponseEntity<ApiResponse<Void>> updateExamStatus(
+            @PathVariable Integer id,
+            @RequestParam("isPublished") boolean isPublished) {
+        examService.updateExamStatus(id, isPublished);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

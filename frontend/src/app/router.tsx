@@ -134,6 +134,10 @@ export const router = createBrowserRouter([
         element: <ExamBuilderPage />,
       },
       {
+        path: "exams/edit/:id",
+        element: <ExamBuilderPage />,
+      },
+      {
         path: "dashboard",
         element: (
           <div className="container">

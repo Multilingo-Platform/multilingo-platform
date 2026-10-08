@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, Filter, BookOpen, CheckCircle, FileText, BarChart, FileSpreadsheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../../../core/api/axiosClient';
+import Swal from 'sweetalert2';
 
 const ExamManagement = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,21 +31,124 @@ const ExamManagement = () => {
   }, []);
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Bạn có chắc muốn xóa đề thi này không?')) return;
+    const result = await Swal.fire({
+      title: 'Bạn có chắc chắn?',
+      text: "Đề thi này sẽ bị xóa vĩnh viễn và không thể khôi phục!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'var(--danger)',
+      cancelButtonColor: 'var(--text-muted)',
+      confirmButtonText: 'Đồng ý xóa',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       const res = await axiosClient.delete<any, any>(`/v1/admin/exams/${id}`);
       if (res.success) {
-        alert('Đã xóa thành công!');
+        Swal.fire({ title: 'Đã xóa!', text: 'Đề thi đã được xóa thành công.', icon: 'success', timer: 1500, showConfirmButton: false });
         fetchExams();
       } else {
-        alert('Lỗi: ' + res.message);
+        Swal.fire('Lỗi', res.message, 'error');
       }
     } catch (err: any) {
-      alert('Có lỗi xảy ra: ' + err.message);
+      Swal.fire('Lỗi', err.message, 'error');
     }
   };
 
-  const filteredExams = exams.filter(e => e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || e.code?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    const actionText = newStatus ? 'xuất bản' : 'chuyển về bản nháp';
+    
+    const result = await Swal.fire({
+      title: 'Xác nhận thay đổi',
+      text: `Bạn có chắc chắn muốn ${actionText} đề thi này?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+    
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await axiosClient.patch<any, any>(`/v1/admin/exams/${id}/status?isPublished=${newStatus}`);
+      if (res.success) {
+        Swal.fire({
+          title: 'Thành công',
+          text: `Đã đổi sang ${newStatus ? 'Đã xuất bản' : 'Bản nháp'}`,
+          icon: 'success',
+          toast: true,
+          position: 'bottom-end',
+          showConfirmButton: false,
+          timer: 2000
+        });
+        setExams(exams.map(e => e.id === id ? { ...e, isPublished: newStatus } : e));
+      } else {
+        Swal.fire('Lỗi', res.message, 'error');
+      }
+    } catch (err: any) {
+      Swal.fire('Lỗi', err.message, 'error');
+    }
+  };
+
+  const formatDetailedExamType = (type: string) => {
+    switch (type) {
+      case 'IELTS_ACADEMIC': return 'Full IELTS Academic';
+      case 'IELTS_LISTENING': return 'IELTS Listening';
+      case 'IELTS_READING': return 'IELTS Reading';
+      case 'IELTS_WRITING': return 'IELTS Writing';
+      case 'TOEIC_LISTENING_READING': return 'Full TOEIC L&R';
+      case 'TOEIC_LISTENING': return 'TOEIC Listening';
+      case 'TOEIC_READING': return 'TOEIC Reading';
+      case 'TOEIC_WRITING': return 'TOEIC Writing';
+      case 'NLTV': return 'Full NLTV (VSTEP)';
+      case 'NLTV_LISTENING': return 'NLTV Nghe';
+      case 'NLTV_READING': return 'NLTV Đọc';
+      case 'NLTV_WRITING': return 'NLTV Viết';
+      case 'IELTS_L1': return 'IELTS Listening Part 1';
+      case 'IELTS_L2': return 'IELTS Listening Part 2';
+      case 'IELTS_L3': return 'IELTS Listening Part 3';
+      case 'IELTS_L4': return 'IELTS Listening Part 4';
+      case 'IELTS_R1': return 'IELTS Reading Passage 1';
+      case 'IELTS_W1': return 'IELTS Writing Task 1';
+      case 'IELTS_W2': return 'IELTS Writing Task 2';
+      case 'TOEIC_P1': return 'TOEIC Listening Part 1';
+      case 'TOEIC_P2': return 'TOEIC Listening Part 2';
+      case 'TOEIC_P3': return 'TOEIC Listening Part 3';
+      case 'TOEIC_P4': return 'TOEIC Listening Part 4';
+      case 'TOEIC_P5': return 'TOEIC Reading Part 5';
+      case 'TOEIC_P6': return 'TOEIC Reading Part 6';
+      case 'TOEIC_P7': return 'TOEIC Reading Part 7';
+      case 'TW_P1': return 'TOEIC Writing Part 1';
+      case 'TW_P2': return 'TOEIC Writing Part 2';
+      case 'NLTV_L': return 'NLTV Nghe';
+      case 'NLTV_R': return 'NLTV Đọc';
+      case 'NLTV_W': return 'NLTV Viết';
+      default: return type ? type.replace(/_/g, ' ') : '';
+    }
+  };
+
+  const filteredExams = exams.filter(e => {
+    const matchSearch = e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || e.code?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchType = typeFilter === '' || 
+      (typeFilter === 'IELTS_ALL' && e.type?.startsWith('IELTS')) ||
+      (typeFilter === 'IELTS_LISTENING' && e.type?.startsWith('IELTS_L')) ||
+      (typeFilter === 'IELTS_READING' && e.type?.startsWith('IELTS_R')) ||
+      (typeFilter === 'IELTS_WRITING' && e.type?.startsWith('IELTS_W')) ||
+      (typeFilter === 'TOEIC_ALL' && (e.type?.startsWith('TOEIC') || e.type?.startsWith('TW_'))) ||
+      (typeFilter === 'TOEIC_LISTENING' && (e.type === 'TOEIC_LISTENING' || ['TOEIC_P1','TOEIC_P2','TOEIC_P3','TOEIC_P4'].some(p => e.type?.startsWith(p)))) ||
+      (typeFilter === 'TOEIC_READING' && (e.type === 'TOEIC_READING' || ['TOEIC_P5','TOEIC_P6','TOEIC_P7'].some(p => e.type?.startsWith(p)))) ||
+      (typeFilter === 'TOEIC_WRITING' && (e.type?.startsWith('TOEIC_WRITING') || e.type?.startsWith('TW_'))) ||
+      (typeFilter === 'NLTV_ALL' && e.type?.startsWith('NLTV')) || 
+      (typeFilter === 'NLTV_LISTENING' && e.type?.startsWith('NLTV_L')) ||
+      (typeFilter === 'NLTV_READING' && e.type?.startsWith('NLTV_R')) ||
+      (typeFilter === 'NLTV_WRITING' && e.type?.startsWith('NLTV_W')) ||
+      e.type === typeFilter;
+    const matchStatus = statusFilter === '' || (statusFilter === 'PUBLISHED' ? e.isPublished : !e.isPublished);
+    return matchSearch && matchType && matchStatus;
+  });
 
   const stats = [
     { label: 'Tổng số đề thi', value: exams.length, icon: <BookOpen size={24} />, color: 'var(--primary)' },
@@ -60,45 +166,6 @@ const ExamManagement = () => {
           <p style={{ color: 'var(--text-secondary)' }}>Biên soạn, xuất bản và quản lý tất cả các đề thi trên hệ thống.</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <label
-            className="btn btn-outline"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: 'var(--radius-full)', cursor: 'pointer' }}
-          >
-            <input
-              type="file"
-              accept=".xlsx, .xls, .json"
-              style={{ display: 'none' }}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  const formData = new FormData();
-                  formData.append('file', file);
-                  
-                  // Use a toast or alert here in real app, assuming fetch
-                  const token = localStorage.getItem('token');
-                  const res = await fetch('http://localhost:8080/api/v1/admin/exams/import', {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                  });
-                  
-                  if (res.ok) {
-                    alert('Import thành công!');
-                    fetchExams();
-                  } else {
-                    const data = await res.json();
-                    alert('Lỗi import: ' + (data.message || res.statusText));
-                  }
-                } catch (err: any) {
-                  alert('Có lỗi xảy ra: ' + err.message);
-                }
-              }}
-            />
-            <FileSpreadsheet size={20} /> Nhập Excel/JSON
-          </label>
           <button
             className="btn btn-primary"
             onClick={() => navigate('/admin/exams/create')}
@@ -147,15 +214,47 @@ const ExamManagement = () => {
             />
           </div>
           <div className="flex-center" style={{ gap: '0.75rem' }}>
-            <select className="input-field" style={{ width: 'auto', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)' }}>
-              <option value="">Tất cả chứng chỉ</option>
-              <option value="IELTS">IELTS</option>
-              <option value="TOEIC">TOEIC</option>
-              <option value="NLTV">NLTV</option>
+            <select 
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="input-field" 
+              style={{ width: 'auto', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)' }}>
+              <option value="">Mọi đề thi</option>
+              
+              <optgroup label="IELTS">
+                <option value="IELTS_ALL">IELTS</option>
+                <option value="IELTS_ACADEMIC">Full IELTS Academic</option>
+                <option value="IELTS_LISTENING">IELTS Listening</option>
+                <option value="IELTS_READING">IELTS Reading</option>
+                <option value="IELTS_WRITING">IELTS Writing</option>
+              </optgroup>
+
+              <optgroup label="TOEIC">
+                <option value="TOEIC_ALL">TOEIC</option>
+                <option value="TOEIC_LISTENING_READING">Full TOEIC L&R</option>
+                <option value="TOEIC_LISTENING">TOEIC Listening</option>
+                <option value="TOEIC_READING">TOEIC Reading</option>
+                <option value="TOEIC_WRITING">TOEIC Writing</option>
+              </optgroup>
+
+              <optgroup label="NLTV (VSTEP)">
+                <option value="NLTV_ALL">NLTV</option>
+                <option value="NLTV">Full NLTV</option>
+                <option value="NLTV_LISTENING">NLTV Nghe</option>
+                <option value="NLTV_READING">NLTV Đọc</option>
+                <option value="NLTV_WRITING">NLTV Viết</option>
+              </optgroup>
             </select>
-            <button className="btn btn-outline flex-center" style={{ gap: '0.5rem', padding: '0.6rem 1rem' }}>
-              <Filter size={18} /> Lọc thêm
-            </button>
+            
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input-field" 
+              style={{ width: 'auto', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)' }}>
+              <option value="">Tất cả trạng thái</option>
+              <option value="PUBLISHED">Đã xuất bản</option>
+              <option value="DRAFT">Bản nháp</option>
+            </select>
           </div>
         </div>
 
@@ -169,10 +268,10 @@ const ExamManagement = () => {
               <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '2px solid var(--border-light)' }}>
                 <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>MÃ ĐỀ THI</th>
                 <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>TÊN ĐỀ THI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>CẤU TRÚC</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>LƯỢT THI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>TRẠNG THÁI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'right' }}>THAO TÁC</th>
+                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>LOẠI ĐỀ THI</th>
+                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>LƯỢT THI</th>
+                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>TRẠNG THÁI</th>
+                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>THAO TÁC</th>
               </tr>
             </thead>
             <tbody>
@@ -183,36 +282,46 @@ const ExamManagement = () => {
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{exam.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cập nhật: {new Date(exam.updatedAt).toLocaleDateString()} • Loại: {exam.type}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cập nhật: {new Date(exam.updatedAt).toLocaleDateString()} • {exam.parts} phần • {exam.questions} câu</div>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem' }}>
-                    <div className="flex-center" style={{ gap: '0.75rem', justifyContent: 'flex-start' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{exam.parts} phần</span>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{exam.questions} câu</span>
-                    </div>
+                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-dark)', background: 'var(--primary-light)', padding: '0.35rem 0.75rem', borderRadius: '4px' }}>
+                      {formatDetailedExamType(exam.type)}
+                    </span>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{(exam.joins || 0).toLocaleString('vi-VN')}</div>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem' }}>
-                    <span className="flex-center" style={{
-                      display: 'inline-flex',
-                      gap: '0.35rem',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      backgroundColor: exam.isPublished ? 'var(--success-light)' : 'var(--warning-light)',
-                      color: exam.isPublished ? 'var(--success-dark)' : 'var(--warning-dark)',
-                      border: `1px solid ${exam.isPublished ? 'var(--success)' : 'var(--warning)'}`
-                    }}>
+                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
+                    <span 
+                      className="flex-center" 
+                      style={{
+                        display: 'inline-flex',
+                        gap: '0.35rem',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        backgroundColor: exam.isPublished ? 'var(--success-light)' : 'var(--warning-light)',
+                        color: exam.isPublished ? 'var(--success-dark)' : 'var(--warning-dark)',
+                        border: `1px solid ${exam.isPublished ? 'var(--success)' : 'var(--warning)'}`
+                      }}
+                    >
                       {exam.isPublished ? <CheckCircle size={14} /> : <FileText size={14} />}
                       {exam.isPublished ? 'Xuất bản' : 'Bản nháp'}
                     </span>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
-                    <div className="flex-center" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
-                      <button className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Chỉnh sửa">
+                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
+                    <div className="flex-center" style={{ justifyContent: 'center', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => handleToggleStatus(exam.id, exam.isPublished)} 
+                        className="btn" 
+                        style={{ padding: '0.5rem', backgroundColor: exam.isPublished ? 'var(--warning-light)' : 'var(--success-light)', color: exam.isPublished ? 'var(--warning)' : 'var(--success)', border: 'none', borderRadius: 'var(--radius-md)' }} 
+                        title={exam.isPublished ? "Chuyển về bản nháp" : "Xuất bản"}
+                      >
+                        {exam.isPublished ? <FileText size={18} /> : <CheckCircle size={18} />}
+                      </button>
+                      <button onClick={() => navigate('/admin/exams/edit/' + exam.id)} className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Chỉnh sửa">
                         <Edit size={18} />
                       </button>
                       <button onClick={() => handleDelete(exam.id)} className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Xóa">
