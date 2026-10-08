@@ -56,7 +56,10 @@ class AuthenControllerTest {
     @DisplayName("POST /api/auth/login - Success")
     void login_Success() throws Exception {
         LoginRequest request = new LoginRequest("test@gmail.com", "password");
-        AuthenticationResponse response = new AuthenticationResponse("mockToken");
+        AuthenticationResponse response = AuthenticationResponse.builder()
+                .accessToken("mockToken")
+                .refreshToken("mockRefreshToken")
+                .build();
 
         when(authenService.login(any(LoginRequest.class))).thenReturn(response);
 

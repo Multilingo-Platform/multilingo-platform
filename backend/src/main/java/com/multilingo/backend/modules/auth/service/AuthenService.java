@@ -8,4 +8,5 @@ import com.multilingo.backend.modules.auth.dto.request.LogoutRequest;
 public interface AuthenService {
     AuthenticationResponse login(LoginRequest request);
     void logout(LogoutRequest request);
+    AuthenticationResponse refreshToken(String refreshToken);
 }
