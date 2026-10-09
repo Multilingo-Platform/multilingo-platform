@@ -3,10 +3,12 @@ package com.multilingo.backend.modules.testing.dto.response;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
+import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,10 +30,14 @@ public class WorkspaceResponse {
     private Instant serverTime;
     /** Grace period in seconds for submission after deadline (default 15) */
     private Integer gracePeriodSeconds;
+    /** Authoritative persisted attempt version. */
+    private Integer version;
+    /** Persisted learner answers in the same shape accepted by autosave. */
+    private List<AutosaveAnswersRequest.PartAnswerDto> savedAnswers;
     /**
      * Server-side snapshot of exam at attempt creation time.
      * Contains questions and options, but NOT correct_answer or explanation.
      */
     private Map<String, Object> examSnapshot;
-    private java.util.List<Integer> lockedSections;
+    private List<Integer> lockedSections;
 }

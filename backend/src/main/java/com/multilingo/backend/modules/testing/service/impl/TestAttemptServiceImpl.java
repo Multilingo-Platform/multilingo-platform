@@ -39,6 +39,7 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -591,8 +592,27 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .deadline(attempt.getDeadline())
                 .serverTime(Instant.now())
                 .gracePeriodSeconds(15)
+                .version(attempt.getVersion())
+                .savedAnswers(loadSavedAnswers(attempt.getId()))
                 .examSnapshot(attempt.getExamSnapshot())
                 .lockedSections(attempt.getLockedSections() != null ? attempt.getLockedSections() : new java.util.ArrayList<>())
                 .build();
+    }
+
+    private List<AutosaveAnswersRequest.PartAnswerDto> loadSavedAnswers(Integer attemptId) {
+        return attemptAnswerRepository.findByAttemptId(attemptId).stream()
+                .sorted(Comparator.comparing(AttemptAnswer::getPartId))
+                .map(saved -> AutosaveAnswersRequest.PartAnswerDto.builder()
+                        .partId(saved.getPartId())
+                        .answers(saved.getUserAnswers() == null
+                                ? List.of()
+                                : saved.getUserAnswers().entrySet().stream()
+                                        .map(entry -> AutosaveAnswersRequest.QuestionAnswerDto.builder()
+                                                .questionId(entry.getKey())
+                                                .answer(entry.getValue())
+                                                .build())
+                                        .toList())
+                        .build())
+                .toList();
     }
 }
