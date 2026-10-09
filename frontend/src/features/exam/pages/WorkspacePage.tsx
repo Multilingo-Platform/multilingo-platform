@@ -12,6 +12,9 @@ import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
 import { TimeUpModal } from '../components/TimeUpModal';
 import { QuestionPalette } from '../components/QuestionPalette';
 import QuestionRenderer from '../components/renderers/QuestionRenderer';
+import AudioPlayer from '../components/AudioPlayer';
+import HtmlContent from '../components/content/HtmlContent';
+import MediaDisplay from '../components/content/MediaDisplay';
 import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
 import { setAnswer, toggleFlag, selectSaveStatus, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
 import { useTextSelection } from '../hooks/useTextSelection';
@@ -113,27 +116,57 @@ const WorkspacePage: React.FC = () => {
     return getPartHeaderInfo(currentSkill, currentPart, currentSection?.parts, allParts);
   }, [currentSkill, currentPart, currentSection, allParts]);
 
-  // Active part questions extraction: supports both part.questions & part.content.question_groups
+  const currentPartQuestionGroups = useMemo(() => {
+    if (!currentPart) return [];
+    const backendGroups = (currentPart as any).questionGroups;
+    if (Array.isArray(backendGroups) && backendGroups.length > 0) {
+      return backendGroups;
+    }
+    const nestedGroups = currentPart.content?.question_groups;
+    return Array.isArray(nestedGroups) ? nestedGroups : [];
+  }, [currentPart]);
+
+  // Prefer grouped canonical data; PartFixture.questions is a flat compatibility view.
   const currentPartQuestions = useMemo(() => {
     if (!currentPart) return [];
+    if (currentPartQuestionGroups.length > 0) {
+      return currentPartQuestionGroups.flatMap((group: any) => group.questions ?? []);
+    }
     if (Array.isArray((currentPart as any).questions) && (currentPart as any).questions.length > 0) {
       return (currentPart as any).questions;
     }
-    return currentPart?.content?.question_groups?.flatMap((g: any) => g.questions ?? []) ?? [];
-  }, [currentPart]);
+    return [];
+  }, [currentPart, currentPartQuestionGroups]);
 
-  const partQuestions: Question[] = useMemo(() => {
-    return currentPartQuestions.map((q: any) => ({
+  const partId = (currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1;
+
+  const normalizeQuestion = (q: any, fallbackQuestionNumber: number): Question => ({
       ...q,
-      question_id: q.question_id || String(q.id),
-      question_number: q.question_number ?? q.id,
+      question_id: q.question_id ?? q.questionId ?? String(q.id),
+      question_number: q.question_number ?? q.questionNumber ?? q.id ?? fallbackQuestionNumber,
       type: q.type === 'MCQ' ? 'SINGLE_CHOICE' : q.type === 'FILL_IN' ? 'FILL_IN_THE_BLANK' : q.type,
       question_text: q.question_text || q.prompt || '',
       options: q.options ?? null,
-    }));
-  }, [currentPartQuestions]);
+    });
 
-  const partId = (currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1;
+  const partQuestionGroups = useMemo(() => {
+    const groups = currentPartQuestionGroups.length > 0
+      ? currentPartQuestionGroups
+      : [{ group_id: `legacy-part-${partId}`, instruction: null, questions: currentPartQuestions }];
+    let nextQuestionNumber = 1;
+
+    return groups.map((group: any) => ({
+      ...group,
+      questions: (group.questions ?? []).map((question: any) =>
+        normalizeQuestion(question, nextQuestionNumber++)
+      ),
+    }));
+  }, [currentPartQuestionGroups, currentPartQuestions, partId]);
+
+  const partQuestions: Question[] = useMemo(
+    () => partQuestionGroups.flatMap((group: any) => group.questions),
+    [partQuestionGroups],
+  );
 
   // Compute unanswered questions across the entire exam
   const allQuestions = useMemo(() => {
@@ -225,6 +258,12 @@ const WorkspacePage: React.FC = () => {
 
   // Passage and Highlight state
   const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html || '';
+  const partSharedAudio = (currentPart as any)?.sharedAudio
+    || (currentPart as any)?.shared_audio
+    || currentPart?.content?.shared_audio;
+  const partSharedMedia = (currentPart as any)?.sharedMedia
+    || (currentPart as any)?.shared_media
+    || currentPart?.content?.shared_media;
   const passageId = String((currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1);
   const passageHash = useMemo(() => {
     let hash = 0;
@@ -354,8 +393,17 @@ const WorkspacePage: React.FC = () => {
   }
 
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
-  const partTitle = currentPart?.title || currentPart?.content?.part_title || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
+  const partTitle = currentPart?.title
+    || (currentPart as any)?.partTitle
+    || currentPart?.content?.part_title
+    || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
   const isMockFull = workspace.test_mode === 'MOCK_TEST' && workspace.test_scope === 'FULL_EXAM';
+  const currentSectionId = (currentSection as any)?.section_id ?? currentSection?.id;
+  const isCurrentSectionLocked = Boolean(
+    workspace.test_mode === 'MOCK_TEST'
+      && currentSectionId != null
+      && workspace.lockedSections?.includes(currentSectionId)
+  );
 
   const handlePartClick = async (targetPartId: number) => {
     if (!isMockFull) {
@@ -512,37 +560,48 @@ const WorkspacePage: React.FC = () => {
                       {partInstruction}
                     </div>
                   )}
+                  {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
+                  {partSharedMedia && partSharedMedia.url !== partQuestions[0]?.media?.url && (
+                    <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />
+                  )}
                   {partQuestions[0] && (
                     <div className="space-y-4">
                       <div className="prose prose-slate max-w-none text-slate-800 font-medium whitespace-pre-wrap">
                         {partQuestions[0].question_text}
                       </div>
-                      {partQuestions[0].media?.url && (
+                      {partQuestions[0].media && (
                         <div className="mt-4 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
-                          <img src={partQuestions[0].media.url} alt="Writing Prompt Graph" className="max-w-full h-auto max-h-[60vh] object-contain" />
+                          <MediaDisplay media={partQuestions[0].media} alt="Writing Prompt Graph" />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-              ) : passageHtml ? (
-                <div
-                  dangerouslySetInnerHTML={{ __html: finalHtml }}
-                  onClick={handlePassageClick}
-                  className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
-                />
-              ) : partInstruction ? (
-                <div className="space-y-4">
-                  <h2 className="font-heading text-lg font-bold text-slate-900">
-                    {partTitle}
-                  </h2>
-                  <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
-                    {partInstruction}
-                  </div>
-                </div>
               ) : (
-                <div className="p-6 text-center text-slate-400 italic">
-                  Không có nội dung bài đọc cho phần thi này.
+                <div className="space-y-4">
+                  {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
+                  {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
+                  {passageHtml ? (
+                    <div onClick={handlePassageClick}>
+                      <HtmlContent
+                        html={finalHtml}
+                        className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
+                      />
+                    </div>
+                  ) : partInstruction ? (
+                    <div>
+                      <h2 className="font-heading text-lg font-bold text-slate-900">
+                        {partTitle}
+                      </h2>
+                      <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
+                        {partInstruction}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-slate-400 italic">
+                      Không có nội dung bài đọc cho phần thi này.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -583,66 +642,104 @@ const WorkspacePage: React.FC = () => {
                   </div>
                 )}
 
-                {partQuestions.map((q) => {
-                  const qId = q.question_id;
-                  const currentVal = answersState.answers?.[partId]?.[qId] ?? null;
-                  const isQuestionAnswered = isAnswered(currentVal, q.type);
-                  const isFlagged = !!answersState.flags?.[partId]?.[qId];
+                {currentSkill === 'LISTENING' && (
+                  <>
+                    {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
+                    {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
+                    {passageHtml && <HtmlContent html={passageHtml} className="prose prose-slate max-w-none" />}
+                  </>
+                )}
 
-                  // Calculate dynamic minWords based on question text/metadata or skill standards
-                  const minWords = extractMinWords(q, currentPart);
+                {partQuestionGroups.map((group: any) => (
+                  <div
+                    key={group.group_id}
+                    data-testid={`question-group-${group.group_id}`}
+                    data-group-id={group.group_id}
+                    className="space-y-4"
+                  >
+                    {group.instruction && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
+                        {group.instruction}
+                      </div>
+                    )}
+                    {group.shared_audio?.url && <AudioPlayer url={group.shared_audio.url} isActive={true} />}
+                    {group.shared_media && <MediaDisplay media={group.shared_media} alt={`${group.group_id} media`} />}
+                    {(group.content_html || group.context_html) && (
+                      <HtmlContent
+                        html={group.content_html || group.context_html}
+                        className="prose prose-slate max-w-none"
+                      />
+                    )}
+                    {group.questions.map((q: Question) => {
+                      const qId = q.question_id;
+                      const currentVal = answersState.answers?.[partId]?.[qId] ?? null;
+                      const isQuestionAnswered = isAnswered(currentVal, q.type);
+                      const isFlagged = !!answersState.flags?.[partId]?.[qId];
 
-                  return (
-                    <div
-                      key={qId}
-                      id={`q-${qId}`}
-                      className={`ed-card p-5 scroll-mt-4 transition-all duration-200 ${
-                        isQuestionAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3 mb-3.5">
-                        <div className="flex items-start gap-3 flex-1">
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
-                            isQuestionAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
-                          }`}>
-                            {q.question_number}
-                          </span>
-                          <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'lg:hidden' : ''}`}>
-                            {q.question_text}
-                          </div>
-                        </div>
+                      // Calculate dynamic minWords based on question text/metadata or skill standards
+                      const minWords = extractMinWords(q, currentPart);
 
-                        {/* Flag toggle button */}
-                        <button
-                          type="button"
-                          data-testid={`flag-btn-${qId}`}
-                          onClick={() => dispatch(toggleFlag({ partId, questionId: qId }))}
-                          title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 shadow-2xs ${
-                            isFlagged
-                              ? 'bg-amber-100 border-amber-400 text-amber-900 ring-2 ring-amber-400/30'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                      return (
+                        <div
+                          key={qId}
+                          id={`q-${qId}`}
+                          className={`ed-card p-5 scroll-mt-4 transition-all duration-200 ${
+                            isQuestionAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
                           }`}
                         >
-                          <span>{isFlagged ? '🚩' : '🏳️'}</span>
-                          <span>{isFlagged ? 'Đã xem lại' : 'Xem lại'}</span>
-                        </button>
-                      </div>
+                          <div className="flex items-start justify-between gap-3 mb-3.5">
+                            <div className="flex items-start gap-3 flex-1">
+                              <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
+                                isQuestionAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                              }`}>
+                                {q.question_number}
+                              </span>
+                              <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'lg:hidden' : ''}`}>
+                                {q.question_text}
+                              </div>
+                            </div>
 
-                      <div className="pl-10">
-                        <QuestionRenderer
-                          question={q}
-                          partId={partId}
-                          currentAnswer={currentVal}
-                          minWords={minWords}
-                          onChange={(val) => {
-                            dispatch(setAnswer({ partId, questionId: qId, value: val }));
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                            {/* Flag toggle button */}
+                            <button
+                              type="button"
+                              data-testid={`flag-btn-${qId}`}
+                              disabled={isCurrentSectionLocked}
+                              onClick={() => dispatch(toggleFlag({ partId, questionId: qId }))}
+                              title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 shadow-2xs ${
+                                isFlagged
+                                  ? 'bg-amber-100 border-amber-400 text-amber-900 ring-2 ring-amber-400/30'
+                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                              }`}
+                            >
+                              <span>{isFlagged ? '🚩' : '🏳️'}</span>
+                              <span>{isFlagged ? 'Đã xem lại' : 'Xem lại'}</span>
+                            </button>
+                          </div>
+
+                          <div className="pl-10">
+                            {q.media && q.type !== 'ESSAY' && q.type !== 'MAP_LABELING' && (
+                              <MediaDisplay media={q.media} alt={`Question ${q.question_number} media`} />
+                            )}
+                            <fieldset disabled={isCurrentSectionLocked} className="m-0 min-w-0 border-0 p-0">
+                              <QuestionRenderer
+                                question={q}
+                                partId={partId}
+                                currentAnswer={currentVal}
+                                minWords={minWords}
+                                onChange={(val) => {
+                                  if (!isCurrentSectionLocked) {
+                                    dispatch(setAnswer({ partId, questionId: qId, value: val }));
+                                  }
+                                }}
+                              />
+                            </fieldset>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-12 text-slate-400">
