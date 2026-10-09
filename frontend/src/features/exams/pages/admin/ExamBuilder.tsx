@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap, CheckCircle, FileText, Upload, Download } from 'lucide-react';
+import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap, CheckCircle, FileText, Upload, Download, Edit3 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import MediaUploadButton from '../../../../components/common/MediaUploadButton';
@@ -543,7 +543,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         
         group.questions.forEach((q, qIdx) => {
           const qType = q.type;
-          const qText = `Câu ${qIdx + 1}`;
+          const qText = q.question_text || `Câu ${qIdx + 1}`;
           
           sheet.addRow({
             part: partName,
@@ -635,6 +635,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       input: 'select',
       inputOptions: {
         'Full Đề': {
+          'CUSTOM_EMPTY': 'Sườn trống tùy chỉnh (Custom)',
           'IELTS': 'Full IELTS Academic',
           'TOEIC': 'Full TOEIC Listening & Reading',
           'NLTV': 'Full Năng Lực Tiếng Việt',
@@ -670,7 +671,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         const tempParts: ExamPart[] = [];
         
         // Replicate logic from applyTemplate to generate the structure
-        if (type === 'IELTS') {
+        if (type === 'CUSTOM_EMPTY') {
+          tempParts.push({ part_title: 'Tên Part (Ví dụ: Part 1)', instruction: 'Nhập hướng dẫn làm bài', question_groups: [{ group_id: 'g1', instruction: 'Hướng dẫn cho nhóm', content_html: 'Nội dung bài đọc hoặc transcript', questions: [{ question_id: 'q1', type: 'MULTIPLE_CHOICE', question_text: 'Câu 1', metadata: { correct_answer: '' } }] }] });
+        } else if (type === 'IELTS') {
           tempParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
           tempParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: createToeicGroups(11, 1, 10, 4) });
           tempParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 1, 10, 4) });
@@ -774,6 +777,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       let currentGroup: QuestionGroup | null = null;
       let lastPartName = '';
       let lastGroupName = '';
+      let fallbackQCounter = 1;
 
       const getCellValue = (cell: ExcelJS.Cell) => {
         if (cell.type === ExcelJS.ValueType.Merge) {
@@ -838,8 +842,11 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         if (optC) options.push(optC);
         if (optD) options.push(optD);
 
+        const numMatch = questionText.match(/\d+/);
+        const qNum = numMatch ? String(numMatch[0]).padStart(3, '0') : String(fallbackQCounter++).padStart(3, '0');
+
         const newQuestion: Question = {
-          question_id: generateId('q'),
+          question_id: `q_${qNum}`,
           type: type,
           question_text: questionText,
           metadata: {
@@ -856,6 +863,20 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         currentGroup.questions.push(newQuestion);
       });
 
+      let detectedType = 'IELTS_ACADEMIC';
+      if (tempParts.length > 0) {
+        const firstTitle = tempParts[0].part_title.toLowerCase();
+        if (firstTitle.includes('kỹ năng') || firstTitle.includes('nghe') || firstTitle.includes('đọc')) {
+          detectedType = 'NLTV';
+        } else if (firstTitle.includes('photographs') || firstTitle.includes('question-response') || firstTitle.includes('conversations') || firstTitle.includes('talks') || firstTitle.includes('incomplete sentences') || firstTitle.includes('text completion') || firstTitle.includes('reading comprehension')) {
+          detectedType = 'TOEIC';
+        } else if (firstTitle.includes('write a sentence') || firstTitle.includes('written request') || firstTitle.includes('opinion essay')) {
+          detectedType = 'TOEIC_WRITING';
+        } else {
+          detectedType = 'IELTS_ACADEMIC';
+        }
+      }
+      setExamType(detectedType);
       setParts(tempParts);
       setWizardMode('BUILDER');
       Swal.fire('Thành công', 'Đã trích xuất cấu trúc đề từ Excel!', 'success');
@@ -927,6 +948,14 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             </div>
             <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>5. Xuất Excel</h4>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tải xuống file Excel trắng được thiết lập chuẩn cấu trúc và dropdown để điền dữ liệu</p>
+          </div>
+
+          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => { setParts([{ part_title: 'Part 1', instruction: '', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'MULTIPLE_CHOICE', question_text: 'Câu 1', metadata: { correct_answer: '' } }] }] }]); setWizardMode('BUILDER'); }} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(109, 40, 217, 0.3)' }}>
+              <Edit3 size={28} color="white" />
+            </div>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>6. Tạo Đề Tùy Chỉnh</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Mở giao diện kéo thả trực tiếp để tự tay thiết kế và nhập từng câu hỏi trên web</p>
           </div>
 
         </div>
@@ -1058,12 +1087,23 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           </div>
           <div style={{ width: '250px', flexGrow: 0 }}>
             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loại chứng chỉ</label>
-            <select disabled className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-light)', cursor: 'not-allowed', color: 'var(--text-secondary)' }}>
-              <option value={examType}>{
-                examType.startsWith('IELTS') ? 'IELTS' :
-                examType.startsWith('TOEIC') || examType.startsWith('TW_') ? 'TOEIC' :
-                'Năng Lực Tiếng Việt (NLTV)'
-              } ({examType})</option>
+            <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
+              <optgroup label="IELTS">
+                <option value="IELTS_ACADEMIC">IELTS Academic</option>
+                <option value="IELTS_GENERAL">IELTS General</option>
+              </optgroup>
+              <optgroup label="TOEIC">
+                <option value="TOEIC_LR">TOEIC L&R</option>
+                <option value="TOEIC_SPEAKING">TOEIC Speaking</option>
+                <option value="TOEIC_WRITING">TOEIC Writing</option>
+              </optgroup>
+              <optgroup label="Năng Lực Tiếng Việt">
+                <option value="NLTV_A1_A2">NLTV (A1-A2)</option>
+                <option value="NLTV_B1_C1">NLTV (B1-C1)</option>
+              </optgroup>
+              <optgroup label="Khác">
+                <option value="OTHER">Khác (Other)</option>
+              </optgroup>
             </select>
           </div>
           <div style={{ width: '220px', flexGrow: 0 }}>
@@ -1098,7 +1138,14 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       {parts.length === 0 ? (
         <div className="flex-center" style={{ padding: '4rem', border: '2px dashed var(--border-dark)', borderRadius: 'var(--radius-md)', flexDirection: 'column', color: 'var(--text-muted)' }}>
           <AlignLeft size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-          <p>Chưa có Part nào. Bấm <strong>"+ Thêm Kỹ Năng / Part"</strong> ở góc trên để thêm nội dung.</p>
+          <p style={{ marginBottom: '1.5rem' }}>Chưa có Part nào. Bấm nút bên dưới để bắt đầu.</p>
+          <button className="btn btn-primary" onClick={() => {
+            const newParts = [...parts, { part_title: `Part ${parts.length + 1}`, instruction: '', question_groups: [] }];
+            setParts(newParts);
+            setActivePartIndex(newParts.length - 1);
+          }}>
+            <Plus size={18} /> Thêm Part
+          </button>
         </div>
       ) : (
         <div>
@@ -1125,6 +1172,27 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                 {tabPart.part_title || `Part ${tabIndex + 1}`}
               </button>
             ))}
+            <button
+              onClick={() => {
+                const newParts = [...parts, { part_title: `Part ${parts.length + 1}`, instruction: '', question_groups: [] }];
+                setParts(newParts);
+                setActivePartIndex(newParts.length - 1);
+              }}
+              style={{
+                padding: '0.75rem 1rem',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--primary)',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                borderBottom: '3px solid transparent'
+              }}
+            >
+              <Plus size={18} /> Thêm Part
+            </button>
           </div>
 
           {/* ACTIVE TAB CONTENT */}
