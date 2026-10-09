@@ -15,9 +15,12 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 @Primary
@@ -51,28 +54,12 @@ public class DbGradingAdapter implements GradingAdapter {
                 partGradingKey.setSectionName(section.getSkillType());
                 
                 Map<String, GradingKey> answers = new HashMap<>();
+                Set<String> seenQuestionIds = new HashSet<>();
                 
                 Map<String, Object> data = part.getContentData();
-                if (data != null && data.containsKey("questions")) {
-                    List<Map<String, Object>> questions = (List<Map<String, Object>>) data.get("questions");
-                    
-                    for (Map<String, Object> q : questions) {
-                        String questionId = (String) q.get("question_id");
-                        if (questionId == null || !q.containsKey("correct_answer")) {
-                            continue;
-                        }
-
-                        GradingKey key = new GradingKey();
-                        key.setQuestionId(questionId);
-                        key.setType((String) q.get("type"));
-                        key.setCorrect(q.get("correct_answer"));
-                        
-                        if (q.containsKey("alternates")) {
-                            List<String> alts = (List<String>) q.get("alternates");
-                            key.setAlternates(alts);
-                        }
-                        
-                        answers.put(questionId, key);
+                if (data != null) {
+                    for (Map<String, Object> question : extractQuestions(data)) {
+                        addGradingKey(answers, seenQuestionIds, question);
                     }
                 }
                 
@@ -82,5 +69,79 @@ public class DbGradingAdapter implements GradingAdapter {
         });
 
         return partKeys;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extractQuestions(Map<String, Object> data) {
+        List<Map<String, Object>> questions = new ArrayList<>();
+        if (data.containsKey("question_groups")) {
+            Object rawGroups = data.get("question_groups");
+            if (!(rawGroups instanceof List<?> groups) || groups.isEmpty()) {
+                throw new IllegalArgumentException("question_groups must be a non-empty array");
+            }
+            for (Object rawGroup : groups) {
+                if (!(rawGroup instanceof Map<?, ?> group)) {
+                    throw new IllegalArgumentException("question group must be an object");
+                }
+                Object rawQuestions = group.get("questions");
+                if (!(rawQuestions instanceof List<?> groupQuestions) || groupQuestions.isEmpty()) {
+                    throw new IllegalArgumentException("question group questions must be a non-empty array");
+                }
+                for (Object rawQuestion : groupQuestions) {
+                    if (!(rawQuestion instanceof Map<?, ?> question)) {
+                        throw new IllegalArgumentException("question group questions must contain objects");
+                    }
+                    validateCanonicalQuestion(question);
+                    questions.add((Map<String, Object>) question);
+                }
+            }
+            return questions;
+        }
+
+        Object rawQuestions = data.get("questions");
+        if (rawQuestions instanceof List<?> legacyQuestions) {
+            for (Object rawQuestion : legacyQuestions) {
+                if (rawQuestion instanceof Map<?, ?> question) {
+                    questions.add((Map<String, Object>) question);
+                }
+            }
+        }
+        return questions;
+    }
+
+    private void validateCanonicalQuestion(Map<?, ?> question) {
+        Object questionId = question.get("question_id");
+        if (!(questionId instanceof String id) || id.isBlank()) {
+            throw new IllegalArgumentException("canonical question_id must be a non-blank string");
+        }
+
+        Object type = question.get("type");
+        if (!(type instanceof String typeName) || typeName.isBlank()) {
+            throw new IllegalArgumentException("canonical question type must be a non-blank string");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addGradingKey(Map<String, GradingKey> answers, Set<String> seenQuestionIds,
+                               Map<String, Object> question) {
+        String questionId = (String) question.get("question_id");
+        String type = (String) question.get("type");
+        if (questionId != null && !seenQuestionIds.add(questionId)) {
+            throw new IllegalArgumentException("Duplicate question_id within part: " + questionId);
+        }
+        if (questionId == null || !question.containsKey("correct_answer") || "ESSAY".equals(type)) {
+            return;
+        }
+
+        GradingKey key = new GradingKey();
+        key.setQuestionId(questionId);
+        key.setType(type);
+        key.setCorrect(question.get("correct_answer"));
+
+        if (question.containsKey("alternates")) {
+            key.setAlternates((List<String>) question.get("alternates"));
+        }
+
+        answers.put(questionId, key);
     }
 }
