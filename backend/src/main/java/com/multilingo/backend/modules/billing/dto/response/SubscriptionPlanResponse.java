@@ -18,6 +18,4 @@ public class SubscriptionPlanResponse {
     BigDecimal price;
     Integer durationDays;
     Boolean isActive;
-    Instant createdAt;
-    Instant updatedAt;
 }

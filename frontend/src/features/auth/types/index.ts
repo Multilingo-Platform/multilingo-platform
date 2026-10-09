@@ -3,9 +3,9 @@ export interface UserResponse {
   email: string;
   fullName: string;
   avatarUrl?: string;
-  role?: string;
+  role: string;
   phone?: string;
-  subscriptionTier?: string;
+  subscriptionTier: string;
 }
 
 export interface AuthResponse {
