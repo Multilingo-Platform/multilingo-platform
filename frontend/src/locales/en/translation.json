@@ -147,5 +147,83 @@
       "page": "Page",
       "next": "Next"
     }
+  },
+  "vocab": {
+    "my_decks": "Vocabulary Decks",
+    "my_decks_subtitle": "Manage and study vocabulary efficiently with Spaced Repetition (SRS)",
+    "create_deck": "Create Deck",
+    "edit_deck": "Edit Deck",
+    "delete_deck": "Delete Deck",
+    "search_decks_placeholder": "Search decks...",
+    "search_cards_placeholder": "Search word or meaning...",
+    "all_languages": "All Languages",
+    "empty_decks_title": "No decks created yet",
+    "empty_decks_desc": "Create your first vocabulary deck to start learning and mastering new words!",
+    "empty_cards_title": "No flashcards yet",
+    "empty_cards_desc": "This deck currently has no words. Add your first vocabulary word to start practicing.",
+    "cards_count": "{{count}} cards",
+    "cards_count_due": "{{count}} due",
+    "deck_detail": {
+      "back_to_decks": "Back to decks",
+      "total_words": "Total Words",
+      "mastered_words": "Mastered",
+      "learning_words": "Learning",
+      "new_words": "New",
+      "due_words": "Due Today",
+      "add_card": "Add New Word",
+      "filter_all": "All",
+      "filter_due": "Due for Review",
+      "word_col": "Word",
+      "meaning_col": "Meaning",
+      "example_col": "Example",
+      "status_col": "Status",
+      "actions_col": "Actions"
+    },
+    "modes": {
+      "study": "Flashcards",
+      "study_desc": "Spaced repetition review",
+      "quiz": "Quiz Practice",
+      "quiz_desc": "4-choice questions",
+      "match": "Speed Match",
+      "match_desc": "60s reaction game",
+      "test": "Timed Test",
+      "test_desc": "Formal assessment"
+    },
+    "status": {
+      "new": "New",
+      "learning": "Learning",
+      "mastered": "Mastered",
+      "due": "Due"
+    },
+    "actions": {
+      "study_now": "Study Now",
+      "flip": "Flip Card",
+      "forgotten": "Again",
+      "remembered": "Good",
+      "continue": "Continue",
+      "submit_test": "Submit Test",
+      "play_again": "Practice Again",
+      "back_to_deck": "Back to Deck",
+      "cancel": "Cancel",
+      "save": "Save Changes",
+      "confirm_delete": "Confirm Delete"
+    },
+    "session": {
+      "quit_title": "Exit session?",
+      "quit_confirm": "Your progress on reviewed cards will be saved.",
+      "time_left": "Time Remaining",
+      "completed_title": "Great job! Session completed",
+      "cards_reviewed": "Cards Reviewed",
+      "cards_remembered": "Remembered",
+      "accuracy": "Accuracy",
+      "earned_xp": "XP Earned",
+      "current_streak": "Study Streak",
+      "high_score": "New High Score!"
+    },
+    "requirements": {
+      "min_cards_quiz": "You need at least 4 flashcards in this deck to start Quiz Practice.",
+      "min_cards_match": "You need at least 6 flashcards in this deck to play Speed Match Game.",
+      "min_cards_test": "You need at least 4 flashcards in this deck to generate a Timed Test."
+    }
   }
 }

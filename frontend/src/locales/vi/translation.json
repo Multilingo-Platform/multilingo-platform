@@ -147,5 +147,83 @@
       "page": "Trang",
       "next": "Trang sau"
     }
+  },
+  "vocab": {
+    "my_decks": "Bộ thẻ từ vựng",
+    "my_decks_subtitle": "Quản lý và ôn tập từ vựng thông minh theo phương pháp lặp lại ngắt quãng (SRS)",
+    "create_deck": "Tạo bộ thẻ",
+    "edit_deck": "Chỉnh sửa bộ thẻ",
+    "delete_deck": "Xóa bộ thẻ",
+    "search_decks_placeholder": "Tìm kiếm bộ thẻ...",
+    "search_cards_placeholder": "Tìm kiếm từ vựng hoặc nghĩa...",
+    "all_languages": "Tất cả ngôn ngữ",
+    "empty_decks_title": "Chưa có bộ thẻ nào",
+    "empty_decks_desc": "Hãy tạo bộ thẻ từ vựng đầu tiên của bạn để bắt đầu học tập và ghi nhớ hiệu quả!",
+    "empty_cards_title": "Chưa có từ vựng nào",
+    "empty_cards_desc": "Bộ thẻ này hiện chưa có từ vựng. Hãy thêm từ vựng mới để bắt đầu ôn tập.",
+    "cards_count": "{{count}} từ",
+    "cards_count_due": "{{count}} cần ôn",
+    "deck_detail": {
+      "back_to_decks": "Quay lại danh sách",
+      "total_words": "Tổng số từ",
+      "mastered_words": "Đã thuộc",
+      "learning_words": "Đang học",
+      "new_words": "Từ mới",
+      "due_words": "Cần ôn hôm nay",
+      "add_card": "Thêm từ mới",
+      "filter_all": "Tất cả",
+      "filter_due": "Cần ôn tập",
+      "word_col": "Từ vựng",
+      "meaning_col": "Ý nghĩa",
+      "example_col": "Câu ví dụ",
+      "status_col": "Trạng thái",
+      "actions_col": "Thao tác"
+    },
+    "modes": {
+      "study": "Ôn Flashcard",
+      "study_desc": "Lật thẻ ghi nhớ SRS",
+      "quiz": "Ghép từ & Luyện tập",
+      "quiz_desc": "Trắc nghiệm 4 lựa chọn",
+      "match": "Ghép thẻ tốc độ",
+      "match_desc": "Phản xạ 60 giây",
+      "test": "Thi thử tính giờ",
+      "test_desc": "Đánh giá năng lực"
+    },
+    "status": {
+      "new": "Mới",
+      "learning": "Đang học",
+      "mastered": "Đã thuộc",
+      "due": "Tới hạn"
+    },
+    "actions": {
+      "study_now": "Ôn tập ngay",
+      "flip": "Lật thẻ",
+      "forgotten": "Quên",
+      "remembered": "Đã thuộc",
+      "continue": "Tiếp tục",
+      "submit_test": "Nộp bài thi",
+      "play_again": "Luyện tập lại",
+      "back_to_deck": "Quay lại bộ thẻ",
+      "cancel": "Hủy bỏ",
+      "save": "Lưu thay đổi",
+      "confirm_delete": "Xác nhận xóa"
+    },
+    "session": {
+      "quit_title": "Dừng phiên học?",
+      "quit_confirm": "Tiến độ của các từ đã học sẽ được lưu lại.",
+      "time_left": "Thời gian còn lại",
+      "completed_title": "Xuất sắc! Bạn đã hoàn thành phiên học",
+      "cards_reviewed": "Số thẻ đã ôn",
+      "cards_remembered": "Đã thuộc",
+      "accuracy": "Độ chính xác",
+      "earned_xp": "XP nhận được",
+      "current_streak": "Chuỗi ngày học",
+      "high_score": "Điểm kỷ lục mới!"
+    },
+    "requirements": {
+      "min_cards_quiz": "Cần tối thiểu 4 từ vựng trong bộ thẻ để bắt đầu chế độ Ghép từ & Trắc nghiệm.",
+      "min_cards_match": "Cần tối thiểu 6 từ vựng trong bộ thẻ để bắt đầu trò chơi Ghép thẻ tốc độ.",
+      "min_cards_test": "Cần tối thiểu 4 từ vựng trong bộ thẻ để tạo đề thi thử trắc nghiệm."
+    }
   }
 }
