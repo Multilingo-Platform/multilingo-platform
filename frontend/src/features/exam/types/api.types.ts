@@ -137,3 +137,27 @@ export interface ExamReviewResponse {
   } | null;
   isCorrectFlags?: Record<string, boolean>;
 }
+
+export interface LearnerExamStructurePart {
+  id: number;
+  partNumber: number;
+  title: string | null;
+}
+
+export interface LearnerExamStructureSection {
+  id: number;
+  skillType: string;
+  title: string;
+  durationMinutes: number | null;
+  orderIndex: number;
+  parts: LearnerExamStructurePart[];
+}
+
+export interface LearnerExamStructure {
+  id: number;
+  code: string;
+  title: string;
+  type: string;
+  durationMinutes: number | null;
+  sections: LearnerExamStructureSection[];
+}

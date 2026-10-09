@@ -524,15 +524,30 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 throw new AppException(ErrorCode.INVALID_REQUEST,
                         "targetPartId is required for SINGLE_PART scope");
             }
-            return exam.getSections().stream()
-                    .flatMap(s -> s.getParts().stream())
-                    .filter(p -> request.getTargetPartId().equals(p.getId()))
-                    .findFirst()
-                    .map(p -> p.getDurationMinutes())
-                    .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
-                            "Part not found: " + request.getTargetPartId()));
+            SectionFixture containingSection = findSectionContainingPart(exam, request.getTargetPartId());
+            if (containingSection == null) {
+                throw new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "Part not found: " + request.getTargetPartId());
+            }
+            return containingSection.getDurationMinutes();
         }
         return exam.getDurationMinutes();
+    }
+
+    private SectionFixture findSectionContainingPart(ExamFixture exam, Integer partId) {
+        if (exam == null || exam.getSections() == null || partId == null) {
+            return null;
+        }
+        for (SectionFixture section : exam.getSections()) {
+            if (section != null && section.getParts() != null) {
+                for (PartFixture part : section.getParts()) {
+                    if (part != null && partId.equals(part.getId())) {
+                        return section;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -564,14 +579,19 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         }
 
         if (request.getTestScope() == TestScope.SINGLE_PART) {
-            for (SectionFixture section : cloned.getSections()) {
-                for (PartFixture part : section.getParts()) {
-                    if (request.getTargetPartId().equals(part.getId())) {
-                        section.setParts(List.of(part));
-                        section.setDurationMinutes(part.getDurationMinutes());
-                        cloned.setSections(List.of(section));
-                        cloned.setDurationMinutes(part.getDurationMinutes());
-                        return objectMapper.convertValue(cloned, Map.class);
+            if (cloned.getSections() != null) {
+                for (SectionFixture section : cloned.getSections()) {
+                    if (section != null && section.getParts() != null) {
+                        for (PartFixture part : section.getParts()) {
+                            if (part != null && request.getTargetPartId().equals(part.getId())) {
+                                Integer sectionDuration = section.getDurationMinutes();
+                                section.setParts(List.of(part));
+                                section.setDurationMinutes(sectionDuration);
+                                cloned.setSections(List.of(section));
+                                cloned.setDurationMinutes(sectionDuration);
+                                return objectMapper.convertValue(cloned, Map.class);
+                            }
+                        }
                     }
                 }
             }

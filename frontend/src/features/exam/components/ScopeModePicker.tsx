@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import type { CreateAttemptRequest, TestMode, TestScope } from '../types/api.types';
+import type {
+  CreateAttemptRequest,
+  LearnerExamStructureSection,
+  TestMode,
+  TestScope,
+} from '../types/api.types';
 
 interface ScopeModePickerProps {
   examId: number;
+  sections?: LearnerExamStructureSection[];
   initialMode?: TestMode | '';
   initialScope?: TestScope | '';
   onSubmit: (req: CreateAttemptRequest) => void;
@@ -19,18 +25,6 @@ const SCOPE_OPTIONS: { value: TestScope; label: string; desc: string }[] = [
 const MODE_OPTIONS: { value: TestMode; label: string; desc: string; activeColor: string }[] = [
   { value: 'MOCK_TEST', label: 'Mock Test', desc: 'Đồng hồ đếm ngược, tự động nộp bài', activeColor: '#d97706' },
   { value: 'PRACTICE', label: 'Practice', desc: 'Không giới hạn thời gian, tự do tra từ AI', activeColor: '#059669' },
-];
-
-const SECTION_OPTIONS = [
-  { value: '1', label: 'Reading' },
-  { value: '2', label: 'Listening' },
-  { value: '3', label: 'Writing' },
-];
-
-const PART_OPTIONS = [
-  { value: '1', label: 'Part 1' },
-  { value: '2', label: 'Part 2' },
-  { value: '3', label: 'Part 3' },
 ];
 
 // --- Styles ---
@@ -126,6 +120,7 @@ const Spinner = () => (
 
 const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   examId,
+  sections = [],
   initialMode,
   initialScope,
   onSubmit,
@@ -139,10 +134,13 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
 
   const needsSection = scope === 'SINGLE_SKILL' || scope === 'SINGLE_PART';
   const needsPart = scope === 'SINGLE_PART';
+  const selectedSection = sections.find((s) => String(s.id) === sectionId);
+
   const isValid =
-    scope !== '' && mode !== '' &&
+    scope !== '' &&
+    mode !== '' &&
     (!needsSection || sectionId !== '') &&
-    (!needsPart || partId !== '');
+    (!needsPart || (partId !== '' && !!selectedSection && selectedSection.parts.length > 0));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +155,12 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} aria-label="Thiết lập phiên thi" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0 }}>
+    <form
+      onSubmit={handleSubmit}
+      aria-label="Thiết lập phiên thi"
+      aria-busy={isLoading ? 'true' : 'false'}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0 }}
+    >
       {/* Scrollable area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
@@ -169,6 +172,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
               <button
                 key={opt.value}
                 type="button"
+                aria-pressed={scope === opt.value ? 'true' : 'false'}
                 onClick={() => { setScope(opt.value); setSectionId(''); setPartId(''); }}
                 style={scope === opt.value ? scopeButtonActive : scopeButtonBase}
               >
@@ -185,11 +189,16 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
             <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Kỹ năng:
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {SECTION_OPTIONS.map((opt) => (
-                <button key={opt.value} type="button" onClick={() => { setSectionId(opt.value); setPartId(''); }}
-                  style={sectionId === opt.value ? pillActive : pillBase}>
-                  {opt.label}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {sections.map((sec) => (
+                <button
+                  key={sec.id}
+                  type="button"
+                  aria-pressed={sectionId === String(sec.id) ? 'true' : 'false'}
+                  onClick={() => { setSectionId(String(sec.id)); setPartId(''); }}
+                  style={sectionId === String(sec.id) ? pillActive : pillBase}
+                >
+                  {sec.title || sec.skillType}
                 </button>
               ))}
             </div>
@@ -202,14 +211,25 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
             <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Phần:
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {PART_OPTIONS.map((opt) => (
-                <button key={opt.value} type="button" onClick={() => setPartId(opt.value)}
-                  style={partId === opt.value ? pillActive : pillBase}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            {(!selectedSection || selectedSection.parts.length === 0) ? (
+              <div role="status" style={{ fontSize: '0.8rem', color: '#6b7280', fontStyle: 'italic', padding: '0.25rem 0' }}>
+                Kỹ năng này chưa có phần thi nào
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {selectedSection.parts.map((part) => (
+                  <button
+                    key={part.id}
+                    type="button"
+                    aria-pressed={partId === String(part.id) ? 'true' : 'false'}
+                    onClick={() => setPartId(String(part.id))}
+                    style={partId === String(part.id) ? pillActive : pillBase}
+                  >
+                    {part.title || `Part ${part.partNumber}`}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -221,8 +241,13 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
               const isActive = mode === opt.value;
               const activeStyle = opt.activeColor === '#059669' ? modeButtonGreen : modeButtonAmber;
               return (
-                <button key={opt.value} type="button" onClick={() => setMode(opt.value)}
-                  style={isActive ? activeStyle : modeButtonBase}>
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={isActive ? 'true' : 'false'}
+                  onClick={() => setMode(opt.value)}
+                  style={isActive ? activeStyle : modeButtonBase}
+                >
                   {/* Color indicator dot */}
                   <span style={{
                     width: '0.5rem', height: '0.5rem', borderRadius: '50%', flexShrink: 0,
