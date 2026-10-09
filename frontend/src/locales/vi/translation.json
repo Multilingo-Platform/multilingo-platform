@@ -95,5 +95,57 @@
     "account_type": "Loại tài khoản",
     "pro_badge": "PREMIUM",
     "free_badge": "FREE"
+  },
+  "library": {
+    "hero": {
+      "title": "Thư viện Đề thi",
+      "subtitle": "Hàng ngàn đề thi chuẩn hóa IELTS, TOEIC và Năng Lực Tiếng Việt (NLTV). Luyện tập ngay hôm nay để đạt mục tiêu của bạn."
+    },
+    "filters": {
+      "title": "Lọc Đề Thi",
+      "search": "TÌM KIẾM",
+      "searchPlaceholder": "Nhập tên đề thi...",
+      "cert_title": "1. CHỌN CHỨNG CHỈ",
+      "all": "Tất cả chứng chỉ",
+      "cert": {
+        "ielts": "IELTS",
+        "toeic": "TOEIC",
+        "nltv": "Năng Lực Tiếng Việt (NLTV)"
+      },
+      "skill_title": "2. CHỌN KỸ NĂNG",
+      "all_skills": "Tất cả kỹ năng (Full Test & Parts)",
+      "skills": {
+        "listening": "Listening / Nghe hiểu",
+        "reading": "Reading / Đọc hiểu",
+        "writing": "Writing / Viết"
+      },
+      "part_title": "3. CHỌN PHẦN THI (PART)",
+      "all_parts": "Tất cả phần thi",
+      "apply": "Áp dụng bộ lọc",
+      "clear": "Xóa bộ lọc"
+    },
+    "results": {
+      "showing": "Hiển thị",
+      "results": "kết quả"
+    },
+    "sort": {
+      "newest": "Mới nhất",
+      "popular": "Được thi nhiều nhất"
+    },
+    "status": {
+      "loading": "Đang tải đề thi...",
+      "empty": "Không tìm thấy đề thi nào phù hợp."
+    },
+    "card": {
+      "minutes": "phút",
+      "attempts": "lượt thi",
+      "takeExam": "Làm bài thi",
+      "partsCount": "phần thi"
+    },
+    "pagination": {
+      "prev": "Trang trước",
+      "page": "Trang",
+      "next": "Trang sau"
+    }
   }
 }
