@@ -5,6 +5,7 @@ import {
   markSavePending,
   markSaveSuccess,
   markSaveError,
+  markSaveConflict,
   selectSaveStatus,
 } from '../store/answerSlice';
 import { autosaveAnswers } from '../api/attemptApi';
@@ -42,9 +43,10 @@ export function useAutosave(attemptId: number | null): void {
         pendingVersion: capturedVersion,
       } = stateRef.current;
 
-      // Guard: bỏ qua nếu không dirty hoặc đang save
-      if (!currentIsDirty || currentSaveStatus === 'saving') return;
+      // Guard: bỏ qua nếu không dirty, đang save hoặc đang ở trạng thái conflict
+      if (!currentIsDirty || currentSaveStatus === 'saving' || currentSaveStatus === 'conflict') return;
 
+      const currentCycleAttemptId = attemptId;
       dispatch(markSavePending(capturedVersion));
 
       // Chuyển answers Record thành mảng PartAnswers
@@ -54,17 +56,29 @@ export function useAutosave(attemptId: number | null): void {
       }));
 
       try {
-        await autosaveAnswers(attemptId, { version: currentAnswersState.version, answers });
-        dispatch(markSaveSuccess({ savedAt: Date.now(), version: capturedVersion }));
+        const res = await autosaveAnswers(currentCycleAttemptId, { version: currentAnswersState.version, answers });
+
+        // Guard: check if the attemptId has changed or component unmounted while waiting
+        if (currentCycleAttemptId !== attemptId || timerId === null) return;
+
+        dispatch(
+          markSaveSuccess({
+            savedAt: Date.now(),
+            pendingVersion: capturedVersion,
+            serverVersion: res.version,
+          })
+        );
         // Remove localStorage draft after successful server sync
-        try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
+        try { localStorage.removeItem(`exam_draft_${currentCycleAttemptId}`); } catch { /* ignore */ }
       } catch (err: any) {
-        dispatch(markSaveError());
-        const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409;
+        if (currentCycleAttemptId !== attemptId || timerId === null) return;
+
+        const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409 || err?.response?.data?.code === 1601;
         if (is409) {
-          stopAutosave();
+          dispatch(markSaveConflict());
           return;
         }
+        dispatch(markSaveError());
         // Keep draft in localStorage as offline fallback
         try {
           localStorage.setItem(

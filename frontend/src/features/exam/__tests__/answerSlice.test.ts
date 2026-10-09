@@ -9,6 +9,7 @@ import answerReducer, {
   markSavePending,
   markSaveSuccess,
   markSaveError,
+  markSaveConflict,
   initialState,
   reducer,
   toggleFlag,
@@ -134,14 +135,21 @@ describe('answerSlice', () => {
       expect(state.isDirty).toBe(true);
     });
 
-    it('markSaveSuccess resets isDirty to false and sets lastSavedAt', () => {
+    it('markSaveSuccess resets isDirty to false, updates version to serverVersion and sets lastSavedAt', () => {
       let state = reducer(
-        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
-        markSaveSuccess({ savedAt: 1000, version: 1 })
+        { ...initialState, attemptId: 1, version: 1, isDirty: true, pendingVersion: 1 },
+        markSaveSuccess({ savedAt: 1000, pendingVersion: 1, serverVersion: 2 })
       );
       expect(state.isDirty).toBe(false);
+      expect(state.version).toBe(2);
       expect(state.lastSavedAt).toBe(1000);
       expect(state.saveStatus).toBe('saved');
+    });
+
+    it('markSaveConflict sets saveStatus to conflict and preserves isDirty', () => {
+      let state = reducer({ ...initialState, isDirty: true }, markSaveConflict());
+      expect(state.isDirty).toBe(true);
+      expect(state.saveStatus).toBe('conflict');
     });
 
     it('markSaveError keeps isDirty true', () => {
@@ -162,25 +170,27 @@ describe('answerSlice', () => {
       expect(state.saveStatus).toBe('idle');
     });
 
-    it('RACE: markSaveSuccess does NOT reset isDirty if new edit arrived (version mismatch)', () => {
+    it('RACE: markSaveSuccess does NOT reset isDirty if new edit arrived (pendingVersion mismatch) but updates version to serverVersion', () => {
       // pendingVersion starts at 1; one more edit arrives → pendingVersion becomes 2
       let state = reducer(
-        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
+        { ...initialState, attemptId: 1, version: 1, isDirty: true, pendingVersion: 1 },
         setAnswer({ partId: 1, questionId: 'q1', value: 'B' })
       );
-      // In-flight save captured version=1 — responds now, but edit at version=2 is still dirty
-      state = reducer(state, markSaveSuccess({ savedAt: 1000, version: 1 }));
+      // In-flight save captured pendingVersion=1, server returns serverVersion=2 — responds now, but edit at pendingVersion=2 is still dirty
+      state = reducer(state, markSaveSuccess({ savedAt: 1000, pendingVersion: 1, serverVersion: 2 }));
       expect(state.isDirty).toBe(true);   // Must stay dirty
+      expect(state.version).toBe(2);      // Version must be updated to server version
       expect(state.saveStatus).toBe('saved');
     });
 
-    it('RACE: markSaveSuccess resets isDirty when version matches (no new edit)', () => {
+    it('RACE: markSaveSuccess resets isDirty when pendingVersion matches (no new edit)', () => {
       let state = reducer(
-        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
+        { ...initialState, attemptId: 1, version: 1, isDirty: true, pendingVersion: 1 },
         markSavePending(1)
       );
-      state = reducer(state, markSaveSuccess({ savedAt: 2000, version: 1 }));
+      state = reducer(state, markSaveSuccess({ savedAt: 2000, pendingVersion: 1, serverVersion: 2 }));
       expect(state.isDirty).toBe(false);
+      expect(state.version).toBe(2);
       expect(state.lastSavedAt).toBe(2000);
     });
 

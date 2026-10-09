@@ -2,7 +2,7 @@ import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolki
 import type { AnswerValue, PartAnswers } from '../types/answer.types';
 import { normalize, removeAt, type Highlight } from '../utils/highlightUtils';
 
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
 
 export interface AnswerState {
   attemptId: number | null;
@@ -81,13 +81,22 @@ const answerSlice = createSlice({
       state.saveStatus = 'saving';
     },
 
-    markSaveSuccess(state, action: PayloadAction<{ savedAt: number; version: number }>) {
+    markSaveSuccess(
+      state,
+      action: PayloadAction<{ savedAt: number; pendingVersion: number; serverVersion: number }>
+    ) {
       state.lastSavedAt = action.payload.savedAt;
+      state.version = action.payload.serverVersion;
       state.saveStatus = 'saved';
       // Only clear isDirty when no new edit arrived after the HTTP call was launched
-      if (state.pendingVersion === action.payload.version) {
+      if (state.pendingVersion === action.payload.pendingVersion) {
         state.isDirty = false;
       }
+    },
+
+    markSaveConflict(state) {
+      state.saveStatus = 'conflict';
+      // isDirty remains true so changes are not lost
     },
 
     markSaveError(state) {
@@ -152,6 +161,7 @@ export const {
   markSavePending,
   markSaveSuccess,
   markSaveError,
+  markSaveConflict,
   toggleFlag,
   clearFlags,
   clearAnswers,

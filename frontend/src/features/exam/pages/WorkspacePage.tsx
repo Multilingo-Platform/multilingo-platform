@@ -16,13 +16,14 @@ import AudioPlayer from '../components/AudioPlayer';
 import HtmlContent from '../components/content/HtmlContent';
 import MediaDisplay from '../components/content/MediaDisplay';
 import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
-import { setAnswer, toggleFlag, selectSaveStatus, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
+import { setAnswer, toggleFlag, addHighlightRecord, removeHighlightRecord, selectHighlights, markSaveSuccess, markSavePending, markSaveConflict, markSaveError } from '../store/answerSlice';
 import { useTextSelection } from '../hooks/useTextSelection';
 import { SelectionToolbar } from '../components/content/SelectionToolbar';
 import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
 import { applyHighlights } from '../utils/htmlHighlight';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
+import { useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 
@@ -37,6 +38,7 @@ const WorkspacePage: React.FC = () => {
   const attemptId = parseInt(attemptIdStr ?? '0', 10);
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<RootState>();
 
   const { workspace, loading, error, retry } = useWorkspace(attemptId);
   const { displayTime, isExpired, isPractice } = useExamTimer(
@@ -45,7 +47,6 @@ const WorkspacePage: React.FC = () => {
   );
   useAutosave(workspace && workspace.status === 'IN_PROGRESS' ? attemptId : null);
 
-  const { isDirty } = useSelector((state: RootState) => selectSaveStatus(state));
   const answersState = useSelector((state: RootState) => state.answers);
 
   const [showConfirm, setShowConfirm] = useState(false);
@@ -93,7 +94,7 @@ const WorkspacePage: React.FC = () => {
 
   const currentSection = useMemo(() => {
     if (selectedPartId !== null) {
-      const found = workspace?.exam_snapshot?.sections?.find(s => 
+      const found = workspace?.exam_snapshot?.sections?.find(s =>
         s.parts?.some(p => ((p as any).id === selectedPartId || (p as any).part_id === selectedPartId))
       );
       if (found) return found;
@@ -190,30 +191,75 @@ const WorkspacePage: React.FC = () => {
     return Math.max(0, allQuestions.length - answered);
   }, [allQuestions, answersState.answers]);
 
+  const activeAttemptIdRef = useRef<number | null>(attemptId);
+  useEffect(() => {
+    activeAttemptIdRef.current = attemptId;
+    return () => {
+      activeAttemptIdRef.current = null;
+    };
+  }, [attemptId]);
+
   const handleSubmit = async (isTimeout = false) => {
+    const currentSubmitAttemptId = attemptId;
     setIsSubmitting(true);
     try {
+      // 1. Wait for any pending background save to prevent overlap
+      while (store.getState().answers.saveStatus === 'saving') {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Check if unmounted or attempt changed while waiting
+        if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
+      }
+
       // Pre-submit flush: push unsaved answers to server before closing attempt
-      if (isDirty) {
-        const answers = Object.entries(answersState.answers).map(([pId, qMap]) => ({
+      // Fetch latest state from store since waiting might have changed it
+      const currentState = store.getState().answers;
+      let submitVersion = currentState.version;
+
+      if (currentState.isDirty) {
+        const capturedPendingVersion = currentState.pendingVersion;
+        // Lock other hook from saving
+        dispatch(markSavePending(capturedPendingVersion));
+
+        const answers = Object.entries(currentState.answers).map(([pId, qMap]) => ({
           part_id: Number(pId),
           answers: Object.entries(qMap as any).map(([question_id, answer]) => ({ question_id, answer: answer as any })),
         }));
-        await autosaveAnswers(attemptId, { version: answersState.version, answers });
+
+        // Let errors propagate to catch block
+        const saveRes = await autosaveAnswers(currentSubmitAttemptId, { version: currentState.version, answers });
+
+        // Guard: Check if the user navigated to a different attempt while waiting
+        if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
+
+        submitVersion = saveRes.version;
+        dispatch(
+          markSaveSuccess({
+            savedAt: Date.now(),
+            pendingVersion: capturedPendingVersion,
+            serverVersion: saveRes.version,
+          })
+        );
         try {
-          localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(answersState.highlights));
-          localStorage.removeItem(`exam_draft_${attemptId}`);
+          localStorage.setItem(`exam_highlights_${currentSubmitAttemptId}`, JSON.stringify(currentState.highlights));
+          localStorage.removeItem(`exam_draft_${currentSubmitAttemptId}`);
         } catch { /* ignore */ }
       }
-      const result = await submitAttempt(attemptId, {
-        version: answersState.version,
+
+      // 2. Execute submit
+      const result = await submitAttempt(currentSubmitAttemptId, {
+        version: submitVersion,
+        baseVersion: submitVersion,
         answers: [],
         reason: isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL',
       });
+
+      // Guard against page change during submit
+      if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
+
       // Always clean up localStorage draft after successful submit
       try {
-        localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(answersState.highlights));
-        localStorage.removeItem(`exam_draft_${attemptId}`);
+        localStorage.setItem(`exam_highlights_${currentSubmitAttemptId}`, JSON.stringify(store.getState().answers.highlights));
+        localStorage.removeItem(`exam_draft_${currentSubmitAttemptId}`);
       } catch { /* ignore */ }
       if (isTimeout) {
         setSubmitResultUrl(result.redirect_url);
@@ -221,21 +267,49 @@ const WorkspacePage: React.FC = () => {
         navigate(result.redirect_url);
       }
     } catch (err: any) {
+      if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
+
+      // Distinguish between Version Conflict (code 1601) and finalization/network error
+      const isVersionConflict = err?.response?.data?.code === 1601 || err?.code === 1601;
+
+      if (isVersionConflict) {
+        // Stop submission, close overlay, mark conflict
+        setShowOverlay(false);
+        dispatch(markSaveConflict());
+        return; // Stop submit chain
+      }
+
+      // If direct autosave failed (or status is still saving), release lock to error so retry is possible
+      if (store.getState().answers.saveStatus === 'saving') {
+        dispatch(markSaveError());
+        try {
+          localStorage.setItem(
+            `exam_draft_${currentSubmitAttemptId}`,
+            JSON.stringify(store.getState().answers.answers)
+          );
+        } catch { /* ignore */ }
+      }
+
+      // Other 409 errors (like attempt already submitted, timeout) -> go to result
+      const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409;
+
       try {
-        localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(answersState.highlights));
-        localStorage.removeItem(`exam_draft_${attemptId}`);
+        localStorage.setItem(`exam_highlights_${currentSubmitAttemptId}`, JSON.stringify(store.getState().answers.highlights));
+        if (is409) {
+          localStorage.removeItem(`exam_draft_${currentSubmitAttemptId}`);
+        }
       } catch { /* ignore */ }
-      const resultUrl = `/attempts/${attemptId}/result`;
+
+      const resultUrl = `/attempts/${currentSubmitAttemptId}/result`;
       if (isTimeout) {
         setSubmitResultUrl(resultUrl);
-      } else {
-        const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409;
-        if (is409) {
-          navigate(resultUrl);
-        }
+      } else if (is409) {
+        navigate(resultUrl);
       }
     } finally {
-      setIsSubmitting(false);
+      if (activeAttemptIdRef.current === currentSubmitAttemptId) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -442,7 +516,7 @@ const WorkspacePage: React.FC = () => {
           ...savedAnswers.reduce((acc, curr) => ({ ...acc, [(curr as any).questionId ?? (curr as any).question_id]: curr.answer }), {}),
           ...reduxAnswers
         };
-        
+
         const qs = Array.isArray(p.questions) ? p.questions : (p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) || []);
         for (const q of qs) {
           const qId = q.question_id ?? q.id;
@@ -508,7 +582,7 @@ const WorkspacePage: React.FC = () => {
 
         {/* Right: Save Status & Live Timer */}
         <div className="flex items-center gap-3 shrink-0">
-          <SaveStatusBadge />
+          <SaveStatusBadge onReload={retry} />
           <TimerDisplay displayTime={displayTime} isExpired={isExpired} isPractice={isPractice} />
         </div>
       </header>
@@ -756,12 +830,12 @@ const WorkspacePage: React.FC = () => {
                 const partsInSection = currentSection.parts || [];
                 if (partsInSection.length === 0) return null;
                 const lastPartId = (partsInSection[partsInSection.length - 1] as any).part_id ?? partsInSection[partsInSection.length - 1].id;
-                
+
                 if (partId === lastPartId) {
                   // Find next section's first part
                   const sIdx = workspace.exam_snapshot.sections.findIndex(s => ((s as any).section_id ?? s.id) === ((currentSection as any).section_id ?? currentSection.id));
                   const nextSection = sIdx !== -1 && sIdx + 1 < workspace.exam_snapshot.sections.length ? workspace.exam_snapshot.sections[sIdx + 1] : null;
-                  
+
                   if (nextSection && nextSection.parts?.length > 0) {
                     const firstPartOfNext = (nextSection.parts[0] as any).part_id ?? nextSection.parts[0].id;
                     return (

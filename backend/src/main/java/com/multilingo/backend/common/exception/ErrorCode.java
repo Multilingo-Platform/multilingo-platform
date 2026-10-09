@@ -67,7 +67,10 @@ public enum ErrorCode {
     PLAN_DURATION_REQUIRED(1505, HttpStatus.BAD_REQUEST, "Thời hạn không được để trống"),
     PLAN_DURATION_MIN(1506, HttpStatus.BAD_REQUEST, "Thời hạn phải lớn hơn 0"),
     PLAN_CODE_EXISTED(1507, HttpStatus.CONFLICT, "Mã gói đã tồn tại"),
-    PLAN_NOT_FOUND(1508, HttpStatus.NOT_FOUND, "Không tìm thấy gói cước yêu cầu");
+    PLAN_NOT_FOUND(1508, HttpStatus.NOT_FOUND, "Không tìm thấy gói cước yêu cầu"),
+
+    // Testing & Attempts (16xx)
+    VERSION_CONFLICT(1601, HttpStatus.CONFLICT, "Phiên bản bài làm không khớp hoặc đã có thay đổi mới");
 
     private final int code;
     private final HttpStatus httpStatus;

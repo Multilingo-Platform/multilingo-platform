@@ -558,7 +558,7 @@ describe('WorkspacePage', () => {
 
 describe('WorkspacePage submit flow', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.mocked(workspaceHookModule.default).mockReturnValue({
       workspace: baseWorkspace,
       loading: false,
@@ -568,7 +568,7 @@ describe('WorkspacePage submit flow', () => {
   });
 
   it('flushes dirty answers to server before submitting', async () => {
-    const mockAutoSave = vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce(undefined);
+    const mockAutoSave = vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 2 } as any);
     const mockSubmit = vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
       attempt_id: 99,
       status: 'COMPLETED',
@@ -600,7 +600,6 @@ describe('WorkspacePage submit flow', () => {
   });
 
   it('does NOT call autosave before submit when isDirty=false', async () => {
-    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce(undefined);
     vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
       attempt_id: 99,
       status: 'COMPLETED',
@@ -621,7 +620,7 @@ describe('WorkspacePage submit flow', () => {
   });
 
   it('removes localStorage draft after successful submit', async () => {
-    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce(undefined);
+    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 2 });
     vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
       attempt_id: 99,
       status: 'COMPLETED',
@@ -739,5 +738,234 @@ describe('WorkspacePage submit flow', () => {
     renderPage(makeStore());
 
     expect(screen.getByText(/0 \/ 100 từ/i)).toBeDefined();
+  });
+});
+
+
+describe('WorkspacePage TV3-06 Server-Authoritative Autosave & Pre-Submit', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    localStorage.clear();
+    vi.mocked(workspaceHookModule.default).mockReturnValue({
+      workspace: baseWorkspace as any,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    });
+  });
+
+  it('serializes pre-submit flush with background autosave to avoid overlapping requests with the same version', async () => {
+    const store = makeStore(true);
+    // Simulate background autosave is in flight
+    store.dispatch({ type: 'answers/markSavePending', payload: 1 });
+
+    renderPage(store);
+
+    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
+    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
+
+    // Submit handler should wait while saveStatus === 'saving'
+    await new Promise(r => setTimeout(r, 150));
+    expect(vi.mocked(attemptApi.autosaveAnswers)).not.toHaveBeenCalled();
+
+    // User made an edit during background save, so isDirty remains true when background completes
+    store.dispatch({
+      type: 'answers/setAnswer',
+      payload: { partId: 1, questionId: 'q2', value: 'B' },
+    });
+
+    // Mock direct flush and submit responses
+    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 3 });
+    const mockSubmit = vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
+      attempt_id: 99,
+      status: 'COMPLETED',
+      redirect_url: '/attempts/99/result',
+    });
+
+    // Background autosave completes with serverVersion: 2
+    store.dispatch({
+      type: 'answers/markSaveSuccess',
+      payload: { savedAt: Date.now(), pendingVersion: 1, serverVersion: 2 },
+    });
+
+    // Submit handler exits loop, reads state.version = 2, and flushes with version 2
+    await waitFor(() => {
+      expect(vi.mocked(attemptApi.autosaveAnswers)).toHaveBeenCalledWith(
+        99,
+        expect.objectContaining({ version: 2 })
+      );
+    });
+
+    // Submit should use the updated server version 3 from direct flush
+    await waitFor(() => {
+      expect(mockSubmit).toHaveBeenCalledWith(
+        99,
+        expect.objectContaining({ version: 3, baseVersion: 3 })
+      );
+    });
+  });
+
+  it('handles 1601 Version Conflict from direct flush without navigating to result page', async () => {
+    const conflictError = Object.assign(new Error('Conflict'), {
+      response: { data: { code: 1601 } },
+    });
+    vi.mocked(attemptApi.autosaveAnswers).mockRejectedValueOnce(conflictError);
+    const mockSubmit = vi.mocked(attemptApi.submitAttempt);
+
+    const store = makeStore(true);
+    renderPage(store);
+
+    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
+    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
+
+    // SaveStatus must transition to conflict
+    await waitFor(() => {
+      expect(store.getState().answers.saveStatus).toBe('conflict');
+    });
+
+    // SubmitAttempt must NOT have been called
+    expect(mockSubmit).not.toHaveBeenCalled();
+    // isDirty must remain true
+    expect(store.getState().answers.isDirty).toBe(true);
+    // Overlay must be closed so user can view conflict badge
+    expect(screen.queryByTestId('submit-overlay')).not.toBeInTheDocument();
+  });
+
+  it('releases saving status to error when direct flush fails on network error and allows retry', async () => {
+    vi.mocked(attemptApi.autosaveAnswers).mockRejectedValueOnce(new Error('Network offline'));
+    const mockSubmit = vi.mocked(attemptApi.submitAttempt);
+
+    const store = makeStore(true);
+    renderPage(store);
+
+    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
+    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
+
+    // SaveStatus must transition to error, NOT left in saving
+    await waitFor(() => {
+      expect(store.getState().answers.saveStatus).toBe('error');
+    });
+
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(store.getState().answers.isDirty).toBe(true);
+    // Draft saved to localStorage
+    expect(localStorage.getItem('exam_draft_99')).not.toBeNull();
+
+    // Submit overlay displays retry button
+    const retryBtn = screen.getByRole('button', { name: /thử nộp lại/i });
+    expect(retryBtn).toBeInTheDocument();
+
+    // Mock retry success
+    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 2 });
+    mockSubmit.mockResolvedValueOnce({
+      attempt_id: 99,
+      status: 'COMPLETED',
+      redirect_url: '/attempts/99/result',
+    });
+
+    // Click retry
+    fireEvent.click(retryBtn);
+
+    // Direct flush should run again and submit should succeed
+    await waitFor(() => {
+      expect(vi.mocked(attemptApi.autosaveAnswers)).toHaveBeenCalledTimes(2);
+      expect(mockSubmit).toHaveBeenCalledWith(
+        99,
+        expect.objectContaining({ version: 2, baseVersion: 2 })
+      );
+    });
+  });
+
+  it('releases saving status to error when direct flush fails due to invalid response', async () => {
+    vi.mocked(attemptApi.autosaveAnswers).mockRejectedValueOnce(
+      new Error('Invalid version response: NaN')
+    );
+
+    const store = makeStore(true);
+    renderPage(store);
+
+    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
+    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
+
+    await waitFor(() => {
+      expect(store.getState().answers.saveStatus).toBe('error');
+    });
+
+    expect(vi.mocked(attemptApi.submitAttempt)).not.toHaveBeenCalled();
+    expect(store.getState().answers.isDirty).toBe(true);
+  });
+
+  it('preserves newly synced server version in Redux store when submitAttempt fails', async () => {
+    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 5 });
+    vi.mocked(attemptApi.submitAttempt).mockRejectedValueOnce(new Error('Submit 500 error'));
+
+    const store = makeStore(true);
+    renderPage(store);
+
+    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
+    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
+
+    // Redux store version must be updated to 5 from flush response even though submit failed
+    await waitFor(() => {
+      expect(store.getState().answers.version).toBe(5);
+    });
+    expect(store.getState().answers.saveStatus).toBe('saved');
+  });
+
+  it('passes retry callback from useWorkspace to SaveStatusBadge', () => {
+    const mockRetry = vi.fn();
+    vi.mocked(workspaceHookModule.default).mockReturnValue({
+      workspace: baseWorkspace as any,
+      loading: false,
+      error: null,
+      retry: mockRetry,
+    });
+
+    const store = makeStore(false);
+    store.dispatch({ type: 'answers/markSaveConflict' });
+
+    renderPage(store);
+
+    const reloadBtn = screen.getByRole('button', { name: /tải lại bản mới nhất/i });
+    expect(reloadBtn).toBeInTheDocument();
+    fireEvent.click(reloadBtn);
+    expect(mockRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('pre-submit flush ignores delayed response if component unmounts before completion', async () => {
+    let resolveFlush: (val: any) => void = () => {};
+    const deferredFlush = new Promise(resolve => {
+      resolveFlush = resolve;
+    });
+
+    vi.mocked(attemptApi.autosaveAnswers).mockReturnValueOnce(deferredFlush as any);
+    const mockSubmit = vi.mocked(attemptApi.submitAttempt);
+
+    const store = makeStore(true);
+    const view = renderPage(store);
+
+    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
+    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
+
+    // Wait for autosaveAnswers to be called
+    await waitFor(() => {
+      expect(vi.mocked(attemptApi.autosaveAnswers)).toHaveBeenCalledTimes(1);
+    });
+
+    // Unmount before flush resolves
+    view.unmount();
+
+    // Now resolve flush
+    resolveFlush({ version: 2 });
+    await new Promise(r => setTimeout(r, 100));
+
+    // submitAttempt should not be called after unmount
+    expect(mockSubmit).not.toHaveBeenCalled();
   });
 });

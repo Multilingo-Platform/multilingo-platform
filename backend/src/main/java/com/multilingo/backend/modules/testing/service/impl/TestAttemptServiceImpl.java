@@ -10,6 +10,7 @@ import com.multilingo.backend.modules.testing.adapter.dto.PartFixture;
 import com.multilingo.backend.modules.testing.adapter.dto.SectionFixture;
 import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.modules.testing.dto.response.AutosaveVersionResponse;
 import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
@@ -135,9 +136,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
     @Override
     @Transactional
-    public void autosaveAnswers(Integer attemptId, AutosaveAnswersRequest request) {
+    public AutosaveVersionResponse autosaveAnswers(Integer attemptId, AutosaveAnswersRequest request) {
         Integer userId = identityAdapter.getCurrentUserId();
-        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserIdForUpdate(attemptId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
                         "Attempt not found or access denied: " + attemptId));
 
@@ -149,9 +150,23 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             throw new AppException(ErrorCode.ATTEMPT_EXPIRED);
         }
 
-        if (request != null && request.getAnswers() != null) {
+        Integer currentVersion = attempt.getVersion() != null ? attempt.getVersion() : 1;
+        if (request == null || request.getVersion() == null || !request.getVersion().equals(currentVersion)) {
+            throw new AppException(ErrorCode.VERSION_CONFLICT,
+                    "Version conflict: current attempt version is " + currentVersion);
+        }
+
+        if (request.getAnswers() != null && !request.getAnswers().isEmpty()) {
             saveAnswersInternal(attempt, request.getAnswers());
         }
+
+        int newVersion = currentVersion + 1;
+        attempt.setVersion(newVersion);
+        testAttemptRepository.save(attempt);
+
+        return AutosaveVersionResponse.builder()
+                .version(newVersion)
+                .build();
     }
 
     @Override

@@ -11,13 +11,38 @@ const mockAxios = axiosClientModule.default as any;
 describe('autosaveAnswers', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('calls PUT /v1/attempts/:id/answers with correct payload', async () => {
-    mockAxios.put.mockResolvedValueOnce({ success: true, data: null });
-    await autosaveAnswers(42, { version: 3, answers: [] });
+  it('calls PUT /v1/attempts/:id/answers and returns unwrapped AutosaveResponse', async () => {
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: { version: 4 } });
+    const result = await autosaveAnswers(42, { version: 3, answers: [] });
     expect(mockAxios.put).toHaveBeenCalledWith('/v1/attempts/42/answers', {
       version: 3,
       answers: [],
     });
+    expect(result).toEqual({ version: 4 });
+  });
+
+  it('rejects when response data is missing or version is not an integer', async () => {
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: null });
+    await expect(autosaveAnswers(42, { version: 1, answers: [] })).rejects.toThrow();
+
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: {} });
+    await expect(autosaveAnswers(42, { version: 1, answers: [] })).rejects.toThrow();
+
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: { version: 'invalid' } });
+    await expect(autosaveAnswers(42, { version: 1, answers: [] })).rejects.toThrow();
+
+    // Out of range, negative, or zero
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: { version: 0 } });
+    await expect(autosaveAnswers(42, { version: 1, answers: [] })).rejects.toThrow();
+
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: { version: -1 } });
+    await expect(autosaveAnswers(42, { version: 1, answers: [] })).rejects.toThrow();
+
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: { version: 2147483648 } }); // > Java Integer.MAX_VALUE
+    await expect(autosaveAnswers(42, { version: 1, answers: [] })).rejects.toThrow();
+
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: { version: Number.MAX_SAFE_INTEGER + 1 } });
+    await expect(autosaveAnswers(42, { version: 1, answers: [] })).rejects.toThrow();
   });
 
   it('throws when API returns success=false', async () => {

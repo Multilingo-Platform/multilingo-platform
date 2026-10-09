@@ -2,6 +2,7 @@ import axiosClient from '../../../core/api/axiosClient';
 import type {
   ApiResponse,
   AutosaveRequest,
+  AutosaveResponse,
   CreateAttemptRequest,
   SubmitResult,
   WorkspaceResponse,
@@ -82,14 +83,25 @@ export async function getWorkspace(attemptId: number): Promise<WorkspaceResponse
  * PUT /api/v1/attempts/:id/answers
  * Autosave draft answers. Called by useAutosave hook every 15s when isDirty=true.
  */
-export async function autosaveAnswers(attemptId: number, req: AutosaveRequest): Promise<void> {
-  const res = await axiosClient.put<unknown, ApiResponse<null>>(
+export async function autosaveAnswers(
+  attemptId: number,
+  req: AutosaveRequest
+): Promise<AutosaveResponse> {
+  const res = await axiosClient.put<unknown, ApiResponse<AutosaveResponse>>(
     `/v1/attempts/${attemptId}/answers`,
     { version: req.version, answers: req.answers }
   );
-  if (!res.success) {
-    throw new Error(res.message || 'Autosave failed');
+  if (
+    !res.success ||
+    !res.data ||
+    typeof res.data.version !== 'number' ||
+    !Number.isSafeInteger(res.data.version) ||
+    res.data.version <= 0 ||
+    res.data.version > 2147483647
+  ) {
+    throw new Error(res.message || 'Invalid autosave response: missing version');
   }
+  return res.data;
 }
 
 export interface SubmitAttemptApiRequest {

@@ -41,6 +41,10 @@ export interface AutosaveRequest {
   answers: PartAnswers[];
 }
 
+export interface AutosaveResponse {
+  version: number;
+}
+
 export interface SubmitResult {
   attempt_id: number;
   status: 'COMPLETED' | 'AI_GRADING';
