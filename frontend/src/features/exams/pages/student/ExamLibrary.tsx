@@ -184,7 +184,7 @@ const ExamLibrary = () => {
               <select className="input-field" value={selectedCert} onChange={(e) => handleCertChange(e.target.value)} style={{ borderRadius: 'var(--radius-md)', width: '100%', padding: '0.75rem' }}>
                  <option value="">{t('library.filters.all', 'Tất cả chứng chỉ')}</option>
                  {CERTIFICATES.map(c => (
-                   <option key={c.value} value={c.value}>{t(c.labelKey, c.labelDefault)}</option>
+                   <option key={c.value} value={c.value}>{t(c.labelKey, c.labelDefault) as string}</option>
                  ))}
               </select>
             </div>
@@ -197,7 +197,7 @@ const ExamLibrary = () => {
                 <select className="input-field" value={selectedSkill} onChange={(e) => handleSkillChange(e.target.value)} style={{ borderRadius: 'var(--radius-md)', width: '100%', padding: '0.75rem' }}>
                    <option value="">{t('library.filters.all_skills', 'Tất cả kỹ năng (Full Test & Parts)')}</option>
                    {SKILLS_MAP[selectedCert].map(s => (
-                     <option key={s.value} value={s.value}>{t(s.labelKey, s.labelDefault)}</option>
+                     <option key={s.value} value={s.value}>{t(s.labelKey, s.labelDefault) as string}</option>
                    ))}
                 </select>
               </div>
@@ -308,7 +308,7 @@ const ExamLibrary = () => {
 
                   {/* Tags */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
-                    {exam.tags.map(tag => (
+                    {exam.tags.map((tag: string) => (
                       <span key={tag} style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', borderRadius: '4px' }}>{tag}</span>
                     ))}
                   </div>
