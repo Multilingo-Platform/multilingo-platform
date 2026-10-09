@@ -95,5 +95,57 @@
     "account_type": "Account Type",
     "pro_badge": "PREMIUM",
     "free_badge": "FREE"
+  },
+  "library": {
+    "hero": {
+      "title": "Exam Library",
+      "subtitle": "Thousands of standardized exams for IELTS, TOEIC, and Vietnamese Proficiency (NLTV). Practice today to achieve your goals."
+    },
+    "filters": {
+      "title": "Filter Exams",
+      "search": "SEARCH",
+      "searchPlaceholder": "Enter exam name...",
+      "cert_title": "1. SELECT CERTIFICATE",
+      "all": "All Certificates",
+      "cert": {
+        "ielts": "IELTS",
+        "toeic": "TOEIC",
+        "nltv": "Vietnamese Proficiency (NLTV)"
+      },
+      "skill_title": "2. SELECT SKILL",
+      "all_skills": "All Skills (Full Test & Parts)",
+      "skills": {
+        "listening": "Listening",
+        "reading": "Reading",
+        "writing": "Writing"
+      },
+      "part_title": "3. SELECT PART",
+      "all_parts": "All Parts",
+      "apply": "Apply Filters",
+      "clear": "Clear Filters"
+    },
+    "results": {
+      "showing": "Showing",
+      "results": "results"
+    },
+    "sort": {
+      "newest": "Newest",
+      "popular": "Most Popular"
+    },
+    "status": {
+      "loading": "Loading exams...",
+      "empty": "No matching exams found."
+    },
+    "card": {
+      "minutes": "mins",
+      "attempts": "attempts",
+      "takeExam": "Take Exam",
+      "partsCount": "parts"
+    },
+    "pagination": {
+      "prev": "Previous",
+      "page": "Page",
+      "next": "Next"
+    }
   }
 }
