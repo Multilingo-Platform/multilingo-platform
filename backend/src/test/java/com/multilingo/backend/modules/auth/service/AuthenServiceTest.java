@@ -46,6 +46,9 @@ class AuthenServiceTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
+    @Mock
+    private com.multilingo.backend.modules.auth.repository.RefreshTokenRepository refreshTokenRepository;
+
     @InjectMocks
     private AuthenServiceImpl authenService;
 
@@ -66,6 +69,7 @@ class AuthenServiceTest {
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches("password", "hashedPassword")).thenReturn(true);
         when(jwtTokenProvider.generateToken(mockUser)).thenReturn("mockJwtToken");
+        when(refreshTokenRepository.save(any(com.multilingo.backend.modules.auth.entity.RefreshToken.class))).thenReturn(null);
 
         // Act
         AuthenticationResponse response = authenService.login(request);
@@ -73,9 +77,11 @@ class AuthenServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals("mockJwtToken", response.getAccessToken());
+        assertNotNull(response.getRefreshToken());
         verify(userRepository).findByEmail("test@gmail.com");
         verify(passwordEncoder).matches("password", "hashedPassword");
         verify(jwtTokenProvider).generateToken(mockUser);
+        verify(refreshTokenRepository).save(any(com.multilingo.backend.modules.auth.entity.RefreshToken.class));
     }
 
     @Test
@@ -110,11 +116,16 @@ class AuthenServiceTest {
         when(jwtTokenProvider.getJtiFromJWT("mockToken")).thenReturn("mockJti");
         when(jwtTokenProvider.getExpirationFromJWT("mockToken")).thenReturn(new Date(System.currentTimeMillis() + 10000));
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        
+        when(jwtTokenProvider.getEmailFromJWT("mockToken")).thenReturn("test@gmail.com");
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
+        when(refreshTokenRepository.revokeAllUserTokens(mockUser)).thenReturn(1);
 
         // Act
         authenService.logout(request);
 
         // Assert
         verify(valueOperations).set(eq("BLACKLIST_TOKEN:mockJti"), eq("invalid"), anyLong(), eq(TimeUnit.MILLISECONDS));
+        verify(refreshTokenRepository).revokeAllUserTokens(mockUser);
     }
 }
