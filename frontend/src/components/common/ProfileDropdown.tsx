@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Globe } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
+import { useMutation } from '@tanstack/react-query';
 import { logout } from '../../features/auth/store/authSlice';
 import { authApi } from '../../features/auth/api/authApi';
 import { alertUtil } from '../../utils/alert';
@@ -15,12 +15,8 @@ const ProfileDropdown = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  const { data: myInfoResponse } = useQuery({
-    queryKey: ['myInfo'],
-    queryFn: () => authApi.getMyInfo()
-  });
-
-  const myInfo = myInfoResponse?.data;
+  const { user: myInfo } = useSelector((state: any) => state.auth);
+  
   const avatarLetter = myInfo?.fullName ? myInfo.fullName.charAt(0).toUpperCase() : 'U';
 
   useEffect(() => {

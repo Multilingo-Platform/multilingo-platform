@@ -19,12 +19,17 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional
 public class AuthenServiceImpl implements AuthenService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final StringRedisTemplate stringRedisTemplate;
+    private final com.multilingo.backend.modules.auth.repository.RefreshTokenRepository refreshTokenRepository;
+
+    @org.springframework.beans.factory.annotation.Value("${app.jwt.refresh-expiration-ms:604800000}")
+    private long refreshTokenExpirationMs;
 
     @Override
     public AuthenticationResponse login(LoginRequest request) {
@@ -36,9 +41,20 @@ public class AuthenServiceImpl implements AuthenService {
         }
 
         String token = jwtTokenProvider.generateToken(user);
+        
+        // Generate Refresh Token
+        String refreshTokenString = java.util.UUID.randomUUID().toString();
+        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = com.multilingo.backend.modules.auth.entity.RefreshToken.builder()
+                .user(user)
+                .token(refreshTokenString)
+                .expiresAt(java.time.Instant.now().plusMillis(refreshTokenExpirationMs))
+                .isRevoked(false)
+                .build();
+        refreshTokenRepository.save(refreshToken);
 
         return AuthenticationResponse.builder()
                 .accessToken(token)
+                .refreshToken(refreshTokenString)
                 .build();
     }
 
@@ -53,6 +69,33 @@ public class AuthenServiceImpl implements AuthenService {
             if (ttl > 0) {
                 stringRedisTemplate.opsForValue().set("BLACKLIST_TOKEN:" + jti, "invalid", ttl, TimeUnit.MILLISECONDS);
             }
+            
+            // Revoke all refresh tokens for this user
+            String email = jwtTokenProvider.getEmailFromJWT(token);
+            userRepository.findByEmail(email).ifPresent(user -> {
+                refreshTokenRepository.revokeAllUserTokens(user);
+            });
         }
+    }
+
+    @Override
+    public AuthenticationResponse refreshToken(String refreshTokenString) {
+        if (refreshTokenString == null || refreshTokenString.isEmpty()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenString)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
+
+        if (refreshToken.getIsRevoked() || refreshToken.getExpiresAt().isBefore(java.time.Instant.now())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        User user = refreshToken.getUser();
+        String newAccessToken = jwtTokenProvider.generateToken(user);
+
+        return AuthenticationResponse.builder()
+                .accessToken(newAccessToken)
+                .build();
     }
 }

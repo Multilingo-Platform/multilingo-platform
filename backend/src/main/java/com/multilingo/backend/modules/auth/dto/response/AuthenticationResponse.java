@@ -1,5 +1,6 @@
 package com.multilingo.backend.modules.auth.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,5 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AuthenticationResponse {
     private String accessToken;
-    // We will add refreshToken later if needed by UC
+    
+    @JsonIgnore
+    private String refreshToken;
 }
