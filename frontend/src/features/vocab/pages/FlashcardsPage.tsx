@@ -13,9 +13,9 @@ import { DeckDetailView } from '../components/deck/DeckDetailView';
 import { DeckModal } from '../components/deck/DeckModal';
 import { CardModal } from '../components/card/CardModal';
 
-// Tạm thời kết nối với các chế độ học tập hiện có trong khi chuẩn bị nâng cấp ở Chặng 2, 3, 4
+// Chặng 2: Sử dụng SrsStudyView chuẩn mới trong features/vocab/modes/srs/
 const SrsStudyView = lazy(() =>
-  import('../../../components/vocab/SrsStudyView').then((m) => ({ default: m.SrsStudyView }))
+  import('../modes/srs/SrsStudyView').then((m) => ({ default: m.SrsStudyView }))
 );
 const QuizPracticeView = lazy(() =>
   import('../../../components/vocab/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
@@ -340,12 +340,13 @@ export const FlashcardsPage: React.FC = () => {
         selectedDeck ? (
           <Suspense fallback={<div className="p-12 text-center text-slate-600 font-semibold">Đang tải phòng ôn tập...</div>}>
             <SrsStudyView
-              deck={selectedDeck as unknown as import('../../../types/vocab').DeckSummary}
-              cards={cards as unknown as import('../../../types/vocab').Flashcard[]}
-              onBack={() => setSearchParams({ deckId: String(selectedDeck.id) })}
-              onFinish={() => {
+              deck={selectedDeck}
+              onBack={() => {
                 fetchDecks();
                 setSearchParams({ deckId: String(selectedDeck.id) });
+              }}
+              onFinish={() => {
+                fetchDecks();
               }}
             />
           </Suspense>
