@@ -21,18 +21,18 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div
-      className={`flex flex-col items-center justify-center p-8 text-center bg-card rounded-2xl border border-dashed border-border ${className}`}
+      className={`flex flex-col items-center justify-center p-8 text-center bg-white rounded-lg border border-dashed border-slate-300 ${className}`}
     >
-      <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mb-4 shadow-inner">
-        <Icon className="w-8 h-8" />
+      <div className="w-14 h-14 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200">
+        <Icon className="w-7 h-7" />
       </div>
-      <h3 className="text-lg font-semibold text-foreground mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-md mb-6">{description}</p>
+      <h3 className="text-lg font-bold text-slate-900 mb-1">{title}</h3>
+      <p className="text-sm text-slate-600 max-w-md mb-6 font-medium">{description}</p>
       {actionText && onAction && (
         <button
           type="button"
           onClick={onAction}
-          className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-medium text-sm text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          className="inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20"
         >
           {actionText}
         </button>

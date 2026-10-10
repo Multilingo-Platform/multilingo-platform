@@ -51,8 +51,8 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({
       className={`inline-flex items-center justify-center rounded-full transition-all duration-200 
         ${
           isSpeaking
-            ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400 scale-110 shadow-sm animate-pulse'
-            : 'text-slate-500 hover:text-amber-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-amber-400 dark:hover:bg-slate-800'
+            ? 'bg-amber-100 text-amber-600 scale-110 shadow-sm animate-pulse'
+            : 'text-slate-500 hover:text-amber-600 hover:bg-slate-100'
         } ${sizeClasses} ${className}`}
     >
       <Volume2 size={iconSizes} className={isSpeaking ? 'animate-bounce' : ''} />
