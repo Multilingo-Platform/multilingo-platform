@@ -19,8 +19,11 @@ desktop.ini
 **/build/
 *.log
 *.tmp
+**/.mvn/jvm.config
 
 # Environment Files
 .env
 .env.local
 .env.*.local
+**/application-local.properties
+**/application-local.yml
