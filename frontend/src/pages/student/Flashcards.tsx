@@ -16,7 +16,7 @@ import { ConfirmDeleteDeckModal } from '../../components/vocab/ConfirmDeleteDeck
 
 // Code-splitting Lazy Loading cho các chế độ học tập nâng cao để tối ưu kích thước bundle ban đầu
 const QuizPracticeView = lazy(() =>
-  import('../../components/vocab/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
+  import('../../features/vocab/modes/quiz/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
 );
 const VocabTestView = lazy(() =>
   import('../../components/vocab/VocabTestView').then((m) => ({ default: m.VocabTestView }))

@@ -17,8 +17,9 @@ import { CardModal } from '../components/card/CardModal';
 const SrsStudyView = lazy(() =>
   import('../modes/srs/SrsStudyView').then((m) => ({ default: m.SrsStudyView }))
 );
+// Chặng 3 (UC012.4): Sử dụng QuizPracticeView chuẩn mới trong features/vocab/modes/quiz/
 const QuizPracticeView = lazy(() =>
-  import('../../../components/vocab/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
+  import('../modes/quiz/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
 );
 const VocabTestView = lazy(() =>
   import('../../../components/vocab/VocabTestView').then((m) => ({ default: m.VocabTestView }))
@@ -360,9 +361,12 @@ export const FlashcardsPage: React.FC = () => {
         selectedDeck ? (
           <Suspense fallback={<div className="p-12 text-center text-slate-600 font-semibold">Đang tải phòng luyện tập...</div>}>
             <QuizPracticeView
-              deck={selectedDeck as unknown as import('../../../types/vocab').DeckSummary}
-              cards={cards as unknown as import('../../../types/vocab').Flashcard[]}
+              deck={selectedDeck}
+              cards={cards}
               onBack={() => setSearchParams({ deckId: String(selectedDeck.id) })}
+              onFinish={() => {
+                fetchDecks();
+              }}
             />
           </Suspense>
         ) : (
