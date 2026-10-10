@@ -86,12 +86,13 @@ class TestAttemptWorkspaceResponseTest {
     }
 
     @Test
-    void getAttemptWorkspace_returns_persisted_version_and_saved_answers() {
+    void getAttemptWorkspace_returns_persisted_version_and_saved_answers_using_locked_query() {
         TestAttempt attempt = TestAttempt.builder()
                 .userId(7)
                 .examId(1)
                 .testScope(TestScope.FULL_EXAM)
                 .testMode(TestMode.PRACTICE)
+                .status(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.IN_PROGRESS)
                 .startTime(Instant.parse("2026-10-09T00:00:00Z"))
                 .examSnapshot(Map.of("id", 1))
                 .version(7)
@@ -105,7 +106,7 @@ class TestAttemptWorkspaceResponseTest {
                 .partId(11)
                 .userAnswers(userAnswers)
                 .build();
-        when(testAttemptRepository.findByIdAndUserId(202, 7)).thenReturn(Optional.of(attempt));
+        when(testAttemptRepository.findByIdAndUserIdForUpdate(202, 7)).thenReturn(Optional.of(attempt));
         when(attemptAnswerRepository.findByAttemptId(202)).thenReturn(List.of(saved));
 
         WorkspaceResponse response = service.getAttemptWorkspace(202);
@@ -118,6 +119,112 @@ class TestAttemptWorkspaceResponseTest {
                             AutosaveAnswersRequest.QuestionAnswerDto::getAnswer)
                     .containsExactly(tuple("q_1", "A"), tuple("q_2", List.of("B", "C")));
         });
+        org.mockito.Mockito.verify(testAttemptRepository).findByIdAndUserIdForUpdate(202, 7);
+        org.mockito.Mockito.verify(testAttemptRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void getAttemptWorkspace_mock_test_before_grace_remains_in_progress() {
+        Instant fixedNow = Instant.parse("2026-10-10T12:00:00Z");
+        Instant deadline = fixedNow.minusSeconds(15).plusMillis(1); // 1ms before grace threshold expires
+
+        try (org.mockito.MockedStatic<Instant> mockedInstant = org.mockito.Mockito.mockStatic(Instant.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            mockedInstant.when(Instant::now).thenReturn(fixedNow);
+
+            TestAttempt attempt = TestAttempt.builder()
+                    .userId(7)
+                    .examId(1)
+                    .testScope(TestScope.FULL_EXAM)
+                    .testMode(TestMode.MOCK_TEST)
+                    .status(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.IN_PROGRESS)
+                    .startTime(fixedNow.minusSeconds(3600))
+                    .deadline(deadline)
+                    .examSnapshot(Map.of("id", 1))
+                    .version(3)
+                    .build();
+            attempt.setId(301);
+
+            when(testAttemptRepository.findByIdAndUserIdForUpdate(301, 7)).thenReturn(Optional.of(attempt));
+            when(attemptAnswerRepository.findByAttemptId(301)).thenReturn(List.of());
+
+            WorkspaceResponse response = service.getAttemptWorkspace(301);
+
+            assertThat(response.getStatus()).isEqualTo(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.IN_PROGRESS);
+            org.mockito.Mockito.verify(testAttemptRepository, org.mockito.Mockito.never()).save(any());
+            org.mockito.Mockito.verifyNoInteractions(gradingService);
+        }
+    }
+
+    @Test
+    void getAttemptWorkspace_mock_test_at_exact_grace_boundary_remains_in_progress() {
+        Instant fixedNow = Instant.parse("2026-10-10T12:00:00Z");
+        Instant deadline = fixedNow.minusSeconds(15); // exactly at grace threshold (now.isAfter is false)
+
+        try (org.mockito.MockedStatic<Instant> mockedInstant = org.mockito.Mockito.mockStatic(Instant.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            mockedInstant.when(Instant::now).thenReturn(fixedNow);
+
+            TestAttempt attempt = TestAttempt.builder()
+                    .userId(7)
+                    .examId(1)
+                    .testScope(TestScope.FULL_EXAM)
+                    .testMode(TestMode.MOCK_TEST)
+                    .status(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.IN_PROGRESS)
+                    .startTime(fixedNow.minusSeconds(3600))
+                    .deadline(deadline)
+                    .examSnapshot(Map.of("id", 1))
+                    .version(3)
+                    .build();
+            attempt.setId(302);
+
+            when(testAttemptRepository.findByIdAndUserIdForUpdate(302, 7)).thenReturn(Optional.of(attempt));
+            when(attemptAnswerRepository.findByAttemptId(302)).thenReturn(List.of());
+
+            WorkspaceResponse response = service.getAttemptWorkspace(302);
+
+            assertThat(response.getStatus()).isEqualTo(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.IN_PROGRESS);
+            org.mockito.Mockito.verify(testAttemptRepository, org.mockito.Mockito.never()).save(any());
+            org.mockito.Mockito.verifyNoInteractions(gradingService);
+        }
+    }
+
+    @Test
+    void getAttemptWorkspace_mock_test_past_grace_finalizes_inline_once() {
+        Instant fixedNow = Instant.parse("2026-10-10T12:00:00Z");
+        Instant deadline = fixedNow.minusSeconds(15).minusMillis(1); // 1ms past grace threshold
+
+        try (org.mockito.MockedStatic<Instant> mockedInstant = org.mockito.Mockito.mockStatic(Instant.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            mockedInstant.when(Instant::now).thenReturn(fixedNow);
+
+            TestAttempt attempt = TestAttempt.builder()
+                    .userId(7)
+                    .examId(1)
+                    .testScope(TestScope.FULL_EXAM)
+                    .testMode(TestMode.MOCK_TEST)
+                    .status(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.IN_PROGRESS)
+                    .startTime(fixedNow.minusSeconds(3600))
+                    .deadline(deadline)
+                    .examSnapshot(Map.of("id", 1))
+                    .version(3)
+                    .build();
+            attempt.setId(303);
+
+            when(testAttemptRepository.findByIdAndUserIdForUpdate(303, 7)).thenReturn(Optional.of(attempt));
+            when(attemptAnswerRepository.findByAttemptId(303)).thenReturn(List.of());
+            when(gradingAdapter.loadPartKeys(1)).thenReturn(Map.of());
+            when(gradingService.gradeAttempt(any(), any())).thenReturn(
+                    com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
+                            .totalScore(java.math.BigDecimal.ZERO)
+                            .partResults(Map.of())
+                            .sectionScores(Map.of())
+                            .build()
+            );
+
+            WorkspaceResponse response = service.getAttemptWorkspace(303);
+
+            assertThat(response.getStatus()).isEqualTo(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.COMPLETED);
+            org.mockito.Mockito.verify(gradingService).gradeAttempt(any(), any());
+            org.mockito.Mockito.verify(testAttemptRepository, org.mockito.Mockito.atLeastOnce()).save(attempt);
+        }
     }
 
     private CreateAttemptRequest createRequest() {

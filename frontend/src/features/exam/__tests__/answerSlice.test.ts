@@ -217,5 +217,49 @@ describe('answerSlice', () => {
 
       expect(state.highlights['p1'].items).toHaveLength(0);
     });
+
+    it('setAttemptContext resets lastSavedAt to null and hydration fields', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      state = reducer(state, markSaveSuccess({ savedAt: 2000, pendingVersion: 0, serverVersion: 1 }));
+      expect(state.lastSavedAt).toBe(2000);
+
+      state = reducer(state, setAttemptContext({ attemptId: 5, version: 2, savedAnswers: [] }));
+      expect(state.lastSavedAt).toBeNull();
+      expect(state.isDirty).toBe(false);
+      expect(state.saveStatus).toBe('idle');
+      expect(state.pendingVersion).toBe(0);
+    });
+
+    it('setAttemptContext resets flags and highlights when switching to a different attemptId', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      state = reducer(state, toggleFlag({ partId: 1, questionId: 'q_1' }));
+      state = reducer(state, addHighlightRecord({
+        passageId: 'p1',
+        contentHash: 'hash1',
+        highlight: { id: 'h1', start: 0, end: 5, text: 'hello' },
+      }));
+      expect(state.flags[1]?.['q_1']).toBe(true);
+      expect(state.highlights['p1']?.items).toHaveLength(1);
+
+      // Switch to different attemptId 6
+      state = reducer(state, setAttemptContext({ attemptId: 6, version: 1, savedAnswers: [] }));
+      expect(state.flags).toEqual({});
+      expect(state.highlights).toEqual({});
+    });
+
+    it('setAttemptContext preserves flags and highlights when rehydrating the same attemptId', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      state = reducer(state, toggleFlag({ partId: 1, questionId: 'q_1' }));
+      state = reducer(state, addHighlightRecord({
+        passageId: 'p1',
+        contentHash: 'hash1',
+        highlight: { id: 'h1', start: 0, end: 5, text: 'hello' },
+      }));
+
+      // Rehydrate same attemptId 5 (e.g. authoritative reload)
+      state = reducer(state, setAttemptContext({ attemptId: 5, version: 2, savedAnswers: [] }));
+      expect(state.flags[1]?.['q_1']).toBe(true);
+      expect(state.highlights['p1']?.items).toHaveLength(1);
+    });
   });
 });

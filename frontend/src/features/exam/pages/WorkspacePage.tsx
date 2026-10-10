@@ -35,17 +35,21 @@ interface DictTooltip {
 
 const WorkspacePage: React.FC = () => {
   const { attemptId: attemptIdStr } = useParams<{ attemptId: string }>();
-  const attemptId = parseInt(attemptIdStr ?? '0', 10);
+  const parsedAttemptId = Number(attemptIdStr);
+  const isValidAttemptId = Number.isSafeInteger(parsedAttemptId) && parsedAttemptId >= 1 && parsedAttemptId <= 2147483647;
+  const attemptId = isValidAttemptId ? parsedAttemptId : 0;
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const store = useStore<RootState>();
 
-  const { workspace, loading, error, retry } = useWorkspace(attemptId);
+  const { workspace, loading, error, ready, retry, refreshError, refreshMetadata } = useWorkspace(attemptId);
+  const activeWorkspace = ready && !loading && !error && workspace?.attempt_id === attemptId ? workspace : null;
+
   const { displayTime, isExpired, isPractice } = useExamTimer(
-    workspace?.serverTime ?? null,
-    workspace?.deadline ?? null
+    activeWorkspace?.deadline ?? null,
+    activeWorkspace?.serverTimeOffset ?? 0
   );
-  useAutosave(workspace && workspace.status === 'IN_PROGRESS' ? attemptId : null);
+  useAutosave(activeWorkspace && activeWorkspace.status === 'IN_PROGRESS' ? attemptId : null);
 
   const answersState = useSelector((state: RootState) => state.answers);
 
@@ -55,6 +59,66 @@ const WorkspacePage: React.FC = () => {
   const [submitResultUrl, setSubmitResultUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
+  const [hasLocalDraft, setHasLocalDraft] = useState<boolean>(false);
+  const [confirmedLocks, setConfirmedLocks] = useState<{ attemptId: number; sectionIds: number[] }>({
+    attemptId,
+    sectionIds: [],
+  });
+  const [pendingTargetPartId, setPendingTargetPartId] = useState<number | null>(null);
+  const [pendingLockError, setPendingLockError] = useState<string | null>(null);
+
+  const currentAttemptIdRef = useRef<number>(attemptId);
+  const activeAttemptIdRef = useRef<number | null>(attemptId);
+  const routeLifecycleGenRef = useRef<number>(0);
+  const lockOperationGenRef = useRef<number>(0);
+  const unmountedRef = useRef<boolean>(false);
+
+  // Synchronously sync route change ref and bump lifecycle and lock generations
+  if (!Object.is(currentAttemptIdRef.current, attemptId)) {
+    currentAttemptIdRef.current = attemptId;
+    activeAttemptIdRef.current = attemptId;
+    routeLifecycleGenRef.current += 1;
+    lockOperationGenRef.current += 1;
+  }
+
+  // Component lifecycle: track unmount and invalidate in-flight operations
+  useEffect(() => {
+    unmountedRef.current = false;
+    activeAttemptIdRef.current = attemptId;
+    return () => {
+      unmountedRef.current = true;
+      activeAttemptIdRef.current = null;
+      routeLifecycleGenRef.current += 1;
+      lockOperationGenRef.current += 1;
+    };
+  }, [attemptId]);
+
+  // Sync draft check & reset selection and locks when attemptId changes
+  useEffect(() => {
+    setSelectedPartId(null);
+    setConfirmedLocks({ attemptId, sectionIds: [] });
+    setPendingTargetPartId(null);
+    setPendingLockError(null);
+    activeAttemptIdRef.current = attemptId;
+    routeLifecycleGenRef.current += 1;
+    lockOperationGenRef.current += 1;
+    if (isValidAttemptId) {
+      try {
+        setHasLocalDraft(localStorage.getItem(`exam_draft_${attemptId}`) !== null);
+      } catch {
+        setHasLocalDraft(false);
+      }
+    } else {
+      setHasLocalDraft(false);
+    }
+  }, [attemptId, isValidAttemptId]);
+
+  // Terminal state redirect effect
+  useEffect(() => {
+    if (ready && activeWorkspace && activeWorkspace.status !== 'IN_PROGRESS') {
+      navigate(`/attempts/${attemptId}/result`);
+    }
+  }, [ready, activeWorkspace, attemptId, navigate]);
 
   // Resizable split pane state (default 50/50, bounds 25% - 75%)
   const [splitRatio, setSplitRatio] = useState<number>(50);
@@ -87,29 +151,103 @@ const WorkspacePage: React.FC = () => {
   const [savedFlashcard, setSavedFlashcard] = useState(false);
   const readingContainerRef = useRef<HTMLDivElement>(null);
 
+  const sections = useMemo(() => {
+    return activeWorkspace?.exam_snapshot?.sections ?? [];
+  }, [activeWorkspace]);
+
+  // Reconcile confirmedLocks when server lockedSections arrive
+  useEffect(() => {
+    if (
+      activeWorkspace?.lockedSections &&
+      confirmedLocks.attemptId === attemptId &&
+      !unmountedRef.current &&
+      Object.is(currentAttemptIdRef.current, attemptId) &&
+      confirmedLocks.sectionIds.length > 0
+    ) {
+      const serverSet = new Set(activeWorkspace.lockedSections);
+      const remaining = confirmedLocks.sectionIds.filter(id => !serverSet.has(id));
+      if (remaining.length !== confirmedLocks.sectionIds.length) {
+        setConfirmedLocks({ attemptId, sectionIds: remaining });
+      }
+    }
+  }, [activeWorkspace?.lockedSections, attemptId, confirmedLocks]);
+
+  const lockedSections = useMemo(() => {
+    const serverLocks = activeWorkspace?.lockedSections ?? [];
+    const localLocks = confirmedLocks.attemptId === attemptId ? confirmedLocks.sectionIds : [];
+    if (localLocks.length === 0) return serverLocks;
+    const combined = new Set<number>([...serverLocks, ...localLocks]);
+    return Array.from(combined);
+  }, [activeWorkspace?.lockedSections, confirmedLocks, attemptId]);
+
   // Flatten all parts for quick selection
   const allParts = useMemo(() => {
-    return workspace?.exam_snapshot?.sections?.flatMap(s => s.parts ?? []) ?? [];
-  }, [workspace]);
+    return sections.flatMap(s => s.parts ?? []);
+  }, [sections]);
 
-  const currentSection = useMemo(() => {
-    if (selectedPartId !== null) {
-      const found = workspace?.exam_snapshot?.sections?.find(s =>
-        s.parts?.some(p => ((p as any).id === selectedPartId || (p as any).part_id === selectedPartId))
-      );
-      if (found) return found;
+  const lockedPartIds = useMemo(() => {
+    if (activeWorkspace?.test_mode !== 'MOCK_TEST' || lockedSections.length === 0) {
+      return new Set<number>();
     }
-    return workspace?.exam_snapshot?.sections?.[0];
-  }, [workspace, selectedPartId]);
+    const lockedSet = new Set<number>(lockedSections);
+    const result = new Set<number>();
+    sections.forEach(s => {
+      const sId = (s as any).section_id ?? s.id;
+      if (sId != null && lockedSet.has(sId)) {
+        s.parts?.forEach(p => {
+          const pId = (p as any).part_id ?? (p as any).id;
+          if (pId != null) result.add(pId);
+        });
+      }
+    });
+    return result;
+  }, [activeWorkspace, lockedSections, sections]);
 
-  // Active part: selected part or first part available
+  const firstUnlockedSection = useMemo(() => {
+    return sections.find(s => {
+      const sId = (s as any).section_id ?? s.id;
+      return sId != null && !lockedSections.includes(sId);
+    });
+  }, [sections, lockedSections]);
+
+  // Active part: selected part or first part of first unlocked section
   const currentPart = useMemo(() => {
+    if (allParts.length === 0) return null;
     if (selectedPartId !== null) {
       const found = allParts.find(p => (p as any).id === selectedPartId || (p as any).part_id === selectedPartId);
       if (found) return found;
     }
-    return currentSection?.parts?.[0];
-  }, [currentSection, selectedPartId, allParts]);
+    if (firstUnlockedSection && firstUnlockedSection.parts && firstUnlockedSection.parts.length > 0) {
+      return firstUnlockedSection.parts[0];
+    }
+    if (sections[0]?.parts && sections[0].parts.length > 0) {
+      return sections[0].parts[0];
+    }
+    return allParts[0] ?? null;
+  }, [allParts, selectedPartId, firstUnlockedSection, sections]);
+
+  // Keep selectedPartId in sync once initial active part resolves
+  useEffect(() => {
+    if (
+      selectedPartId === null &&
+      currentPart &&
+      !unmountedRef.current &&
+      Object.is(currentAttemptIdRef.current, attemptId)
+    ) {
+      const pId = (currentPart as any).id ?? (currentPart as any).part_id;
+      if (pId != null) {
+        setSelectedPartId(pId);
+      }
+    }
+  }, [selectedPartId, currentPart, attemptId]);
+
+  const currentSection = useMemo(() => {
+    if (!currentPart) return sections[0] ?? null;
+    const currentPId = (currentPart as any).id ?? (currentPart as any).part_id;
+    return sections.find(s =>
+      s.parts?.some(p => ((p as any).id === currentPId || (p as any).part_id === currentPId))
+    ) ?? sections[0] ?? null;
+  }, [sections, currentPart]);
 
   const currentSkill = currentSection?.skill_type || ((currentSection as any)?.name?.toUpperCase() as any) || 'READING';
 
@@ -191,15 +329,12 @@ const WorkspacePage: React.FC = () => {
     return Math.max(0, allQuestions.length - answered);
   }, [allQuestions, answersState.answers]);
 
-  const activeAttemptIdRef = useRef<number | null>(attemptId);
-  useEffect(() => {
-    activeAttemptIdRef.current = attemptId;
-    return () => {
-      activeAttemptIdRef.current = null;
-    };
-  }, [attemptId]);
 
   const handleSubmit = async (isTimeout = false) => {
+    if (isSubmitting) return;
+    if (!ready || !activeWorkspace || activeWorkspace.status !== 'IN_PROGRESS' || store.getState().answers.attemptId !== attemptId) {
+      return;
+    }
     const currentSubmitAttemptId = attemptId;
     setIsSubmitting(true);
     try {
@@ -320,15 +455,15 @@ const WorkspacePage: React.FC = () => {
       !showTimeUp &&
       !showOverlay &&
       !isSubmitting &&
-      workspace &&
-      workspace.status === 'IN_PROGRESS' &&
-      workspace.deadline !== null
+      activeWorkspace &&
+      activeWorkspace.status === 'IN_PROGRESS' &&
+      activeWorkspace.deadline !== null
     ) {
       setShowTimeUp(true);
       handleSubmit(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExpired, showTimeUp, showOverlay, isSubmitting, workspace]);
+  }, [isExpired, showTimeUp, showOverlay, isSubmitting, activeWorkspace]);
 
   // Passage and Highlight state
   const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html || '';
@@ -351,7 +486,7 @@ const WorkspacePage: React.FC = () => {
   const highlightsData = useSelector((state: RootState) => selectHighlights(state, passageId));
   const highlights = highlightsData?.contentHash === passageHash ? highlightsData.items : [];
 
-  const highlightEnabled = currentSkill === 'READING' && (workspace?.test_mode === 'PRACTICE' || workspace?.test_mode === 'MOCK_TEST');
+  const highlightEnabled = currentSkill === 'READING' && (activeWorkspace?.test_mode === 'PRACTICE' || activeWorkspace?.test_mode === 'MOCK_TEST');
   const { selection, setSelection } = useTextSelection(readingContainerRef, !!highlightEnabled);
   const [deleteTooltip, setDeleteTooltip] = useState<{ offset: number; top: number; left: number } | null>(null);
 
@@ -459,10 +594,9 @@ const WorkspacePage: React.FC = () => {
     );
   }
 
-  if (!workspace) return null;
+  if (!activeWorkspace) return null;
 
-  if (workspace.status === 'COMPLETED') {
-    navigate(`/attempts/${attemptId}/result`);
+  if (activeWorkspace.status !== 'IN_PROGRESS') {
     return null;
   }
 
@@ -471,22 +605,40 @@ const WorkspacePage: React.FC = () => {
     || (currentPart as any)?.partTitle
     || currentPart?.content?.part_title
     || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
-  const isMockFull = workspace.test_mode === 'MOCK_TEST' && workspace.test_scope === 'FULL_EXAM';
+  const isMockFull = activeWorkspace.test_mode === 'MOCK_TEST' && activeWorkspace.test_scope === 'FULL_EXAM';
   const currentSectionId = (currentSection as any)?.section_id ?? currentSection?.id;
   const isCurrentSectionLocked = Boolean(
-    workspace.test_mode === 'MOCK_TEST'
+    activeWorkspace.test_mode === 'MOCK_TEST'
       && currentSectionId != null
-      && workspace.lockedSections?.includes(currentSectionId)
+      && lockedSections.includes(currentSectionId)
   );
 
+  const handleReload = () => {
+    if (isSubmitting || store.getState().answers.saveStatus === 'saving') return;
+    const currentState = store.getState().answers;
+    if (currentState.isDirty) {
+      const ok = window.confirm("Bạn có các câu trả lời chưa được lưu lên máy chủ. Bạn có chắc muốn tải lại bản mới nhất từ máy chủ?");
+      if (!ok) return;
+      try {
+        localStorage.setItem(`exam_draft_${attemptId}`, JSON.stringify(currentState.answers));
+        setHasLocalDraft(true);
+      } catch {
+        alert("Không thể giữ bản nháp trên thiết bị. Hãy sao chép bài làm trước khi tải lại.");
+        return;
+      }
+    }
+    retry();
+  };
+
   const handlePartClick = async (targetPartId: number) => {
+    if (isSubmitting) return;
     if (!isMockFull) {
       setSelectedPartId(targetPartId);
       return;
     }
 
     const currentSId = (currentSection as any)?.section_id ?? currentSection?.id;
-    const targetSection = workspace?.exam_snapshot?.sections?.find(s =>
+    const targetSection = sections.find(s =>
       (s.parts || []).some((p: any) => (p.part_id ?? p.id) === targetPartId)
     );
     const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
@@ -498,19 +650,19 @@ const WorkspacePage: React.FC = () => {
     }
 
     // Locked section check
-    if (workspace.lockedSections?.includes(targetSId)) {
+    if (lockedSections.includes(targetSId)) {
       alert("Phần này đã bị khóa và không thể truy cập lại.");
       return;
     }
 
     // Different section, confirm and lock current
-    if (currentSId) {
+    if (currentSId && !lockedSections.includes(currentSId)) {
       // Calculate unanswered count in current section
       let sectionUnanswered = 0;
       const parts = currentSection?.parts || [];
       for (const p of parts) {
         const pId = (p as any).part_id ?? p.id;
-        const savedAnswers = workspace.saved_answers?.find(a => (a as any).partId === pId || (a as any).part_id === pId)?.answers || [];
+        const savedAnswers = activeWorkspace.saved_answers?.find(a => (a as any).partId === pId || (a as any).part_id === pId)?.answers || [];
         const reduxAnswers = answersState.answers[pId] || {};
         const mergedAnswers: Record<string | number, any> = {
           ...savedAnswers.reduce((acc, curr) => ({ ...acc, [(curr as any).questionId ?? (curr as any).question_id]: curr.answer }), {}),
@@ -528,16 +680,88 @@ const WorkspacePage: React.FC = () => {
 
       const confirmMessage = `Sau khi tiếp tục bạn KHÔNG THỂ quay lại ${currentSection?.title || 'phần này'}.\nBạn còn ${sectionUnanswered} câu chưa làm của phần này.\nBạn có chắc chắn muốn chuyển sang ${targetSection?.title || 'phần khác'}?`;
       if (window.confirm(confirmMessage)) {
+        lockOperationGenRef.current += 1;
+        const opAttemptId = attemptId;
+        const opRouteGen = routeLifecycleGenRef.current;
+        const opGen = lockOperationGenRef.current;
+
+        const isRouteActive = () => (
+          !unmountedRef.current &&
+          Object.is(currentAttemptIdRef.current, opAttemptId) &&
+          routeLifecycleGenRef.current === opRouteGen
+        );
+
+        const isOperationActive = () => (
+          isRouteActive() &&
+          lockOperationGenRef.current === opGen
+        );
+
         try {
-          await lockSection(attemptId, currentSId);
-          retry(); // refresh workspace to get new lockedSections
-          setSelectedPartId(targetPartId);
+          await lockSection(opAttemptId, currentSId);
+          if (!isRouteActive()) return;
+
+          setConfirmedLocks(prev => {
+            if (!isRouteActive()) return prev;
+            if (prev.attemptId !== opAttemptId) return prev;
+            const currentIds = prev.sectionIds;
+            return currentIds.includes(currentSId)
+              ? prev
+              : { attemptId: opAttemptId, sectionIds: [...currentIds, currentSId] };
+          });
+
+          if (!isOperationActive()) return;
+
+          setPendingTargetPartId(targetPartId);
+          setPendingLockError(null);
+          try {
+            const ok = await refreshMetadata();
+            if (!isOperationActive()) return;
+
+            if (ok) {
+              setSelectedPartId(targetPartId);
+              setPendingTargetPartId(null);
+            } else {
+              setPendingLockError("Không thể làm mới thông tin phần thi sau khi khóa.");
+            }
+          } catch (refreshErr: any) {
+            if (!isOperationActive()) return;
+            setPendingLockError(refreshErr instanceof Error ? refreshErr.message : "Lỗi khi làm mới thông tin phần thi");
+          }
         } catch (e: any) {
+          if (!isOperationActive()) return;
           alert("Lỗi khi khóa phần thi: " + e.message);
         }
       }
     } else {
       setSelectedPartId(targetPartId);
+      setPendingTargetPartId(null);
+    }
+  };
+
+  const handleRetryMetadata = async () => {
+    lockOperationGenRef.current += 1;
+    const retryAttemptId = attemptId;
+    const retryRouteGen = routeLifecycleGenRef.current;
+    const retryGen = lockOperationGenRef.current;
+    const isRetryActive = () => (
+      !unmountedRef.current &&
+      Object.is(currentAttemptIdRef.current, retryAttemptId) &&
+      routeLifecycleGenRef.current === retryRouteGen &&
+      lockOperationGenRef.current === retryGen
+    );
+
+    setPendingLockError(null);
+    try {
+      const ok = await refreshMetadata();
+      if (!isRetryActive()) return;
+
+      if (ok && pendingTargetPartId !== null) {
+        setSelectedPartId(pendingTargetPartId);
+        setPendingTargetPartId(null);
+      }
+    } catch (err: any) {
+      if (!isRetryActive()) return;
+      setPendingLockError(err instanceof Error ? err.message : "Lỗi khi làm mới thông tin phần thi");
     }
   };
 
@@ -567,7 +791,7 @@ const WorkspacePage: React.FC = () => {
 
           <div className="flex items-center gap-2 overflow-hidden">
             <h1 className="font-heading font-bold text-slate-900 text-sm sm:text-base truncate">
-              {workspace.exam_snapshot?.title || 'Bài thi'}
+              {activeWorkspace.exam_snapshot?.title || 'Bài thi'}
             </h1>
             {allParts.length > 0 && (
               <span
@@ -582,10 +806,29 @@ const WorkspacePage: React.FC = () => {
 
         {/* Right: Save Status & Live Timer */}
         <div className="flex items-center gap-3 shrink-0">
-          <SaveStatusBadge onReload={retry} />
+          <SaveStatusBadge onReload={handleReload} />
           <TimerDisplay displayTime={displayTime} isExpired={isExpired} isPractice={isPractice} />
         </div>
       </header>
+
+      {/* Notice Banners */}
+      {(refreshError || pendingLockError) && (
+        <div role="alert" className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between text-xs text-red-800 shrink-0">
+          <span>{refreshError || pendingLockError}</span>
+          <button
+            type="button"
+            onClick={handleRetryMetadata}
+            className="px-2.5 py-1 rounded border border-red-300 bg-white hover:bg-red-100 font-semibold text-red-800"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+      {hasLocalDraft && (
+        <div data-testid="local-draft-notice" className="bg-amber-50 border-b border-amber-200 px-4 py-1.5 text-xs text-amber-800 flex items-center gap-2 shrink-0">
+          <span>ℹ️ Đang dùng bản đã lưu trên máy chủ; bản nháp trên thiết bị chưa được khôi phục.</span>
+        </div>
+      )}
 
       {/* 2. MAIN BODY: SPLIT-PANE WORKSPACE */}
       <div ref={workspaceContainerRef} className="flex flex-1 overflow-hidden relative">
@@ -778,7 +1021,11 @@ const WorkspacePage: React.FC = () => {
                               type="button"
                               data-testid={`flag-btn-${qId}`}
                               disabled={isCurrentSectionLocked}
-                              onClick={() => dispatch(toggleFlag({ partId, questionId: qId }))}
+                              onClick={() => {
+                                if (!isCurrentSectionLocked) {
+                                  dispatch(toggleFlag({ partId, questionId: qId }));
+                                }
+                              }}
                               title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
                               className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 shadow-2xs ${
                                 isFlagged
@@ -833,8 +1080,8 @@ const WorkspacePage: React.FC = () => {
 
                 if (partId === lastPartId) {
                   // Find next section's first part
-                  const sIdx = workspace.exam_snapshot.sections.findIndex(s => ((s as any).section_id ?? s.id) === ((currentSection as any).section_id ?? currentSection.id));
-                  const nextSection = sIdx !== -1 && sIdx + 1 < workspace.exam_snapshot.sections.length ? workspace.exam_snapshot.sections[sIdx + 1] : null;
+                  const sIdx = sections.findIndex(s => ((s as any).section_id ?? s.id) === ((currentSection as any).section_id ?? currentSection.id));
+                  const nextSection = sIdx !== -1 && sIdx + 1 < sections.length ? sections[sIdx + 1] : null;
 
                   if (nextSection && nextSection.parts?.length > 0) {
                     const firstPartOfNext = (nextSection.parts[0] as any).part_id ?? nextSection.parts[0].id;
@@ -874,9 +1121,9 @@ const WorkspacePage: React.FC = () => {
                     const qCount = Array.isArray(p.questions)
                       ? p.questions.length
                       : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
-                    const targetSection = workspace?.exam_snapshot?.sections?.find(s => (s.parts || []).some((part: any) => (part.part_id ?? part.id) === pId));
+                    const targetSection = sections.find(s => (s.parts || []).some((part: any) => (part.part_id ?? part.id) === pId));
                     const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
-                    const isLocked = isMockFull && workspace?.lockedSections?.includes(targetSId);
+                    const isLocked = isMockFull && lockedSections.includes(targetSId);
 
                     return (
                       <button
@@ -919,6 +1166,7 @@ const WorkspacePage: React.FC = () => {
               <QuestionPalette
                 allParts={allParts}
                 activePartId={partId}
+                lockedPartIds={lockedPartIds}
                 onNavigate={(targetPartId, qId) => {
                   if (targetPartId !== partId) {
                     setSelectedPartId(targetPartId);

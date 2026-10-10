@@ -7,9 +7,11 @@ import type {
   SubmitResult,
   WorkspaceResponse,
   ExamResultResponse,
-  ExamReviewResponse
+  ExamReviewResponse,
+  TestScope,
+  TestMode
 } from '../types/api.types';
-import type { PartAnswers } from '../types/answer.types';
+import type { AttemptStatus, PartAnswers, UserAnswer, AnswerValue } from '../types/answer.types';
 
 export class ResultNotReadyError extends Error {
   retryAfter: number;
@@ -21,19 +23,231 @@ export class ResultNotReadyError extends Error {
   }
 }
 
-function normalizeWorkspace(data: any, serverTimeOffset = 0): WorkspaceResponse {
+export class WorkspaceContractError extends Error {
+  constructor(message: string = 'Dữ liệu phiên thi không hợp lệ. Vui lòng thử tải lại.') {
+    super(message);
+    this.name = 'WorkspaceContractError';
+    Object.setPrototypeOf(this, WorkspaceContractError.prototype);
+  }
+}
+
+function isRecord(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null && !Array.isArray(val);
+}
+
+function isPositiveInt(val: unknown): val is number {
+  return typeof val === 'number' && Number.isSafeInteger(val) && val >= 1 && val <= 2147483647;
+}
+
+function pickField(
+  raw: Record<string, unknown>,
+  canonicalKey: string,
+  aliasKey?: string
+): unknown {
+  if (canonicalKey in raw) {
+    return raw[canonicalKey];
+  }
+  if (aliasKey && aliasKey in raw) {
+    return raw[aliasKey];
+  }
+  return undefined;
+}
+
+function isValidIsoInstant(val: unknown): val is string {
+  if (typeof val !== 'string') return false;
+  const match = val.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
+  );
+  if (!match) return false;
+
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+  const hour = parseInt(match[4], 10);
+  const minute = parseInt(match[5], 10);
+  const second = parseInt(match[6], 10);
+
+  if (month < 1 || month > 12) return false;
+  if (hour > 23 || minute > 59 || second > 59) return false;
+
+  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  if (day < 1 || day > daysInMonth) return false;
+
+  return !isNaN(Date.parse(val));
+}
+
+function isAnswerValue(val: unknown): val is AnswerValue {
+  if (val === null || typeof val === 'string') return true;
+  if (Array.isArray(val)) return val.every(item => typeof item === 'string');
+  if (isRecord(val)) return Object.values(val).every(item => typeof item === 'string');
+  return false;
+}
+
+const VALID_STATUSES: Set<AttemptStatus> = new Set([
+  'IN_PROGRESS',
+  'SUBMITTED',
+  'GRADING_FAILED',
+  'AI_GRADING',
+  'AI_GRADING_QUEUED',
+  'COMPLETED',
+  'EXPIRED',
+]);
+
+function normalizeWorkspace(
+  raw: unknown,
+  clientMidpoint?: number,
+  expectedAttemptId?: number
+): WorkspaceResponse {
+  if (!isRecord(raw)) {
+    throw new WorkspaceContractError();
+  }
+
+  const attemptId = pickField(raw, 'attemptId', 'attempt_id');
+  if (!isPositiveInt(attemptId)) {
+    throw new WorkspaceContractError();
+  }
+  if (expectedAttemptId !== undefined && attemptId !== expectedAttemptId) {
+    throw new WorkspaceContractError();
+  }
+
+  const version = raw.version;
+  if (!isPositiveInt(version)) {
+    throw new WorkspaceContractError();
+  }
+
+  const status = raw.status as AttemptStatus;
+  if (!VALID_STATUSES.has(status)) {
+    throw new WorkspaceContractError();
+  }
+
+  const testScope = pickField(raw, 'testScope', 'test_scope') as TestScope;
+  if (testScope !== 'FULL_EXAM' && testScope !== 'SINGLE_SKILL' && testScope !== 'SINGLE_PART') {
+    throw new WorkspaceContractError();
+  }
+
+  const testMode = pickField(raw, 'testMode', 'test_mode') as TestMode;
+  if (testMode !== 'MOCK_TEST' && testMode !== 'PRACTICE') {
+    throw new WorkspaceContractError();
+  }
+
+  const startTime = pickField(raw, 'startTime', 'start_time');
+  if (!isValidIsoInstant(startTime)) {
+    throw new WorkspaceContractError();
+  }
+
+  const serverTime = pickField(raw, 'serverTime', 'server_time');
+  if (!isValidIsoInstant(serverTime)) {
+    throw new WorkspaceContractError();
+  }
+
+  let deadline: string | null = null;
+  const rawDeadline = raw.deadline;
+  if (testMode === 'PRACTICE') {
+    if (rawDeadline !== undefined && rawDeadline !== null) {
+      throw new WorkspaceContractError();
+    }
+    deadline = null;
+  } else {
+    if (!isValidIsoInstant(rawDeadline)) {
+      throw new WorkspaceContractError();
+    }
+    if (new Date(rawDeadline).getTime() < new Date(startTime).getTime()) {
+      throw new WorkspaceContractError();
+    }
+    deadline = rawDeadline;
+  }
+
+  const gracePeriod = pickField(raw, 'gracePeriodSeconds', 'grace_period_seconds');
+  if (typeof gracePeriod !== 'number' || !Number.isSafeInteger(gracePeriod) || gracePeriod < 0) {
+    throw new WorkspaceContractError();
+  }
+
+  const lockedRaw = pickField(raw, 'lockedSections', 'locked_sections');
+  if (
+    !Array.isArray(lockedRaw) ||
+    !lockedRaw.every(id => typeof id === 'number' && Number.isSafeInteger(id) && id > 0)
+  ) {
+    throw new WorkspaceContractError();
+  }
+  const lockedSections = [...lockedRaw];
+
+  const snapshotRaw = pickField(raw, 'examSnapshot', 'exam_snapshot');
+  if (!isRecord(snapshotRaw) || !Array.isArray(snapshotRaw.sections)) {
+    throw new WorkspaceContractError();
+  }
+
+  const savedAnswersRaw = pickField(raw, 'savedAnswers', 'saved_answers');
+  if (!Array.isArray(savedAnswersRaw)) {
+    throw new WorkspaceContractError();
+  }
+
+  const saved_answers: PartAnswers[] = [];
+  const seenPartIds = new Set<number>();
+
+  for (const partRaw of savedAnswersRaw) {
+    if (!isRecord(partRaw)) {
+      throw new WorkspaceContractError();
+    }
+    const partId = pickField(partRaw, 'part_id', 'partId');
+    if (!isPositiveInt(partId) || seenPartIds.has(partId)) {
+      throw new WorkspaceContractError();
+    }
+    seenPartIds.add(partId);
+
+    if (!Array.isArray(partRaw.answers)) {
+      throw new WorkspaceContractError();
+    }
+
+    const answersList: UserAnswer[] = [];
+    const seenQuestionIds = new Set<string>();
+
+    for (const ansRaw of partRaw.answers) {
+      if (!isRecord(ansRaw)) {
+        throw new WorkspaceContractError();
+      }
+      const qId = pickField(ansRaw, 'question_id', 'questionId');
+      if (typeof qId !== 'string' || qId.length === 0 || seenQuestionIds.has(qId)) {
+        throw new WorkspaceContractError();
+      }
+      seenQuestionIds.add(qId);
+
+      if (!isAnswerValue(ansRaw.answer)) {
+        throw new WorkspaceContractError();
+      }
+
+      answersList.push({
+        question_id: qId,
+        answer: ansRaw.answer,
+      });
+    }
+
+    saved_answers.push({
+      part_id: partId,
+      answers: answersList,
+    });
+  }
+
+  const serverNowMs = new Date(serverTime).getTime();
+  const safeOffset =
+    clientMidpoint !== undefined && Number.isFinite(clientMidpoint)
+      ? serverNowMs - clientMidpoint
+      : 0;
+
   return {
-    attempt_id: data.attemptId ?? data.attempt_id,
-    status: data.status,
-    test_scope: data.testScope ?? data.test_scope,
-    test_mode: data.testMode ?? data.test_mode,
-    deadline: data.deadline ?? null,
-    exam_snapshot: data.examSnapshot ?? data.exam_snapshot ?? {},
-    version: data.version ?? 0,
-    lockedSections: data.lockedSections ?? data.locked_sections ?? [],
-    saved_answers: data.savedAnswers ?? data.saved_answers ?? [],
-    serverTime: data.serverTime ?? data.server_time ?? null,
-    serverTimeOffset,
+    attempt_id: attemptId,
+    status,
+    test_scope: testScope,
+    test_mode: testMode,
+    startTime,
+    deadline,
+    serverTime,
+    gracePeriodSeconds: gracePeriod,
+    lockedSections,
+    exam_snapshot: snapshotRaw as any,
+    version,
+    saved_answers,
+    serverTimeOffset: Number.isFinite(safeOffset) ? safeOffset : 0,
   };
 }
 
@@ -49,11 +263,14 @@ export async function createAttempt(req: CreateAttemptRequest): Promise<Workspac
     targetSectionId: req.section_id,
     targetPartId: req.part_id,
   };
+  const clientBefore = Date.now();
   const res = await axiosClient.post<unknown, ApiResponse<any>>('/v1/attempts', payload);
-  if (!res.success || !res.data) {
+  const clientAfter = Date.now();
+  if (!res.success) {
     throw new Error(res.message || 'Failed to create attempt');
   }
-  return normalizeWorkspace(res.data);
+  const clientMidpoint = Math.round((clientBefore + clientAfter) / 2);
+  return normalizeWorkspace(res.data, clientMidpoint);
 }
 
 /**
@@ -64,19 +281,11 @@ export async function getWorkspace(attemptId: number): Promise<WorkspaceResponse
   const clientBefore = Date.now();
   const res = await axiosClient.get<unknown, ApiResponse<any>>(`/v1/attempts/${attemptId}/workspace`);
   const clientAfter = Date.now();
-  if (!res.success || !res.data) {
+  if (!res.success) {
     throw new Error(res.message || 'Attempt not found');
   }
-  // Compute server-client clock offset if backend provides serverTime in response body
-  const serverTimeRaw = res.data.serverTime ?? res.data.server_time ?? res.data.serverNow ?? res.data.server_now;
-  const serverNowMs: number = serverTimeRaw
-    ? (typeof serverTimeRaw === 'number' ? serverTimeRaw : new Date(serverTimeRaw).getTime())
-    : 0;
-  const serverTimeOffset =
-    serverNowMs > 0
-      ? serverNowMs - Math.round((clientBefore + clientAfter) / 2)
-      : 0;
-  return normalizeWorkspace(res.data, serverTimeOffset);
+  const clientMidpoint = Math.round((clientBefore + clientAfter) / 2);
+  return normalizeWorkspace(res.data, clientMidpoint, attemptId);
 }
 
 /**

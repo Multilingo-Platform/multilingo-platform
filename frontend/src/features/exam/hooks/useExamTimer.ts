@@ -43,41 +43,41 @@ export function useExamTimer(
 
   const isPractice = resolvedDeadline === null;
 
-  // Compute offset only ONCE when serverTime or explicitOffset is provided
-  const offsetRef = useRef<number | null>(null);
-  const serverTimeRef = useRef<string | null>(initialServerTime);
-
-  if (offsetRef.current === null || serverTimeRef.current !== initialServerTime) {
-    serverTimeRef.current = initialServerTime;
-    if (explicitOffset !== null) {
-      offsetRef.current = explicitOffset;
-    } else if (initialServerTime) {
-      offsetRef.current = new Date(initialServerTime).getTime() - Date.now();
-    } else {
-      offsetRef.current = 0;
-    }
+  // Track initialServerTime to calculate offset once when serverTime changes
+  const computedServerOffsetRef = useRef<number | null>(null);
+  const prevServerTimeRef = useRef<string | null>(initialServerTime);
+  if (computedServerOffsetRef.current === null || prevServerTimeRef.current !== initialServerTime) {
+    prevServerTimeRef.current = initialServerTime;
+    computedServerOffsetRef.current = initialServerTime ? (new Date(initialServerTime).getTime() - Date.now()) : 0;
   }
 
-  const computeTimeLeft = useCallback((dl: string | null): number => {
+  const currentOffset = explicitOffset !== null ? explicitOffset : (computedServerOffsetRef.current ?? 0);
+  const currentOffsetRef = useRef<number>(currentOffset);
+  currentOffsetRef.current = currentOffset;
+
+  const computeTimeLeft = useCallback((dl: string | null, offset: number): number => {
     if (dl === null || !dl) return 0;
-    const serverAdjustedNow = Date.now() + (offsetRef.current ?? 0);
+    const serverAdjustedNow = Date.now() + offset;
     return Math.max(0, Date.parse(dl) - serverAdjustedNow);
   }, []);
 
-  const [timeLeftMs, setTimeLeftMs] = useState<number>(() => computeTimeLeft(resolvedDeadline));
   const [prevDeadline, setPrevDeadline] = useState<string | null>(resolvedDeadline);
+  const [prevOffset, setPrevOffset] = useState<number>(currentOffset);
+  const [timeLeftMs, setTimeLeftMs] = useState<number>(() => computeTimeLeft(resolvedDeadline, currentOffset));
 
-  // Synchronize state immediately during render if deadline changes
-  if (resolvedDeadline !== prevDeadline) {
+  let effectiveTimeLeft = timeLeftMs;
+  if (resolvedDeadline !== prevDeadline || currentOffset !== prevOffset) {
     setPrevDeadline(resolvedDeadline);
-    setTimeLeftMs(computeTimeLeft(resolvedDeadline));
+    setPrevOffset(currentOffset);
+    effectiveTimeLeft = computeTimeLeft(resolvedDeadline, currentOffset);
+    setTimeLeftMs(effectiveTimeLeft);
   }
 
   useEffect(() => {
     if (isPractice || !resolvedDeadline) return;
 
     const tick = () => {
-      setTimeLeftMs(computeTimeLeft(resolvedDeadline));
+      setTimeLeftMs(computeTimeLeft(resolvedDeadline, currentOffsetRef.current));
     };
 
     tick();
@@ -98,14 +98,14 @@ export function useExamTimer(
     };
   }, [resolvedDeadline, isPractice, computeTimeLeft]);
 
-  const hasExpired = !isPractice && resolvedDeadline !== null && timeLeftMs === 0;
-  const remainingSeconds = Math.max(0, Math.floor(timeLeftMs / 1000));
+  const hasExpired = !isPractice && resolvedDeadline !== null && effectiveTimeLeft === 0;
+  const remainingSeconds = Math.max(0, Math.floor(effectiveTimeLeft / 1000));
 
   return {
-    timeLeftMs,
+    timeLeftMs: effectiveTimeLeft,
     remainingSeconds,
     isExpired: hasExpired,
-    displayTime: isPractice ? '' : formatTime(timeLeftMs),
+    displayTime: isPractice ? '' : formatTime(effectiveTimeLeft),
     isPractice,
   };
 }

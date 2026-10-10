@@ -47,12 +47,18 @@ const answerSlice = createSlice({
       action: PayloadAction<{ attemptId: number; version: number; savedAnswers: PartAnswers[] }>
     ) {
       const { attemptId, version, savedAnswers } = action.payload;
+      const isDifferentAttempt = state.attemptId !== null && state.attemptId !== attemptId;
       state.attemptId = attemptId;
       state.version = version;
       state.answers = {};
       state.isDirty = false;
+      state.lastSavedAt = null;
       state.saveStatus = 'idle';
       state.pendingVersion = 0;
+      if (isDifferentAttempt) {
+        state.flags = {};
+        state.highlights = {};
+      }
       for (const part of savedAnswers) {
         state.answers[part.part_id] = {};
         for (const ua of part.answers) {

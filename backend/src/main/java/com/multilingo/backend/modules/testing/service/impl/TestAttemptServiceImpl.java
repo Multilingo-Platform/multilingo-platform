@@ -28,6 +28,7 @@ import com.multilingo.backend.modules.testing.grading.dto.PartGradingKey;
 import com.multilingo.backend.modules.testing.grading.dto.QuestionGradingResult;
 import com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest;
 import com.multilingo.backend.modules.testing.entity.enums.SubmitReason;
+import com.multilingo.backend.modules.testing.util.WorkspaceSnapshotSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -100,12 +101,17 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     public WorkspaceResponse getAttemptWorkspace(Integer attemptId) {
         Integer userId = identityAdapter.getCurrentUserId();
 
-        // Ownership check: returns empty if attempt doesn't exist OR belongs to another user
-        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserIdForUpdate(attemptId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN,
                         "Attempt not found or access denied: " + attemptId));
 
-        attempt = ensureFinalized(attempt, userId);
+        Instant now = Instant.now();
+        if (attempt.getTestMode() == TestMode.MOCK_TEST
+                && attempt.getStatus() == AttemptStatus.IN_PROGRESS
+                && attempt.getDeadline() != null
+                && now.isAfter(attempt.getDeadline().plusSeconds(15))) {
+            finalizeAndGradeAttempt(attempt, SubmitReason.TIMEOUT_SERVER, null, userId);
+        }
 
         return toWorkspaceResponse(attempt);
     }
@@ -320,7 +326,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     @Transactional
     public void lockSection(Integer attemptId, Integer sectionId) {
         Integer userId = identityAdapter.getCurrentUserId();
-        TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
+        TestAttempt attempt = testAttemptRepository.findByIdAndUserIdForUpdate(attemptId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Attempt not found or access denied"));
 
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
@@ -618,6 +624,10 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     private WorkspaceResponse toWorkspaceResponse(TestAttempt attempt) {
+        List<AutosaveAnswersRequest.PartAnswerDto> savedAnswers = loadSavedAnswers(attempt.getId());
+        Map<String, Object> sanitizedSnapshot = WorkspaceSnapshotSanitizer.sanitize(attempt.getExamSnapshot());
+        Instant serverTime = Instant.now();
+
         return WorkspaceResponse.builder()
                 .attemptId(attempt.getId())
                 .status(attempt.getStatus())
@@ -625,11 +635,11 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .testMode(attempt.getTestMode())
                 .startTime(attempt.getStartTime())
                 .deadline(attempt.getDeadline())
-                .serverTime(Instant.now())
+                .serverTime(serverTime)
                 .gracePeriodSeconds(15)
                 .version(attempt.getVersion())
-                .savedAnswers(loadSavedAnswers(attempt.getId()))
-                .examSnapshot(attempt.getExamSnapshot())
+                .savedAnswers(savedAnswers)
+                .examSnapshot(sanitizedSnapshot)
                 .lockedSections(attempt.getLockedSections() != null ? attempt.getLockedSections() : new java.util.ArrayList<>())
                 .build();
     }

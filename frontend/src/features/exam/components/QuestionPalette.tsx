@@ -9,6 +9,7 @@ interface QuestionPaletteProps {
   activePartId?: number;
   questions?: Question[];
   partId?: number;
+  lockedPartIds?: Set<number> | number[];
   onNavigate: ((partId: number, questionId: string) => void) | ((questionId: string) => void);
 }
 
@@ -17,6 +18,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
   activePartId,
   questions,
   partId: singlePartId,
+  lockedPartIds,
   onNavigate,
 }) => {
   const answers = useSelector((state: RootState) => state.answers.answers);
@@ -101,6 +103,12 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
           if (qList.length === 0) return null;
 
+          const isPartLocked = lockedPartIds instanceof Set
+            ? lockedPartIds.has(pId)
+            : Array.isArray(lockedPartIds)
+              ? lockedPartIds.includes(pId)
+              : false;
+
           return (
             <div key={pId}>
               {normalizedParts.length > 1 && (
@@ -145,17 +153,18 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                   }
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={qId}
                       data-testid={`palette-${qId}`}
                       data-answered={answered ? 'true' : 'false'}
                       data-flagged={isFlagged ? 'true' : 'false'}
                       data-status={isFlagged ? 'flagged' : answered ? 'answered' : 'unanswered'}
-                      role="button"
-                      tabIndex={0}
+                      disabled={isPartLocked}
+                      aria-disabled={isPartLocked ? 'true' : 'false'}
                       aria-label={`Câu ${q.question_number ?? q.id}${isFlagged ? ' (đã gắn cờ)' : ''}${answered ? ' (đã trả lời)' : ' (chưa trả lời)'}`}
-                      onClick={() => handleCellClick(pId, qId)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleCellClick(pId, qId); }}
+                      onClick={() => { if (!isPartLocked) handleCellClick(pId, qId); }}
+                      onKeyDown={e => { if (e.key === 'Enter' && !isPartLocked) handleCellClick(pId, qId); }}
                       style={{
                         position: 'relative',
                         width: '32px',
@@ -164,7 +173,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         borderRadius: '8px',
-                        cursor: 'pointer',
+                        cursor: isPartLocked ? 'not-allowed' : 'pointer',
                         fontSize: '0.75rem',
                         fontWeight: '700',
                         fontFamily: 'var(--font-heading)',
@@ -173,7 +182,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                         color,
                         border,
                         boxShadow: shadow,
-                        opacity: isActive ? 1 : 0.65,
+                        opacity: isPartLocked ? 0.4 : (isActive ? 1 : 0.65),
                       }}
                     >
                       {/* Flag icon pill on top right corner */}
@@ -201,7 +210,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                         </span>
                       )}
                       {q.question_number ?? q.id}
-                    </div>
+                    </button>
                   );
                 })}
               </nav>

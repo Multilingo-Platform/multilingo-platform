@@ -17,14 +17,15 @@ export interface WorkspaceResponse {
   status: AttemptStatus;
   test_scope: TestScope;
   test_mode: TestMode;
+  startTime: string;            // ISO-8601 UTC Instant
   deadline: string | null;      // ISO-8601 UTC Instant; null for PRACTICE
+  serverTime: string;           // ISO-8601 UTC Instant timestamp from server
+  gracePeriodSeconds: number;   // e.g. 15
+  lockedSections: number[];     // array of locked section IDs
   exam_snapshot: ExamSnapshot;  // Snapshot does NOT contain correct_answer
   version: number;
   saved_answers: PartAnswers[];
-  lockedSections?: number[];
-  /** ISO-8601 UTC Instant timestamp from server */
-  serverTime?: string | null;
-  /** ms: serverClock - clientClock at workspace fetch time. 0 if unknown. */
+  /** ms: serverClock - clientClock at workspace fetch time. */
   serverTimeOffset: number;
 }
 
