@@ -192,6 +192,7 @@ export interface QuizQuestion {
   sentence?: string;
   options: QuizOption[];
   explanation: string;
+  card?: Flashcard;
 }
 
 // ==========================================
