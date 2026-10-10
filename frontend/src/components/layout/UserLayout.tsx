@@ -76,7 +76,7 @@ const UserLayout = () => {
       />
 
       {/* Main Content */}
-      <main className="slide-up" style={{ flex: 1, padding: '2rem 0' }}>
+      <main style={{ flex: 1, padding: '2rem 0' }}>
         <Outlet />
       </main>
 
