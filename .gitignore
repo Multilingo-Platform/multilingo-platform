@@ -24,3 +24,4 @@ desktop.ini
 .env
 .env.local
 .env.*.local
+application-dev.properties
