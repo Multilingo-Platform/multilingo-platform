@@ -18,3 +18,13 @@ export * from './components/common/SpeakButton';
 export * from './components/common/EmptyState';
 export * from './components/common/ModeHeader';
 export * from './components/common/SessionSummaryCard';
+
+// Deck & Card Components
+export * from './components/deck/DeckListView';
+export * from './components/deck/DeckDetailView';
+export * from './components/deck/DeckModal';
+export * from './components/card/CardModal';
+
+// Pages
+export * from './pages/FlashcardsPage';
+
