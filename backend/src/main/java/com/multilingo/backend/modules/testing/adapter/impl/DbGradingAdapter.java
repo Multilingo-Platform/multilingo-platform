@@ -14,10 +14,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -92,7 +95,12 @@ public class DbGradingAdapter implements GradingAdapter {
                         throw new IllegalArgumentException("question group questions must contain objects");
                     }
                     validateCanonicalQuestion(question);
-                    questions.add((Map<String, Object>) question);
+                    Map<String, Object> questionMap = (Map<String, Object>) question;
+                    if (!questionMap.containsKey("options") && group.containsKey("options")) {
+                        questionMap = new LinkedHashMap<>(questionMap);
+                        questionMap.put("options", group.get("options"));
+                    }
+                    questions.add(questionMap);
                 }
             }
             return questions;
@@ -142,6 +150,99 @@ public class DbGradingAdapter implements GradingAdapter {
             key.setAlternates((List<String>) question.get("alternates"));
         }
 
+        if ("MATCHING_HEADINGS".equals(type)) {
+            resolveMatchingHeadingsOptions(key, question);
+        }
+
         answers.put(questionId, key);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void resolveMatchingHeadingsOptions(GradingKey key, Map<String, Object> question) {
+        Object rawOptions = question.get("options");
+        if (!(rawOptions instanceof List<?> optionList) || optionList.isEmpty()) {
+            return;
+        }
+
+        List<String> alternates = key.getAlternates();
+        List<String> updatedAlternates = (alternates != null) ? new ArrayList<>(alternates) : new ArrayList<>();
+
+        Object correctObj = key.getCorrect();
+
+        for (Object rawOpt : optionList) {
+            if (!(rawOpt instanceof Map<?, ?> optMap)) {
+                continue;
+            }
+            Object idObj = optMap.get("id");
+            Object textObj = optMap.get("text");
+            if (idObj == null || textObj == null) {
+                continue;
+            }
+            String optId = idObj.toString().trim();
+            String optText = textObj.toString().trim();
+            if (optId.isEmpty() || optText.isEmpty()) {
+                continue;
+            }
+
+            boolean isMatch = false;
+
+            if (correctObj instanceof String correctStr) {
+                if (matchesText(optText, correctStr) || matchesText(optId, correctStr)) {
+                    isMatch = true;
+                }
+            } else if (correctObj instanceof Collection<?> coll) {
+                for (Object item : coll) {
+                    if (item != null && (matchesText(optText, item.toString()) || matchesText(optId, item.toString()))) {
+                        isMatch = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isMatch && alternates != null) {
+                for (String alt : alternates) {
+                    if (alt != null && (matchesText(optText, alt) || matchesText(optId, alt))) {
+                        isMatch = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isMatch) {
+                if (!updatedAlternates.contains(optId) && !containsNormalized(correctObj, optId)) {
+                    updatedAlternates.add(optId);
+                }
+                if (!updatedAlternates.contains(optText) && !containsNormalized(correctObj, optText)) {
+                    updatedAlternates.add(optText);
+                }
+            }
+        }
+
+        if (!updatedAlternates.isEmpty()) {
+            key.setAlternates(updatedAlternates);
+        }
+    }
+
+    private boolean containsNormalized(Object correctObj, String target) {
+        if (correctObj instanceof String s) {
+            return matchesText(s, target);
+        }
+        if (correctObj instanceof Collection<?> coll) {
+            for (Object item : coll) {
+                if (item != null && matchesText(item.toString(), target)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesText(String s1, String s2) {
+        if (s1 == null || s2 == null) {
+            return false;
+        }
+        String n1 = s1.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        String n2 = s2.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        return n1.equals(n2);
     }
 }

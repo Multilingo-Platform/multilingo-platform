@@ -4,7 +4,7 @@ import type { AppDispatch, RootState } from '../../../app/store';
 import type { SubmitResult, WorkspaceResponse } from '../types/api.types';
 import type { AutosaveController } from './useAutosave';
 import { submitAttempt } from '../api/attemptApi';
-import { markSubmissionConflict } from '../store/answerSlice';
+import { lockAnswers, unlockAnswers, markSubmissionConflict } from '../store/answerSlice';
 import { serializeAnswers } from '../utils/answerSnapshot';
 import { persistAnswerDraft } from '../utils/answerDraft';
 import { isHttpConflict, isVersionConflict } from '../utils/attemptErrors';
@@ -16,6 +16,7 @@ export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosa
   const dispatch = useDispatch<AppDispatch>();
   const store = useStore<RootState>();
   const revision = useSelector((state: RootState) => state.answers.contextRevision);
+  const answersLocked = useSelector((state: RootState) => state.answers.isLocked);
   const attemptId = workspace?.attempt_id ?? null;
   const live = useRef({ workspace, autosave, revision });
   live.current = { workspace, autosave, revision };
@@ -29,6 +30,11 @@ export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosa
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
 
+  const expired = useCallback(() => {
+    const current = live.current.workspace;
+    return current?.deadline != null && Date.now() + current.serverTimeOffset >= Date.parse(current.deadline);
+  }, []);
+
   useEffect(() => {
     generation.current += 1;
     busy.current = false;
@@ -39,14 +45,14 @@ export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosa
       generation.current += 1;
       abort.current?.abort();
       abort.current = null;
+      // Release only this context's transient manual lock; expiry/success stay read-only.
+      if (attemptId !== null && busy.current && !succeeded.current && reason.current === 'MANUAL' && !expired()) {
+        dispatch(unlockAnswers({ attemptId, contextRevision: revision }));
+      }
     };
-  }, [attemptId, revision]);
+  }, [attemptId, revision, dispatch, expired]);
 
-  const expired = useCallback(() => {
-    const current = live.current.workspace;
-    return current?.deadline != null && Date.now() + current.serverTimeOffset >= Date.parse(current.deadline);
-  }, []);
-  const isLocked = useCallback(() => busy.current || succeeded.current || expired(), [expired]);
+  const isLocked = useCallback(() => answersLocked || busy.current || succeeded.current || expired(), [answersLocked, expired]);
 
   const submit = useCallback(async (requestedReason: SubmitReason): Promise<void> => {
     const current = live.current;
@@ -68,6 +74,7 @@ export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosa
       setError('Đáp án đã thay đổi trên máy chủ. Tải lại phiên thi để tiếp tục.');
     };
     busy.current = true;
+    dispatch(lockAnswers({ attemptId: data.attempt_id, contextRevision: current.revision }));
     setPhase('waiting'); setError(null);
     const controller = new AbortController();
     abort.current = controller;
@@ -105,6 +112,9 @@ export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosa
     } finally {
       if (isCurrent()) {
         busy.current = false;
+        if (!succeeded.current && reason.current === 'MANUAL' && !expired()) {
+          dispatch(unlockAnswers({ attemptId: data.attempt_id, contextRevision: current.revision }));
+        }
         if (abort.current === controller) abort.current = null;
       }
     }

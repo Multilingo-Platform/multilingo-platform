@@ -17,7 +17,7 @@ import AudioPlayer from '../components/AudioPlayer';
 import HtmlContent from '../components/content/HtmlContent';
 import MediaDisplay from '../components/content/MediaDisplay';
 import { lockSection } from '../api/attemptApi';
-import { setAnswer, toggleFlag, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
+import { setAnswer, lockAnswers, toggleFlag, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
 import { useTextSelection } from '../hooks/useTextSelection';
 import { SelectionToolbar } from '../components/content/SelectionToolbar';
 import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
@@ -357,11 +357,12 @@ const WorkspacePage: React.FC = () => {
       activeWorkspace.status === 'IN_PROGRESS' &&
       activeWorkspace.deadline !== null
     ) {
+      dispatch(lockAnswers({ attemptId: activeWorkspace.attempt_id, contextRevision: answersState.contextRevision }));
       setShowTimeUp(true);
       handleSubmit(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExpired, showTimeUp, showOverlay, isSubmitting, activeWorkspace]);
+  }, [isExpired, showTimeUp, showOverlay, isSubmitting, activeWorkspace, answersState.contextRevision, dispatch]);
 
   // Passage and Highlight state
   const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html || '';
@@ -994,7 +995,10 @@ const WorkspacePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handlePartClick(firstPartOfNext)}
-                          className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-heading font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                          disabled={submission.isLocked()}
+                          className={`px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-heading font-bold shadow-md transition-all flex items-center gap-2 ${
+                            submission.isLocked() ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
                         >
                           Chuyển sang phần tiếp theo ({nextSection.title}) <span>→</span>
                         </button>
@@ -1027,7 +1031,8 @@ const WorkspacePage: React.FC = () => {
                       : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
                     const targetSection = sections.find(s => (s.parts || []).some((part: any) => (part.part_id ?? part.id) === pId));
                     const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
-                    const isLocked = isMockFull && lockedSections.includes(targetSId);
+                    const isSectionLocked = isMockFull && lockedSections.includes(targetSId);
+                    const isLocked = isSectionLocked || submission.isLocked();
 
                     return (
                       <button

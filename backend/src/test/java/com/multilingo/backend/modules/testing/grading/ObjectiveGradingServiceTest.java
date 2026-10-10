@@ -139,6 +139,124 @@ class ObjectiveGradingServiceTest {
             .isEqualTo(GradingVerdict.CORRECT);
     }
 
+    // ─── TC_GRD_FILL_01 & TC_GRD_DIAG_01: array correct_answer ───────────────────
+
+    @Test
+    void fillIn_with_array_correct_answer() { // TC_GRD_FILL_01
+        List<String> accepted = List.of("plasticity", "neural plasticity", "neuroplasticity");
+        Map<Integer, PartGradingKey> keys = Map.of(
+            3, partKey(3, "q_arr", "FILL_IN_THE_BLANK", accepted, null)
+        );
+
+        // Case 1: matches first item case-insensitive
+        GradingResult res1 = service.gradeAttempt(List.of(answerForPart(3, "q_arr", "Plasticity")), keys);
+        assertThat(res1.getPartResults().get(3).get("q_arr").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+        assertThat(res1.getPartResults().get(3).get("q_arr").getScore())
+            .isEqualByComparingTo(BigDecimal.ONE);
+
+        // Case 2: matches second item with whitespace collapse
+        GradingResult res2 = service.gradeAttempt(List.of(answerForPart(3, "q_arr", "Neural   plasticity")), keys);
+        assertThat(res2.getPartResults().get(3).get("q_arr").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+
+        // Case 3: wrong answer
+        GradingResult res3 = service.gradeAttempt(List.of(answerForPart(3, "q_arr", "brain plasticity")), keys);
+        assertThat(res3.getPartResults().get(3).get("q_arr").getVerdict())
+            .isEqualTo(GradingVerdict.WRONG);
+        assertThat(res3.getPartResults().get(3).get("q_arr").getScore())
+            .isEqualByComparingTo(BigDecimal.ZERO);
+
+        // Case 4: blank answer
+        GradingResult res4 = service.gradeAttempt(List.of(answerForPart(3, "q_arr", "  ")), keys);
+        assertThat(res4.getPartResults().get(3).get("q_arr").getVerdict())
+            .isEqualTo(GradingVerdict.BLANK);
+    }
+
+    @Test
+    void diagramLabeling_with_array_correct_answer() { // TC_GRD_DIAG_01
+        List<String> accepted = List.of("left ventricle", "ventricle");
+        Map<Integer, PartGradingKey> keys = Map.of(
+            4, partKey(4, "q_diag", "DIAGRAM_LABELING", accepted, null)
+        );
+
+        GradingResult res1 = service.gradeAttempt(List.of(answerForPart(4, "q_diag", "Left   ventricle")), keys);
+        assertThat(res1.getPartResults().get(4).get("q_diag").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+
+        GradingResult res2 = service.gradeAttempt(List.of(answerForPart(4, "q_diag", "right ventricle")), keys);
+        assertThat(res2.getPartResults().get(4).get("q_diag").getVerdict())
+            .isEqualTo(GradingVerdict.WRONG);
+    }
+
+    // ─── TC_GRD_MTCH_01, TC_GRD_HEAD_01, TC_GRD_MAP_01: canonical types ────────
+
+    @Test
+    void matchingFeatures_independent_question_graded_correctly() { // TC_GRD_MTCH_01
+        Map<Integer, PartGradingKey> keys = Map.of(
+            7, partKey(7, "q_feat", "MATCHING_FEATURES", "B", null)
+        );
+
+        // Case 1: correct
+        GradingResult res1 = service.gradeAttempt(List.of(answerForPart(7, "q_feat", "b")), keys);
+        assertThat(res1.getPartResults().get(7).get("q_feat").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+        assertThat(res1.getPartResults().get(7).get("q_feat").getScore())
+            .isEqualByComparingTo(BigDecimal.ONE);
+
+        // Case 2: wrong
+        GradingResult res2 = service.gradeAttempt(List.of(answerForPart(7, "q_feat", "C")), keys);
+        assertThat(res2.getPartResults().get(7).get("q_feat").getVerdict())
+            .isEqualTo(GradingVerdict.WRONG);
+
+        // Case 3: blank
+        GradingResult res3 = service.gradeAttempt(List.of(blankAnswerForPart(7)), keys);
+        assertThat(res3.getPartResults().get(7).get("q_feat").getVerdict())
+            .isEqualTo(GradingVerdict.BLANK);
+    }
+
+    @Test
+    void matchingHeadings_independent_question_graded_correctly() { // TC_GRD_HEAD_01
+        Map<Integer, PartGradingKey> keys = Map.of(
+            8, partKey(8, "q_head", "MATCHING_HEADINGS", "Section A", List.of("i"))
+        );
+
+        // Case 1: correct primary heading text
+        GradingResult res1 = service.gradeAttempt(List.of(answerForPart(8, "q_head", "section   a")), keys);
+        assertThat(res1.getPartResults().get(8).get("q_head").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+
+        // Case 2: correct roman alternate
+        GradingResult res2 = service.gradeAttempt(List.of(answerForPart(8, "q_head", "I")), keys);
+        assertThat(res2.getPartResults().get(8).get("q_head").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+
+        // Case 3: wrong
+        GradingResult res3 = service.gradeAttempt(List.of(answerForPart(8, "q_head", "Section B")), keys);
+        assertThat(res3.getPartResults().get(8).get("q_head").getVerdict())
+            .isEqualTo(GradingVerdict.WRONG);
+
+        // Case 4: blank
+        GradingResult res4 = service.gradeAttempt(List.of(blankAnswerForPart(8)), keys);
+        assertThat(res4.getPartResults().get(8).get("q_head").getVerdict())
+            .isEqualTo(GradingVerdict.BLANK);
+    }
+
+    @Test
+    void mapLabeling_independent_question_graded_correctly() { // TC_GRD_MAP_01
+        Map<Integer, PartGradingKey> keys = Map.of(
+            9, partKey(9, "q_map", "MAP_LABELING", "D", null)
+        );
+
+        GradingResult res1 = service.gradeAttempt(List.of(answerForPart(9, "q_map", "d")), keys);
+        assertThat(res1.getPartResults().get(9).get("q_map").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+
+        GradingResult res2 = service.gradeAttempt(List.of(answerForPart(9, "q_map", "A")), keys);
+        assertThat(res2.getPartResults().get(9).get("q_map").getVerdict())
+            .isEqualTo(GradingVerdict.WRONG);
+    }
+
     // ─── TC_GRADE_TF: TRUE_FALSE_NOT_GIVEN ──────────────────────────────────────
 
     record TFNGCase(String userAnswer, String correctKey, GradingVerdict expected) {}
@@ -149,8 +267,57 @@ class ObjectiveGradingServiceTest {
             new TFNGCase("false",     "FALSE",     GradingVerdict.CORRECT),  // TC_GRADE_TF_02
             new TFNGCase("not given", "NOT_GIVEN", GradingVerdict.CORRECT),  // TC_GRADE_TF_03
             new TFNGCase("not given", "TRUE",      GradingVerdict.WRONG),    // TC_GRADE_TF_04
-            new TFNGCase("",          "TRUE",      GradingVerdict.BLANK)     // TC_GRADE_TF_05
+            new TFNGCase("",          "TRUE",      GradingVerdict.BLANK),    // TC_GRADE_TF_05
+            new TFNGCase("T",         "TRUE",      GradingVerdict.CORRECT),  // TC_GRD_NORM_02 shorthand T
+            new TFNGCase("F",         "FALSE",     GradingVerdict.CORRECT),  // TC_GRD_NORM_02 shorthand F
+            new TFNGCase("NG",        "NOT_GIVEN", GradingVerdict.CORRECT),  // TC_GRD_NORM_02 shorthand NG
+            new TFNGCase("ng",        "NOT_GIVEN", GradingVerdict.CORRECT)   // TC_GRD_NORM_02 shorthand ng
         );
+    }
+
+    // ─── TC_GRADE_YN: YES_NO_NOT_GIVEN ──────────────────────────────────────────
+
+    record YNNGCase(String userAnswer, String correctKey, GradingVerdict expected) {}
+
+    static Stream<YNNGCase> ynngCases() {
+        return Stream.of(
+            new YNNGCase("Yes",       "YES",       GradingVerdict.CORRECT),
+            new YNNGCase("no",        "NO",        GradingVerdict.CORRECT),
+            new YNNGCase("not given", "NOT_GIVEN", GradingVerdict.CORRECT),
+            new YNNGCase("Y",         "YES",       GradingVerdict.CORRECT),  // TC_GRD_NORM_03 shorthand Y
+            new YNNGCase("N",         "NO",        GradingVerdict.CORRECT),  // TC_GRD_NORM_03 shorthand N
+            new YNNGCase("NG",        "NOT_GIVEN", GradingVerdict.CORRECT),  // TC_GRD_NORM_03 shorthand NG
+            new YNNGCase("Maybe",     "YES",       GradingVerdict.WRONG),
+            new YNNGCase("",          "YES",       GradingVerdict.BLANK)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("ynngCases")
+    void ynng_parameterized(YNNGCase tc) {
+        Map<Integer, PartGradingKey> keys = Map.of(
+            2, partKey(2, "q_yn", "YES_NO_NOT_GIVEN", tc.correctKey(), List.of())
+        );
+        AttemptAnswer answer = new AttemptAnswer();
+        answer.setPartId(2);
+        answer.setUserAnswers(tc.userAnswer().isEmpty()
+            ? Collections.emptyMap()
+            : Map.of("q_yn", tc.userAnswer()));
+
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getPartResults().get(2).get("q_yn").getVerdict())
+            .isEqualTo(tc.expected());
+    }
+
+    @Test
+    void normalize_collapses_multiple_spaces() { // TC_GRD_NORM_01
+        Map<Integer, PartGradingKey> keys = Map.of(
+            3, partKey(3, "q_space", "FILL_IN_THE_BLANK", "new york", List.of())
+        );
+        AttemptAnswer answer = answerForPart(3, "q_space", "new   york");
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getPartResults().get(3).get("q_space").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
     }
 
     @ParameterizedTest
@@ -203,6 +370,39 @@ class ObjectiveGradingServiceTest {
         GradingResult result = service.gradeAttempt(List.of(answer), keys);
         assertThat(result.getPartResults().get(10).get("q_mc").getVerdict())
             .isEqualTo(GradingVerdict.WRONG);
+    }
+
+    @Test
+    void multipleChoice_handles_null_and_empty_items_in_list_gracefully() { // TC_GRD_MC_01
+        Map<Integer, PartGradingKey> keys = Map.of(
+            10, partKey(10, "q_mc", "MULTIPLE_CHOICE", List.of("A", "C"), List.of())
+        );
+        AttemptAnswer answer = answerForPart(10, "q_mc", Arrays.asList("A", null, "   ", "", "C"));
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getPartResults().get(10).get("q_mc").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+    }
+
+    @Test
+    void multipleChoice_all_empty_or_null_items_returns_blank() {
+        Map<Integer, PartGradingKey> keys = Map.of(
+            10, partKey(10, "q_mc", "MULTIPLE_CHOICE", List.of("A"), List.of())
+        );
+        AttemptAnswer answer = answerForPart(10, "q_mc", Arrays.asList("", null, "  "));
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getPartResults().get(10).get("q_mc").getVerdict())
+            .isEqualTo(GradingVerdict.BLANK);
+    }
+
+    @Test
+    void multipleChoice_single_object_correct_answer() {
+        Map<Integer, PartGradingKey> keys = Map.of(
+            10, partKey(10, "q_mc", "MULTIPLE_CHOICE", "A", List.of())
+        );
+        AttemptAnswer answer = answerForPart(10, "q_mc", List.of("a"));
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getPartResults().get(10).get("q_mc").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
     }
 
     // ─── TC_GRADE_MA: MATCHING ───────────────────────────────────────────────────
@@ -265,6 +465,48 @@ class ObjectiveGradingServiceTest {
         AttemptAnswer answer = new AttemptAnswer();
         answer.setPartId(11);
         answer.setUserAnswers(Collections.emptyMap());
+
+        GradingResult result = service.gradeAttempt(List.of(answer), Map.of(11, pgk));
+        assertThat(result.getPartResults().get(11).get("q_match").getVerdict())
+            .isEqualTo(GradingVerdict.BLANK);
+        assertThat(result.getPartResults().get(11).get("q_match").getScore())
+            .isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void matching_non_map_correct_throws_grading_data_error() {
+        GradingKey key = new GradingKey();
+        key.setQuestionId("q_match_bad");
+        key.setType("MATCHING");
+        key.setCorrect("Not A Map");
+        key.setAlternates(List.of());
+        PartGradingKey pgk = new PartGradingKey();
+        pgk.setPartId(11);
+        pgk.setAnswers(Map.of("q_match_bad", key));
+
+        AttemptAnswer answer = new AttemptAnswer();
+        answer.setPartId(11);
+        answer.setUserAnswers(Map.of("q_match_bad", Map.of("1", "A")));
+
+        assertThatThrownBy(() -> service.gradeAttempt(List.of(answer), Map.of(11, pgk)))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining("GRADING_DATA_ERROR");
+    }
+
+    @Test
+    void matching_non_map_user_answer_treated_as_blank() {
+        GradingKey key = new GradingKey();
+        key.setQuestionId("q_match");
+        key.setType("MATCHING");
+        key.setCorrect(Map.of("q_left1", "B"));
+        key.setAlternates(List.of());
+        PartGradingKey pgk = new PartGradingKey();
+        pgk.setPartId(11);
+        pgk.setAnswers(Map.of("q_match", key));
+
+        AttemptAnswer answer = new AttemptAnswer();
+        answer.setPartId(11);
+        answer.setUserAnswers(Map.of("q_match", "not a map user answer"));
 
         GradingResult result = service.gradeAttempt(List.of(answer), Map.of(11, pgk));
         assertThat(result.getPartResults().get(11).get("q_match").getVerdict())

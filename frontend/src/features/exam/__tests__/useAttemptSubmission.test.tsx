@@ -75,11 +75,16 @@ describe('useAttemptSubmission', () => {
   });
   it('keeps errors and draft, unlocks manual editing and does not produce result', async () => {
     vi.mocked(submitAttempt).mockRejectedValueOnce(new Error('offline'));
-    const { result } = setup();
+    const { result, store } = setup();
     await act(async () => { await result.current.submit('MANUAL'); });
     expect(result.current.phase).toBe('error');
     expect(result.current.result).toBeNull();
     expect(result.current.isLocked()).toBe(false);
+    expect(store.getState().answers).toMatchObject({ isLocked: false });
+    act(() => { store.dispatch(setAnswer({ partId: 10, questionId: 'essay', value: 'after manual failure' })); });
+    expect(store.getState().answers.answers[10].essay).toBe('after manual failure');
+    await act(async () => { await result.current.retry(); });
+    expect(vi.mocked(submitAttempt).mock.calls[1][1].finalAnswers[0].answers[0].answer).toBe('after manual failure');
     expect(localStorage.getItem('exam_draft_42')).not.toBeNull();
   });
   it.each([401, 403])('does not produce a result from HTTP %s', async status => {
@@ -122,6 +127,21 @@ describe('useAttemptSubmission', () => {
     expect(result.current.phase).toBe('idle');
     expect(result.current.isLocked()).toBe(false);
   });
+  it('does not unlock a newer locked hydration when the old manual POST fails', async () => {
+    let reject!: (error: Error) => void;
+    vi.mocked(submitAttempt).mockReturnValueOnce(new Promise((_, r) => { reject = r; }));
+    const { result, store } = setup();
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.submit('MANUAL'); });
+    act(() => {
+      store.dispatch(setAttemptContext({ attemptId: 42, version: 20, savedAnswers: [] }));
+      store.dispatch({ type: 'answers/lockAnswers', payload: { attemptId: 42, contextRevision: store.getState().answers.contextRevision } });
+    });
+    await act(async () => { reject(new Error('late offline')); await pending; });
+    act(() => { store.dispatch(setAnswer({ partId: 10, questionId: 'essay', value: 'stale unlock' })); });
+    expect(store.getState().answers).toMatchObject({ version: 20, isLocked: true, answers: {} });
+    expect(result.current.result).toBeNull();
+  });
   it('warns on storage failure but still sends finalAnswers', async () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
     const { result } = setup();
@@ -129,6 +149,18 @@ describe('useAttemptSubmission', () => {
     expect(result.current.draftWarning).toBeTruthy();
     expect(result.current.phase).toBe('succeeded');
     expect(submitAttempt).toHaveBeenCalledTimes(1);
+  });
+  it('releases only a transient manual lock on unmount, without accepting the late response', async () => {
+    let resolve!: (value: typeof receipt) => void;
+    vi.mocked(submitAttempt).mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const { result, store, unmount } = setup();
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.submit('MANUAL'); });
+    expect(store.getState().answers).toMatchObject({ isLocked: true });
+    unmount();
+    expect(store.getState().answers).toMatchObject({ isLocked: false });
+    await act(async () => { resolve(receipt); await pending; });
+    expect(store.getState().answers).toMatchObject({ isLocked: false });
   });
   it('does not POST when the route has no active matching workspace', async () => {
     const { result, rerender } = setup();

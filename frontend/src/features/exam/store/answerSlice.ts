@@ -8,6 +8,8 @@ export interface AnswerState {
   attemptId: number | null;
   contextRevision: number;
   activeSaveId: string | null;
+  /** Blocks learner mutations, not authoritative hydration or save acknowledgment. */
+  isLocked: boolean;
   version: number;
   /** answers[partId][questionId] = AnswerValue */
   answers: Record<number, Record<string, AnswerValue>>;
@@ -32,6 +34,7 @@ export const initialState: AnswerState = {
   attemptId: null,
   contextRevision: 0,
   activeSaveId: null,
+  isLocked: false,
   version: 0,
   answers: {},
   isDirty: false,
@@ -62,12 +65,13 @@ const answerSlice = createSlice({
   reducers: {
     setAttemptContext(
       state,
-      action: PayloadAction<{ attemptId: number; version: number; savedAnswers: PartAnswers[] }>
+      action: PayloadAction<{ attemptId: number; version: number; savedAnswers: PartAnswers[]; isLocked?: boolean }>
     ) {
       const { attemptId, version, savedAnswers } = action.payload;
       const isDifferentAttempt = state.attemptId !== null && state.attemptId !== attemptId;
       state.contextRevision += 1;
       state.activeSaveId = null;
+      state.isLocked = action.payload.isLocked ?? false;
       state.attemptId = attemptId;
       state.version = version;
       state.answers = {};
@@ -91,7 +95,7 @@ const answerSlice = createSlice({
       state,
       action: PayloadAction<{ partId: number; questionId: string; value: AnswerValue }>
     ) {
-      if (state.attemptId === null) return;
+      if (state.attemptId === null || state.isLocked) return;
       const { partId, questionId, value } = action.payload;
       if (!state.answers[partId]) {
         state.answers[partId] = {};
@@ -99,6 +103,16 @@ const answerSlice = createSlice({
       state.answers[partId][questionId] = value;
       state.isDirty = true;
       state.pendingVersion += 1;
+    },
+
+    lockAnswers(state, action: PayloadAction<Pick<SaveOperation, 'attemptId' | 'contextRevision'>>) {
+      if (!matchesContext(state, action.payload)) return;
+      state.isLocked = true;
+    },
+
+    unlockAnswers(state, action: PayloadAction<Pick<SaveOperation, 'attemptId' | 'contextRevision'>>) {
+      if (!matchesContext(state, action.payload)) return;
+      state.isLocked = false;
     },
 
     markSavePending(state, action: PayloadAction<SaveOperation>) {
@@ -158,6 +172,7 @@ const answerSlice = createSlice({
       state,
       action: PayloadAction<{ partId: number; questionId: string }>
     ) {
+      if (state.isLocked) return;
       const { partId, questionId } = action.payload;
       if (!state.flags) {
         state.flags = {};
@@ -169,6 +184,7 @@ const answerSlice = createSlice({
     },
 
     clearFlags(state) {
+      if (state.isLocked) return;
       state.flags = {};
     },
 
@@ -180,6 +196,7 @@ const answerSlice = createSlice({
       state,
       action: PayloadAction<{ passageId: string; contentHash: string; highlight: Highlight }>
     ) {
+      if (state.isLocked) return;
       const { passageId, contentHash, highlight } = action.payload;
       if (!state.highlights) state.highlights = {};
       if (!state.highlights[passageId] || state.highlights[passageId].contentHash !== contentHash) {
@@ -195,6 +212,7 @@ const answerSlice = createSlice({
       state,
       action: PayloadAction<{ passageId: string; offset: number }>
     ) {
+      if (state.isLocked) return;
       const { passageId, offset } = action.payload;
       if (state.highlights?.[passageId]) {
         state.highlights[passageId].items = removeAt(state.highlights[passageId].items, offset);
@@ -208,6 +226,8 @@ const answerSlice = createSlice({
 export const {
   setAttemptContext,
   setAnswer,
+  lockAnswers,
+  unlockAnswers,
   markSavePending,
   markSaveSuccess,
   markSaveError,

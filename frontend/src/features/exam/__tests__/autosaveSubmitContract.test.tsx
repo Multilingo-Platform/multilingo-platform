@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import answerReducer from '../store/answerSlice';
+import answerReducer, { setAnswer, toggleFlag } from '../store/answerSlice';
 import WorkspacePage from '../pages/WorkspacePage';
 import axiosClient from '../../../core/api/axiosClient';
 
@@ -68,6 +68,10 @@ describe('TV3-08 real frontend pipeline', () => {
     await submit();
     expect(http.post).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox')).toBeDisabled();
+    act(() => {
+      first.store.dispatch(setAnswer({ partId: 10, questionId: 'essay', value: 'background edit' }));
+      first.store.dispatch(toggleFlag({ partId: 10, questionId: 'essay' }));
+    });
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'not accepted' } });
     fireEvent.click(screen.getByTestId('flag-btn-essay'));
     expect(first.store.getState().answers.answers[10].essay).toBe('  C tiếng Việt 😀  ');
@@ -217,11 +221,18 @@ describe('TV3-08 real frontend pipeline', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
     expect(screen.queryByRole('button', { name: /xem kết quả/i })).not.toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('offline');
+    act(() => {
+      view.store.dispatch(setAnswer({ partId: 10, questionId: 'essay', value: 'after deadline' }));
+      view.store.dispatch(toggleFlag({ partId: 10, questionId: 'essay' }));
+    });
+    expect(view.store.getState().answers.answers[10].essay).toBe('Essay');
+    expect(view.store.getState().answers.flags).toEqual({});
     http.post.mockResolvedValueOnce({ success: true, data: { attemptId: 42, status: 'AI_GRADING', redirectUrl: '/attempts/42/result' } } as never);
     fireEvent.click(screen.getByRole('button', { name: /thử lại ngay/i })); await flush();
     expect(http.post.mock.calls.map(call => (call[1] as { reason: string }).reason)).toEqual(['TIMEOUT_CLIENT', 'TIMEOUT_CLIENT']);
     expect(http.put).not.toHaveBeenCalled();
     expect(view.store.getState().answers.version).toBe(7);
+    expect(view.store.getState().answers).toMatchObject({ isLocked: true, answers: { 10: { essay: 'Essay' } } });
     fireEvent.click(screen.getByRole('button', { name: /xem kết quả/i }));
     expect(screen.getByTestId('confirmed-result')).toBeInTheDocument();
     expect(localStorage.getItem('exam_draft_42')).not.toBeNull();
@@ -261,5 +272,78 @@ describe('TV3-08 real frontend pipeline', () => {
     mount(); await flush();
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     expect(within(screen.getByRole('dialog')).getByText(/không thể lưu bản dự phòng/i)).toBeVisible();
+  });
+
+  it('does not treat HTTP 409 as a receipt and retains the final draft after a receipt without snapshot acknowledgment', async () => {
+    http.get.mockResolvedValueOnce(workspace(7, 'local final', now - 20000) as never);
+    http.post.mockRejectedValueOnce({ response: { status: 409, data: { message: 'ATTEMPT_EXPIRED' } } });
+    mount(); await flush();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByTestId('confirmed-result')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /xem kết quả/i })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('exam_draft_42')!)).toEqual({ 10: { essay: 'local final' } });
+    http.post.mockResolvedValueOnce({ success: true, data: { attemptId: 42, status: 'AI_GRADING', redirectUrl: '/attempts/42/result' } } as never);
+    fireEvent.click(screen.getByRole('button', { name: /thử lại ngay/i })); await flush();
+    expect(http.post.mock.calls.map(call => (call[1] as { reason: string }).reason)).toEqual(['TIMEOUT_CLIENT', 'TIMEOUT_CLIENT']);
+    expect(screen.getByRole('button', { name: /xem kết quả/i })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('exam_draft_42')!)).toEqual({ 10: { essay: 'local final' } });
+  });
+
+  it('disables part switch buttons and next-section button when submission is locked or expired (R6)', async () => {
+    const multiPartExam = {
+      exam_id: 1, code: 'TV3-09-R6', title: 'Multi-part test', type: 'IELTS', sections: [
+        {
+          id: 100, skill_type: 'READING', title: 'Reading Sec 1', duration_minutes: 30, parts: [
+            { id: 10, title: 'Part 1', questions: [{ id: 1, question_id: 'q1', type: 'SINGLE_CHOICE', question_text: 'Q1' }] },
+          ],
+        },
+        {
+          id: 200, skill_type: 'READING', title: 'Reading Sec 2', duration_minutes: 30, parts: [
+            { id: 20, title: 'Part 2', questions: [{ id: 2, question_id: 'q2', type: 'SINGLE_CHOICE', question_text: 'Q2' }] },
+          ],
+        },
+      ],
+    };
+    const multiPartWorkspace = {
+      success: true,
+      data: {
+        attemptId: 42,
+        status: 'IN_PROGRESS',
+        testScope: 'FULL_EXAM',
+        testMode: 'MOCK_TEST',
+        startTime: new Date(now - 60000).toISOString(),
+        serverTime: new Date(Date.now()).toISOString(),
+        deadline: new Date(now + 1000).toISOString(),
+        gracePeriodSeconds: 15,
+        lockedSections: [],
+        version: 1,
+        savedAnswers: [],
+        examSnapshot: multiPartExam,
+      },
+    };
+    http.get.mockResolvedValueOnce(multiPartWorkspace as never);
+    http.post.mockReturnValueOnce(new Promise(() => {}) as never);
+
+    mount();
+    await flush();
+
+    const partButtons = screen.getAllByRole('button', { name: /Part \d/i });
+    expect(partButtons.length).toBe(2);
+    expect(partButtons[0]).not.toBeDisabled();
+
+    // Advance timer past deadline to trigger time up & hard lock
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+
+    // Part switch buttons in sidebar must be disabled (R6)
+    partButtons.forEach(btn => {
+      expect(btn).toBeDisabled();
+    });
+
+    const nextBtn = screen.queryByRole('button', { name: /chuyển sang phần tiếp theo/i });
+    if (nextBtn) {
+      expect(nextBtn).toBeDisabled();
+    }
   });
 });

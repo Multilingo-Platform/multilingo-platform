@@ -21,6 +21,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
     private static final Set<String> OBJECTIVE_TYPES = Set.of(
         "SINGLE_CHOICE", "TRUE_FALSE_NOT_GIVEN", "YES_NO_NOT_GIVEN",
         "FILL_IN_THE_BLANK", "MULTIPLE_CHOICE", "MATCHING",
+        "MATCHING_FEATURES", "MATCHING_HEADINGS",
         "DIAGRAM_LABELING", "MAP_LABELING"
     );
 
@@ -112,11 +113,11 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
     private QuestionGradingResult gradeQuestion(
             String questionId, String type, GradingKey key, Object rawAnswer) {
         return switch (type) {
-            case "SINGLE_CHOICE" -> gradeSingleChoice(questionId, key, rawAnswer);
+            case "SINGLE_CHOICE", "MATCHING_FEATURES", "MATCHING_HEADINGS",
+                 "MAP_LABELING", "FILL_IN_THE_BLANK", "DIAGRAM_LABELING" ->
+                gradeFillIn(questionId, key, rawAnswer);
             case "TRUE_FALSE_NOT_GIVEN" -> gradeTFNG(questionId, key, rawAnswer);
             case "YES_NO_NOT_GIVEN" -> gradeYNNG(questionId, key, rawAnswer);
-            case "FILL_IN_THE_BLANK", "DIAGRAM_LABELING", "MAP_LABELING" ->
-                gradeFillIn(questionId, key, rawAnswer);
             case "MULTIPLE_CHOICE" -> gradeMultipleChoice(questionId, key, rawAnswer);
             case "MATCHING" -> gradeMatching(questionId, key, rawAnswer);
             default -> throw new AppException(ErrorCode.GRADING_DATA_ERROR,
@@ -167,8 +168,18 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
         String userAns = normalize(rawAnswer);
         if (userAns == null) return QuestionGradingResult.blank(questionId);
 
-        String correct = normalize(key.getCorrect().toString());
-        if (userAns.equals(correct)) return QuestionGradingResult.correct(questionId);
+        Object correctObj = key.getCorrect();
+        if (correctObj instanceof Collection<?> coll) {
+            for (Object opt : coll) {
+                if (userAns.equals(normalize(opt))) {
+                    return QuestionGradingResult.correct(questionId);
+                }
+            }
+        } else if (correctObj != null) {
+            if (userAns.equals(normalize(correctObj))) {
+                return QuestionGradingResult.correct(questionId);
+            }
+        }
 
         List<String> alternates = key.getAlternates();
         if (alternates != null) {
@@ -183,7 +194,6 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
 
     // ─── MULTIPLE_CHOICE ─────────────────────────────────────────────────────────
 
-    @SuppressWarnings("unchecked")
     private QuestionGradingResult gradeMultipleChoice(
             String questionId, GradingKey key, Object rawAnswer) {
         if (rawAnswer == null) return QuestionGradingResult.blank(questionId);
@@ -192,11 +202,29 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
         if (userList.isEmpty()) return QuestionGradingResult.blank(questionId);
 
         Set<String> userSet = new HashSet<>();
-        for (Object item : userList) userSet.add(normalize(item.toString()));
+        for (Object item : userList) {
+            String norm = normalize(item);
+            if (norm != null) {
+                userSet.add(norm);
+            }
+        }
+        if (userSet.isEmpty()) return QuestionGradingResult.blank(questionId);
 
-        List<?> correctList = (List<?>) key.getCorrect();
         Set<String> correctSet = new HashSet<>();
-        for (Object item : correctList) correctSet.add(normalize(item.toString()));
+        Object correctObj = key.getCorrect();
+        if (correctObj instanceof Collection<?> coll) {
+            for (Object item : coll) {
+                String norm = normalize(item);
+                if (norm != null) {
+                    correctSet.add(norm);
+                }
+            }
+        } else if (correctObj != null) {
+            String norm = normalize(correctObj);
+            if (norm != null) {
+                correctSet.add(norm);
+            }
+        }
 
         return userSet.equals(correctSet)
             ? QuestionGradingResult.correct(questionId)
@@ -205,20 +233,22 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
 
     // ─── MATCHING ────────────────────────────────────────────────────────────────
 
-    @SuppressWarnings("unchecked")
     private QuestionGradingResult gradeMatching(
             String questionId, GradingKey key, Object rawAnswer) {
-        // correct: Map<String,String> subQuestionId -> answerId
-        Map<String, String> correctMap = (Map<String, String>) key.getCorrect();
-        Map<String, Object> userMap = rawAnswer instanceof Map<?, ?>
-            ? (Map<String, Object>) rawAnswer : Collections.emptyMap();
+        if (!(key.getCorrect() instanceof Map<?, ?>)) {
+            throw new AppException(ErrorCode.GRADING_DATA_ERROR,
+                "GRADING_DATA_ERROR: correct is not a Map for MATCHING questionId: " + questionId);
+        }
+
+        Map<?, ?> correctMap = (Map<?, ?>) key.getCorrect();
+        Map<?, ?> userMap = rawAnswer instanceof Map<?, ?> map ? map : Collections.emptyMap();
 
         BigDecimal score = BigDecimal.ZERO;
         int totalPairs = correctMap.size();
         int correctPairs = 0;
 
-        for (Map.Entry<String, String> entry : correctMap.entrySet()) {
-            String subId = entry.getKey();
+        for (Map.Entry<?, ?> entry : correctMap.entrySet()) {
+            String subId = String.valueOf(entry.getKey());
             String correctAns = normalize(entry.getValue());
             Object userRaw = userMap.get(subId);
             String userAns = normalize(userRaw);
@@ -231,7 +261,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
         // MATCHING partial credit: score = số cặp đúng, nhưng verdict CORRECT chỉ khi
         // tất cả cặp đều đúng. Nếu không có cặp nào đúng và user không gửi map → BLANK.
         GradingVerdict verdict;
-        if (correctPairs == totalPairs) {
+        if (correctPairs == totalPairs && totalPairs > 0) {
             verdict = GradingVerdict.CORRECT;
         } else if (userMap.isEmpty()) {
             verdict = GradingVerdict.BLANK;
@@ -248,23 +278,36 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
 
     // ─── Normalize helpers ───────────────────────────────────────────────────────
 
-    /** Chuẩn hóa chung: trim + toLowerCase(Locale.ROOT). Trả null nếu blank. */
+    /** Chuẩn hóa chung: trim + toLowerCase(Locale.ROOT) + collapse spaces. Trả null nếu blank. */
     private String normalize(Object raw) {
         if (raw == null) return null;
-        String s = raw.toString().trim().toLowerCase(Locale.ROOT);
+        String s = raw.toString().trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
         return s.isEmpty() ? null : s;
     }
 
-    /** Chuẩn hóa TRUE_FALSE_NOT_GIVEN: "not given" → "not_given". */
+    /** Chuẩn hóa TRUE_FALSE_NOT_GIVEN: "not given" → "not_given", hỗ trợ viết tắt t, f, ng. */
     private String normalizeTFNG(Object raw) {
-        if (raw == null) return null;
-        String s = raw.toString().trim().toLowerCase(Locale.ROOT)
-            .replace(" ", "_");  // "not given" → "not_given"
-        return s.isEmpty() ? null : s;
+        String s = normalize(raw);
+        if (s == null) return null;
+        s = s.replace(" ", "_");
+        return switch (s) {
+            case "t", "true" -> "true";
+            case "f", "false" -> "false";
+            case "ng", "not_given" -> "not_given";
+            default -> s;
+        };
     }
 
-    /** Chuẩn hóa YES_NO_NOT_GIVEN: "not given" → "not_given". */
+    /** Chuẩn hóa YES_NO_NOT_GIVEN: "not given" → "not_given", hỗ trợ viết tắt y, n, ng. */
     private String normalizeYNNG(Object raw) {
-        return normalizeTFNG(raw);
+        String s = normalize(raw);
+        if (s == null) return null;
+        s = s.replace(" ", "_");
+        return switch (s) {
+            case "y", "yes" -> "yes";
+            case "n", "no" -> "no";
+            case "ng", "not_given" -> "not_given";
+            default -> s;
+        };
     }
 }

@@ -94,6 +94,8 @@ export default function useWorkspace(attemptId: number): UseWorkspaceResult {
               attemptId: data.attempt_id,
               version: data.version,
               savedAnswers: data.saved_answers,
+              isLocked: data.status !== 'IN_PROGRESS' || (data.deadline !== null
+                && Date.now() + data.serverTimeOffset >= Date.parse(data.deadline)),
             })
           );
         })

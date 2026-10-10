@@ -26,6 +26,54 @@ function makeStore() {
 
 const operation = { attemptId: 1, contextRevision: 0, requestId: 'save-1', pendingVersion: 1 };
 
+describe('TV3-09 scoped mutation lock', () => {
+  function context() {
+    return reducer(initialState, setAttemptContext({ attemptId: 42, version: 7, savedAnswers: [] }));
+  }
+  function lock(state: ReturnType<typeof context>, type = 'answers/lockAnswers', revision = state.contextRevision) {
+    return reducer(state, { type, payload: { attemptId: 42, contextRevision: revision } });
+  }
+  it('blocks answer clears, flags and highlights without changing dirty counters', () => {
+    let state = context();
+    state = reducer(state, setAnswer({ partId: 10, questionId: 'essay', value: 'B' }));
+    state = reducer(state, toggleFlag({ partId: 10, questionId: 'essay' }));
+    state = reducer(state, addHighlightRecord({ passageId: 'p', contentHash: 'hash', highlight: { id: 'h', start: 0, end: 4, text: 'text' } }));
+    const locked = lock(state);
+    for (const action of [
+      setAnswer({ partId: 10, questionId: 'essay', value: null }),
+      setAnswer({ partId: 10, questionId: 'essay', value: '' }),
+      toggleFlag({ partId: 10, questionId: 'essay' }), clearFlags(),
+      addHighlightRecord({ passageId: 'p', contentHash: 'hash', highlight: { id: 'h2', start: 5, end: 8, text: 'new' } }),
+      removeHighlightRecord({ passageId: 'p', offset: 1 }),
+    ]) expect(reducer(locked, action)).toBe(locked);
+  });
+  it('ignores wrong attempt/revision and allows editing only after scoped unlock', () => {
+    const state = context();
+    expect(reducer(state, { type: 'answers/lockAnswers', payload: { attemptId: 43, contextRevision: state.contextRevision } })).toBe(state);
+    expect(lock(state, 'answers/lockAnswers', state.contextRevision - 1)).toBe(state);
+    const locked = lock(state);
+    expect(lock(locked, 'answers/unlockAnswers', state.contextRevision - 1)).toBe(locked);
+    const unlocked = lock(locked, 'answers/unlockAnswers');
+    expect(reducer(unlocked, setAnswer({ partId: 10, questionId: 'essay', value: 'C' })).answers[10].essay).toBe('C');
+    expect(locked).not.toBe(state);
+  });
+  it('accepts save acknowledgment and teardown while locked, and resets on hydration', () => {
+    let state = context();
+    state = reducer(state, setAnswer({ partId: 10, questionId: 'essay', value: 'B' }));
+    const op = { attemptId: 42, contextRevision: state.contextRevision, requestId: 'pending', pendingVersion: state.pendingVersion };
+    state = reducer(state, markSavePending(op));
+    state = lock(state);
+    state = reducer(state, markSaveSuccess({ ...op, savedAt: 123, serverVersion: 8 }));
+    expect(state).toMatchObject({ version: 8, isDirty: false, saveStatus: 'saved', isLocked: true });
+    const cleared = reducer(state, clearAnswers());
+    expect(cleared).toMatchObject({ attemptId: null, answers: {}, isLocked: false, contextRevision: state.contextRevision + 1 });
+    const hydrated = reducer(state, setAttemptContext({ attemptId: 42, version: 20, savedAnswers: [] }));
+    expect(hydrated).toMatchObject({ version: 20, isLocked: false });
+    const newLock = lock(hydrated);
+    expect(lock(newLock, 'answers/unlockAnswers', state.contextRevision)).toBe(newLock);
+  });
+});
+
 describe('answerSlice', () => {
   describe('flags', () => {
     it('toggles question flag on and off', () => {

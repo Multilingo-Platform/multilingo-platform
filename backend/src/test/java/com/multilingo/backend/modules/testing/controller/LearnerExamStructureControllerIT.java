@@ -102,10 +102,10 @@ class LearnerExamStructureControllerIT {
     }
 
     @Test
-    void getExamStructure_Forbidden_WhenUnauthenticated() throws Exception {
+    void getExamStructure_Unauthorized_WhenUnauthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/exams/9/structure")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         verify(examStructureService, never()).getPublishedExamStructure(any());
     }

@@ -32,7 +32,7 @@ const mockWorkspace: WorkspaceResponse = {
   test_scope: 'FULL_EXAM' as const,
   test_mode: 'MOCK_TEST' as const,
   startTime: new Date(0).toISOString(),
-  deadline: new Date(3600000).toISOString(),
+  deadline: new Date(Date.now() + 3600000).toISOString(),
   serverTime: new Date(1000).toISOString(),
   gracePeriodSeconds: 15,
   lockedSections: [100],
@@ -50,6 +50,23 @@ const mockWorkspace: WorkspaceResponse = {
 describe('useWorkspace', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it.each(['expired', 'terminal'] as const)('hydrates a %s context as locked and resets it only on authoritative active reload', async kind => {
+    const lockedWorkspace = kind === 'terminal'
+      ? { ...mockWorkspace, status: 'AI_GRADING' as const }
+      : { ...mockWorkspace, deadline: new Date(Date.now() + 60000).toISOString(), serverTimeOffset: 60001 };
+    vi.spyOn(attemptApi, 'getWorkspace').mockResolvedValueOnce(lockedWorkspace)
+      .mockResolvedValueOnce({ ...mockWorkspace, deadline: null, serverTimeOffset: 0 });
+    const { store, wrapper } = makeWrapper();
+    const { result } = renderHook(() => useWorkspace(5), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    act(() => { store.dispatch(setAnswer({ partId: 10, questionId: 'q_1', value: 'blocked' })); });
+    expect(store.getState().answers).toMatchObject({ isLocked: true, answers: { 10: { q_1: 'ORIGINAL' } } });
+    act(() => { result.current.retry(); });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    act(() => { store.dispatch(setAnswer({ partId: 10, questionId: 'q_1', value: 'active' })); });
+    expect(store.getState().answers).toMatchObject({ isLocked: false, answers: { 10: { q_1: 'active' } } });
   });
 
   it('TC_WS_ROUTE_01: starts loading, then returns workspace and sets ready=true', async () => {
