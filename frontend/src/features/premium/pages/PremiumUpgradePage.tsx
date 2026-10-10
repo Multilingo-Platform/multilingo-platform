@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Check, Info, Shield, Zap, Sparkles } from 'lucide-react';
 import axiosClient from '../../../core/api/axiosClient';
+import { PaymentConfirmationModal } from '../components/PaymentConfirmationModal';
 
 // Tạm thời gọi API admin để lấy danh sách gói (sau này có thể tách API public riêng)
 const fetchPlans = async () => {
@@ -11,6 +12,9 @@ const fetchPlans = async () => {
 };
 
 const PremiumUpgradePage = () => {
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const { data: plansData, isLoading } = useQuery({
     queryKey: ['premiumPlans'],
     queryFn: fetchPlans,
@@ -20,6 +24,11 @@ const PremiumUpgradePage = () => {
 
   const formatVND = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  };
+
+  const handleSelectPlan = (plan: any) => {
+    setSelectedPlan(plan);
+    setIsModalOpen(true);
   };
 
   return (
@@ -119,6 +128,7 @@ const PremiumUpgradePage = () => {
                   </div>
 
                   <button
+                    onClick={() => handleSelectPlan(plan)}
                     className={`mt-4 w-full font-semibold py-3 px-4 rounded-full transition-colors ${isHighlighted
                       ? 'bg-orange-600 text-white hover:bg-orange-700 shadow-md hover:shadow-lg'
                       : 'bg-slate-900 text-white hover:bg-slate-800'
@@ -167,6 +177,12 @@ const PremiumUpgradePage = () => {
             <a href="#" className="hover:text-slate-800 transition-colors">Liên hệ hỗ trợ</a>
           </div>
         </div>
+
+        <PaymentConfirmationModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          plan={selectedPlan} 
+        />
 
       </div>
     </div>
