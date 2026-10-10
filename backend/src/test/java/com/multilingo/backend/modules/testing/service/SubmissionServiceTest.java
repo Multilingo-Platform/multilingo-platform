@@ -201,10 +201,20 @@ class SubmissionServiceTest {
 
         // Inject writing section into examSnapshot of attempt
         TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
-        java.util.Map<String, Object> snapshot = new java.util.HashMap<>(attempt.getExamSnapshot());
+        java.util.Map<String, Object> snapshot = new java.util.HashMap<>(attempt.getExamSnapshot() != null ? attempt.getExamSnapshot() : java.util.Map.of());
         snapshot.put("sections", java.util.List.of(
-                java.util.Map.of("name", "Reading"),
-                java.util.Map.of("name", "Writing Task 1")
+                java.util.Map.of(
+                        "name", "Writing",
+                        "parts", java.util.List.of(
+                                java.util.Map.of(
+                                        "id", 1,
+                                        "title", "Writing Task 1",
+                                        "questions", java.util.List.of(
+                                                java.util.Map.of("id", "essay_1", "type", "ESSAY")
+                                        )
+                                )
+                        )
+                )
         ));
         attempt.setExamSnapshot(snapshot);
         testAttemptRepository.save(attempt);

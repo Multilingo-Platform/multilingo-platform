@@ -29,7 +29,11 @@ import com.multilingo.backend.modules.testing.grading.dto.QuestionGradingResult;
 import com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest;
 import com.multilingo.backend.modules.testing.entity.enums.SubmitReason;
 import com.multilingo.backend.modules.testing.util.WorkspaceSnapshotSanitizer;
-import lombok.RequiredArgsConstructor;
+import com.multilingo.backend.modules.testing.dto.response.ResultSummaryResponse;
+import com.multilingo.backend.modules.testing.service.support.AttemptGradingInputFactory;
+import com.multilingo.backend.modules.testing.service.support.AttemptResultSummaryMapper;
+import com.multilingo.backend.modules.testing.util.AttemptDuration;
+import com.multilingo.backend.modules.testing.util.AttemptResultScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +53,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TestAttemptServiceImpl implements TestAttemptService {
 
     private final TestAttemptRepository testAttemptRepository;
@@ -61,6 +64,61 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final ObjectiveGradingService gradingService;
     private final PlatformTransactionManager transactionManager;
     private final EntityManager entityManager;
+    private final AttemptGradingInputFactory gradingInputFactory;
+    private final AttemptResultSummaryMapper summaryMapper;
+
+    public TestAttemptServiceImpl(
+            TestAttemptRepository testAttemptRepository,
+            AttemptAnswerRepository attemptAnswerRepository,
+            ExamAdapter examAdapter,
+            IdentityAdapter identityAdapter,
+            ObjectMapper objectMapper,
+            GradingAdapter gradingAdapter,
+            ObjectiveGradingService gradingService,
+            PlatformTransactionManager transactionManager,
+            EntityManager entityManager) {
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, new AttemptGradingInputFactory(), new AttemptResultSummaryMapper(objectMapper));
+    }
+
+    public TestAttemptServiceImpl(
+            TestAttemptRepository testAttemptRepository,
+            AttemptAnswerRepository attemptAnswerRepository,
+            ExamAdapter examAdapter,
+            IdentityAdapter identityAdapter,
+            ObjectMapper objectMapper,
+            GradingAdapter gradingAdapter,
+            ObjectiveGradingService gradingService,
+            PlatformTransactionManager transactionManager,
+            EntityManager entityManager,
+            AttemptGradingInputFactory gradingInputFactory) {
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, new AttemptResultSummaryMapper(objectMapper));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public TestAttemptServiceImpl(
+            TestAttemptRepository testAttemptRepository,
+            AttemptAnswerRepository attemptAnswerRepository,
+            ExamAdapter examAdapter,
+            IdentityAdapter identityAdapter,
+            ObjectMapper objectMapper,
+            GradingAdapter gradingAdapter,
+            ObjectiveGradingService gradingService,
+            PlatformTransactionManager transactionManager,
+            EntityManager entityManager,
+            AttemptGradingInputFactory gradingInputFactory,
+            AttemptResultSummaryMapper summaryMapper) {
+        this.testAttemptRepository = testAttemptRepository;
+        this.attemptAnswerRepository = attemptAnswerRepository;
+        this.examAdapter = examAdapter;
+        this.identityAdapter = identityAdapter;
+        this.objectMapper = objectMapper;
+        this.gradingAdapter = gradingAdapter;
+        this.gradingService = gradingService;
+        this.transactionManager = transactionManager;
+        this.entityManager = entityManager;
+        this.gradingInputFactory = gradingInputFactory;
+        this.summaryMapper = summaryMapper;
+    }
 
     @Override
     @Transactional
@@ -248,6 +306,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 ? attempt.getDeadline()
                 : now;
         attempt.setEndTime(calculatedEndTime);
+        Integer duration = AttemptDuration.calculateSeconds(attempt.getStartTime(), calculatedEndTime);
+        attempt.setTimeSpentSeconds(duration != null ? duration : 0);
         attempt.setStatus(AttemptStatus.SUBMITTED);
         testAttemptRepository.save(attempt);
 
@@ -255,7 +315,14 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         try {
             List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
             Map<Integer, PartGradingKey> keys = gradingAdapter.loadPartKeys(attempt.getExamId());
-            GradingResult gradingResult = gradingService.gradeAttempt(savedAnswers, keys);
+
+            AttemptGradingInputFactory.GradingInput input = gradingInputFactory.prepare(
+                    attempt.getExamSnapshot(), savedAnswers, keys);
+
+            GradingResult gradingResult = gradingService.gradeAttempt(input.getAnswers(), input.getPartKeys());
+
+            // Serialize grading result before mutating or persisting any derived fields:
+            String serializedSummary = objectMapper.writeValueAsString(gradingResult);
 
             for (AttemptAnswer aa : savedAnswers) {
                 Map<String, QuestionGradingResult> partResult =
@@ -273,16 +340,12 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
             attemptAnswerRepository.saveAll(savedAnswers);
 
+            attempt.setResultSummary(serializedSummary);
             attempt.setOverallScore(gradingResult.getTotalScore());
             Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
             attempt.setSectionScores(sectionMap);
-            try {
-                attempt.setResultSummary(objectMapper.writeValueAsString(gradingResult));
-            } catch (Exception e) {
-                log.error("Failed to serialize grading result for attempt {}", attempt.getId(), e);
-            }
 
-            boolean hasWriting = checkHasWriting(attempt);
+            boolean hasWriting = checkHasWriting(input.getScopedParts());
             if (hasWriting) {
                 boolean hasQuota = checkAiQuota(userId);
                 attempt.setStatus(hasQuota ? AttemptStatus.AI_GRADING : AttemptStatus.AI_GRADING_QUEUED);
@@ -291,7 +354,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
             testAttemptRepository.save(attempt);
         } catch (Exception e) {
-            log.error("Grading failed for attempt {}: {}", attempt.getId(), e.getMessage(), e);
+            log.error("Grading failed for attempt {}: {}", attempt.getId(), e.getClass().getSimpleName());
             attempt.setStatus(AttemptStatus.GRADING_FAILED);
             testAttemptRepository.save(attempt);
         }
@@ -301,20 +364,11 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
     // ─── private helpers ────────────────────────────────────────────────────────
 
-    private boolean checkHasWriting(TestAttempt attempt) {
-        if (attempt.getExamSnapshot() == null) return false;
-        Object sectionsObj = attempt.getExamSnapshot().get("sections");
-        if (sectionsObj instanceof List<?> sections) {
-            for (Object s : sections) {
-                if (s instanceof Map<?, ?> secMap) {
-                    Object name = secMap.get("name");
-                    if (name != null && name.toString().toUpperCase().contains("WRITING")) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+    private boolean checkHasWriting(List<AttemptResultScope.ScopedPart> scopedParts) {
+        if (scopedParts == null) return false;
+        return scopedParts.stream()
+                .flatMap(p -> p.getQuestions().stream())
+                .anyMatch(q -> "ESSAY".equalsIgnoreCase(q.getType()));
     }
 
     private boolean checkAiQuota(Integer userId) {
@@ -361,14 +415,11 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Attempt is not submitted yet");
         }
 
-        Map<String, Object> resultSummary = null;
-        if (attempt.getResultSummary() != null) {
-            try {
-                resultSummary = objectMapper.readValue(attempt.getResultSummary(), Map.class);
-            } catch (Exception e) {
-                log.error("Failed to parse result summary for attempt {}", attemptId, e);
-            }
-        }
+        List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
+        ResultSummaryResponse resultSummary = summaryMapper.map(attempt, savedAnswers);
+        boolean summaryAvailable = resultSummary != null;
+
+        Integer duration = AttemptDuration.resolveDuration(attempt);
 
         return com.multilingo.backend.modules.testing.dto.response.ExamResultResponse.builder()
                 .attemptId(attempt.getId())
@@ -377,8 +428,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .testMode(attempt.getTestMode())
                 .startTime(attempt.getStartTime())
                 .endTime(attempt.getEndTime())
-                .timeSpentSeconds(attempt.getTimeSpentSeconds())
+                .timeSpentSeconds(duration)
                 .overallScore(attempt.getOverallScore())
+                .summaryAvailable(summaryAvailable)
                 .resultSummary(resultSummary)
                 .build();
     }
