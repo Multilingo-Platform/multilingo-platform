@@ -48,7 +48,7 @@ export interface AutosaveResponse {
 
 export interface SubmitResult {
   attempt_id: number;
-  status: 'COMPLETED' | 'AI_GRADING';
+  status: Exclude<AttemptStatus, 'IN_PROGRESS'>;
   redirect_url: string;
 }
 

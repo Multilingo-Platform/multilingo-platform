@@ -294,12 +294,15 @@ export async function getWorkspace(attemptId: number): Promise<WorkspaceResponse
  */
 export async function autosaveAnswers(
   attemptId: number,
-  req: AutosaveRequest
+  req: AutosaveRequest,
+  options?: { signal?: AbortSignal }
 ): Promise<AutosaveResponse> {
-  const res = await axiosClient.put<unknown, ApiResponse<AutosaveResponse>>(
+  validateWriteContext(attemptId, req.version);
+  const res = await boundedWrite(signal => axiosClient.put<unknown, ApiResponse<AutosaveResponse>>(
     `/v1/attempts/${attemptId}/answers`,
-    { version: req.version, answers: req.answers }
-  );
+    { version: req.version, answers: req.answers },
+    { signal, timeout: WRITE_TIMEOUT_MS }
+  ), options?.signal);
   if (
     !res.success ||
     !res.data ||
@@ -314,11 +317,43 @@ export async function autosaveAnswers(
 }
 
 export interface SubmitAttemptApiRequest {
-  reason?: 'MANUAL' | 'TIMEOUT_CLIENT' | 'TIMEOUT_SERVER';
-  version?: number;
-  baseVersion?: number;
-  answers?: PartAnswers[];
-  finalAnswers?: PartAnswers[];
+  reason: 'MANUAL' | 'TIMEOUT_CLIENT';
+  baseVersion: number;
+  finalAnswers: PartAnswers[];
+}
+
+const WRITE_TIMEOUT_MS = 10_000;
+
+function validateWriteContext(attemptId: number, version: number): void {
+  if (![attemptId, version].every(value => Number.isSafeInteger(value) && value >= 1 && value <= 2147483647)) {
+    throw new Error('ID phiên thi hoặc version không hợp lệ');
+  }
+}
+
+/** Axios timeout does not include time queued behind the refresh interceptor. */
+async function boundedWrite<T>(execute: (signal: AbortSignal) => Promise<T>, external?: AbortSignal): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let cancel: (() => void) | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    cancel = () => {
+      reject(new Error('Yêu cầu đã bị hủy'));
+      controller.abort();
+    };
+    external?.addEventListener('abort', cancel, { once: true });
+    if (external?.aborted) cancel();
+    timer = setTimeout(() => {
+      reject(new Error('Yêu cầu quá thời gian. Vui lòng thử lại.'));
+      controller.abort();
+    }, WRITE_TIMEOUT_MS);
+  });
+  try {
+    if (controller.signal.aborted) return await deadline;
+    return await Promise.race([deadline, execute(controller.signal)]);
+  } finally {
+    clearTimeout(timer);
+    if (cancel) external?.removeEventListener('abort', cancel);
+  }
 }
 
 /**
@@ -327,33 +362,37 @@ export interface SubmitAttemptApiRequest {
  */
 export async function submitAttempt(
   attemptId: number,
-  req?: SubmitAttemptApiRequest
+  req: SubmitAttemptApiRequest,
+  options?: { signal?: AbortSignal }
 ): Promise<SubmitResult> {
-  const payload: Record<string, any> = {
-    version: req?.version ?? 0,
-    answers: req?.answers ?? [],
+  validateWriteContext(attemptId, req?.baseVersion);
+  if (!req || !['MANUAL', 'TIMEOUT_CLIENT'].includes(req.reason) || !Array.isArray(req.finalAnswers)) {
+    throw new Error('Payload nộp bài không hợp lệ');
+  }
+  const payload = {
+    reason: req.reason,
+    baseVersion: req.baseVersion,
+    finalAnswers: req.finalAnswers,
   };
-  if (req?.reason) {
-    payload.reason = req.reason;
-  }
-  if (req?.baseVersion !== undefined) {
-    payload.baseVersion = req.baseVersion;
-  }
-  if (req?.finalAnswers !== undefined) {
-    payload.finalAnswers = req.finalAnswers;
-  }
-  const res = await axiosClient.post<unknown, ApiResponse<any>>(
+  const res = await boundedWrite(signal => axiosClient.post<unknown, ApiResponse<any>>(
     `/v1/attempts/${attemptId}/submit`,
-    payload
-  );
+    payload,
+    { signal, timeout: WRITE_TIMEOUT_MS }
+  ), options?.signal);
   if (!res.success || !res.data) {
     throw new Error(res.message || 'Submit failed');
   }
-  return {
+  const result = {
     attempt_id: res.data.attemptId ?? res.data.attempt_id,
     status: res.data.status,
     redirect_url: res.data.redirectUrl ?? res.data.redirect_url,
   };
+  if (result.attempt_id !== attemptId
+      || !['SUBMITTED', 'GRADING_FAILED', 'AI_GRADING', 'AI_GRADING_QUEUED', 'COMPLETED', 'EXPIRED'].includes(result.status)
+      || result.redirect_url !== `/attempts/${attemptId}/result`) {
+    throw new Error('Phản hồi nộp bài không hợp lệ');
+  }
+  return result;
 }
 
 export async function lockSection(attemptId: number, sectionId: number): Promise<void> {

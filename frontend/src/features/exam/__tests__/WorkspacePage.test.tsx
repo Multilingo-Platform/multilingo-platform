@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import answerReducer, { setAttemptContext } from '../store/answerSlice';
+import answerReducer, { initialState, setAttemptContext } from '../store/answerSlice';
 import WorkspacePage from '../pages/WorkspacePage';
 import * as workspaceHookModule from '../hooks/useWorkspace';
 import * as attemptApi from '../api/attemptApi';
@@ -13,6 +13,11 @@ import { useAutosave } from '../hooks/useAutosave';
 vi.mock('../hooks/useWorkspace');
 vi.mock('../api/attemptApi');
 vi.mock('../hooks/useAutosave', () => ({ useAutosave: vi.fn() }));
+
+function setAutosaveController() {
+  vi.mocked(useAutosave).mockReturnValue({ pauseAndWait: vi.fn().mockResolvedValue({ status: 'ready' }), resume: vi.fn(), draftWarning: null });
+}
+beforeEach(setAutosaveController);
 
 const baseWorkspace: WorkspaceResponse = {
   attempt_id: 99,
@@ -35,6 +40,7 @@ function makeStore(isDirty = false) {
     reducer: { answers: answerReducer },
     preloadedState: {
       answers: {
+        ...initialState,
         attemptId: 99,
         version: 1,
         answers: (isDirty ? { 1: { q1: 'A' } } : {}) as Record<number, Record<string, import('../types/answer.types').AnswerValue>>,
@@ -567,15 +573,16 @@ describe('WorkspacePage', () => {
 describe('WorkspacePage submit flow', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    setAutosaveController();
     vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult());
   });
 
-  it('flushes dirty answers to server before submitting', async () => {
+  it('sends dirty answers directly in finalAnswers without a pre-submit PUT', async () => {
     const mockAutoSave = vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 2 } as any);
     const mockSubmit = vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
       attempt_id: 99,
       status: 'COMPLETED',
-      redirect_url: '/result',
+      redirect_url: '/attempts/99/result',
     });
 
     const store = makeStore(true); // isDirty = true
@@ -592,21 +599,18 @@ describe('WorkspacePage submit flow', () => {
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(mockAutoSave).toHaveBeenCalledTimes(1);
+      expect(mockAutoSave).not.toHaveBeenCalled();
       expect(mockSubmit).toHaveBeenCalledTimes(1);
     });
 
-    // autosave must be called BEFORE submit
-    const autoSaveOrder = mockAutoSave.mock.invocationCallOrder[0];
-    const submitOrder = mockSubmit.mock.invocationCallOrder[0];
-    expect(autoSaveOrder).toBeLessThan(submitOrder);
+    expect(mockSubmit.mock.calls[0][1].finalAnswers).toEqual([{ part_id: 1, answers: [{ question_id: 'q1', answer: 'A' }] }]);
   });
 
   it('does NOT call autosave before submit when isDirty=false', async () => {
     vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
       attempt_id: 99,
       status: 'COMPLETED',
-      redirect_url: '/result',
+      redirect_url: '/attempts/99/result',
     });
 
     const store = makeStore(false); // isDirty = false
@@ -622,12 +626,12 @@ describe('WorkspacePage submit flow', () => {
     });
   });
 
-  it('removes localStorage draft after successful submit', async () => {
+  it('retains localStorage draft after successful submit', async () => {
     vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 2 });
     vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
       attempt_id: 99,
       status: 'COMPLETED',
-      redirect_url: '/result',
+      redirect_url: '/attempts/99/result',
     });
     const removeSpy = vi.spyOn(Storage.prototype, 'removeItem');
 
@@ -639,7 +643,9 @@ describe('WorkspacePage submit flow', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
 
     await waitFor(() => {
-      expect(removeSpy).toHaveBeenCalledWith('exam_draft_99');
+      expect(attemptApi.submitAttempt).toHaveBeenCalledOnce();
+      expect(localStorage.getItem('exam_draft_99')).not.toBeNull();
+      expect(removeSpy).not.toHaveBeenCalledWith('exam_draft_99');
     });
     removeSpy.mockRestore();
   });
@@ -743,231 +749,101 @@ describe('WorkspacePage submit flow', () => {
 });
 
 
-describe('WorkspacePage TV3-06 Server-Authoritative Autosave & Pre-Submit', () => {
+describe('WorkspacePage TV3-08 Direct finalAnswers Submit', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    setAutosaveController();
     localStorage.clear();
     vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult());
   });
 
-  it('serializes pre-submit flush with background autosave to avoid overlapping requests with the same version', async () => {
-    const store = makeStore(true);
-    // Simulate background autosave is in flight
-    store.dispatch({ type: 'answers/markSavePending', payload: 1 });
-
-    renderPage(store);
-
+  async function confirmSubmit() {
     fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i })).toHaveLength(2));
     fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
+  }
 
-    // Submit handler should wait while saveStatus === 'saving'
-    await new Promise(r => setTimeout(r, 150));
-    expect(vi.mocked(attemptApi.autosaveAnswers)).not.toHaveBeenCalled();
-
-    // User made an edit during background save, so isDirty remains true when background completes
-    store.dispatch({
-      type: 'answers/setAnswer',
-      payload: { partId: 1, questionId: 'q2', value: 'B' },
+  it('posts full latest answers directly and retains draft after successful submit', async () => {
+    vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
+      attempt_id: 99, status: 'COMPLETED', redirect_url: '/attempts/99/result',
     });
-
-    // Mock direct flush and submit responses
-    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 3 });
-    const mockSubmit = vi.mocked(attemptApi.submitAttempt).mockResolvedValueOnce({
-      attempt_id: 99,
-      status: 'COMPLETED',
-      redirect_url: '/attempts/99/result',
-    });
-
-    // Background autosave completes with serverVersion: 2
-    store.dispatch({
-      type: 'answers/markSaveSuccess',
-      payload: { savedAt: Date.now(), pendingVersion: 1, serverVersion: 2 },
-    });
-
-    // Submit handler exits loop, reads state.version = 2, and flushes with version 2
-    await waitFor(() => {
-      expect(vi.mocked(attemptApi.autosaveAnswers)).toHaveBeenCalledWith(
-        99,
-        expect.objectContaining({ version: 2 })
-      );
-    });
-
-    // Submit should use the updated server version 3 from direct flush
-    await waitFor(() => {
-      expect(mockSubmit).toHaveBeenCalledWith(
-        99,
-        expect.objectContaining({ version: 3, baseVersion: 3 })
-      );
-    });
-  });
-
-  it('handles 1601 Version Conflict from direct flush without navigating to result page', async () => {
-    const conflictError = Object.assign(new Error('Conflict'), {
-      response: { data: { code: 1601 } },
-    });
-    vi.mocked(attemptApi.autosaveAnswers).mockRejectedValueOnce(conflictError);
-    const mockSubmit = vi.mocked(attemptApi.submitAttempt);
-
     const store = makeStore(true);
     renderPage(store);
-
-    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
-    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
-
-    // SaveStatus must transition to conflict
-    await waitFor(() => {
-      expect(store.getState().answers.saveStatus).toBe('conflict');
-    });
-
-    // SubmitAttempt must NOT have been called
-    expect(mockSubmit).not.toHaveBeenCalled();
-    // isDirty must remain true
-    expect(store.getState().answers.isDirty).toBe(true);
-    // Overlay must be closed so user can view conflict badge
-    expect(screen.queryByTestId('submit-overlay')).not.toBeInTheDocument();
-  });
-
-  it('releases saving status to error when direct flush fails on network error and allows retry', async () => {
-    vi.mocked(attemptApi.autosaveAnswers).mockRejectedValueOnce(new Error('Network offline'));
-    const mockSubmit = vi.mocked(attemptApi.submitAttempt);
-
-    const store = makeStore(true);
-    renderPage(store);
-
-    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
-    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
-
-    // SaveStatus must transition to error, NOT left in saving
-    await waitFor(() => {
-      expect(store.getState().answers.saveStatus).toBe('error');
-    });
-
-    expect(mockSubmit).not.toHaveBeenCalled();
-    expect(store.getState().answers.isDirty).toBe(true);
-    // Draft saved to localStorage
+    await confirmSubmit();
+    await waitFor(() => expect(screen.getByTestId('result-route-sentinel')).toBeInTheDocument());
+    expect(attemptApi.autosaveAnswers).not.toHaveBeenCalled();
+    expect(attemptApi.submitAttempt).toHaveBeenCalledWith(99, {
+      reason: 'MANUAL', baseVersion: 1,
+      finalAnswers: [{ part_id: 1, answers: [{ question_id: 'q1', answer: 'A' }] }],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(localStorage.getItem('exam_draft_99')).not.toBeNull();
-
-    // Submit overlay displays retry button
-    const retryBtn = screen.getByRole('button', { name: /thử nộp lại/i });
-    expect(retryBtn).toBeInTheDocument();
-
-    // Mock retry success
-    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 2 });
-    mockSubmit.mockResolvedValueOnce({
-      attempt_id: 99,
-      status: 'COMPLETED',
-      redirect_url: '/attempts/99/result',
-    });
-
-    // Click retry
-    fireEvent.click(retryBtn);
-
-    // Direct flush should run again and submit should succeed
-    await waitFor(() => {
-      expect(vi.mocked(attemptApi.autosaveAnswers)).toHaveBeenCalledTimes(2);
-      expect(mockSubmit).toHaveBeenCalledWith(
-        99,
-        expect.objectContaining({ version: 2, baseVersion: 2 })
-      );
-    });
   });
 
-  it('releases saving status to error when direct flush fails due to invalid response', async () => {
-    vi.mocked(attemptApi.autosaveAnswers).mockRejectedValueOnce(
-      new Error('Invalid version response: NaN')
-    );
-
+  it('handles submit 1601 with a reload badge and no false result', async () => {
+    vi.mocked(attemptApi.submitAttempt).mockRejectedValueOnce({ response: { status: 409, data: { code: 1601 } } });
     const store = makeStore(true);
     renderPage(store);
-
-    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
-    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
-
-    await waitFor(() => {
-      expect(store.getState().answers.saveStatus).toBe('error');
-    });
-
-    expect(vi.mocked(attemptApi.submitAttempt)).not.toHaveBeenCalled();
-    expect(store.getState().answers.isDirty).toBe(true);
+    await confirmSubmit();
+    await waitFor(() => expect(store.getState().answers.saveStatus).toBe('conflict'));
+    expect(screen.getByRole('button', { name: /tải lại bản mới nhất/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('result-route-sentinel')).not.toBeInTheDocument();
+    expect(localStorage.getItem('exam_draft_99')).not.toBeNull();
   });
 
-  it('preserves newly synced server version in Redux store when submitAttempt fails', async () => {
-    vi.mocked(attemptApi.autosaveAnswers).mockResolvedValueOnce({ version: 5 });
-    vi.mocked(attemptApi.submitAttempt).mockRejectedValueOnce(new Error('Submit 500 error'));
-
+  it('reports manual network error and retries POST without pre-submit PUT', async () => {
+    vi.mocked(attemptApi.submitAttempt).mockRejectedValueOnce(new Error('Network offline'))
+      .mockResolvedValueOnce({ attempt_id: 99, status: 'COMPLETED', redirect_url: '/attempts/99/result' });
     const store = makeStore(true);
     renderPage(store);
-
-    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
-    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
-
-    // Redux store version must be updated to 5 from flush response even though submit failed
-    await waitFor(() => {
-      expect(store.getState().answers.version).toBe(5);
-    });
-    expect(store.getState().answers.saveStatus).toBe('saved');
+    await confirmSubmit();
+    const retry = await screen.findByRole('button', { name: /thử nộp lại/i });
+    expect(screen.getByRole('alert')).toHaveTextContent('Network offline');
+    expect(screen.queryByText('Hết thời gian!')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('result-route-sentinel')).not.toBeInTheDocument();
+    fireEvent.click(retry);
+    await waitFor(() => expect(screen.getByTestId('result-route-sentinel')).toBeInTheDocument());
+    expect(attemptApi.submitAttempt).toHaveBeenCalledTimes(2);
+    expect(attemptApi.autosaveAnswers).not.toHaveBeenCalled();
+    expect(store.getState().answers.version).toBe(1);
   });
 
-  it('passes retry callback from useWorkspace to SaveStatusBadge', () => {
-    const mockRetry = vi.fn();
-    vi.mocked(workspaceHookModule.default).mockReturnValue(
-      mockHookResult({
-        retry: mockRetry,
-      })
-    );
+  it('does not navigate to result for a non-version 409 submit error', async () => {
+    vi.mocked(attemptApi.submitAttempt).mockRejectedValueOnce({ response: { status: 409, data: { code: 409 } } });
+    renderPage(makeStore(true));
+    await confirmSubmit();
+    expect(await screen.findByRole('button', { name: /thử nộp lại/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('result-route-sentinel')).not.toBeInTheDocument();
+    expect(localStorage.getItem('exam_draft_99')).not.toBeNull();
+  });
 
-    const store = makeStore(false);
-    store.dispatch({ type: 'answers/markSaveConflict' });
-
+  it('passes authoritative reload to SaveStatusBadge', () => {
+    const retry = vi.fn();
+    vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult({ retry }));
+    const store = makeStore();
+    store.dispatch({ type: 'answers/markSubmissionConflict', payload: { attemptId: 99, contextRevision: 0 } });
     renderPage(store);
-
-    const reloadBtn = screen.getByRole('button', { name: /tải lại bản mới nhất/i });
-    expect(reloadBtn).toBeInTheDocument();
-    fireEvent.click(reloadBtn);
-    expect(mockRetry).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: /tải lại bản mới nhất/i }));
+    expect(retry).toHaveBeenCalledOnce();
   });
 
-  it('pre-submit flush ignores delayed response if component unmounts before completion', async () => {
-    let resolveFlush: (val: any) => void = () => {};
-    const deferredFlush = new Promise(resolve => {
-      resolveFlush = resolve;
-    });
-
-    vi.mocked(attemptApi.autosaveAnswers).mockReturnValueOnce(deferredFlush as any);
-    const mockSubmit = vi.mocked(attemptApi.submitAttempt);
-
-    const store = makeStore(true);
-    const view = renderPage(store);
-
-    fireEvent.click(screen.getByRole('button', { name: /nộp bài/i }));
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /nộp bài/i }).length).toBe(2));
-    fireEvent.click(screen.getAllByRole('button', { name: /nộp bài/i })[1]);
-
-    // Wait for autosaveAnswers to be called
-    await waitFor(() => {
-      expect(vi.mocked(attemptApi.autosaveAnswers)).toHaveBeenCalledTimes(1);
-    });
-
-    // Unmount before flush resolves
+  it('aborts POST and ignores completion after unmount', async () => {
+    let resolve!: (value: any) => void;
+    vi.mocked(attemptApi.submitAttempt).mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const view = renderPage(makeStore(true));
+    await confirmSubmit();
+    await waitFor(() => expect(attemptApi.submitAttempt).toHaveBeenCalledOnce());
+    const signal = vi.mocked(attemptApi.submitAttempt).mock.calls[0][2]!.signal!;
     view.unmount();
-
-    // Now resolve flush
-    resolveFlush({ version: 2 });
-    await new Promise(r => setTimeout(r, 100));
-
-    // submitAttempt should not be called after unmount
-    expect(mockSubmit).not.toHaveBeenCalled();
+    await act(async () => { resolve({ attempt_id: 99, status: 'COMPLETED', redirect_url: '/attempts/99/result' }); });
+    expect(signal.aborted).toBe(true);
+    expect(localStorage.getItem('exam_draft_99')).not.toBeNull();
   });
 });
 
 describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    setAutosaveController();
     localStorage.clear();
     vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult());
   });
@@ -976,19 +852,19 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
     // 1. ready = false
     vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult({ ready: false }));
     const view1 = renderPage(makeStore());
-    expect(useAutosave).toHaveBeenLastCalledWith(null);
+    expect(vi.mocked(useAutosave).mock.lastCall?.[0]).toBeNull();
     view1.unmount();
 
     // 2. loading = true
     vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult({ loading: true, ready: false }));
     const view2 = renderPage(makeStore());
-    expect(useAutosave).toHaveBeenLastCalledWith(null);
+    expect(vi.mocked(useAutosave).mock.lastCall?.[0]).toBeNull();
     view2.unmount();
 
     // 3. error present
     vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult({ error: 'Failed', ready: false }));
     const view3 = renderPage(makeStore());
-    expect(useAutosave).toHaveBeenLastCalledWith(null);
+    expect(vi.mocked(useAutosave).mock.lastCall?.[0]).toBeNull();
     view3.unmount();
 
     // 4. attemptId mismatch (route 99, workspace attempt_id 88)
@@ -996,7 +872,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
       mockHookResult({ workspace: { ...baseWorkspace, attempt_id: 88 } })
     );
     const view4 = renderPage(makeStore());
-    expect(useAutosave).toHaveBeenLastCalledWith(null);
+    expect(vi.mocked(useAutosave).mock.lastCall?.[0]).toBeNull();
     view4.unmount();
 
     // 5. terminal status
@@ -1004,7 +880,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
       mockHookResult({ workspace: { ...baseWorkspace, status: 'COMPLETED' } })
     );
     const view5 = renderPage(makeStore());
-    expect(useAutosave).toHaveBeenLastCalledWith(null);
+    expect(vi.mocked(useAutosave).mock.lastCall?.[0]).toBeNull();
     view5.unmount();
 
     // 6. active IN_PROGRESS
@@ -1012,7 +888,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
       mockHookResult({ workspace: { ...baseWorkspace, attempt_id: 99, status: 'IN_PROGRESS' }, ready: true })
     );
     const view6 = renderPage(makeStore());
-    expect(useAutosave).toHaveBeenLastCalledWith(99);
+    expect(useAutosave).toHaveBeenLastCalledWith(99, expect.objectContaining({ deadline: expect.any(String) }));
     view6.unmount();
   });
 
@@ -1041,7 +917,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
         expect(screen.getByTestId('result-route-sentinel')).toBeInTheDocument();
       });
 
-      expect(useAutosave).toHaveBeenLastCalledWith(null);
+      expect(vi.mocked(useAutosave).mock.lastCall?.[0]).toBeNull();
       expect(attemptApi.autosaveAnswers).not.toHaveBeenCalled();
       expect(attemptApi.submitAttempt).not.toHaveBeenCalled();
     }
@@ -1164,6 +1040,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
       reducer: { answers: answerReducer },
       preloadedState: {
         answers: {
+          ...initialState,
           attemptId: 99,
           version: 1,
           answers: {
@@ -1207,7 +1084,8 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
     await waitFor(() => {
       expect(attemptApi.submitAttempt).toHaveBeenCalledWith(
         99,
-        expect.objectContaining({ version: 1, baseVersion: 1 })
+        expect.objectContaining({ baseVersion: 1, finalAnswers: expect.any(Array) }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
   });
@@ -1272,6 +1150,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
       reducer: { answers: answerReducer },
       preloadedState: {
         answers: {
+          ...initialState,
           attemptId: 99,
           version: 5,
           answers: {
@@ -1434,6 +1313,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
       reducer: { answers: answerReducer },
       preloadedState: {
         answers: {
+          ...initialState,
           attemptId: 99,
           version: 1,
           answers: { 10: { q1: 'ans_99' } },
@@ -1644,6 +1524,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
       reducer: { answers: answerReducer },
       preloadedState: {
         answers: {
+          ...initialState,
           attemptId: 99,
           version: 1,
           answers: { 10: { q1: 'initial_val' } },
@@ -1742,7 +1623,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
     );
 
     const store = makeStore(true);
-    store.dispatch({ type: 'answers/markSaveConflict' });
+    store.dispatch({ type: 'answers/markSubmissionConflict', payload: { attemptId: 99, contextRevision: store.getState().answers.contextRevision } });
     renderPage(store);
 
     const reloadBtn = screen.getByRole('button', { name: /tải lại bản mới nhất/i });
@@ -1771,7 +1652,7 @@ describe('WorkspacePage TV3-07-05 Resume UX, Timer & Terminal/Locked State', () 
     );
 
     const store = makeStore(true);
-    store.dispatch({ type: 'answers/markSaveConflict' });
+    store.dispatch({ type: 'answers/markSubmissionConflict', payload: { attemptId: 99, contextRevision: store.getState().answers.contextRevision } });
     renderPage(store);
 
     vi.spyOn(window, 'confirm').mockReturnValueOnce(true);

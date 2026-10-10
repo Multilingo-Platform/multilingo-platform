@@ -2,17 +2,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import answerReducer from '../store/answerSlice';
+import answerReducer, { initialState } from '../store/answerSlice';
 import { SaveStatusBadge } from '../components/SaveStatusBadge';
 
 function renderBadge(
-  saveStatus: 'idle' | 'saving' | 'saved' | 'error' | 'conflict',
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error' | 'conflict' | 'stopped',
   onReload?: () => void
 ) {
   const store = configureStore({
     reducer: { answers: answerReducer },
     preloadedState: {
       answers: {
+        ...initialState,
         attemptId: 1,
         version: 1,
         answers: {},
@@ -60,6 +61,22 @@ describe('SaveStatusBadge', () => {
     const alertEl = screen.getByRole('alert');
     expect(alertEl).toBeInTheDocument();
     expect(alertEl).toHaveTextContent(/phiên.*thay đổi/i);
+    expect(screen.queryByText(/đang thử lại/i)).toBeNull();
+
+    const reloadBtn = screen.getByRole('button', { name: /tải lại bản mới nhất/i });
+    expect(reloadBtn).toBeInTheDocument();
+
+    fireEvent.click(reloadBtn);
+    expect(onReload).toHaveBeenCalledTimes(1);
+  });
+
+  it('render role="alert", thông báo không thể tự động lưu và nút Tải lại bản mới nhất khi saveStatus là stopped', () => {
+    const onReload = vi.fn();
+    renderBadge('stopped', onReload);
+
+    const alertEl = screen.getByRole('alert');
+    expect(alertEl).toBeInTheDocument();
+    expect(alertEl).toHaveTextContent(/không thể tự động lưu/i);
     expect(screen.queryByText(/đang thử lại/i)).toBeNull();
 
     const reloadBtn = screen.getByRole('button', { name: /tải lại bản mới nhất/i });

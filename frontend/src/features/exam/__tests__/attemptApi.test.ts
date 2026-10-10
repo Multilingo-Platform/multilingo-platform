@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as axiosClientModule from '../../../core/api/axiosClient';
 import { autosaveAnswers, submitAttempt, getWorkspace, createAttempt, WorkspaceContractError } from '../api/attemptApi';
 
@@ -17,7 +17,7 @@ describe('autosaveAnswers', () => {
     expect(mockAxios.put).toHaveBeenCalledWith('/v1/attempts/42/answers', {
       version: 3,
       answers: [],
-    });
+    }, expect.objectContaining({ timeout: 10000, signal: expect.any(AbortSignal) }));
     expect(result).toEqual({ version: 4 });
   });
 
@@ -59,11 +59,10 @@ describe('submitAttempt', () => {
       success: true,
       data: { attemptId: 42, status: 'COMPLETED', redirectUrl: '/attempts/42/result' },
     });
-    const result = await submitAttempt(42, { version: 5, answers: [] });
+    const result = await submitAttempt(42, { reason: 'MANUAL', baseVersion: 5, finalAnswers: [] });
     expect(mockAxios.post).toHaveBeenCalledWith('/v1/attempts/42/submit', {
-      version: 5,
-      answers: [],
-    });
+      reason: 'MANUAL', baseVersion: 5, finalAnswers: [],
+    }, expect.objectContaining({ timeout: 10000, signal: expect.any(AbortSignal) }));
     expect(result).toEqual({
       attempt_id: 42,
       status: 'COMPLETED',
@@ -73,7 +72,62 @@ describe('submitAttempt', () => {
 
   it('throws when server returns error', async () => {
     mockAxios.post.mockResolvedValueOnce({ success: false, message: 'not found' });
-    await expect(submitAttempt(99, { version: 1, answers: [] })).rejects.toThrow('not found');
+    await expect(submitAttempt(99, { reason: 'MANUAL', baseVersion: 1, finalAnswers: [] })).rejects.toThrow('not found');
+  });
+
+  it.each([
+    { attemptId: 43, status: 'COMPLETED', redirectUrl: '/attempts/42/result' },
+    { attemptId: 42, status: 'IN_PROGRESS', redirectUrl: '/attempts/42/result' },
+    { attemptId: 42, status: 'UNKNOWN', redirectUrl: '/attempts/42/result' },
+    { attemptId: 42, status: 'COMPLETED', redirectUrl: 'https://evil.test' },
+  ])('rejects malformed submit receipt %j', async data => {
+    mockAxios.post.mockResolvedValueOnce({ success: true, data });
+    await expect(submitAttempt(42, { reason: 'MANUAL', baseVersion: 7, finalAnswers: [] })).rejects.toThrow();
+  });
+  it.each([0, -1, 1.5, 2147483648])('does not write invalid ID/version %s', async invalid => {
+    await expect(autosaveAnswers(invalid, { version: 1, answers: [] })).rejects.toThrow();
+    await expect(submitAttempt(42, { reason: 'MANUAL', baseVersion: invalid, finalAnswers: [] })).rejects.toThrow();
+    expect(mockAxios.put).not.toHaveBeenCalled();
+    expect(mockAxios.post).not.toHaveBeenCalled();
+  });
+});
+
+describe('attempt write lifetime', () => {
+  beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers(); });
+  afterEach(() => vi.useRealTimers());
+  it.each([1, 2147483647])('accepts positive Java integer boundary %s', async value => {
+    mockAxios.put.mockResolvedValueOnce({ success: true, data: { version: value } });
+    await expect(autosaveAnswers(value, { version: value, answers: [] })).resolves.toEqual({ version: value });
+    mockAxios.post.mockResolvedValueOnce({ success: true, data: { attemptId: value, status: 'COMPLETED', redirectUrl: `/attempts/${value}/result` } });
+    await expect(submitAttempt(value, { reason: 'MANUAL', baseVersion: value, finalAnswers: [] })).resolves.toHaveProperty('attempt_id', value);
+  });
+  it('ignores late transport success after its deadline', async () => {
+    let resolve!: (value: unknown) => void;
+    mockAxios.post.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const request = submitAttempt(42, { reason: 'MANUAL', baseVersion: 7, finalAnswers: [] });
+    const checked = expect(request).rejects.toThrow(/quá thời gian/i);
+    await vi.advanceTimersByTimeAsync(10000); await checked;
+    resolve({ success: true, data: { attemptId: 42, status: 'COMPLETED', redirectUrl: '/attempts/42/result' } });
+    await expect(request).rejects.toThrow(/quá thời gian/i);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('settles at 10 seconds even if the transport/interceptor never settles', async () => {
+    mockAxios.put.mockImplementationOnce(() => new Promise(() => {}));
+    const request = autosaveAnswers(42, { version: 7, answers: [] });
+    const checked = expect(request).rejects.toThrow(/quá thời gian/i);
+    await vi.advanceTimersByTimeAsync(10000);
+    await checked;
+    expect(mockAxios.put.mock.calls[0][2].signal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('external abort settles without waiting for a transport that ignores cancellation', async () => {
+    mockAxios.post.mockImplementationOnce(() => new Promise(() => {}));
+    const controller = new AbortController();
+    const request = submitAttempt(42, { reason: 'TIMEOUT_CLIENT', baseVersion: 7, finalAnswers: [] }, { signal: controller.signal });
+    const checked = expect(request).rejects.toThrow(/hủy/i);
+    controller.abort();
+    await checked;
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 

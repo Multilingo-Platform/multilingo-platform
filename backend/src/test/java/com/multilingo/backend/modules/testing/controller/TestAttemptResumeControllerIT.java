@@ -270,11 +270,13 @@ class TestAttemptResumeControllerIT {
 
     @Test
     @WithAnonymousUser
-    void getWorkspace_anonymousUser_returnsForbidden() throws Exception {
+    void getWorkspace_anonymousUser_returnsUnauthorized() throws Exception {
         TestAttempt attempt = seedAttempt(1, 7, TestMode.PRACTICE, AttemptStatus.IN_PROGRESS, null);
 
         mockMvc.perform(get("/api/v1/attempts/{id}/workspace", attempt.getId()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(909));
     }
 
     @Test

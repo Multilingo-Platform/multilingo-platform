@@ -1,6 +1,8 @@
 package com.multilingo.backend.modules.testing.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.multilingo.backend.common.FixtureAdaptersTestConfig;
+import org.springframework.context.annotation.Import;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
@@ -23,7 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.springframework.security.test.context.support.WithMockUser;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.main.allow-bean-definition-overriding=true")
+@Import(FixtureAdaptersTestConfig.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional

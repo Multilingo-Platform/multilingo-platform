@@ -10,6 +10,7 @@ import answerReducer, {
   markSaveSuccess,
   markSaveError,
   markSaveConflict,
+  markSaveStopped,
   initialState,
   reducer,
   toggleFlag,
@@ -22,6 +23,8 @@ import answerReducer, {
 function makeStore() {
   return configureStore({ reducer: { answers: answerReducer } });
 }
+
+const operation = { attemptId: 1, contextRevision: 0, requestId: 'save-1', pendingVersion: 1 };
 
 describe('answerSlice', () => {
   describe('flags', () => {
@@ -137,8 +140,8 @@ describe('answerSlice', () => {
 
     it('markSaveSuccess resets isDirty to false, updates version to serverVersion and sets lastSavedAt', () => {
       let state = reducer(
-        { ...initialState, attemptId: 1, version: 1, isDirty: true, pendingVersion: 1 },
-        markSaveSuccess({ savedAt: 1000, pendingVersion: 1, serverVersion: 2 })
+        { ...initialState, attemptId: 1, activeSaveId: 'save-1', version: 1, isDirty: true, pendingVersion: 1 },
+        markSaveSuccess({ ...operation, savedAt: 1000, serverVersion: 2 })
       );
       expect(state.isDirty).toBe(false);
       expect(state.version).toBe(2);
@@ -147,19 +150,19 @@ describe('answerSlice', () => {
     });
 
     it('markSaveConflict sets saveStatus to conflict and preserves isDirty', () => {
-      let state = reducer({ ...initialState, isDirty: true }, markSaveConflict());
+      let state = reducer({ ...initialState, attemptId: 1, activeSaveId: 'save-1', isDirty: true }, markSaveConflict(operation));
       expect(state.isDirty).toBe(true);
       expect(state.saveStatus).toBe('conflict');
     });
 
     it('markSaveError keeps isDirty true', () => {
-      let state = reducer({ ...initialState, isDirty: true }, markSaveError());
+      let state = reducer({ ...initialState, attemptId: 1, activeSaveId: 'save-1', isDirty: true }, markSaveError(operation));
       expect(state.isDirty).toBe(true);
       expect(state.saveStatus).toBe('error');
     });
 
     it('markSavePending sets saveStatus to saving', () => {
-      const state = reducer(initialState, markSavePending(0));
+      const state = reducer({ ...initialState, attemptId: 1 }, markSavePending(operation));
       expect(state.saveStatus).toBe('saving');
     });
 
@@ -173,22 +176,22 @@ describe('answerSlice', () => {
     it('RACE: markSaveSuccess does NOT reset isDirty if new edit arrived (pendingVersion mismatch) but updates version to serverVersion', () => {
       // pendingVersion starts at 1; one more edit arrives → pendingVersion becomes 2
       let state = reducer(
-        { ...initialState, attemptId: 1, version: 1, isDirty: true, pendingVersion: 1 },
+        { ...initialState, attemptId: 1, activeSaveId: 'save-1', version: 1, isDirty: true, pendingVersion: 1 },
         setAnswer({ partId: 1, questionId: 'q1', value: 'B' })
       );
       // In-flight save captured pendingVersion=1, server returns serverVersion=2 — responds now, but edit at pendingVersion=2 is still dirty
-      state = reducer(state, markSaveSuccess({ savedAt: 1000, pendingVersion: 1, serverVersion: 2 }));
+      state = reducer(state, markSaveSuccess({ ...operation, savedAt: 1000, serverVersion: 2 }));
       expect(state.isDirty).toBe(true);   // Must stay dirty
       expect(state.version).toBe(2);      // Version must be updated to server version
-      expect(state.saveStatus).toBe('saved');
+      expect(state.saveStatus).toBe('idle');
     });
 
     it('RACE: markSaveSuccess resets isDirty when pendingVersion matches (no new edit)', () => {
       let state = reducer(
         { ...initialState, attemptId: 1, version: 1, isDirty: true, pendingVersion: 1 },
-        markSavePending(1)
+        markSavePending(operation)
       );
-      state = reducer(state, markSaveSuccess({ savedAt: 2000, pendingVersion: 1, serverVersion: 2 }));
+      state = reducer(state, markSaveSuccess({ ...operation, savedAt: 2000, serverVersion: 2 }));
       expect(state.isDirty).toBe(false);
       expect(state.version).toBe(2);
       expect(state.lastSavedAt).toBe(2000);
@@ -220,7 +223,9 @@ describe('answerSlice', () => {
 
     it('setAttemptContext resets lastSavedAt to null and hydration fields', () => {
       let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
-      state = reducer(state, markSaveSuccess({ savedAt: 2000, pendingVersion: 0, serverVersion: 1 }));
+      const op = { attemptId: 5, contextRevision: state.contextRevision, requestId: 'save-2', pendingVersion: 0 };
+      state = reducer(state, markSavePending(op));
+      state = reducer(state, markSaveSuccess({ ...op, savedAt: 2000, serverVersion: 1 }));
       expect(state.lastSavedAt).toBe(2000);
 
       state = reducer(state, setAttemptContext({ attemptId: 5, version: 2, savedAnswers: [] }));
@@ -260,6 +265,18 @@ describe('answerSlice', () => {
       state = reducer(state, setAttemptContext({ attemptId: 5, version: 2, savedAnswers: [] }));
       expect(state.flags[1]?.['q_1']).toBe(true);
       expect(state.highlights['p1']?.items).toHaveLength(1);
+    });
+
+    it('markSaveStopped sets saveStatus to stopped and preserves isDirty', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      state = reducer(state, setAnswer({ partId: 1, questionId: 'q1', value: 'A' }));
+      const op = { attemptId: 5, contextRevision: state.contextRevision, requestId: 'save-1', pendingVersion: state.pendingVersion };
+      state = reducer(state, markSavePending(op));
+      expect(state.saveStatus).toBe('saving');
+      state = reducer(state, markSaveStopped(op));
+      expect(state.saveStatus).toBe('stopped');
+      expect(state.isDirty).toBe(true);
+      expect(state.activeSaveId).toBeNull();
     });
   });
 });

@@ -223,7 +223,8 @@ describe('useWorkspace', () => {
 
     // Put Redux in 'saving' status
     act(() => {
-      store.dispatch(markSavePending(1));
+      const state = store.getState().answers;
+      store.dispatch(markSavePending({ attemptId: 5, contextRevision: state.contextRevision, requestId: 'pending', pendingVersion: state.pendingVersion }));
     });
     expect(store.getState().answers.saveStatus).toBe('saving');
 

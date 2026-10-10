@@ -1,6 +1,8 @@
 package com.multilingo.backend.modules.testing.service;
 
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.common.FixtureAdaptersTestConfig;
+import org.springframework.context.annotation.Import;
 import com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest;
 import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
@@ -24,7 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.main.allow-bean-definition-overriding=true")
+@Import(FixtureAdaptersTestConfig.class)
 @ActiveProfiles("test")
 @Transactional
 class SubmissionServiceTest {

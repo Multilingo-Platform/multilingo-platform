@@ -915,3 +915,117 @@ IT cũ: create/workspace3 cases fail404 vì exam fixture không seed cho DbExamA
 
 **Next required action:** Không cần sửa thêm để đóng TV3-07 trong scope đã duyệt. Theo dõi PostgreSQL smoke, coverage bổ sung và baseline/follow-up riêng trước các bước rollout liên quan. Lượt review chỉ append handoff; không sửa production/tests/approved plan, commit hoặc push. Dừng sau báo cáo.
 
+## 2026-10-10 — Codex Reviewer — TV3-08 — NEED_FIX (Full feature review)
+
+**Agent:** Codex Reviewer.
+
+**Reviewed feature:** TV3-08-01..06 — Autosave + restore + finalAnswers ở frontend. Đọc approved `TV3-08-plan.md`, toàn bộ `TV3-08-handoff.md`, frontend production/test diff và các file frontend untracked liên quan so với HEAD `676cf82`, branch `feature/TV3-00-contract-audit`. Staged rỗng. Áp dụng `review-agent` và root `GEMINI.md`; tự review, không delegate. Entry TV3-08 được append vào TV3-07-handoff theo yêu cầu trực tiếp; không thay kết luận TV3-07 hoặc chỉnh TV3-08 ledger.
+
+**Decision: NEED_FIX.** Không có P0/P1 đã xác nhận; một P2 về error/recovery UX khiến AC-07 chưa đạt đầy đủ. Không yêu cầu redesign hoặc thay đổi backend.
+
+### IN-SCOPE finding
+
+**[P2] Hiển thị rõ autosave đã dừng thay vì tiếp tục báo retry — `frontend/src/features/exam/hooks/useAutosave.ts:70–71`.** Sau HTTP409 không phải code1601 (ví dụ ATTEMPT_EXPIRED hoặc ATTEMPT_ALREADY_SUBMITTED), hook mới đặt `blocked.current=true`, ngừng mọi PUT tiếp theo nhưng vẫn dispatch trạng thái `error` như lỗi network có retry tự động. Consumer hiện tại `frontend/src/features/exam/components/SaveStatusBadge.tsx:51–60` chỉ hiển thị `Đang thử lại...` cho trạng thái này và không có reload action. Trong workspace còn active, học viên tiếp tục thấy thông báo đang đồng bộ dù không còn request nào chạy. Đây là mismatch do nhánh blocked mới của TV3-08, không phải yêu cầu khôi phục vòng lặp PUT hoặc defect baseline của backend; vi phạm AC-07 về error/retry rõ ràng.
+
+**Minimal fix:** Giữ chính sách không tự lặp PUT sau non-version409, nhưng phân biệt trạng thái này trong feedback UI: báo autosave đã dừng/không thể lưu và cung cấp authoritative reload qua callback có dirty-confirm/draft preservation hiện tại. Không đổi non-version409 thành version conflict1601 và không điều hướng result khi chưa có confirmed receipt. Thay đổi badge/prop nhỏ nếu cần phải ghi amendment frontend trong TV3-08 handoff.
+
+**Focused regression:** Dùng real autosave + reducer + badge/page; HTTP409/code409, sau ít nhất hai tick chỉ có một PUT, draft/newest answers còn, UI không chứa `Đang thử lại...`, có thông báo/action phù hợp. Reload cancel không GET/không discard; confirm dùng backend hydration như flow hiện có. Giữ ca network error vẫn retry ở interval kế tiếp và ca1601 conflict riêng.
+
+### Acceptance criteria và integration
+
+- **AC-01:** Serializer dùng chung cho PUT/POST, giữ clear values/null/empty arrays/maps và essay Unicode/whitespace; deep-copy, reject invalid part IDs/answer values. Draft helper giữ key/raw JSON và báo storage failure, không crash.
+- **AC-02/03:** Single-flight PUT và scoped contextRevision/requestId, version chỉ lấy valid server response. New edit trong PUT giữ dirty/idle và backup latest; clean acknowledgment mới xóa draft. Same-ID hydrate, A→B→A, cancel/unmount bỏ stale completion, không stuck saving. Deadline mới không cancel pending PUT; non-version409 dừng theo plan, nhưng thiếu feedback đúng ở finding trên.
+- **AC-04:** Restore vẫn chỉ backend; không merge local draft. Metadata refresh không hydrate/reset answers/version/dirty; TV3-07 lock/route regressions được giữ. Fresh-store integration dùng backend B thay draft C.
+- **AC-05/06:** Submission mutex đặt trước await, pause/wait exact PUT rồi serialize live answers/latest confirmed version, không pre-submit PUT. Canonical body `reason/baseVersion/finalAnswers` khớp backend DTO; response phải matching attempt/terminal status/exact result route. Bounded writes10s gồm interceptor queue, abort/late result không tạo receipt; lỗi401/403/409 không tạo false result. Draft trước POST và sau lỗi/thành công vẫn được giữ; storage failure có warning.
+- **AC-07:** Busy/manual error/timeout retry/read-only/confirmed-result gates đạt các tests còn lại, nhưng non-version409 autosave feedback chưa đúng như finding P2. Cần hoàn thiện nhánh này trước nghiệm thu đầy đủ.
+- **AC-08:** Full frontend tests/build PASS; lint0 errors/25 warnings khớp planning baseline. Frontend changes nằm trong feature; helper attemptErrors và fixture compatibility đã được ghi ruling. Backend/infrastructure dirty changes tồn tại riêng, không quy cho TV3-08 hoặc review mở rộng.
+- Không phát hiện thêm defect về security/data exposure, serializer/finalAnswers, context isolation hoặc scope expansion trong feature frontend này.
+
+### Independent verification trong lượt này
+
+- Cwd `frontend`: `npm test` — exit0, **36 files / 307 tests PASS**, bắt đầu17:45:21 +07, 29.05s. Bao gồm focused exam tests và real `autosaveSubmitContract`/`resumeContract` pipelines; các integration files chỉ mock HTTP/browser, không mock hooks/reducer/serializer.
+- Cwd `frontend`: `npm run build` — exit0, TypeScript/Vite thành công; bundle-size warning vẫn có. `npm run lint` — exit0, **0 errors / 25 warnings**, bằng count baseline trong approved plan; không báo lint warning-free.
+- Read-only in-memory Vite/JSDOM harness chạy production useAutosave/answerSlice/SaveStatusBadge, stub API để trả HTTP409/code409, gọi hai interval callbacks: `putCallsAfterTwoTicks=1`, `saveStatus=error`, visible badge `Đang thử lại...`, reload buttons0, draft retained=true. Đây là bằng chứng bổ sung cho P2; không tạo/sửa test file hoặc gọi backend/external service.
+- `git diff --check` exit0, chỉ LF→CRLF warning ở useAutosave. Không chạy backend suite trong review frontend này. Backend274 PASS, exam-focused278 PASS và các RED/GREEN cycles trong TV3-08 handoff là reported implementer evidence, không phải reviewer mới chạy. Không revert code để thử RED trong read-only review.
+
+### OUT-OF-SCOPE / residual risks
+
+- Các dirty backend mapper/repository/fixture test/config, `.agents/rules/docker-infrastructure.md` nằm ngoài TV3-08; giữ nguyên, không đánh giá correctness hoặc yêu cầu sửa từ lượt review này.
+- Backend chưa enforce submit baseVersion; terminal/already-finalized receipt và TIMEOUT_SERVER quá grace có thể không nhận finalAnswers. Đã đối chiếu existing submit service/DTO; đây là limitation được plan loại trừ, không phải regression frontend.
+- Abort không rollback backend; cross-tab overwrite, close-tab durability, local draft recovery/merge, result redesign và PostgreSQL smoke vẫn ngoài scope. Storage best-effort không phải cam kết phục hồi bản nháp.
+- Full suite xanh không phủ mismatch badge sau blocked409: test hook hiện assert stop PUT/error, chưa assert feedback/reload UI của cùng trạng thái. Không gán thêm speculative findings cho coverage gaps khác.
+
+**Next required action:** Sửa feedback/recovery cho P2, thêm focused regression và chạy lại exam tests/build/lint; append FIXED/evidence vào TV3-08 ledger rồi yêu cầu re-review. Review này chỉ append entry theo đường dẫn được yêu cầu; không sửa production/tests/approved plan, commit hoặc push. Dừng sau báo cáo.
+
+### 2026-10-10 — Codex Reviewer — TV3-08 full feature re-review — NEED_FIX
+
+- **Agent:** Codex Reviewer.
+- **Reviewed scope:** Toàn bộ TV3-08, Tasks 01–06; đọc approved TV3-08-plan.md, TV3-08-handoff.md và bản FIX P2 mới nhất. Đối chiếu diff với HEAD 676cf82, staged/unstaged và frontend files untracked. Staged trống; tách các thay đổi backend/infrastructure có sẵn khỏi TV3-08.
+- **Decision:** NEED_FIX — một P1 trong scope. Không xác nhận P0 hoặc P2 bổ sung. Entry được append vào TV3-07-handoff.md theo yêu cầu, nhưng kết luận này dành cho TV3-08.
+
+**IN-SCOPE — P1: Không coi mọi HTTP 409 từ autosave là version conflict**
+
+- **Location:** frontend/src/features/exam/hooks/useAutosave.ts:68–70. Nhánh `isVersionConflict(error) || isHttpConflict(error)` chuyển cả lỗi không phải code 1601 sang `saveStatus='conflict'`. `pauseAndWait()` ở dòng 103 trả conflict; useAttemptSubmission.ts:75–79 dừng trước POST.
+- **Failure scenario:** PUT được gửi trước deadline với đáp án B/version 7; người dùng sửa thành C khi PUT đang chờ. Hết giờ, TIMEOUT_CLIENT đợi PUT; server trả HTTP 409/code 409 ATTEMPT_EXPIRED. Frontend báo conflict phiên bản và không gửi POST finalAnswers C dù vẫn trong grace 15 giây. Reload thay draft trong Redux bằng đáp án backend; local backup không được tự restore. Backend từ chối PUT sau deadline là hành vi có sẵn, không phải lỗi backend của lượt review này.
+- **Contract violated:** Task 03 phân biệt version conflict 1601 với 409 khác; Task 04 yêu cầu lỗi PUT không phải version conflict vẫn POST full snapshot với latest confirmed version. AC05/AC07 không đạt trong tình huống timeout này. Bản sửa đã xử lý biểu hiện P2 của badge, nhưng làm sai barrier semantics.
+- **Minimal fix:** Tách autosave bị dừng do non-version 409 khỏi version conflict 1601. Giữ không tự retry PUT và feedback/reload phù hợp, nhưng không để trạng thái này chặn submission barrier; vẫn gửi latest finalAnswers/baseVersion với TIMEOUT_CLIENT khi hết giờ. Chỉ receipt đã validate mới cho phép xem kết quả.
+- **Focused regression required:** Deferred PUT trước deadline, edit C, hết giờ và gọi TIMEOUT_CLIENT; reject PUT bằng HTTP 409/code 409 tại deadline +1 ms. Assert đúng một POST chứa C/baseVersion 7/reason TIMEOUT_CLIENT, không có PUT bổ sung và draft C còn giữ. Case code 1601 vẫn phải chặn POST. Test hiện tại cho nonconflict PUT failure dùng lỗi network; test mới cho non-version 409 chỉ kiểm tra badge/stop PUT/reload, chưa kiểm tra đường submit này.
+
+**Acceptance criteria và integration**
+
+- AC01–AC04: Không xác nhận thêm lỗi trong serializer/clear values, API normalization/bounded writes, scoped autosave/reducer acknowledgement, authoritative hydration và bảo toàn dirty edit khi refresh metadata.
+- AC05/AC07: NEED_FIX theo P1 trên; chưa thể nghiệm thu phối hợp pending PUT → timeout → finalAnswers.
+- AC06: Không xác nhận thêm lỗi ở submit mutex, stale-context guard, receipt validation hoặc điều hướng kết quả.
+- AC08: Frontend test/build đạt; lint không có lỗi. Kết quả xanh không thay thế regression còn thiếu. Không phát hiện scope expansion mới trong frontend được review.
+
+**Verification evidence — độc lập trong lượt re-review này**
+
+- `npm test` tại frontend: exit 0; 309 tests/36 files PASS; bắt đầu 18:05:28, duration 15.71 giây.
+- `npm run build`: exit 0; TypeScript/Vite PASS, còn cảnh báo bundle size. `npm run lint`: exit 0; 0 errors, 25 warnings.
+- Read-only harness chạy actual useAutosave/useAttemptSubmission/answerSlice bằng Vite/JSDOM với deferred API và clock kiểm soát, không tạo hoặc sửa test: `putCalls=1, postCalls=0, phase=conflict, saveStatus=conflict, isDirty=true, version=7, draft=C, millisecondsPastDeadline=1`. Đây là reproduction frontend, không phải live HTTP/backend E2E.
+- Đối chiếu existing ErrorCode.ATTEMPT_EXPIRED và TestAttemptServiceImpl: PUT sau deadline bị từ chối; TIMEOUT_CLIENT trong grace 15 giây vẫn nhận finalAnswers. Không chạy full backend suite; backend 274 PASS trong executor ledger chỉ là kết quả được báo cáo, không xác minh lại.
+- `git diff --check`: exit 0; chỉ có thông báo LF/CRLF, không có whitespace error. Review không sửa production/tests/approved plan.
+
+**OUT-OF-SCOPE follow-ups**
+
+- Giữ nguyên dirty backend mapper/repository/fixture/config và infrastructure rule có sẵn; không audit hoặc dùng làm TV3-08 blocker.
+- Backend chưa enforce submit baseVersion; already-finalized/past-grace receipt có thể không nhận finalAnswers; abort không rollback, cross-tab và local-draft recovery/merge vẫn là giới hạn đã loại trừ trong plan. P1 trên là regression frontend mới, không phải yêu cầu mở rộng backend.
+
+**Next required action:** Sửa phân loại non-version 409 và bổ sung regression pending PUT hết giờ → TIMEOUT_CLIENT POST; chạy lại focused frontend tests/build/lint, cập nhật FIXED/evidence trong TV3-08 ledger rồi yêu cầu re-review. Không commit hoặc push. Dừng sau báo cáo.
+
+### 2026-10-10 — Codex Reviewer — TV3-08 full feature re-review sau FIX P1 — PASS
+
+- **Agent:** Codex Reviewer.
+- **Reviewed scope:** Toàn bộ TV3-08, Tasks 01–06; approved TV3-08-plan.md, executor ledger và entry FIX P1 mới nhất trong TV3-08-handoff.md. Kiểm tra frontend diff so với HEAD 676cf82, staged/unstaged và các file untracked liên quan; staged trống. Entry ghi vào TV3-07-handoff.md theo yêu cầu, không đổi nội dung plan hay ledger trước đó.
+- **Decision:** PASS — không còn finding P0/P1/P2 được xác nhận trong scope. Đã đối chiếu production code, call sites và test; không chỉ dựa vào kết quả executor báo cáo.
+
+**IN-SCOPE — kết quả re-review findings trước**
+
+- **P1 CLOSED:** useAutosave.ts tách code 1601 sang `markSaveConflict` và non-version HTTP 409 sang `markSaveStopped`. Reducer giữ dirty/latest draft; `pauseAndWait()` chỉ trả conflict với version conflict, nên non-version PUT failure không chặn finalAnswers POST. Trạng thái stopped chỉ dừng các PUT tiếp theo đến authoritative reload, không biến thành successful receipt.
+- **P2 CLOSED:** SaveStatusBadge.tsx hiển thị cảnh báo không thể tự động lưu và nút reload cho stopped, không báo đang retry. Integration xác minh dirty confirmation, giữ local backup, reload dữ liệu backend và autosave tiếp với version mới. Network error vẫn retry theo interval.
+- **Regression độc lập đã chạy:** autosaveSubmitContract.test.tsx:146–210 dùng actual WorkspacePage/hooks/reducer/API normalizer, chỉ mock HTTP/browser. Deferred PUT v7/B → edit C → deadline +1 ms → HTTP 409/code 409 gửi đúng một TIMEOUT_CLIENT POST C/baseVersion 7, không PUT bổ sung, draft C còn. Case tương ứng code 1601 không gửi POST. Các tests này nằm trong full suite đã chạy lại bên dưới; không tuyên bố đã chạy live backend HTTP/E2E hoặc red-green bằng cách sửa code.
+
+**Verified acceptance criteria — AC01–AC08 PASS trong phạm vi đã duyệt**
+
+- **AC01:** Serializer dùng chung cho PUT/POST, deep copy arrays/maps, giữ null/empty/Unicode/essay whitespace; không lọc theo isAnswered. Storage helper báo thất bại thay vì crash hoặc báo backup giả.
+- **AC02–AC03:** Scoped contextRevision/request ID và một active PUT; version từ response hợp lệ. Ack cũ không clean hoặc xóa draft có edit mới; failure lưu latest snapshot; stale/cancel không ghi Redux hoặc local draft của context mới.
+- **AC04:** Restore backend authoritative; local draft chỉ là notice/backup. Metadata refresh không thay answers/version/dirty. Giữ hydration, route, timer/server-offset và section-lock acknowledgment TV3-07.
+- **AC05:** Pause cycle mới, đợi PUT đang chạy, đọc latest answers/version rồi POST canonical finalAnswers; không pre-submit PUT. Non-version PUT failure vẫn cho phép POST; code 1601 dừng đến reload.
+- **AC06:** Submit mutex, revision/context guards và abort/bounded writes ngăn concurrent POST/stale completion. Receipt phải matching ID, status hợp lệ khác IN_PROGRESS và exact result URL; 401/403/409/network/malformed receipt không tạo kết quả giả. Không thêm logging answers/token.
+- **AC07:** Busy/error/retry/result gate đúng trong page/overlays; MANUAL được nâng thành TIMEOUT_CLIENT khi deadline qua, retry giữ reason. Edit/flags/highlights/navigation bị chặn khi submission locked; storage warning không chặn POST; reload và draft retention được giữ.
+- **AC08:** Frontend tests/build đạt và lint không tăng baseline. Thay đổi mới nằm trong exam feature; không sửa shared Axios, dependency, backend hoặc schema cho TV3-08. Những dirty files ngoài scope đã tồn tại từ baseline, không quy thành scope expansion.
+
+**Verification evidence — độc lập trong lượt này**
+
+- `npm test` tại frontend: exit 0, **314 tests/36 files PASS**; bắt đầu 18:22:11, duration 21.62 giây. Suite bao gồm API boundaries/receipt/abort/10s timeout, serializer/storage, scoped hooks/reducer, real frontend pipeline và TV3-07 regression.
+- `npm run build`: exit 0, TypeScript/Vite PASS; còn cảnh báo bundle size có sẵn. `npm run lint`: exit 0, 0 errors/25 warnings, bằng baseline.
+- `git diff --check`: exit 0, không có whitespace error; thông báo LF/CRLF không phải test failure. Không chạy full backend suite. Executor báo backend 274 PASS ở entry trước, không coi là bằng chứng backend được xác minh lại trong lượt này.
+- Phân biệt test page dùng mocked hooks với real pipeline: kết luận pending PUT/timeout/finalAnswers và fresh-store restore dựa vào autosaveSubmitContract/resumeContract, không lấy mocked useAutosave làm integration evidence.
+
+**OUT-OF-SCOPE follow-ups và giới hạn**
+
+- Dirty backend mapper/repository/fixture/config và infrastructure rule được giữ nguyên, không audit hoặc yêu cầu sửa trong TV3-08.
+- Backend chưa enforce submit baseVersion; receipt không bảo đảm finalAnswers được nhận nếu attempt đã finalized hoặc quá grace. Abort không rollback backend; cross-tab, close-tab durability, local draft recovery/merge, result redesign và PostgreSQL smoke vẫn excluded theo plan. PASS không mở rộng bảo đảm sang các tình huống này.
+
+**Next required action:** TV3-08 đã qua full feature re-review; có thể bàn giao theo phạm vi đã duyệt, không cần thêm fix từ lượt review này. Chỉ append handoff; không sửa production/tests/approved plan, commit hoặc push. Dừng sau báo cáo.
+

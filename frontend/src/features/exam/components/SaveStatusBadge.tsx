@@ -102,5 +102,45 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
     );
   }
 
+  if (saveStatus === 'stopped') {
+    return (
+      <span
+        role="alert"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          color: '#991b1b',
+          padding: '0.25rem 0.625rem',
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '9999px',
+        }}
+      >
+        <span>⚠️ Không thể tự động lưu</span>
+        {onReload && (
+          <button
+            type="button"
+            onClick={onReload}
+            style={{
+              background: '#b91c1c',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '9999px',
+              padding: '0.125rem 0.5rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Tải lại bản mới nhất
+          </button>
+        )}
+      </span>
+    );
+  }
+
   return null;
 }

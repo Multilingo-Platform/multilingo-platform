@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import useWorkspace from '../hooks/useWorkspace';
 import { useExamTimer } from '../hooks/useExamTimer';
 import { useAutosave } from '../hooks/useAutosave';
+import { useAttemptSubmission } from '../hooks/useAttemptSubmission';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { SaveStatusBadge } from '../components/SaveStatusBadge';
 import { SubmitOverlay } from '../components/SubmitOverlay';
@@ -15,8 +16,8 @@ import QuestionRenderer from '../components/renderers/QuestionRenderer';
 import AudioPlayer from '../components/AudioPlayer';
 import HtmlContent from '../components/content/HtmlContent';
 import MediaDisplay from '../components/content/MediaDisplay';
-import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
-import { setAnswer, toggleFlag, addHighlightRecord, removeHighlightRecord, selectHighlights, markSaveSuccess, markSavePending, markSaveConflict, markSaveError } from '../store/answerSlice';
+import { lockSection } from '../api/attemptApi';
+import { setAnswer, toggleFlag, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
 import { useTextSelection } from '../hooks/useTextSelection';
 import { SelectionToolbar } from '../components/content/SelectionToolbar';
 import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
@@ -49,15 +50,16 @@ const WorkspacePage: React.FC = () => {
     activeWorkspace?.deadline ?? null,
     activeWorkspace?.serverTimeOffset ?? 0
   );
-  useAutosave(activeWorkspace && activeWorkspace.status === 'IN_PROGRESS' ? attemptId : null);
+  const autosave = useAutosave(activeWorkspace && activeWorkspace.status === 'IN_PROGRESS' ? attemptId : null, activeWorkspace ?? undefined);
+  const submission = useAttemptSubmission(activeWorkspace, autosave);
+  const isSubmitting = submission.phase === 'waiting' || submission.phase === 'submitting';
+  const draftWarning = submission.draftWarning ?? autosave.draftWarning;
 
   const answersState = useSelector((state: RootState) => state.answers);
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [showTimeUp, setShowTimeUp] = useState(false);
-  const [submitResultUrl, setSubmitResultUrl] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
   const [hasLocalDraft, setHasLocalDraft] = useState<boolean>(false);
   const [confirmedLocks, setConfirmedLocks] = useState<{ attemptId: number; sectionIds: number[] }>({
@@ -330,131 +332,27 @@ const WorkspacePage: React.FC = () => {
   }, [allQuestions, answersState.answers]);
 
 
-  const handleSubmit = async (isTimeout = false) => {
-    if (isSubmitting) return;
-    if (!ready || !activeWorkspace || activeWorkspace.status !== 'IN_PROGRESS' || store.getState().answers.attemptId !== attemptId) {
-      return;
-    }
-    const currentSubmitAttemptId = attemptId;
-    setIsSubmitting(true);
+  const handleSubmit = (isTimeout = false) => submission.submit(isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL');
+
+  useEffect(() => {
+    if (!submission.result || submission.result.attempt_id !== attemptId) return;
     try {
-      // 1. Wait for any pending background save to prevent overlap
-      while (store.getState().answers.saveStatus === 'saving') {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Check if unmounted or attempt changed while waiting
-        if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
-      }
+      localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(store.getState().answers.highlights));
+    } catch { /* highlights are best-effort local metadata */ }
+    if (!showTimeUp && !isExpired) navigate(submission.result.redirect_url);
+  }, [submission.result, attemptId, showTimeUp, isExpired, navigate, store]);
 
-      // Pre-submit flush: push unsaved answers to server before closing attempt
-      // Fetch latest state from store since waiting might have changed it
-      const currentState = store.getState().answers;
-      let submitVersion = currentState.version;
-
-      if (currentState.isDirty) {
-        const capturedPendingVersion = currentState.pendingVersion;
-        // Lock other hook from saving
-        dispatch(markSavePending(capturedPendingVersion));
-
-        const answers = Object.entries(currentState.answers).map(([pId, qMap]) => ({
-          part_id: Number(pId),
-          answers: Object.entries(qMap as any).map(([question_id, answer]) => ({ question_id, answer: answer as any })),
-        }));
-
-        // Let errors propagate to catch block
-        const saveRes = await autosaveAnswers(currentSubmitAttemptId, { version: currentState.version, answers });
-
-        // Guard: Check if the user navigated to a different attempt while waiting
-        if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
-
-        submitVersion = saveRes.version;
-        dispatch(
-          markSaveSuccess({
-            savedAt: Date.now(),
-            pendingVersion: capturedPendingVersion,
-            serverVersion: saveRes.version,
-          })
-        );
-        try {
-          localStorage.setItem(`exam_highlights_${currentSubmitAttemptId}`, JSON.stringify(currentState.highlights));
-          localStorage.removeItem(`exam_draft_${currentSubmitAttemptId}`);
-        } catch { /* ignore */ }
-      }
-
-      // 2. Execute submit
-      const result = await submitAttempt(currentSubmitAttemptId, {
-        version: submitVersion,
-        baseVersion: submitVersion,
-        answers: [],
-        reason: isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL',
-      });
-
-      // Guard against page change during submit
-      if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
-
-      // Always clean up localStorage draft after successful submit
-      try {
-        localStorage.setItem(`exam_highlights_${currentSubmitAttemptId}`, JSON.stringify(store.getState().answers.highlights));
-        localStorage.removeItem(`exam_draft_${currentSubmitAttemptId}`);
-      } catch { /* ignore */ }
-      if (isTimeout) {
-        setSubmitResultUrl(result.redirect_url);
-      } else {
-        navigate(result.redirect_url);
-      }
-    } catch (err: any) {
-      if (activeAttemptIdRef.current !== currentSubmitAttemptId) return;
-
-      // Distinguish between Version Conflict (code 1601) and finalization/network error
-      const isVersionConflict = err?.response?.data?.code === 1601 || err?.code === 1601;
-
-      if (isVersionConflict) {
-        // Stop submission, close overlay, mark conflict
-        setShowOverlay(false);
-        dispatch(markSaveConflict());
-        return; // Stop submit chain
-      }
-
-      // If direct autosave failed (or status is still saving), release lock to error so retry is possible
-      if (store.getState().answers.saveStatus === 'saving') {
-        dispatch(markSaveError());
-        try {
-          localStorage.setItem(
-            `exam_draft_${currentSubmitAttemptId}`,
-            JSON.stringify(store.getState().answers.answers)
-          );
-        } catch { /* ignore */ }
-      }
-
-      // Other 409 errors (like attempt already submitted, timeout) -> go to result
-      const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409;
-
-      try {
-        localStorage.setItem(`exam_highlights_${currentSubmitAttemptId}`, JSON.stringify(store.getState().answers.highlights));
-        if (is409) {
-          localStorage.removeItem(`exam_draft_${currentSubmitAttemptId}`);
-        }
-      } catch { /* ignore */ }
-
-      const resultUrl = `/attempts/${currentSubmitAttemptId}/result`;
-      if (isTimeout) {
-        setSubmitResultUrl(resultUrl);
-      } else if (is409) {
-        navigate(resultUrl);
-      }
-    } finally {
-      if (activeAttemptIdRef.current === currentSubmitAttemptId) {
-        setIsSubmitting(false);
-      }
-    }
-  };
+  useEffect(() => {
+    setShowConfirm(false);
+    setShowOverlay(false);
+    setShowTimeUp(false);
+  }, [attemptId, answersState.contextRevision]);
 
   // Auto-submit when time expires
   useEffect(() => {
     if (
       isExpired &&
       !showTimeUp &&
-      !showOverlay &&
-      !isSubmitting &&
       activeWorkspace &&
       activeWorkspace.status === 'IN_PROGRESS' &&
       activeWorkspace.deadline !== null
@@ -491,6 +389,7 @@ const WorkspacePage: React.FC = () => {
   const [deleteTooltip, setDeleteTooltip] = useState<{ offset: number; top: number; left: number } | null>(null);
 
   const handleHighlight = () => {
+    if (submission.isLocked()) return;
     if (!selection || !readingContainerRef.current) return;
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
@@ -551,6 +450,7 @@ const WorkspacePage: React.FC = () => {
   };
 
   const handleDeleteHighlight = () => {
+    if (submission.isLocked()) return;
     if (deleteTooltip) {
       dispatch(removeHighlightRecord({ passageId, offset: deleteTooltip.offset }));
       setDeleteTooltip(null);
@@ -631,7 +531,7 @@ const WorkspacePage: React.FC = () => {
   };
 
   const handlePartClick = async (targetPartId: number) => {
-    if (isSubmitting) return;
+    if (submission.isLocked()) return;
     if (!isMockFull) {
       setSelectedPartId(targetPartId);
       return;
@@ -693,7 +593,8 @@ const WorkspacePage: React.FC = () => {
 
         const isOperationActive = () => (
           isRouteActive() &&
-          lockOperationGenRef.current === opGen
+          lockOperationGenRef.current === opGen &&
+          !submission.isLocked()
         );
 
         try {
@@ -739,6 +640,7 @@ const WorkspacePage: React.FC = () => {
   };
 
   const handleRetryMetadata = async () => {
+    if (submission.isLocked()) return;
     lockOperationGenRef.current += 1;
     const retryAttemptId = attemptId;
     const retryRouteGen = routeLifecycleGenRef.current;
@@ -747,7 +649,8 @@ const WorkspacePage: React.FC = () => {
       !unmountedRef.current &&
       Object.is(currentAttemptIdRef.current, retryAttemptId) &&
       routeLifecycleGenRef.current === retryRouteGen &&
-      lockOperationGenRef.current === retryGen
+      lockOperationGenRef.current === retryGen &&
+      !submission.isLocked()
     );
 
     setPendingLockError(null);
@@ -812,6 +715,7 @@ const WorkspacePage: React.FC = () => {
       </header>
 
       {/* Notice Banners */}
+      {draftWarning && <div role="alert" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">{draftWarning}</div>}
       {(refreshError || pendingLockError) && (
         <div role="alert" className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between text-xs text-red-800 shrink-0">
           <span>{refreshError || pendingLockError}</span>
@@ -1020,9 +924,9 @@ const WorkspacePage: React.FC = () => {
                             <button
                               type="button"
                               data-testid={`flag-btn-${qId}`}
-                              disabled={isCurrentSectionLocked}
+                              disabled={isCurrentSectionLocked || submission.isLocked()}
                               onClick={() => {
-                                if (!isCurrentSectionLocked) {
+                                if (!isCurrentSectionLocked && !submission.isLocked()) {
                                   dispatch(toggleFlag({ partId, questionId: qId }));
                                 }
                               }}
@@ -1042,14 +946,14 @@ const WorkspacePage: React.FC = () => {
                             {q.media && q.type !== 'ESSAY' && q.type !== 'MAP_LABELING' && (
                               <MediaDisplay media={q.media} alt={`Question ${q.question_number} media`} />
                             )}
-                            <fieldset disabled={isCurrentSectionLocked} className="m-0 min-w-0 border-0 p-0">
+                            <fieldset disabled={isCurrentSectionLocked || submission.isLocked()} className="m-0 min-w-0 border-0 p-0">
                               <QuestionRenderer
                                 question={q}
                                 partId={partId}
                                 currentAnswer={currentVal}
                                 minWords={minWords}
                                 onChange={(val) => {
-                                  if (!isCurrentSectionLocked) {
+                                  if (!isCurrentSectionLocked && !submission.isLocked()) {
                                     dispatch(setAnswer({ partId, questionId: qId, value: val }));
                                   }
                                 }}
@@ -1166,8 +1070,9 @@ const WorkspacePage: React.FC = () => {
               <QuestionPalette
                 allParts={allParts}
                 activePartId={partId}
-                lockedPartIds={lockedPartIds}
+                lockedPartIds={submission.isLocked() ? allParts.map(p => (p as any).part_id ?? p.id) : lockedPartIds}
                 onNavigate={(targetPartId, qId) => {
+                  if (submission.isLocked()) return;
                   if (targetPartId !== partId) {
                     setSelectedPartId(targetPartId);
                     // Wait for React to render the new part's questions before scrolling
@@ -1188,8 +1093,8 @@ const WorkspacePage: React.FC = () => {
           <div className="p-4 border-t border-slate-200 bg-slate-50/50">
             <button
               id="btn-submit-exam"
-              disabled={isSubmitting}
-              onClick={() => setShowConfirm(true)}
+              disabled={submission.isLocked()}
+              onClick={() => { if (!submission.isLocked()) setShowConfirm(true); }}
               className={`w-full py-3 px-4 rounded-xl font-heading font-bold text-sm border-none transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md ${
                 isSubmitting
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -1294,19 +1199,20 @@ const WorkspacePage: React.FC = () => {
       <TimeUpModal
         open={showTimeUp}
         isSubmitting={isSubmitting}
-        onClose={() => {
-          if (submitResultUrl) {
-            navigate(submitResultUrl);
-          } else {
-            navigate(`/attempts/${attemptId}/result`);
-          }
-        }}
+        error={submission.error}
+        onRetry={submission.phase === 'conflict' ? handleReload : () => { void submission.retry(); }}
+        retryLabel={submission.phase === 'conflict' ? 'Tải lại bản mới nhất' : undefined}
+        draftWarning={draftWarning}
+        onClose={submission.result ? () => navigate(submission.result!.redirect_url) : undefined}
       />
 
       <SubmitOverlay
-        visible={showOverlay}
+        visible={showOverlay && !showTimeUp && submission.phase !== 'conflict' && submission.phase !== 'succeeded'}
         isRetrying={isSubmitting}
-        onRetry={() => handleSubmit(false)}
+        error={submission.error}
+        draftWarning={draftWarning}
+        onRetry={() => { void submission.retry(); }}
+        onClose={() => setShowOverlay(false)}
       />
     </div>
   );

@@ -220,7 +220,8 @@ describe('TV3-07-06 Real Resume Contract & Pipeline Integration', () => {
     // Verify PUT /v1/attempts/42/answers was called with version 7
     expect(mockAxios.put).toHaveBeenCalledWith(
       '/v1/attempts/42/answers',
-      expect.objectContaining({ version: 7 })
+      expect.objectContaining({ version: 7 }),
+      expect.objectContaining({ timeout: 10000, signal: expect.any(AbortSignal) })
     );
 
     expect(store1.getState().answers.version).toBe(8);

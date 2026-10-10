@@ -8,9 +8,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
+import java.util.Optional;
 
 public interface ExamRepository extends JpaRepository<Exam, Integer> {
     Optional<Exam> findByCode(String code);
+
     @Query("SELECT e FROM Exam e WHERE e.isPublished = true " +
            "AND LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')) " +
            "AND (:hasTypes = false OR e.type IN :types)")
