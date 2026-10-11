@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import HtmlContent from '../components/content/HtmlContent';
 
 describe('HtmlContent', () => {
@@ -36,5 +36,35 @@ describe('HtmlContent', () => {
   it('applies className to wrapper', () => {
     const { container } = render(<HtmlContent html="<p>test</p>" className="my-class" />);
     expect(container.firstChild).toHaveClass('my-class');
+  });
+
+  it('TC_WS_HTML_05: strips autoplay attribute from <video> and <audio>, sets autoplay=false, and ensures controls', () => {
+    const { container } = render(
+      <HtmlContent html='<div><video autoplay muted controls src="/test.mp4"></video><audio autoplay src="/test.mp3"></audio></div>' />
+    );
+
+    const video = container.querySelector('video') as HTMLVideoElement;
+    expect(video).toBeInTheDocument();
+    expect(video.autoplay).toBe(false);
+    expect(video.hasAttribute('autoplay')).toBe(false);
+    expect(video.hasAttribute('controls')).toBe(true);
+
+    const audio = container.querySelector('audio') as HTMLAudioElement;
+    expect(audio).toBeInTheDocument();
+    expect(audio.autoplay).toBe(false);
+    expect(audio.hasAttribute('autoplay')).toBe(false);
+    expect(audio.hasAttribute('controls')).toBe(true);
+  });
+
+  it('TC_WS_HTML_06: pauses active media on unmount', () => {
+    const pauseSpy = vi.fn();
+    window.HTMLMediaElement.prototype.pause = pauseSpy;
+
+    const { unmount } = render(
+      <HtmlContent html='<video controls src="/test.mp4"></video>' />
+    );
+
+    unmount();
+    expect(pauseSpy).toHaveBeenCalled();
   });
 });

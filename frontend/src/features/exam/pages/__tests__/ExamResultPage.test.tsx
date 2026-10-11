@@ -81,4 +81,37 @@ describe('result page states', () => {
     mount(); fireEvent.click(screen.getByRole('link', { name: label }));
     expect(screen.getByRole('heading', { name: target })).toBeInTheDocument();
   });
+
+  it('renders CTA "Xem bài làm và lời giải" linking to first part when reviewParts is non-empty', () => {
+    const dataWithReviewParts = normalizeAttemptResult(
+      {
+        ...attemptResultFixture(),
+        reviewParts: [
+          { id: 10, label: 'Reading Passage 1' },
+          { id: 20, label: 'Reading Passage 2' },
+        ],
+      },
+      42
+    );
+    hook.mockReturnValue({ ...state(), data: dataWithReviewParts });
+    mount();
+
+    const reviewCta = screen.getByRole('link', { name: /Xem bài làm và lời giải/i });
+    expect(reviewCta).toBeInTheDocument();
+    expect(reviewCta).toHaveAttribute('href', '/attempts/42/review?partId=10');
+  });
+
+  it('does not render review CTA when reviewParts is empty', () => {
+    const dataWithoutReviewParts = normalizeAttemptResult(
+      {
+        ...attemptResultFixture(),
+        reviewParts: [],
+      },
+      42
+    );
+    hook.mockReturnValue({ ...state(), data: dataWithoutReviewParts });
+    mount();
+
+    expect(screen.queryByRole('link', { name: /Xem bài làm và lời giải/i })).not.toBeInTheDocument();
+  });
 });

@@ -1,7 +1,17 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as axiosClientModule from '../../../core/api/axiosClient';
-import { autosaveAnswers, submitAttempt, getWorkspace, createAttempt, WorkspaceContractError, getAttemptResult } from '../api/attemptApi';
+import {
+  autosaveAnswers,
+  submitAttempt,
+  getWorkspace,
+  createAttempt,
+  WorkspaceContractError,
+  getAttemptResult,
+  getAttemptReview,
+} from '../api/attemptApi';
+import { ReviewContractError } from '../api/reviewContract';
 import { attemptResultFixture, resultEnvelope } from './fixtures/attemptResult';
+import { attemptReviewFixture, reviewEnvelope } from './fixtures/attemptReview';
 
 vi.mock('../../../core/api/axiosClient', () => ({
   default: { put: vi.fn(), post: vi.fn(), get: vi.fn() },
@@ -744,5 +754,49 @@ describe('getWorkspace and createAttempt contracts', () => {
     const resNestedConflicting = await getWorkspace(42);
     expect(resNestedConflicting.saved_answers[0].part_id).toBe(10);
     expect(resNestedConflicting.saved_answers[0].answers[0].question_id).toBe('q_canonical');
+  });
+});
+
+describe('TV3-14 review GET', () => {
+  beforeEach(() => vi.resetAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('uses exact endpoint with bounded config and returns normalized review', async () => {
+    mockAxios.get.mockResolvedValueOnce(reviewEnvelope(attemptReviewFixture(42, 10)));
+    const result = await getAttemptReview(42, 10);
+    expect(mockAxios.get).toHaveBeenCalledWith('/v1/attempts/42/review/10', expect.objectContaining({
+      timeout: 10000, signal: expect.any(AbortSignal),
+    }));
+    expect(result.attemptId).toBe(42);
+    expect(result.partId).toBe(10);
+    expect(result.partStats.totalQuestions).toBe(2);
+  });
+
+  it.each([0, -1, 1.5, 2147483648, NaN])('invalid attemptId %s never reaches HTTP', async id => {
+    await expect(getAttemptReview(id, 10)).rejects.toThrow(ReviewContractError);
+    expect(mockAxios.get).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, 1.5, 2147483648, NaN])('invalid partId %s never reaches HTTP', async partId => {
+    await expect(getAttemptReview(42, partId)).rejects.toThrow(ReviewContractError);
+    expect(mockAxios.get).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    reviewEnvelope({ ...attemptReviewFixture(42, 10), attemptId: 43 }),
+    reviewEnvelope({ ...attemptReviewFixture(42, 10), partId: 11 }),
+    { success: false, code: 404, message: 'Not Found', data: null },
+    { success: true, code: 1000, message: 'Success', data: null },
+    null,
+  ])('rejects invalid review envelope or mismatched data %j', async envelope => {
+    mockAxios.get.mockResolvedValueOnce(envelope);
+    await expect(getAttemptReview(42, 10)).rejects.toThrow(ReviewContractError);
+  });
+
+  it('passes external AbortSignal and abort cancels immediately', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(getAttemptReview(42, 10, { signal: controller.signal })).rejects.toThrow();
+    expect(mockAxios.get).not.toHaveBeenCalled();
   });
 });

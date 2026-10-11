@@ -1,20 +1,54 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useAttemptResult } from '../hooks/useAttemptResult';
 import { useExamReview } from '../hooks/useExamReview';
+import { parseResultAttemptId } from '../api/resultContract';
+import { PartReviewContent } from '../components/review/PartReviewContent';
 import { ReviewPalette } from '../components/review/ReviewPalette';
-import { ExplanationBox } from '../components/review/ExplanationBox';
-import type { ExamReviewQuestion, ExamReviewOption } from '../types/api.types';
-
-const DEFAULT_PARTS = [1, 2, 3, 4];
 
 const ExamReviewPage: React.FC = () => {
-  const { attemptId } = useParams<{ attemptId: string }>();
-  const [partId, setPartId] = useState<number>(1);
-  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
+  const params = useParams<{ attemptId: string }>();
+  const attemptId = parseResultAttemptId(params.attemptId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | number | null>(null);
 
-  const { data, loading, error } = useExamReview(Number(attemptId), partId);
+  // Hook 1: Attempt result (provides dynamic reviewParts metadata)
+  const result = useAttemptResult(attemptId);
+  const reviewParts = result.data?.reviewParts || [];
 
-  const scrollToQuestion = (questionId: number) => {
+  // Determine selected Part ID from URL query ?partId=...
+  const rawPartIdParam = searchParams.get('partId');
+  let selectedPartId: number | null = null;
+  let isPartSelectionInvalid = false;
+
+  if (attemptId !== null && result.data && reviewParts.length > 0) {
+    if (rawPartIdParam === null) {
+      // Truly absent query param selects the first backend-provided part
+      selectedPartId = reviewParts[0].id;
+    } else {
+      const parsedPartId = parseResultAttemptId(rawPartIdParam);
+      if (
+        parsedPartId !== null &&
+        reviewParts.some((p) => p.id === parsedPartId)
+      ) {
+        selectedPartId = parsedPartId;
+      } else {
+        isPartSelectionInvalid = true;
+        selectedPartId = null;
+      }
+    }
+  }
+
+  // Hook 2: Review data scoped to attemptId and selectedPartId
+  const {
+    data: reviewData,
+    loading: reviewLoading,
+    error: reviewError,
+    refreshError,
+    reload: reloadReview,
+  } = useExamReview(attemptId, selectedPartId);
+
+  const scrollToQuestion = (questionId: string | number) => {
     setSelectedQuestionId(questionId);
     const element = document.getElementById(`review-question-${questionId}`);
     if (element) {
@@ -22,20 +56,65 @@ const ExamReviewPage: React.FC = () => {
     }
   };
 
-  if (loading) {
+  // Case 1: Invalid attemptId in path
+  if (attemptId === null) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-lg font-medium text-gray-700">Đang tải dữ liệu bài làm và giải thích...</p>
+      <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
+        <h2 className="text-xl font-bold text-red-700 mb-2">Mã bài làm không hợp lệ</h2>
+        <p className="text-gray-600 mb-4">Vui lòng mở lại từ lịch sử làm bài.</p>
+        <Link
+          to="/student/history"
+          className="inline-block px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
+        >
+          Lịch sử làm bài
+        </Link>
       </div>
     );
   }
 
-  if (error) {
+  // Case 2: Result loading
+  if (result.loading) {
     return (
-      <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center" role="status" aria-live="polite">
+        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-lg font-medium text-gray-700">Đang tải thông tin bài làm...</p>
+      </div>
+    );
+  }
+
+  // Case 3: Result error
+  if (result.error) {
+    return (
+      <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
         <h2 className="text-xl font-bold text-red-700 mb-2">Lỗi khi tải kết quả</h2>
-        <p className="text-gray-600 mb-4">{error.message || 'Không thể tải dữ liệu ôn tập.'}</p>
+        <p className="text-gray-600 mb-4">{result.error.message}</p>
+        <div className="flex justify-center gap-3">
+          {result.error.retryable && (
+            <button
+              type="button"
+              onClick={() => void result.reload()}
+              className="px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
+            >
+              Thử lại
+            </button>
+          )}
+          <Link
+            to="/student/history"
+            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-50 transition"
+          >
+            Lịch sử làm bài
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Case 4: Result has empty reviewParts
+  if (result.data && reviewParts.length === 0) {
+    return (
+      <div className="p-8 max-w-xl mx-auto my-12 bg-slate-50 border border-slate-200 rounded-lg text-center" role="alert">
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Không có phần thi để xem lại</h2>
+        <p className="text-slate-600 mb-4">Bài thi này không cung cấp dữ liệu xem lại bài làm.</p>
         <Link
           to={`/attempts/${attemptId}/result`}
           className="inline-block px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
@@ -46,7 +125,68 @@ const ExamReviewPage: React.FC = () => {
     );
   }
 
-  if (!data) {
+  // Case 5: Invalid part selection in query param
+  if (isPartSelectionInvalid && reviewParts.length > 0) {
+    return (
+      <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
+        <h2 className="text-xl font-bold text-red-700 mb-2">Phần thi không hợp lệ</h2>
+        <p className="text-slate-600 mb-4">Phần thi được chọn không tồn tại hoặc không thuộc bài làm này.</p>
+        <div className="flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setSearchParams({ partId: String(reviewParts[0].id) })}
+            className="px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
+          >
+            Chuyển đến {reviewParts[0].label}
+          </button>
+          <Link
+            to={`/attempts/${attemptId}/result`}
+            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-50 transition"
+          >
+            Quay lại bảng điểm
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Case 6: Review data loading
+  if (reviewLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center" role="status" aria-live="polite">
+        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-lg font-medium text-gray-700">Đang tải dữ liệu bài làm và giải thích...</p>
+      </div>
+    );
+  }
+
+  // Case 7: Review error
+  if (reviewError) {
+    return (
+      <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
+        <h2 className="text-xl font-bold text-red-700 mb-2">Lỗi khi tải kết quả ôn tập</h2>
+        <p className="text-gray-600 mb-4">{reviewError.message || 'Không thể tải dữ liệu ôn tập.'}</p>
+        <div className="flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => void reloadReview()}
+            className="px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition cursor-pointer"
+          >
+            Thử lại
+          </button>
+          <Link
+            to={`/attempts/${attemptId}/result`}
+            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-50 transition"
+          >
+            Quay lại bảng điểm
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Case 8: No reviewData loaded
+  if (!reviewData) {
     return (
       <div className="p-8 text-center text-gray-500">
         Không có dữ liệu bài thi để hiển thị.
@@ -54,44 +194,39 @@ const ExamReviewPage: React.FC = () => {
     );
   }
 
-  const questions: ExamReviewQuestion[] =
-    data.examData?.questions || data.examSnapshot?.questions || [];
-  const userAnswers: Record<string, any> = data.userAnswers || {};
-  const isCorrectFlags: Record<string, boolean> = data.isCorrectFlags || {};
-
   return (
     <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="max-w-7xl mx-auto mb-6 bg-white rounded-lg shadow-xs border border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 mb-2">
             Chế độ Ôn tập & Phân tích (Review)
           </span>
           <h1 className="text-2xl font-bold text-[#0F172A]">
-            Bài thi #{attemptId} - Part {partId}
+            Bài thi #{attemptId} - Part {selectedPartId}
           </h1>
         </div>
 
-        {/* Part Navigation Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-          {DEFAULT_PARTS.map((p) => {
-            const isActive = partId === p;
+        {/* Dynamic Part Navigation Tabs */}
+        <nav aria-label="Danh sách phần thi" className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+          {reviewParts.map((p) => {
+            const isActive = selectedPartId === p.id;
             return (
               <button
-                key={p}
+                key={p.id}
                 type="button"
-                onClick={() => setPartId(p)}
+                onClick={() => setSearchParams({ partId: String(p.id) })}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   isActive
                     ? 'bg-amber-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                 }`}
               >
-                Part {p}
+                {p.label}
               </button>
             );
           })}
-        </div>
+        </nav>
 
         <div className="flex items-center gap-4">
           <Link
@@ -104,122 +239,32 @@ const ExamReviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main layout */}
+      {/* Warning on refresh error */}
+      {refreshError && (
+        <div className="max-w-7xl mx-auto mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm" role="alert">
+          {refreshError.message}
+        </div>
+      )}
+
+      {/* Main content grid */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Questions column */}
-        <div className="lg:col-span-8 space-y-6">
-          {questions.length === 0 ? (
-            <div className="bg-white p-8 rounded-lg border text-center text-gray-500">
-              Không có câu hỏi trong phần thi này.
-            </div>
-          ) : (
-            questions.map((q, idx) => {
-              const qKey = q.id.toString();
-              const hasAnswer =
-                userAnswers[qKey] !== undefined &&
-                userAnswers[qKey] !== null &&
-                userAnswers[qKey] !== '';
-              const isCorrect = isCorrectFlags[qKey] === true;
-              const isSelected = selectedQuestionId === q.id;
-
-              return (
-                <div
-                  key={q.id}
-                  id={`review-question-${q.id}`}
-                  className={`bg-white rounded-lg border p-6 shadow-sm transition-all ${
-                    isSelected
-                      ? 'border-amber-500 ring-2 ring-amber-200'
-                      : isCorrect
-                      ? 'border-green-200'
-                      : hasAnswer
-                      ? 'border-red-200'
-                      : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="font-bold text-sm text-gray-500">Câu {idx + 1}</span>
-                    {hasAnswer ? (
-                      isCorrect ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-[#16A34A]">
-                          ✓ Chính xác
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-[#DC2626]">
-                          ✕ Chưa chính xác
-                        </span>
-                      )
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                        Chưa làm
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="text-base font-semibold text-[#0F172A] mb-4">
-                    {q.content}
-                  </div>
-
-                  {/* Options */}
-                  {Array.isArray(q.options) && q.options.length > 0 && (
-                    <div className="space-y-2 mb-4">
-                      {q.options.map((opt: ExamReviewOption) => {
-                        const isUserChoice =
-                          userAnswers[qKey] === opt.id || userAnswers[qKey] === opt.content;
-                        const isCorrectOption = opt.isCorrect === true;
-
-                        let optionStyle = 'border-gray-200 bg-white text-gray-700';
-                        if (isCorrectOption) {
-                          optionStyle =
-                            'border-[#16A34A] bg-green-50 text-[#16A34A] font-semibold';
-                        } else if (isUserChoice && !isCorrectOption) {
-                          optionStyle =
-                            'border-[#DC2626] bg-red-50 text-[#DC2626] line-through';
-                        }
-
-                        return (
-                          <div
-                            key={opt.id}
-                            className={`flex items-center justify-between p-3 rounded-md border text-sm transition-colors ${optionStyle}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="radio"
-                                checked={isUserChoice}
-                                disabled
-                                readOnly
-                                className="h-4 w-4 text-amber-600 cursor-not-allowed"
-                              />
-                              <span>{opt.content}</span>
-                            </div>
-                            <div className="text-xs font-bold">
-                              {isCorrectOption && (
-                                <span className="text-[#16A34A]">Đáp án đúng</span>
-                              )}
-                              {isUserChoice && !isCorrectOption && (
-                                <span className="text-[#DC2626]">Lựa chọn của bạn</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Explanation box */}
-                  <ExplanationBox htmlContent={q.explanation} />
-                </div>
-              );
-            })
-          )}
+        <div className="lg:col-span-8">
+          <PartReviewContent
+            reviewData={reviewData}
+            resultSummary={result.data?.resultSummary}
+            selectedQuestionId={selectedQuestionId}
+            onSelectQuestion={scrollToQuestion}
+          />
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar palette column */}
         <div className="lg:col-span-4">
           <div className="sticky top-6">
             <ReviewPalette
-              questions={questions}
-              isCorrectFlags={isCorrectFlags}
-              userAnswers={userAnswers}
+              questions={reviewData.questions}
+              partId={reviewData.partId}
+              resultSummary={result.data?.resultSummary}
               selectedQuestionId={selectedQuestionId}
               onSelectQuestion={scrollToQuestion}
             />

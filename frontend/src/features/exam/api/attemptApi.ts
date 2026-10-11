@@ -13,6 +13,9 @@ import type {
 } from '../types/api.types';
 import type { AttemptStatus, PartAnswers, UserAnswer, AnswerValue } from '../types/answer.types';
 import { normalizeAttemptResult, ResultContractError } from './resultContract';
+import { normalizeAttemptReview, ReviewContractError } from './reviewContract';
+
+export { ReviewContractError };
 
 export class WorkspaceContractError extends Error {
   constructor(message: string = 'Dữ liệu phiên thi không hợp lệ. Vui lòng thử tải lại.') {
@@ -411,14 +414,20 @@ export async function getAttemptResult(
 /**
  * GET /api/v1/attempts/:id/review/:partId
  */
-export async function getAttemptReview(attemptId: number, partId: number): Promise<ExamReviewResponse> {
-  try {
-    const res = await axiosClient.get<unknown, ApiResponse<ExamReviewResponse>>(`/v1/attempts/${attemptId}/review/${partId}`);
-    if (!res.success || !res.data) {
-      throw new Error(res.message || 'Failed to fetch review');
-    }
-    return res.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch review');
+export async function getAttemptReview(
+  attemptId: number,
+  partId: number,
+  options?: { signal?: AbortSignal }
+): Promise<ExamReviewResponse> {
+  if (!isPositiveInt(attemptId) || !isPositiveInt(partId)) {
+    throw new ReviewContractError();
   }
+  const res = await boundedAttemptRequest(signal => axiosClient.get<unknown, ApiResponse<unknown>>(
+    `/v1/attempts/${attemptId}/review/${partId}`,
+    { signal, timeout: WRITE_TIMEOUT_MS }
+  ), options?.signal);
+  if (!isRecord(res) || res.success !== true || res.data == null) {
+    throw new ReviewContractError();
+  }
+  return normalizeAttemptReview(res.data, attemptId, partId);
 }

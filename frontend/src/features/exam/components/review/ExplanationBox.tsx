@@ -1,5 +1,5 @@
 import React from 'react';
-import DOMPurify from 'dompurify';
+import HtmlContent from '../content/HtmlContent';
 
 interface Props {
   htmlContent?: string | null;
@@ -21,8 +21,6 @@ export const ExplanationBox: React.FC<Props> = ({ htmlContent }) => {
     );
   }
 
-  const cleanHtml = DOMPurify.sanitize(htmlContent);
-
   return (
     <div
       data-testid="explanation-box"
@@ -32,7 +30,7 @@ export const ExplanationBox: React.FC<Props> = ({ htmlContent }) => {
         <span>💡</span>
         <span>Giải thích chi tiết:</span>
       </div>
-      <div className="prose max-w-none text-[#0F172A]" dangerouslySetInnerHTML={{ __html: cleanHtml }} />
+      <HtmlContent html={htmlContent} className="prose max-w-none text-[#0F172A]" />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import type { ExamResultResponse, ObjectiveResultStats, ResultSummary, ResultWritingStatus } from '../types/api.types';
+import type { ExamResultResponse, ObjectiveResultStats, ResultSummary, ResultWritingStatus, ReviewPartNavigation } from '../types/api.types';
 
 export class ResultContractError extends Error {
   constructor() {
@@ -111,6 +111,22 @@ function normalizeSummary(value: unknown): ResultSummary {
   return { objective: { ...stats(objective), scoreUnit: 'RAW_OBJECTIVE', byPart, bySkill }, writing };
 }
 
+function normalizeReviewParts(value: unknown): ReviewPartNavigation[] {
+  if (value === undefined) return [];
+  const seenIds = new Set<number>();
+  return items(value, item => {
+    const part = record(item);
+    requireValue(positiveId(part.id) && !seenIds.has(part.id));
+    seenIds.add(part.id);
+    const label = text(part.label);
+    requireValue(label.trim().length > 0);
+    return {
+      id: part.id,
+      label,
+    };
+  });
+}
+
 export function normalizeAttemptResult(data: unknown, expectedAttemptId: number): ExamResultResponse {
   const source = record(data);
   requireValue(positiveId(expectedAttemptId) && source.attemptId === expectedAttemptId);
@@ -126,5 +142,6 @@ export function normalizeAttemptResult(data: unknown, expectedAttemptId: number)
     overallScore: source.overallScore == null ? null : nonnegative(source.overallScore),
     summaryAvailable: source.summaryAvailable,
     resultSummary: source.summaryAvailable ? normalizeSummary(source.resultSummary) : null,
+    reviewParts: normalizeReviewParts(source.reviewParts),
   };
 }

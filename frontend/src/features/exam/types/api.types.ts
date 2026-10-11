@@ -84,6 +84,11 @@ export interface ResultSummary {
   } | null;
 }
 
+export interface ReviewPartNavigation {
+  id: number;
+  label: string;
+}
+
 /** Validated UI projection; legacy grading fields are intentionally excluded. */
 export interface ExamResultResponse {
   attemptId: number;
@@ -96,12 +101,61 @@ export interface ExamResultResponse {
   overallScore: number | null;
   summaryAvailable: boolean;
   resultSummary: ResultSummary | null;
+  reviewParts: ReviewPartNavigation[];
+}
+
+export type ReviewVerdict = 'CORRECT' | 'WRONG' | 'BLANK' | 'PENDING';
+
+export interface ReviewOptionDto {
+  id: string;
+  text?: string;
+  content?: string;
+  isCorrect?: boolean | null;
+}
+
+export interface ReviewQuestionDto {
+  questionId: string;
+  type?: string;
+  questionText?: string | null;
+  prompt?: string | null;
+  label?: string | null;
+  explanation?: string | null;
+  correctAnswer?: unknown;
+  userAnswer?: unknown;
+  verdict: ReviewVerdict;
+  score?: number | null;
+  options?: ReviewOptionDto[] | null;
+  media?: Record<string, unknown> | null;
+  id?: string | number;
+  content?: string;
+  isCorrect?: boolean | null;
+  [key: string]: any;
+}
+
+export interface ReviewQuestionGroupDto {
+  groupId?: string | null;
+  instruction?: string | null;
+  contentHtml?: string | null;
+  sharedAudio?: Record<string, unknown> | null;
+  sharedMedia?: Record<string, unknown> | null;
+  questions?: ReviewQuestionDto[] | null;
+}
+
+export interface ReviewPartStatsDto {
+  score: number;
+  correctCount: number;
+  incorrectCount: number;
+  unansweredCount: number;
+  totalQuestions: number;
+  accuracy: number;
+  isCorrectFlags?: Record<string, boolean> | null;
 }
 
 export interface ExamReviewOption {
   id: number;
   content: string;
   isCorrect?: boolean;
+  [key: string]: any;
 }
 
 export interface ExamReviewQuestion {
@@ -124,20 +178,19 @@ export interface ExamReviewPartData {
 export interface ExamReviewResponse {
   attemptId: number;
   partId: number;
-  partResult?: {
-    score?: number;
-    correctCount?: number;
-    totalQuestions?: number;
-    isCorrectFlags?: Record<string, boolean>;
-    [key: string]: any;
-  } | null;
+  partTitle?: string;
+  skill?: string;
+  partStats: ReviewPartStatsDto;
   userAnswers?: Record<string, any> | null;
+  questions: ReviewQuestionDto[];
+  questionGroups?: ReviewQuestionGroupDto[] | null;
   examData?: ExamReviewPartData | null;
   examSnapshot?: {
     questions?: ExamReviewQuestion[];
     [key: string]: any;
   } | null;
-  isCorrectFlags?: Record<string, boolean>;
+  partResult?: Record<string, any> | null;
+  isCorrectFlags?: Record<string, boolean> | null;
 }
 
 export interface LearnerExamStructurePart {

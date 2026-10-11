@@ -27,6 +27,14 @@ export const ExamResultPage = () => {
           <span className="rounded bg-slate-100 px-3 py-1 text-slate-700">{attemptStatusLabel(data.status)}</span>
         </div>}
         <nav aria-label="Thao tác kết quả" className="flex flex-wrap gap-3">
+          {data && data.reviewParts && data.reviewParts.length > 0 && (
+            <Link
+              className={`${actionClass} bg-amber-600 text-white hover:bg-amber-700 border-amber-600 font-semibold`}
+              to={`/attempts/${data.attemptId}/review?partId=${data.reviewParts[0].id}`}
+            >
+              Xem bài làm và lời giải
+            </Link>
+          )}
           {canUpdate && <button type="button" className={`${actionClass} disabled:cursor-wait disabled:opacity-60`}
             disabled={busy} onClick={() => { void reload(); }}>
             <RefreshCw size={16} aria-hidden="true" className={busy ? 'motion-safe:animate-spin' : ''} />
