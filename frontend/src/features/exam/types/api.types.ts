@@ -52,53 +52,50 @@ export interface SubmitResult {
   redirect_url: string;
 }
 
+export interface ObjectiveResultStats {
+  rawScore: number;
+  correct: number;
+  incorrect: number;
+  unanswered: number;
+  total: number;
+  accuracy: number;
+}
+
+export type ResultWritingStatus = 'PENDING' | 'QUEUED' | 'FAILED' | 'UNAVAILABLE';
+
+export interface ResultSummary {
+  objective: ObjectiveResultStats & {
+    scoreUnit: 'RAW_OBJECTIVE';
+    bySkill: Array<ObjectiveResultStats & { skill: string }>;
+    byPart: Array<ObjectiveResultStats & { partId: number; label: string; skill: string }>;
+  };
+  writing: {
+    status: ResultWritingStatus;
+    tasks: Array<{
+      partId: number;
+      questionId: string;
+      label: string;
+      status: ResultWritingStatus;
+      wordCount: number;
+      // TV3-11 exposes Writing metadata, not AI scores.
+      score: null;
+      maxScore: null;
+    }>;
+  } | null;
+}
+
+/** Validated UI projection; legacy grading fields are intentionally excluded. */
 export interface ExamResultResponse {
   attemptId: number;
-  status: AttemptStatus;
+  status: Exclude<AttemptStatus, 'IN_PROGRESS'>;
   testScope: TestScope;
   testMode: TestMode;
   startTime: string;
-  endTime: string;
-  timeSpentSeconds: number;
-  overallScore: number;
-  resultSummary: {
-    objective?: {
-      scoreUnit: string;
-      correct: number;
-      incorrect: number;
-      unanswered: number;
-      total: number;
-      accuracy: number;
-      bySkill: Array<{
-        skill: string;
-        correct: number;
-        incorrect: number;
-        unanswered: number;
-        total: number;
-        accuracy: number;
-      }>;
-      byPart: Array<{
-        partId: number;
-        label: string;
-        skill: string;
-        correct: number;
-        incorrect: number;
-        unanswered: number;
-        total: number;
-      }>;
-    };
-    writing?: {
-      status: string;
-      tasks: Array<{
-        partId: number;
-        label: string;
-        status: string;
-        wordCount: number;
-        score: number | null;
-        maxScore: number;
-      }>;
-    };
-  } | null;
+  endTime: string | null;
+  timeSpentSeconds: number | null;
+  overallScore: number | null;
+  summaryAvailable: boolean;
+  resultSummary: ResultSummary | null;
 }
 
 export interface ExamReviewOption {

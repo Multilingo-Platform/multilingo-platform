@@ -12,16 +12,7 @@ import type {
   TestMode
 } from '../types/api.types';
 import type { AttemptStatus, PartAnswers, UserAnswer, AnswerValue } from '../types/answer.types';
-
-export class ResultNotReadyError extends Error {
-  retryAfter: number;
-  constructor(message: string, retryAfter: number = 2) {
-    super(message);
-    this.name = 'ResultNotReadyError';
-    this.retryAfter = retryAfter;
-    Object.setPrototypeOf(this, ResultNotReadyError.prototype);
-  }
-}
+import { normalizeAttemptResult, ResultContractError } from './resultContract';
 
 export class WorkspaceContractError extends Error {
   constructor(message: string = 'Dữ liệu phiên thi không hợp lệ. Vui lòng thử tải lại.') {
@@ -298,7 +289,7 @@ export async function autosaveAnswers(
   options?: { signal?: AbortSignal }
 ): Promise<AutosaveResponse> {
   validateWriteContext(attemptId, req.version);
-  const res = await boundedWrite(signal => axiosClient.put<unknown, ApiResponse<AutosaveResponse>>(
+  const res = await boundedAttemptRequest(signal => axiosClient.put<unknown, ApiResponse<AutosaveResponse>>(
     `/v1/attempts/${attemptId}/answers`,
     { version: req.version, answers: req.answers },
     { signal, timeout: WRITE_TIMEOUT_MS }
@@ -331,7 +322,7 @@ function validateWriteContext(attemptId: number, version: number): void {
 }
 
 /** Axios timeout does not include time queued behind the refresh interceptor. */
-async function boundedWrite<T>(execute: (signal: AbortSignal) => Promise<T>, external?: AbortSignal): Promise<T> {
+async function boundedAttemptRequest<T>(execute: (signal: AbortSignal) => Promise<T>, external?: AbortSignal): Promise<T> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let cancel: (() => void) | undefined;
@@ -374,7 +365,7 @@ export async function submitAttempt(
     baseVersion: req.baseVersion,
     finalAnswers: req.finalAnswers,
   };
-  const res = await boundedWrite(signal => axiosClient.post<unknown, ApiResponse<any>>(
+  const res = await boundedAttemptRequest(signal => axiosClient.post<unknown, ApiResponse<any>>(
     `/v1/attempts/${attemptId}/submit`,
     payload,
     { signal, timeout: WRITE_TIMEOUT_MS }
@@ -405,22 +396,16 @@ export async function lockSection(attemptId: number, sectionId: number): Promise
 /**
  * GET /api/v1/attempts/:id/result
  */
-export async function getAttemptResult(attemptId: number): Promise<ExamResultResponse> {
-  try {
-    const res = await axiosClient.get<unknown, ApiResponse<ExamResultResponse>>(`/v1/attempts/${attemptId}/result`);
-    if (!res.success || !res.data) {
-      throw new Error(res.message || 'Failed to fetch result');
-    }
-    return res.data;
-  } catch (error: any) {
-    if (error.response?.status === 409) {
-      const retryAfter = error.response.headers?.['retry-after'] 
-        ? parseInt(error.response.headers['retry-after'], 10) 
-        : 2;
-      throw new ResultNotReadyError(error.response.data?.message || 'Result not ready', retryAfter);
-    }
-    throw error;
-  }
+export async function getAttemptResult(
+  attemptId: number,
+  options?: { signal?: AbortSignal }
+): Promise<ExamResultResponse> {
+  if (!isPositiveInt(attemptId)) throw new ResultContractError();
+  const res = await boundedAttemptRequest(signal => axiosClient.get<unknown, ApiResponse<unknown>>(
+    `/v1/attempts/${attemptId}/result`, { signal, timeout: WRITE_TIMEOUT_MS }
+  ), options?.signal);
+  if (!isRecord(res) || res.success !== true || res.data == null) throw new ResultContractError();
+  return normalizeAttemptResult(res.data, attemptId);
 }
 
 /**

@@ -1,12 +1,75 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as axiosClientModule from '../../../core/api/axiosClient';
-import { autosaveAnswers, submitAttempt, getWorkspace, createAttempt, WorkspaceContractError } from '../api/attemptApi';
+import { autosaveAnswers, submitAttempt, getWorkspace, createAttempt, WorkspaceContractError, getAttemptResult } from '../api/attemptApi';
+import { attemptResultFixture, resultEnvelope } from './fixtures/attemptResult';
 
 vi.mock('../../../core/api/axiosClient', () => ({
   default: { put: vi.fn(), post: vi.fn(), get: vi.fn() },
 }));
 
 const mockAxios = axiosClientModule.default as any;
+
+describe('TV3-12 result GET', () => {
+  beforeEach(() => vi.resetAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('uses exact endpoint with bounded config and returns a validated projection', async () => {
+    mockAxios.get.mockResolvedValueOnce(resultEnvelope());
+    const result = await getAttemptResult(42);
+    expect(mockAxios.get).toHaveBeenCalledWith('/v1/attempts/42/result', expect.objectContaining({
+      timeout: 10000, signal: expect.any(AbortSignal),
+    }));
+    expect(result.resultSummary).not.toHaveProperty('partResults');
+    expect(result.resultSummary?.objective.rawScore).toBe(5.5);
+  });
+  it.each([0, -1, 1.5, 2147483648, NaN])('invalid ID %s never reaches HTTP', async id => {
+    await expect(getAttemptResult(id)).rejects.toThrow();
+    expect(mockAxios.get).not.toHaveBeenCalled();
+  });
+  it.each([
+    resultEnvelope({ ...attemptResultFixture(), attemptId: 43 }),
+    resultEnvelope({ ...attemptResultFixture(), status: 'IN_PROGRESS' }),
+    resultEnvelope(null), { success: false, message: 'sensitive server detail' },
+    { success: 'true', data: attemptResultFixture() },
+  ])('rejects malformed receipt with fixed error %j', async envelope => {
+    mockAxios.get.mockResolvedValueOnce(envelope);
+    await expect(getAttemptResult(42)).rejects.toThrow('Phản hồi kết quả không hợp lệ');
+  });
+  it.each([400, 401, 403, 409, 500])('preserves HTTP %s for hook classification', async status => {
+    const error = { response: { status, data: { message: 'private detail' } } };
+    mockAxios.get.mockRejectedValueOnce(error);
+    await expect(getAttemptResult(42)).rejects.toBe(error);
+  });
+  it('settles at whole-request deadline even when interceptor/transport never settles', async () => {
+    vi.useFakeTimers(); mockAxios.get.mockReturnValueOnce(new Promise(() => {}));
+    const pending = getAttemptResult(42);
+    const rejection = expect(pending).rejects.toThrow(/quá thời gian/i);
+    await vi.advanceTimersByTimeAsync(9999);
+    expect(mockAxios.get.mock.calls[0][1]?.signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1); await rejection;
+    expect(mockAxios.get.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('aborts waiting, ignores late transport settlement and removes listener/timer', async () => {
+    vi.useFakeTimers();
+    let resolve!: (value: unknown) => void;
+    mockAxios.get.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const controller = new AbortController();
+    const remove = vi.spyOn(controller.signal, 'removeEventListener');
+    const pending = getAttemptResult(42, { signal: controller.signal });
+    const rejection = expect(pending).rejects.toThrow(/hủy/i);
+    controller.abort(); await rejection;
+    resolve(resultEnvelope()); await Promise.resolve();
+    expect(mockAxios.get.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('already aborted signal does not dispatch transport', async () => {
+    const controller = new AbortController(); controller.abort();
+    await expect(getAttemptResult(42, { signal: controller.signal })).rejects.toThrow(/hủy/i);
+    expect(mockAxios.get).not.toHaveBeenCalled();
+  });
+});
 
 describe('autosaveAnswers', () => {
   beforeEach(() => vi.clearAllMocks());
