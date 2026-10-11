@@ -30,6 +30,7 @@ import { SettingsPage } from "../features/auth/pages/SettingsPage";
 import ProtectedRoute from "../features/auth/components/ProtectedRoute";
 import Flashcards from "../pages/student/Flashcards";
 import PremiumUpgradePage from "../features/premium/pages/PremiumUpgradePage";
+import PaymentResultPage from "../features/premium/pages/PaymentResultPage";
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -112,6 +113,10 @@ export const router = createBrowserRouter([
       {
         path: "premium",
         element: <PremiumUpgradePage />,
+      },
+      {
+        path: "payment/result",
+        element: <PaymentResultPage />,
       },
     ],
   },
