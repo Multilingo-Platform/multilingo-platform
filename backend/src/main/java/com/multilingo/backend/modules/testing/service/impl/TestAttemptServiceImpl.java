@@ -28,10 +28,13 @@ import com.multilingo.backend.modules.testing.grading.dto.PartGradingKey;
 import com.multilingo.backend.modules.testing.grading.dto.QuestionGradingResult;
 import com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest;
 import com.multilingo.backend.modules.testing.entity.enums.SubmitReason;
+import com.multilingo.backend.modules.testing.util.SnapshotGradingKeyExtractor;
 import com.multilingo.backend.modules.testing.util.WorkspaceSnapshotSanitizer;
 import com.multilingo.backend.modules.testing.dto.response.ResultSummaryResponse;
+import com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse;
 import com.multilingo.backend.modules.testing.service.support.AttemptGradingInputFactory;
 import com.multilingo.backend.modules.testing.service.support.AttemptResultSummaryMapper;
+import com.multilingo.backend.modules.testing.service.support.AttemptReviewMapper;
 import com.multilingo.backend.modules.testing.util.AttemptDuration;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +48,7 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +70,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final EntityManager entityManager;
     private final AttemptGradingInputFactory gradingInputFactory;
     private final AttemptResultSummaryMapper summaryMapper;
+    private final AttemptReviewMapper reviewMapper;
 
     public TestAttemptServiceImpl(
             TestAttemptRepository testAttemptRepository,
@@ -77,7 +82,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             ObjectiveGradingService gradingService,
             PlatformTransactionManager transactionManager,
             EntityManager entityManager) {
-        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, new AttemptGradingInputFactory(), new AttemptResultSummaryMapper(objectMapper));
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, new AttemptGradingInputFactory(), new AttemptResultSummaryMapper(objectMapper), new AttemptReviewMapper(objectMapper));
     }
 
     public TestAttemptServiceImpl(
@@ -91,7 +96,22 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             PlatformTransactionManager transactionManager,
             EntityManager entityManager,
             AttemptGradingInputFactory gradingInputFactory) {
-        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, new AttemptResultSummaryMapper(objectMapper));
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, new AttemptResultSummaryMapper(objectMapper), new AttemptReviewMapper(objectMapper));
+    }
+
+    public TestAttemptServiceImpl(
+            TestAttemptRepository testAttemptRepository,
+            AttemptAnswerRepository attemptAnswerRepository,
+            ExamAdapter examAdapter,
+            IdentityAdapter identityAdapter,
+            ObjectMapper objectMapper,
+            GradingAdapter gradingAdapter,
+            ObjectiveGradingService gradingService,
+            PlatformTransactionManager transactionManager,
+            EntityManager entityManager,
+            AttemptGradingInputFactory gradingInputFactory,
+            AttemptResultSummaryMapper summaryMapper) {
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, summaryMapper, new AttemptReviewMapper(objectMapper));
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -106,7 +126,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             PlatformTransactionManager transactionManager,
             EntityManager entityManager,
             AttemptGradingInputFactory gradingInputFactory,
-            AttemptResultSummaryMapper summaryMapper) {
+            AttemptResultSummaryMapper summaryMapper,
+            AttemptReviewMapper reviewMapper) {
         this.testAttemptRepository = testAttemptRepository;
         this.attemptAnswerRepository = attemptAnswerRepository;
         this.examAdapter = examAdapter;
@@ -118,6 +139,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         this.entityManager = entityManager;
         this.gradingInputFactory = gradingInputFactory;
         this.summaryMapper = summaryMapper;
+        this.reviewMapper = reviewMapper;
     }
 
     @Override
@@ -126,7 +148,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         Integer userId = identityAdapter.getCurrentUserId();
 
         // 1. Validate exam exists
-        ExamFixture exam = examAdapter.findById(request.getExamId())
+        ExamFixture exam = examAdapter.findSnapshotById(request.getExamId())
+                .or(() -> examAdapter.findById(request.getExamId()))
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Exam not found: " + request.getExamId()));
 
@@ -314,7 +337,17 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         // Phase 2: Grading
         try {
             List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
-            Map<Integer, PartGradingKey> keys = gradingAdapter.loadPartKeys(attempt.getExamId());
+            Map<Integer, PartGradingKey> keys = SnapshotGradingKeyExtractor.extractFromSnapshot(attempt.getExamSnapshot());
+            if (keys == null || keys.isEmpty()) {
+                if (SnapshotGradingKeyExtractor.hasObjectiveQuestions(attempt.getExamSnapshot())) {
+                    keys = gradingAdapter.loadPartKeys(attempt.getExamId());
+                } else {
+                    keys = Collections.emptyMap();
+                }
+            }
+            if (keys == null) {
+                keys = Collections.emptyMap();
+            }
 
             AttemptGradingInputFactory.GradingInput input = gradingInputFactory.prepare(
                     attempt.getExamSnapshot(), savedAnswers, keys);
@@ -420,6 +453,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         boolean summaryAvailable = resultSummary != null;
 
         Integer duration = AttemptDuration.resolveDuration(attempt);
+        List<com.multilingo.backend.modules.testing.dto.response.ReviewPartNavigationDto> reviewParts =
+                reviewMapper != null ? reviewMapper.extractReviewParts(attempt.getExamSnapshot()) : Collections.emptyList();
 
         return com.multilingo.backend.modules.testing.dto.response.ExamResultResponse.builder()
                 .attemptId(attempt.getId())
@@ -432,12 +467,13 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .overallScore(attempt.getOverallScore())
                 .summaryAvailable(summaryAvailable)
                 .resultSummary(resultSummary)
+                .reviewParts(reviewParts)
                 .build();
     }
 
     @Override
     @Transactional
-    public com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse getAttemptReview(Integer attemptId, Integer partId) {
+    public ExamReviewResponse getAttemptReview(Integer attemptId, Integer partId) {
         Integer userId = identityAdapter.getCurrentUserId();
         TestAttempt attempt = testAttemptRepository.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN, "Attempt not found"));
@@ -448,57 +484,59 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Attempt is not submitted yet");
         }
 
-        Object examData = extractPartData(attempt.getExamSnapshot(), partId);
-
-        AttemptAnswer answer = attemptAnswerRepository.findByAttemptIdAndPartId(attemptId, partId).orElse(null);
-        Map<String, Object> userAnswers = null;
-        Map<String, Object> partResult = null;
-
-        if (answer != null) {
-            if (answer.getUserAnswers() != null) {
-                try {
-                    // userAnswers is already a Map<String, Object> because of SqlTypes.JSON mapping in entity
-                    userAnswers = answer.getUserAnswers();
-                } catch (Exception ignored) {}
-            }
-            if (attempt.getResultSummary() != null) {
-                try {
-                    Map<String, Object> summary = objectMapper.readValue(attempt.getResultSummary(), Map.class);
-                    Map<String, Object> partResults = (Map<String, Object>) summary.get("partResults");
-                    if (partResults != null) {
-                        partResult = (Map<String, Object>) partResults.get(String.valueOf(partId));
-                    }
-                } catch (Exception ignored) {}
-            }
+        AttemptReviewMapper.PartScope targetScope = reviewMapper.findPartInSnapshot(attempt.getExamSnapshot(), partId);
+        if (targetScope == null) {
+            throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Part not found in attempt scope: " + partId);
         }
 
-        return com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse.builder()
-                .attemptId(attemptId)
-                .partId(partId)
-                .partResult(partResult)
-                .userAnswers(userAnswers)
-                .examData(examData)
-                .build();
+        AttemptAnswer answer = attemptAnswerRepository.findByAttemptIdAndPartId(attemptId, partId).orElse(null);
+
+        PartGradingKey fallbackKey = null;
+        if (!hasCorrectAnswersInPart(targetScope.getPartData())
+                && SnapshotGradingKeyExtractor.hasObjectiveQuestionsInPart(targetScope.getPartData())) {
+            try {
+                Map<Integer, PartGradingKey> keys = gradingAdapter.loadPartKeys(attempt.getExamId());
+                if (keys != null) {
+                    fallbackKey = keys.get(partId);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return reviewMapper.mapReview(attempt, targetScope, answer, fallbackKey);
     }
 
     @SuppressWarnings("unchecked")
-    private Object extractPartData(Map<String, Object> snapshot, Integer partId) {
-        if (snapshot == null) return null;
-        List<Map<String, Object>> sections = (List<Map<String, Object>>) snapshot.get("sections");
-        if (sections != null) {
-            for (Map<String, Object> section : sections) {
-                List<Map<String, Object>> parts = (List<Map<String, Object>>) section.get("parts");
-                if (parts != null) {
-                    for (Map<String, Object> part : parts) {
-                        Object pid = part.get("id");
-                        if (pid != null && Integer.valueOf(pid.toString()).equals(partId)) {
-                            return part;
+    private boolean hasCorrectAnswersInPart(Map<String, Object> partData) {
+        if (partData == null) return false;
+        Object groupsObj = partData.get("question_groups");
+        if (groupsObj == null) groupsObj = partData.get("questionGroups");
+        if (groupsObj instanceof List<?> groups) {
+            for (Object gObj : groups) {
+                if (gObj instanceof Map<?, ?> gMap) {
+                    Object qList = gMap.get("questions");
+                    if (qList instanceof List<?> questions) {
+                        for (Object qObj : questions) {
+                            if (qObj instanceof Map<?, ?> qMap) {
+                                if (qMap.containsKey("correct_answer") || qMap.containsKey("correctAnswer")) {
+                                    return true;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        return null;
+        Object qList = partData.get("questions");
+        if (qList instanceof List<?> questions) {
+            for (Object qObj : questions) {
+                if (qObj instanceof Map<?, ?> qMap) {
+                    if (qMap.containsKey("correct_answer") || qMap.containsKey("correctAnswer")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void saveAnswersInternal(TestAttempt attempt, List<AutosaveAnswersRequest.PartAnswerDto> answers) {

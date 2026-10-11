@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -30,4 +31,5 @@ public class ExamResultResponse {
     private boolean summaryAvailable;
 
     private ResultSummaryResponse resultSummary;
+    private List<ReviewPartNavigationDto> reviewParts;
 }

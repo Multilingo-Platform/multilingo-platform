@@ -11,4 +11,13 @@ import java.util.Optional;
  */
 public interface ExamAdapter {
     Optional<ExamFixture> findById(Integer examId);
+
+    /**
+     * Finds exam data intended for persisting an immutable snapshot of the attempt.
+     * Retains correct_answer and explanation while removing server-internal secrets
+     * (e.g. ai_prompt_context, internal prompt templates).
+     */
+    default Optional<ExamFixture> findSnapshotById(Integer examId) {
+        return findById(examId);
+    }
 }

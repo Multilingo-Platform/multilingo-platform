@@ -370,8 +370,7 @@ class TestAttemptServiceTest {
 
         TestAttempt saved = testAttemptRepository.findById(attempt.getAttemptId()).orElseThrow();
         assertThat(saved.getSectionScores()).isNotNull();
-        // Only Part 1 was autosaved → only Reading section has an AttemptAnswer row
-        assertThat(saved.getSectionScores()).containsKey("Reading");
+        assertThat(saved.getSectionScores()).containsKey("READING");
     }
 
     @Test

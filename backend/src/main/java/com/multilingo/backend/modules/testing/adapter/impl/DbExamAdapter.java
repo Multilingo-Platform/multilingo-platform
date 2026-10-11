@@ -41,6 +41,16 @@ public class DbExamAdapter implements ExamAdapter {
             "skill_stats"
     );
 
+    private static final Set<String> SNAPSHOT_PRIVATE_FIELDS = Set.of(
+            "ai_prompt_context",
+            "ai_feedback",
+            "grading_key",
+            "grading_keys",
+            "is_correct_flags",
+            "earned_score",
+            "skill_stats"
+    );
+
     private final ExamRepository examRepository;
     private final ExamSectionRepository examSectionRepository;
     private final ExamPartRepository examPartRepository;
@@ -48,15 +58,21 @@ public class DbExamAdapter implements ExamAdapter {
 
     @Override
     public Optional<ExamFixture> findById(Integer examId) {
-        return examRepository.findById(examId).map(this::mapToFixture);
+        return examRepository.findById(examId).map(exam -> mapToFixture(exam, false));
+    }
+
+    @Override
+    public Optional<ExamFixture> findSnapshotById(Integer examId) {
+        return examRepository.findById(examId).map(exam -> mapToFixture(exam, true));
     }
 
     @SuppressWarnings("unchecked")
-    private ExamFixture mapToFixture(Exam exam) {
+    private ExamFixture mapToFixture(Exam exam, boolean forSnapshot) {
         ExamFixture fixture = new ExamFixture();
         fixture.setId(exam.getId());
         fixture.setTitle(exam.getTitle());
         fixture.setDurationMinutes(exam.getDurationMinutes());
+        fixture.setUpdatedAt(exam.getUpdatedAt());
 
         List<ExamSection> entitySections = examSectionRepository.findByExam_Id(exam.getId());
 
@@ -81,7 +97,8 @@ public class DbExamAdapter implements ExamAdapter {
                                 
                                 Map<String, Object> data = part.getContentData();
                                 if (data != null) {
-                                    Map<String, Object> safeData = (Map<String, Object>) sanitizeForClient(data);
+                                    Map<String, Object> safeData = (Map<String, Object>) sanitize(
+                                            data, forSnapshot ? SNAPSHOT_PRIVATE_FIELDS : PRIVATE_GRADING_FIELDS);
                                     Object partTitle = safeData.get("part_title");
                                     if (partTitle == null) {
                                         partTitle = safeData.get("title");
@@ -111,7 +128,22 @@ public class DbExamAdapter implements ExamAdapter {
                                         for (Object group : questionGroups) {
                                             Map<String, Object> groupMap = requireMap(group, "question group");
                                             List<Object> groupQuestions = requireQuestions(groupMap.get("questions"));
-                                            questions.addAll(groupQuestions);
+                                            Object groupOptions = groupMap.get("options");
+                                            List<Object> updatedGroupQuestions = new ArrayList<>();
+                                            for (Object rawQ : groupQuestions) {
+                                                if (rawQ instanceof Map<?, ?> qMapRaw) {
+                                                    Map<String, Object> qMap = new LinkedHashMap<>((Map<String, Object>) qMapRaw);
+                                                    if (groupOptions != null && !qMap.containsKey("options")) {
+                                                        qMap.put("options", groupOptions);
+                                                    }
+                                                    questions.add(qMap);
+                                                    updatedGroupQuestions.add(qMap);
+                                                } else {
+                                                    questions.add(rawQ);
+                                                    updatedGroupQuestions.add(rawQ);
+                                                }
+                                            }
+                                            groupMap.put("questions", updatedGroupQuestions);
                                         }
                                     } else {
                                         List<Object> legacyQuestions = asList(safeData.get("questions"));
@@ -170,13 +202,13 @@ public class DbExamAdapter implements ExamAdapter {
         return (Map<String, Object>) value;
     }
 
-    private Object sanitizeForClient(Object value) {
+    private Object sanitize(Object value, Set<String> blacklistedFields) {
         if (value instanceof Map<?, ?> map) {
             Map<String, Object> sanitized = new LinkedHashMap<>();
             map.forEach((key, nestedValue) -> {
                 String fieldName = String.valueOf(key);
-                if (!PRIVATE_GRADING_FIELDS.contains(fieldName)) {
-                    sanitized.put(fieldName, sanitizeForClient(nestedValue));
+                if (!blacklistedFields.contains(fieldName)) {
+                    sanitized.put(fieldName, sanitize(nestedValue, blacklistedFields));
                 }
             });
             return sanitized;
@@ -184,7 +216,7 @@ public class DbExamAdapter implements ExamAdapter {
 
         if (value instanceof List<?> list) {
             return list.stream()
-                    .map(this::sanitizeForClient)
+                    .map(nestedValue -> sanitize(nestedValue, blacklistedFields))
                     .toList();
         }
 

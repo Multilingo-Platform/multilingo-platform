@@ -246,7 +246,16 @@ class TestAttemptResultControllerIT {
                 .andExpect(jsonPath("$.data.resultSummary.objective.bySkill[1].accuracy").value(50.0))
                 .andExpect(jsonPath("$.data.resultSummary.objective.byPart[0].partId").value(1))
                 .andExpect(jsonPath("$.data.resultSummary.objective.byPart[0].label").value("Passage 1"))
-                .andExpect(jsonPath("$.data.resultSummary.writing").doesNotExist());
+                .andExpect(jsonPath("$.data.resultSummary.writing").doesNotExist())
+                // ReviewParts metadata
+                .andExpect(jsonPath("$.data.reviewParts").isArray())
+                .andExpect(jsonPath("$.data.reviewParts.length()").value(3))
+                .andExpect(jsonPath("$.data.reviewParts[0].id").value(1))
+                .andExpect(jsonPath("$.data.reviewParts[0].label").value("Passage 1"))
+                .andExpect(jsonPath("$.data.reviewParts[1].id").value(2))
+                .andExpect(jsonPath("$.data.reviewParts[1].label").value("Passage 2"))
+                .andExpect(jsonPath("$.data.reviewParts[2].id").value(3))
+                .andExpect(jsonPath("$.data.reviewParts[2].label").value("Audio 1"));
 
         // Verify no engine / adapter re-evaluation for finalized attempt
         verify(examAdapter, never()).findById(any());
@@ -838,6 +847,82 @@ class TestAttemptResultControllerIT {
                 .doesNotContain("SECRET_ANSWER_KEY_HTTP")
                 .doesNotContain("SECRET_SKILL_HTTP")
                 .doesNotContain("SECRET_PROMPT_HTTP");
+    }
+
+    @Test
+    @DisplayName("TV3-14-01: Writing-only attempt provides safe reviewParts metadata without questions or leaks")
+    void getResult_writingOnlyAttempt_providesReviewPartsWithoutLeaks() throws Exception {
+        Map<String, Object> writingSnapshot = Map.of(
+                "sections", List.of(
+                        Map.of(
+                                "name", "Writing",
+                                "parts", List.of(
+                                        Map.of(
+                                                "id", 101,
+                                                "title", "Writing Task 1 - Academic",
+                                                "questions", List.of(
+                                                        Map.of("id", "w1", "type", "ESSAY", "prompt", "Write an essay about AI")
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+        TestAttempt attempt = TestAttempt.builder()
+                .userId(1)
+                .examId(99)
+                .testScope(TestScope.SINGLE_PART)
+                .testMode(TestMode.PRACTICE)
+                .status(AttemptStatus.AI_GRADING)
+                .startTime(Instant.now().minus(30, ChronoUnit.MINUTES))
+                .endTime(Instant.now())
+                .examSnapshot(writingSnapshot)
+                .resultSummary(null)
+                .build();
+        attempt = testAttemptRepository.save(attempt);
+        createdAttemptIds.add(attempt.getId());
+
+        mockMvc.perform(get("/api/v1/attempts/" + attempt.getId() + "/result"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value("AI_GRADING"))
+                .andExpect(jsonPath("$.data.summaryAvailable").value(false))
+                .andExpect(jsonPath("$.data.reviewParts").isArray())
+                .andExpect(jsonPath("$.data.reviewParts.length()").value(1))
+                .andExpect(jsonPath("$.data.reviewParts[0].id").value(101))
+                .andExpect(jsonPath("$.data.reviewParts[0].label").value("Writing Task 1 - Academic"));
+    }
+
+    @Test
+    @DisplayName("TV3-14-01: Summary unavailable attempt still provides safe reviewParts from snapshot")
+    void getResult_summaryUnavailable_providesReviewPartsFromSnapshot() throws Exception {
+        TestAttempt attempt = TestAttempt.builder()
+                .userId(1)
+                .examId(1)
+                .testScope(TestScope.FULL_EXAM)
+                .testMode(TestMode.PRACTICE)
+                .status(AttemptStatus.COMPLETED)
+                .startTime(Instant.now().minus(10, ChronoUnit.MINUTES))
+                .endTime(Instant.now())
+                .examSnapshot(createStandardSnapshot())
+                .resultSummary(null) // summary unavailable
+                .build();
+        attempt = testAttemptRepository.save(attempt);
+        createdAttemptIds.add(attempt.getId());
+
+        mockMvc.perform(get("/api/v1/attempts/" + attempt.getId() + "/result"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.summaryAvailable").value(false))
+                .andExpect(jsonPath("$.data.reviewParts").isArray())
+                .andExpect(jsonPath("$.data.reviewParts.length()").value(3))
+                .andExpect(jsonPath("$.data.reviewParts[0].id").value(1))
+                .andExpect(jsonPath("$.data.reviewParts[0].label").value("Passage 1"))
+                .andExpect(jsonPath("$.data.reviewParts[1].id").value(2))
+                .andExpect(jsonPath("$.data.reviewParts[1].label").value("Passage 2"))
+                .andExpect(jsonPath("$.data.reviewParts[2].id").value(3))
+                .andExpect(jsonPath("$.data.reviewParts[2].label").value("Audio 1"));
     }
 }
 

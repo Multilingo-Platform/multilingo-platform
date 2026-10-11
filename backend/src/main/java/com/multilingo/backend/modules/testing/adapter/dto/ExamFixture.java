@@ -2,6 +2,7 @@ package com.multilingo.backend.modules.testing.adapter.dto;
 
 import lombok.Data;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -15,5 +16,6 @@ public class ExamFixture {
     private String title;
     /** Total exam duration in minutes. Null means not configured — MOCK_TEST with null duration is rejected. */
     private Integer durationMinutes;
+    private Instant updatedAt;
     private List<SectionFixture> sections;
 }

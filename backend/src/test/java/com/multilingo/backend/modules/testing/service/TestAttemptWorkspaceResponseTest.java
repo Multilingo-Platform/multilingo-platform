@@ -33,6 +33,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -203,14 +204,14 @@ class TestAttemptWorkspaceResponseTest {
                     .status(com.multilingo.backend.modules.testing.entity.enums.AttemptStatus.IN_PROGRESS)
                     .startTime(fixedNow.minusSeconds(3600))
                     .deadline(deadline)
-                    .examSnapshot(Map.of("id", 1))
+                    .examSnapshot(Map.of("id", 1, "sections", List.of(Map.of("id", 1, "name", "READING", "parts", List.of()))))
                     .version(3)
                     .build();
             attempt.setId(303);
 
             when(testAttemptRepository.findByIdAndUserIdForUpdate(303, 7)).thenReturn(Optional.of(attempt));
             when(attemptAnswerRepository.findByAttemptId(303)).thenReturn(List.of());
-            when(gradingAdapter.loadPartKeys(1)).thenReturn(Map.of());
+            lenient().when(gradingAdapter.loadPartKeys(1)).thenReturn(Map.of());
             when(gradingService.gradeAttempt(any(), any())).thenReturn(
                     com.multilingo.backend.modules.testing.grading.dto.GradingResult.builder()
                             .totalScore(java.math.BigDecimal.ZERO)
