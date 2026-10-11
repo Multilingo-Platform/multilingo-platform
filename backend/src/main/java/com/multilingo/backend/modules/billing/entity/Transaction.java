@@ -39,9 +39,10 @@ public class Transaction extends BaseEntity {
     @Column(name = "payment_method", length = 50, nullable = false)
     private String paymentMethod = "VNPAY";
 
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(name = "status", length = 20, nullable = false)
-    private String status = "PENDING";
+    private TransactionStatus status = TransactionStatus.PENDING;
 
     @Column(name = "paid_at")
     private Instant paidAt;

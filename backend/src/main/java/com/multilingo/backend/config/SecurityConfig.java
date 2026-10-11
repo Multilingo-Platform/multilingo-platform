@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/users").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/v1/vocab/**").permitAll()
+                .requestMatchers("/api/v1/billing/vnpay/ipn").permitAll()
                 .anyRequest().authenticated()
             );
 

@@ -1,5 +1,4 @@
-import React from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Flame, Crown, User, LogOut, Globe } from 'lucide-react';
 import Header from './Header';
 import ProfileDropdown from '../common/ProfileDropdown';
@@ -9,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 const UserLayout = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPaymentResultPage = location.pathname.includes('/payment/result');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
@@ -76,12 +77,12 @@ const UserLayout = () => {
       />
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: '2rem 0' }}>
+      <main className="slide-up" style={{ flex: 1, padding: isPaymentResultPage ? '0.5rem 0' : '2rem 0', display: 'flex', flexDirection: 'column', justifyContent: isPaymentResultPage ? 'center' : 'flex-start' }}>
         <Outlet />
       </main>
 
       {/* Footer */}
-      <Footer />
+      {!isPaymentResultPage && <Footer />}
     </div>
   );
 };

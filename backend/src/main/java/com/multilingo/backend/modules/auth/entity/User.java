@@ -47,8 +47,9 @@ public class User extends BaseEntity {
     String targetLanguage = "en";
 
     @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "subscription_tier", length = 20, nullable = false)
-    String subscriptionTier = "FREE";
+    SubscriptionTier subscriptionTier = SubscriptionTier.FREE;
 
     @Column(name = "premium_expires_at")
     Instant premiumExpiresAt;
