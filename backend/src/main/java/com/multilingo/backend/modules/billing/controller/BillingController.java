@@ -39,7 +39,7 @@ public class BillingController {
         String ipAddr = request.getRemoteAddr();
         String vnpTxnRef = "TXN" + System.currentTimeMillis();
         
-        com.multilingo.backend.modules.billing.entity.Transaction txn = transactionService.createTransaction(userId, requestBody, vnpTxnRef);
+        com.multilingo.backend.modules.billing.dto.response.TransactionResponse txn = transactionService.createTransaction(userId, requestBody, vnpTxnRef);
         
         String url = vnPayService.createPaymentUrl(txn.getVnpTxnRef(), txn.getAmount().longValue(), requestBody.getBankCode(), ipAddr);
         
@@ -57,7 +57,7 @@ public class BillingController {
         }
 
         String txnRef = allParams.get("vnp_TxnRef");
-        com.multilingo.backend.modules.billing.entity.Transaction txn = transactionService.getTransactionByRef(txnRef);
+        com.multilingo.backend.modules.billing.dto.response.TransactionResponse txn = transactionService.getTransactionByRef(txnRef);
         if (txn == null) {
             return "{\"RspCode\":\"01\",\"Message\":\"Order not found\"}";
         }
@@ -67,7 +67,7 @@ public class BillingController {
             return "{\"RspCode\":\"04\",\"Message\":\"Invalid amount\"}";
         }
 
-        if (!"PENDING".equals(txn.getStatus())) {
+        if (txn.getStatus() != com.multilingo.backend.modules.billing.entity.TransactionStatus.PENDING) {
             return "{\"RspCode\":\"02\",\"Message\":\"Order already confirmed\"}";
         }
 
@@ -79,5 +79,12 @@ public class BillingController {
         }
 
         return "{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}";
+    }
+
+    @GetMapping("/payment-return")
+    public com.multilingo.backend.common.dto.ApiResponse<com.multilingo.backend.modules.billing.dto.response.PaymentReturnResponse> handlePaymentReturn(
+            @RequestParam Map<String, String> allParams) {
+        com.multilingo.backend.modules.billing.dto.response.PaymentReturnResponse response = transactionService.processPaymentReturn(allParams);
+        return com.multilingo.backend.common.dto.ApiResponse.success(response);
     }
 }

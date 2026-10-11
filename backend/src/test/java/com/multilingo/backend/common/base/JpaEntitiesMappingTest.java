@@ -76,7 +76,7 @@ class JpaEntitiesMappingTest {
                 .plan(savedPlan) // Intra-module FK
                 .vnpTxnRef("TXN_123456")
                 .amount(new BigDecimal("199000.00"))
-                .status("SUCCESS")
+                .status(com.multilingo.backend.modules.billing.entity.TransactionStatus.SUCCESS)
                 .build();
         Transaction savedTx = entityManager.persistAndFlush(tx);
         assertThat(savedTx.getId()).isPositive();

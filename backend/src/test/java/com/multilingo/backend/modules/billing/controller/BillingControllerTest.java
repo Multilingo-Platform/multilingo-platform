@@ -37,7 +37,7 @@ class BillingControllerTest {
     
     @Test
     void createPayment_shouldReturnUrl() throws Exception {
-        com.multilingo.backend.modules.billing.entity.Transaction mockTxn = com.multilingo.backend.modules.billing.entity.Transaction.builder()
+        com.multilingo.backend.modules.billing.dto.response.TransactionResponse mockTxn = com.multilingo.backend.modules.billing.dto.response.TransactionResponse.builder()
                 .vnpTxnRef("TXN123")
                 .amount(new java.math.BigDecimal("100000"))
                 .build();
@@ -65,7 +65,10 @@ class BillingControllerTest {
     void ipnWebhook_shouldReturn00_whenValidSignature() throws Exception {
         when(vnPayService.verifySignature(any(), any())).thenReturn(true);
         when(transactionService.getTransactionByRef("TXN")).thenReturn(
-            com.multilingo.backend.modules.billing.entity.Transaction.builder().status("PENDING").amount(new java.math.BigDecimal("100000")).build()
+            com.multilingo.backend.modules.billing.dto.response.TransactionResponse.builder()
+                .status(com.multilingo.backend.modules.billing.entity.TransactionStatus.PENDING)
+                .amount(new java.math.BigDecimal("100000"))
+                .build()
         );
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/billing/vnpay/ipn")
@@ -75,5 +78,27 @@ class BillingControllerTest {
                 .param("vnp_ResponseCode", "00"))
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("\"RspCode\":\"00\"")));
+    }
+
+    @Test
+    void handlePaymentReturn_shouldReturnSuccessResponse() throws Exception {
+        com.multilingo.backend.modules.billing.dto.response.PaymentReturnResponse mockResponse =
+                com.multilingo.backend.modules.billing.dto.response.PaymentReturnResponse.builder()
+                        .status("SUCCESS")
+                        .message("Thanh toán thành công.")
+                        .vnpTxnRef("TXN_123")
+                        .planName("Gói 1 Tháng")
+                        .amount(new java.math.BigDecimal("99000"))
+                        .build();
+
+        when(transactionService.processPaymentReturn(any())).thenReturn(mockResponse);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/billing/vnpay/payment-return")
+                .param("vnp_TxnRef", "TXN_123")
+                .param("vnp_ResponseCode", "00"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code").value(200))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.status").value("SUCCESS"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.planName").value("Gói 1 Tháng"));
     }
 }

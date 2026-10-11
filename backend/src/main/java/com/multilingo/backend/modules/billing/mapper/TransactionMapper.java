@@ -18,4 +18,8 @@ public interface TransactionMapper {
     @Mapping(target = "vnpTxnRef", source = "vnpTxnRef")
     @Mapping(target = "amount", source = "plan.price") // Lấy giá từ Database của Plan để tránh gian lận
     Transaction toEntity(PaymentCreateRequest request, SubscriptionPlan plan, Integer userId, String vnpTxnRef);
+
+    @Mapping(target = "planId", source = "plan.id")
+    @Mapping(target = "planName", source = "plan.name")
+    com.multilingo.backend.modules.billing.dto.response.TransactionResponse toResponse(Transaction transaction);
 }
