@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import axiosClient from '../../../core/api/axiosClient';
 
 interface Plan {
@@ -17,9 +18,9 @@ interface Props {
 }
 
 export const PaymentConfirmationModal: React.FC<Props> = ({ isOpen, onClose, plan }) => {
+  const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -39,17 +40,20 @@ export const PaymentConfirmationModal: React.FC<Props> = ({ isOpen, onClose, pla
       if (response?.data?.paymentUrl) {
         window.location.href = response.data.paymentUrl;
       } else {
-        setError('Không nhận được đường dẫn thanh toán. Vui lòng thử lại.');
+        setError(t('premium.modal.err_no_url'));
         setIsLoading(false);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo thanh toán.');
+      setError(err.response?.data?.message || t('premium.modal.err_default'));
       setIsLoading(false);
     }
   };
 
   const formatVND = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+    return new Intl.NumberFormat(i18n.language === 'en' ? 'en-US' : 'vi-VN', { 
+      style: 'currency', 
+      currency: 'VND' 
+    }).format(price);
   };
 
   return createPortal(
@@ -63,20 +67,20 @@ export const PaymentConfirmationModal: React.FC<Props> = ({ isOpen, onClose, pla
         </div>
         
         <div className="p-6">
-          <h3 className="text-2xl font-bold text-center text-slate-800 mb-2">Xác nhận thanh toán</h3>
-          <p className="text-center text-slate-500 text-sm mb-6">Vui lòng kiểm tra lại thông tin gói cước của bạn.</p>
+          <h3 className="text-2xl font-bold text-center text-slate-800 mb-2">{t('premium.modal.title')}</h3>
+          <p className="text-center text-slate-500 text-sm mb-6">{t('premium.modal.subtitle')}</p>
           
           <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 mb-6">
             <div className="flex justify-between items-center mb-3 border-b border-orange-200/50 pb-3">
-              <span className="text-slate-600 font-medium">Gói cước</span>
+              <span className="text-slate-600 font-medium">{t('premium.modal.plan_label')}</span>
               <span className="text-slate-900 font-bold">{plan.name}</span>
             </div>
             <div className="flex justify-between items-center mb-3 border-b border-orange-200/50 pb-3">
-              <span className="text-slate-600 font-medium">Thời hạn</span>
-              <span className="text-slate-900 font-bold">{plan.durationDays} ngày</span>
+              <span className="text-slate-600 font-medium">{t('premium.modal.duration_label')}</span>
+              <span className="text-slate-900 font-bold">{t('premium.modal.duration_days', { count: plan.durationDays })}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-600 font-medium">Tổng thanh toán</span>
+              <span className="text-slate-600 font-medium">{t('premium.modal.total_payment')}</span>
               <span className="text-orange-600 font-extrabold text-xl">{formatVND(plan.price)}</span>
             </div>
           </div>
@@ -97,11 +101,11 @@ export const PaymentConfirmationModal: React.FC<Props> = ({ isOpen, onClose, pla
             ) : (
               <CreditCard className="w-5 h-5 mr-2" />
             )}
-            {isLoading ? 'Đang tạo giao dịch...' : 'Thanh toán qua VNPay'}
+            {isLoading ? t('premium.modal.btn_processing') : t('premium.modal.btn_pay')}
           </button>
           
           <p className="mt-4 text-xs text-center text-slate-400 flex items-center justify-center">
-            Bạn sẽ được chuyển hướng tới cổng thanh toán an toàn VNPay.
+            {t('premium.modal.disclaimer')}
           </p>
         </div>
       </div>
