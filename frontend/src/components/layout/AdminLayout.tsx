@@ -77,7 +77,7 @@ const AdminLayout = () => {
           </div>
         </header>
 
-        <main className="slide-up" style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
           <Outlet />
         </main>
       </div>

@@ -28,7 +28,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import { SettingsPage } from "../features/auth/pages/SettingsPage";
 import ProtectedRoute from "../features/auth/components/ProtectedRoute";
-import Flashcards from "../pages/student/Flashcards";
+import { FlashcardsPage } from "../features/vocab";
 import PremiumUpgradePage from "../features/premium/pages/PremiumUpgradePage";
 import PaymentResultPage from "../features/premium/pages/PaymentResultPage";
 
@@ -64,6 +64,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/auth",
+    element: <Navigate to="/login" replace />,
   },
   {
     path: "/register",
@@ -104,7 +108,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "flashcards",
-        element: <Flashcards />,
+        element: <FlashcardsPage />,
       },
       {
         path: "settings",

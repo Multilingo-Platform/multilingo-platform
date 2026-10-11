@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ navItems, rightActions }) => {
           }
         }
       `}</style>
-      <header className="top-nav" style={{ position: 'relative' }}>
+      <header className="top-nav" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="container flex-between" style={{ height: '70px' }}>
           <div className="flex-center" style={{ gap: '2rem' }}>
             <Link 

@@ -37,7 +37,7 @@ const UserLayout = () => {
                 Lịch sử làm bài
               </NavLink>
               <NavLink to="/student/flashcards" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 1.5rem' }}>
-                Từ vựng SRS
+                Từ vựng
               </NavLink>
             </nav>
           </div>

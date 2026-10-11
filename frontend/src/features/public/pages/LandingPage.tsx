@@ -21,7 +21,7 @@ const LandingPage = () => {
             {t('landing.desc')}
           </p>
           <div className="flex-center" style={{ gap: '1rem' }}>
-            <button className="btn btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }} onClick={() => navigate('/auth')}>
+            <button className="btn btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }} onClick={() => navigate('/login')}>
               {t('landing.start_btn')} <ArrowRight size={20} />
             </button>
             <button className="btn btn-outline" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }} onClick={() => navigate('/exams')}>
