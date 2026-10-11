@@ -7,8 +7,11 @@ import Swal from 'sweetalert2';
 
 interface QuestionMetadata {
   options?: string[];
-  correct_answer: string | string[];
+  correct_answer?: string | string[] | null;
   explanation?: string;
+  correct_option_index?: number;
+  correct_option_indices?: number[];
+  [key: string]: any;
 }
 
 interface Question {
@@ -172,7 +175,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         question_id: `q_${String(i).padStart(3, '0')}`,
         type: 'MULTIPLE_CHOICE',
         question_text: `Question ${i}`,
-        metadata: { options, correct_answer: null, explanation: '' }
+        metadata: { options, correct_answer: '', explanation: '' }
       });
     }
     return qs;
@@ -465,7 +468,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         question_id: `q_${String(nextStart + i).padStart(3, '0')}`,
         type: settings.type,
         question_text: `Câu ${nextStart + i}`,
-        metadata: { correct_answer: settings.type === 'MULTIPLE_CHOICE_MULTI' ? [] : null, explanation: '', options: defaultOptions }
+        metadata: { correct_answer: settings.type === 'MULTIPLE_CHOICE_MULTI' ? [] : '', explanation: '', options: defaultOptions }
       });
     }
     
@@ -827,10 +830,6 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         const rawPassage = getCellValue(row.getCell(5));
         
         const questionText = getCellValue(row.getCell(6));
-        const optA = getCellValue(row.getCell(7));
-        const optB = getCellValue(row.getCell(8));
-        const optC = getCellValue(row.getCell(9));
-        const optD = getCellValue(row.getCell(10));
         const correct = getCellValue(row.getCell(11));
         const explanation = getCellValue(row.getCell(12));
         
@@ -1472,7 +1471,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                                     else currentIndices = currentIndices.filter(item => item !== oIdx);
                                                     
                                                     updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_option_indices', currentIndices);
-                                                    const newCorrectAnswers = currentIndices.map((i: number) => q.metadata.options[i]);
+                                                    const newCorrectAnswers = currentIndices.map((i: number) => q.metadata.options?.[i] ?? '');
                                                     updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newCorrectAnswers);
                                                   } else {
                                                     updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_option_index', oIdx);
