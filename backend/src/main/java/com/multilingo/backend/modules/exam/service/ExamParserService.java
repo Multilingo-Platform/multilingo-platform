@@ -111,18 +111,66 @@ public class ExamParserService {
                 question.put("content", getStringValue(row.getCell(5)));
                 
                 List<String> options = new ArrayList<>();
-                String optA = getStringValue(row.getCell(6)); if (optA != null && !optA.isEmpty()) options.add(optA);
-                String optB = getStringValue(row.getCell(7)); if (optB != null && !optB.isEmpty()) options.add(optB);
-                String optC = getStringValue(row.getCell(8)); if (optC != null && !optC.isEmpty()) options.add(optC);
-                String optD = getStringValue(row.getCell(9)); if (optD != null && !optD.isEmpty()) options.add(optD);
+                String optA = getStringValue(row.getCell(6));
+                String optB = getStringValue(row.getCell(7));
+                String optC = getStringValue(row.getCell(8));
+                String optD = getStringValue(row.getCell(9));
+                
+                boolean hasD = optD != null && !optD.isEmpty();
+                boolean hasC = optC != null && !optC.isEmpty();
+                boolean hasB = optB != null && !optB.isEmpty();
+                boolean hasA = optA != null && !optA.isEmpty();
+                
+                if (hasD) {
+                    options.add(optA != null ? optA : "");
+                    options.add(optB != null ? optB : "");
+                    options.add(optC != null ? optC : "");
+                    options.add(optD);
+                } else if (hasC) {
+                    options.add(optA != null ? optA : "");
+                    options.add(optB != null ? optB : "");
+                    options.add(optC);
+                } else if (hasB) {
+                    options.add(optA != null ? optA : "");
+                    options.add(optB);
+                } else if (hasA) {
+                    options.add(optA);
+                } else if ("MULTIPLE_CHOICE".equalsIgnoreCase(type) || "MULTIPLE_CHOICE_MULTI".equalsIgnoreCase(type)) {
+                    options.add("");
+                    options.add("");
+                    options.add("");
+                    options.add("");
+                }
                 
                 if (!options.isEmpty()) {
                     question.put("options", options);
                 }
                 
                 String correctAnswerStr = getStringValue(row.getCell(10));
-                if (correctAnswerStr != null) {
-                    if ("MULTIPLE_CHOICE".equalsIgnoreCase(type) || "FILL_BLANK".equalsIgnoreCase(type)) {
+                if (correctAnswerStr != null && !correctAnswerStr.isEmpty()) {
+                    if ("MULTIPLE_CHOICE".equalsIgnoreCase(type) || "MULTIPLE_CHOICE_MULTI".equalsIgnoreCase(type)) {
+                        String[] answers = correctAnswerStr.split(",");
+                        List<String> ansList = new ArrayList<>();
+                        for (String ans : answers) {
+                            ans = ans.trim();
+                            int idx = -1;
+                            if ("A".equalsIgnoreCase(ans)) idx = 0;
+                            else if ("B".equalsIgnoreCase(ans)) idx = 1;
+                            else if ("C".equalsIgnoreCase(ans)) idx = 2;
+                            else if ("D".equalsIgnoreCase(ans)) idx = 3;
+                            
+                            if (idx >= 0 && idx < options.size()) {
+                                ansList.add(options.get(idx));
+                            } else {
+                                ansList.add(ans);
+                            }
+                        }
+                        if ("MULTIPLE_CHOICE_MULTI".equalsIgnoreCase(type)) {
+                            question.put("correct_answer", ansList);
+                        } else {
+                            question.put("correct_answer", ansList.isEmpty() ? "" : ansList.get(0));
+                        }
+                    } else if ("FILL_BLANK".equalsIgnoreCase(type)) {
                         String[] answers = correctAnswerStr.split(",");
                         List<String> ansList = new ArrayList<>();
                         for (String ans : answers) {

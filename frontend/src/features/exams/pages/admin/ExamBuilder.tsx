@@ -166,13 +166,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
   const createToeicQuestions = (start: number, end: number, optionsCount: number = 4) => {
     const qs: Question[] = [];
-    const options = optionsCount === 3 ? ['A', 'B', 'C'] : ['A', 'B', 'C', 'D'];
+    const options = optionsCount === 3 ? ['', '', ''] : ['', '', '', ''];
     for (let i = start; i <= end; i++) {
       qs.push({
         question_id: `q_${String(i).padStart(3, '0')}`,
         type: 'MULTIPLE_CHOICE',
         question_text: `Question ${i}`,
-        metadata: { options, correct_answer: '', explanation: '' }
+        metadata: { options, correct_answer: null, explanation: '' }
       });
     }
     return qs;
@@ -459,13 +459,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       let defaultOptions: string[] | undefined = undefined;
       if (settings.type === 'TRUE_FALSE_NOT_GIVEN') defaultOptions = ['TRUE', 'FALSE', 'NOT GIVEN'];
       else if (settings.type === 'YES_NO_NOT_GIVEN') defaultOptions = ['YES', 'NO', 'NOT GIVEN'];
-      else if (settings.type.includes('MULTIPLE_CHOICE')) defaultOptions = ['A', 'B', 'C', 'D'];
+      else if (settings.type.includes('MULTIPLE_CHOICE')) defaultOptions = ['', '', '', ''];
       
       newQs.push({
         question_id: `q_${String(nextStart + i).padStart(3, '0')}`,
         type: settings.type,
         question_text: `Câu ${nextStart + i}`,
-        metadata: { correct_answer: settings.type === 'MULTIPLE_CHOICE_MULTI' ? [] : '', explanation: '', options: defaultOptions }
+        metadata: { correct_answer: settings.type === 'MULTIPLE_CHOICE_MULTI' ? [] : null, explanation: '', options: defaultOptions }
       });
     }
     
@@ -545,6 +545,37 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           const qType = q.type;
           const qText = q.question_text || `Câu ${qIdx + 1}`;
           
+          let optA = '', optB = '', optC = '', optD = '';
+          if (q.metadata && q.metadata.options) {
+            optA = q.metadata.options[0] || '';
+            optB = q.metadata.options[1] || '';
+            optC = q.metadata.options[2] || '';
+            optD = q.metadata.options[3] || '';
+          }
+          
+          let correct = '';
+          if (q.metadata) {
+            if (q.metadata.correct_option_index !== undefined) {
+              correct = String.fromCharCode(65 + q.metadata.correct_option_index);
+            } else if (q.metadata.correct_option_indices !== undefined && Array.isArray(q.metadata.correct_option_indices)) {
+               correct = q.metadata.correct_option_indices.map((i: number) => String.fromCharCode(65 + i)).join(',');
+            } else if (q.metadata.correct_answer) {
+               correct = Array.isArray(q.metadata.correct_answer) ? q.metadata.correct_answer.join(',') : q.metadata.correct_answer;
+               if (q.type && q.type.includes('MULTIPLE_CHOICE')) {
+                 if (Array.isArray(q.metadata.correct_answer)) {
+                    const mapped = q.metadata.correct_answer.map((ans: string) => {
+                      const idx = q.metadata.options?.indexOf(ans);
+                      return idx !== undefined && idx >= 0 ? String.fromCharCode(65 + idx) : ans;
+                    });
+                    correct = mapped.join(',');
+                 } else {
+                    const idx = q.metadata.options?.indexOf(q.metadata.correct_answer);
+                    if (idx !== undefined && idx >= 0) correct = String.fromCharCode(65 + idx);
+                 }
+               }
+            }
+          }
+
           sheet.addRow({
             part: partName,
             group: groupName,
@@ -552,9 +583,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             instruction: group.instruction || part.instruction || '',
             passage: groupText,
             question: qText,
-            optA: '', optB: '', optC: '', optD: '',
-            correct: '',
-            explanation: '',
+            optA: optA, optB: optB, optC: optC, optD: optD,
+            correct: correct,
+            explanation: q.metadata?.explanation || '',
             partMedia: part.shared_audio?.url || '',
             groupMedia: group.shared_media?.url || group.shared_audio?.url || '',
             qMedia: ''
@@ -836,11 +867,59 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           lastGroupName = groupName;
         }
 
-        const options = [];
-        if (optA) options.push(optA);
-        if (optB) options.push(optB);
-        if (optC) options.push(optC);
-        if (optD) options.push(optD);
+        const rawOptA = getCellValue(row.getCell(7));
+        const rawOptB = getCellValue(row.getCell(8));
+        const rawOptC = getCellValue(row.getCell(9));
+        const rawOptD = getCellValue(row.getCell(10));
+        
+        const hasA = rawOptA !== '';
+        const hasB = rawOptB !== '';
+        const hasC = rawOptC !== '';
+        const hasD = rawOptD !== '';
+        
+        let options: string[] = [];
+        if (hasD) options = [rawOptA, rawOptB, rawOptC, rawOptD];
+        else if (hasC) options = [rawOptA, rawOptB, rawOptC];
+        else if (hasB) options = [rawOptA, rawOptB];
+        else if (hasA) options = [rawOptA];
+        else if (type.includes('MULTIPLE_CHOICE')) options = ['', '', '', ''];
+        
+        let parsedCorrectAnswer: any = correct;
+        let correctOptionIndex: number | undefined = undefined;
+        let correctOptionIndices: number[] | undefined = undefined;
+        
+        if (type.includes('MULTIPLE_CHOICE') && correct) {
+           if (type === 'MULTIPLE_CHOICE_MULTI') {
+               const parts = correct.split(',').map(s => s.trim().toUpperCase());
+               correctOptionIndices = [];
+               parsedCorrectAnswer = [];
+               parts.forEach(p => {
+                  let idx = -1;
+                  if (p === 'A') idx = 0;
+                  else if (p === 'B') idx = 1;
+                  else if (p === 'C') idx = 2;
+                  else if (p === 'D') idx = 3;
+                  if (idx >= 0 && idx < options.length) {
+                      correctOptionIndices!.push(idx);
+                      parsedCorrectAnswer.push(options[idx]);
+                  } else {
+                      parsedCorrectAnswer.push(p); // fallback
+                  }
+               });
+               if (correctOptionIndices.length === 0) correctOptionIndices = undefined;
+           } else {
+               const p = correct.trim().toUpperCase();
+               let idx = -1;
+               if (p === 'A') idx = 0;
+               else if (p === 'B') idx = 1;
+               else if (p === 'C') idx = 2;
+               else if (p === 'D') idx = 3;
+               if (idx >= 0 && idx < options.length) {
+                   correctOptionIndex = idx;
+                   parsedCorrectAnswer = options[idx];
+               }
+           }
+        }
 
         const numMatch = questionText.match(/\d+/);
         const qNum = numMatch ? String(numMatch[0]).padStart(3, '0') : String(fallbackQCounter++).padStart(3, '0');
@@ -851,7 +930,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           question_text: questionText,
           metadata: {
             options: options.length > 0 ? options : undefined,
-            correct_answer: correct,
+            correct_answer: parsedCorrectAnswer,
+            correct_option_index: correctOptionIndex,
+            correct_option_indices: correctOptionIndices,
             explanation: explanation
           }
         };
@@ -1371,8 +1452,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                         {q.metadata.options.map((opt, oIdx) => {
                                           const isMulti = q.type === 'MULTIPLE_CHOICE_MULTI';
                                           const isChecked = isMulti 
-                                            ? Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.includes(opt)
-                                            : q.metadata.correct_answer === opt;
+                                            ? (q.metadata.correct_option_indices !== undefined 
+                                                ? q.metadata.correct_option_indices.includes(oIdx) 
+                                                : Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.includes(opt))
+                                            : (q.metadata.correct_option_index !== undefined 
+                                                ? q.metadata.correct_option_index === oIdx 
+                                                : q.metadata.correct_answer === opt);
                                             
                                           return (
                                             <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', border: `1px solid ${isChecked ? 'var(--success)' : 'var(--border-light)'}` }}>
@@ -1382,11 +1467,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                                 checked={isChecked}
                                                 onChange={(e) => {
                                                   if (isMulti) {
-                                                    let currentArr = Array.isArray(q.metadata.correct_answer) ? [...q.metadata.correct_answer] : [];
-                                                    if (e.target.checked) currentArr.push(opt);
-                                                    else currentArr = currentArr.filter(item => item !== opt);
-                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', currentArr);
+                                                    let currentIndices = Array.isArray(q.metadata.correct_option_indices) ? [...q.metadata.correct_option_indices] : [];
+                                                    if (e.target.checked) currentIndices.push(oIdx);
+                                                    else currentIndices = currentIndices.filter(item => item !== oIdx);
+                                                    
+                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_option_indices', currentIndices);
+                                                    const newCorrectAnswers = currentIndices.map((i: number) => q.metadata.options[i]);
+                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newCorrectAnswers);
                                                   } else {
+                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_option_index', oIdx);
                                                     updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', opt);
                                                   }
                                                 }}
@@ -1405,13 +1494,16 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                                   
                                                   // Sync correct_answer if the option text changes
                                                   if (isMulti) {
-                                                    let currentArr = Array.isArray(q.metadata.correct_answer) ? [...q.metadata.correct_answer] : [];
-                                                    if (currentArr.includes(oldVal)) {
+                                                    if (q.metadata.correct_option_indices && q.metadata.correct_option_indices.includes(oIdx)) {
+                                                      const newCorrectAnswers = q.metadata.correct_option_indices.map((i: number) => newOpts[i]);
+                                                      updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newCorrectAnswers);
+                                                    } else if (q.metadata.correct_option_indices === undefined && Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.includes(oldVal)) {
+                                                      let currentArr = [...q.metadata.correct_answer];
                                                       currentArr = currentArr.map(v => v === oldVal ? newVal : v);
                                                       updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', currentArr);
                                                     }
                                                   } else {
-                                                    if (q.metadata.correct_answer === oldVal) {
+                                                    if (q.metadata.correct_option_index === oIdx || (q.metadata.correct_option_index === undefined && q.metadata.correct_answer === oldVal)) {
                                                       updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newVal);
                                                     }
                                                   }
