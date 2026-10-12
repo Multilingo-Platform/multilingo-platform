@@ -34,4 +34,20 @@ public class DailyStudyLog extends BaseEntity {
     @Builder.Default
     @Column(name = "flashcards_reviewed", nullable = false)
     private Integer flashcardsReviewed = 0;
+
+    @Builder.Default
+    @Column(name = "practice_sessions", nullable = false)
+    private Integer practiceSessions = 0;
+
+    @Builder.Default
+    @Column(name = "practice_questions_answered", nullable = false)
+    private Integer practiceQuestionsAnswered = 0;
+
+    @Builder.Default
+    @Column(name = "practice_correct_answers", nullable = false)
+    private Integer practiceCorrectAnswers = 0;
+
+    @Builder.Default
+    @Column(name = "practice_xp_earned", nullable = false)
+    private Integer practiceXpEarned = 0;
 }
