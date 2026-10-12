@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import DOMPurify from 'dompurify';
+import { formatHtmlContent } from '../../../../utils/htmlUtils';
 
 export interface HtmlContentProps {
   html: string | null;
@@ -47,8 +48,8 @@ const HtmlContent: React.FC<HtmlContentProps> = ({
   }, [html, forbidAutoplay]);
 
   if (!html) return null;
-
-  const clean = DOMPurify.sanitize(html, {
+  const formatted = formatHtmlContent(html);
+  const clean = DOMPurify.sanitize(formatted, {
     USE_PROFILES: { html: true },
     FORBID_ATTR: forbidAutoplay ? ['autoplay'] : [],
   });

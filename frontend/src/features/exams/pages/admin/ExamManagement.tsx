@@ -99,7 +99,9 @@ const ExamManagement = () => {
       case 'IELTS_LISTENING': return 'IELTS Listening';
       case 'IELTS_READING': return 'IELTS Reading';
       case 'IELTS_WRITING': return 'IELTS Writing';
-      case 'TOEIC_LISTENING_READING': return 'Full TOEIC L&R';
+      case 'TOEIC_LISTENING_READING':
+      case 'TOEIC_LR':
+      case 'TOEIC': return 'Full TOEIC L&R';
       case 'TOEIC_LISTENING': return 'TOEIC Listening';
       case 'TOEIC_READING': return 'TOEIC Reading';
       case 'TOEIC_WRITING': return 'TOEIC Writing';

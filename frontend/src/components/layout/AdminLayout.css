@@ -1,0 +1,130 @@
+/* Responsive Admin Layout Styles */
+.admin-layout-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+.admin-sidebar {
+  width: 260px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1000;
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+.admin-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.admin-header {
+  height: 70px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.admin-menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-menu-toggle:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Tablet & Mobile Breakpoints */
+@media (max-width: 1024px) {
+  .admin-header {
+    padding: 0 1.25rem;
+    height: 62px;
+  }
+
+  .admin-main {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-menu-toggle {
+    display: inline-flex;
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .admin-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+  }
+
+  .admin-header {
+    padding: 0 1rem;
+    height: 56px;
+  }
+
+  .admin-header-title {
+    font-size: 1rem !important;
+  }
+
+  .admin-main {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-header {
+    padding: 0 0.75rem;
+  }
+
+  .admin-main {
+    padding: 0.5rem;
+  }
+}

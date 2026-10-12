@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -123,18 +124,66 @@ public class AdminExamServiceImpl implements AdminExamService {
             resp.setDurationMinutes(exam.getDurationMinutes());
             resp.setUpdatedAt(exam.getUpdatedAt());
             
-            // Basic counts for now
+            // Basic counts
             List<ExamSection> sections = sectionRepository.findByExam_Id(exam.getId());
             int partsCount = 0;
+            int questionsCount = 0;
             for (ExamSection s : sections) {
-                partsCount += partRepository.findBySection_Id(s.getId()).size();
+                List<ExamPart> parts = partRepository.findBySection_Id(s.getId());
+                partsCount += parts.size();
+                for (ExamPart p : parts) {
+                    questionsCount += countQuestionsInPart(p);
+                }
             }
             resp.setParts(partsCount);
-            resp.setQuestions(0); // Complex to calculate from JSONB, leave 0 or approximate
+            resp.setQuestions(questionsCount);
             resp.setJoins(0);
             
             return resp;
         }).toList();
+    }
+
+    private int countQuestionsInPart(ExamPart part) {
+        if (part == null || part.getContentData() == null) {
+            return 0;
+        }
+        return countQuestionsInMap(part.getContentData());
+    }
+
+    private int countQuestionsInMap(Map<String, Object> map) {
+        if (map == null) {
+            return 0;
+        }
+        int count = 0;
+
+        // Direct "questions" array
+        Object directQuestions = map.get("questions");
+        if (directQuestions instanceof List<?> list) {
+            count += list.size();
+        }
+
+        // Inside "question_groups"
+        Object questionGroups = map.get("question_groups");
+        if (questionGroups instanceof List<?> groups) {
+            for (Object gObj : groups) {
+                if (gObj instanceof Map<?, ?> gMap) {
+                    Object gQuestions = gMap.get("questions");
+                    if (gQuestions instanceof List<?> qList) {
+                        count += qList.size();
+                    }
+                }
+            }
+        }
+
+        // Nested in "content" object if any
+        Object nestedContent = map.get("content");
+        if (nestedContent instanceof Map<?, ?> nestedMap) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> casted = (Map<String, Object>) nestedMap;
+            count += countQuestionsInMap(casted);
+        }
+
+        return count;
     }
 
     @Override

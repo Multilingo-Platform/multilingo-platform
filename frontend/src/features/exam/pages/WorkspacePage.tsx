@@ -24,6 +24,7 @@ import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
 import { applyHighlights } from '../utils/htmlHighlight';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
+import { formatHtmlContent } from '../../../utils/htmlUtils';
 import { usePracticeFeedback } from '../hooks/usePracticeFeedback';
 import { usePracticeRetry } from '../hooks/usePracticeRetry';
 import { PracticeQuestionFeedback } from '../components/practice/PracticeQuestionFeedback';
@@ -424,7 +425,26 @@ const WorkspacePage: React.FC = () => {
   }, [isExpired, showTimeUp, showOverlay, isSubmitting, activeWorkspace, answersState.contextRevision, dispatch]);
 
   // Passage and Highlight state
-  const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html || '';
+  const passageHtml = (currentPart as any)?.contentHtml
+    || (currentPart as any)?.content_html
+    || currentPart?.content?.content_html
+    || (currentPart?.content as any)?.shared_content_html
+    || (Array.isArray((currentPart?.content as any)?.question_groups) && (currentPart?.content as any).question_groups.length > 0
+        ? (currentPart?.content as any).question_groups
+            .map((g: any) => {
+              let html = '';
+              const imgs = g.shared_images || (g.shared_media?.url ? [g.shared_media.url] : []);
+              if (imgs.length > 0) {
+                html += imgs.map((img: string) => `<p style="text-align: center; margin: 12px 0;"><img src="${img}" alt="Illustration" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" /></p>`).join('');
+              }
+              if (g.content_html) {
+                html += g.content_html;
+              }
+              return html;
+            })
+            .filter(Boolean)
+            .join('<hr style="margin: 24px 0; border: none; border-top: 1px dashed #cbd5e1;" />')
+        : '') || '';
   const partSharedAudio = (currentPart as any)?.sharedAudio
     || (currentPart as any)?.shared_audio
     || currentPart?.content?.shared_audio;
@@ -816,7 +836,19 @@ const WorkspacePage: React.FC = () => {
                   {partTitle}
                 </span>
                 <span className="text-xs text-slate-500">
-                  IELTS Academic {currentSkill === 'WRITING' ? 'Writing' : 'Reading'}
+                  {(() => {
+                    const snapType = (activeWorkspace?.exam_snapshot?.type || '').toUpperCase();
+                    let certLabel = 'IELTS Academic';
+                    if (snapType.includes('TOEIC')) {
+                      certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
+                    } else if (snapType.includes('NLTV') || snapType.includes('VSTEP')) {
+                      certLabel = 'NLTV';
+                    } else if (snapType.includes('GENERAL')) {
+                      certLabel = 'IELTS General';
+                    }
+                    const skillLabel = (currentSkill as string) === 'WRITING' ? 'Writing' : 'Reading';
+                    return `${certLabel} ${skillLabel}`;
+                  })()}
                 </span>
               </div>
               {isPractice && currentSkill === 'READING' && (
