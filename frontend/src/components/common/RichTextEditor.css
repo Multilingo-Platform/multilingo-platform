@@ -1,0 +1,208 @@
+.rte-container {
+  border: 1px solid var(--border-medium, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: white;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.rte-container:focus-within {
+  border-color: var(--primary, #d97706);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+.rte-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary, #f8fafc);
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rte-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rte-tabs {
+  display: flex;
+  align-items: center;
+  background: var(--bg-tertiary, #e2e8f0);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.rte-tab-btn {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.rte-tab-btn.active {
+  background: white;
+  color: var(--primary, #d97706);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.rte-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.35rem 0.65rem;
+  background: white;
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+}
+
+.rte-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.rte-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-medium, #cbd5e1);
+  margin: 0 0.35rem;
+}
+
+.rte-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #334155);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.rte-btn:hover {
+  background: var(--bg-tertiary, #f1f5f9);
+  color: var(--primary, #d97706);
+  border-color: var(--border-light, #e2e8f0);
+}
+
+.rte-btn:active {
+  background: var(--border-light, #e2e8f0);
+}
+
+.rte-btn-label {
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+
+.rte-textarea {
+  width: 100%;
+  border: none;
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-primary, #0f172a);
+  background: transparent;
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.rte-textarea::placeholder {
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+}
+
+.rte-preview {
+  padding: 1rem 1.25rem;
+  min-height: 120px;
+  background: #ffffff;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 0.9375rem;
+  color: #1e293b;
+}
+
+.rte-preview p {
+  margin-bottom: 0.85rem;
+}
+
+.rte-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.rte-preview h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.rte-preview ul, .rte-preview ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.rte-preview ul {
+  list-style-type: disc;
+}
+
+.rte-preview ol {
+  list-style-type: decimal;
+}
+
+.rte-preview li {
+  margin-bottom: 0.25rem;
+}
+
+.rte-preview blockquote {
+  border-left: 3px solid var(--primary, #d97706);
+  padding-left: 0.75rem;
+  color: #475569;
+  font-style: italic;
+  margin: 0.75rem 0;
+}
+
+.rte-empty-preview {
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+.rte-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.75rem;
+  background: var(--bg-secondary, #f8fafc);
+  border-top: 1px solid var(--border-light, #e2e8f0);
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

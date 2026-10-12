@@ -15,6 +15,7 @@ import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
 import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
+import { formatHtmlContent } from '../../../utils/htmlUtils';
 import type { AppDispatch, RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 
@@ -269,7 +270,26 @@ const WorkspacePage: React.FC = () => {
     return null;
   }
 
-  const passageHtml = (currentPart as any)?.contentHtml || (currentPart as any)?.content_html || currentPart?.content?.content_html;
+  const passageHtml = (currentPart as any)?.contentHtml
+    || (currentPart as any)?.content_html
+    || currentPart?.content?.content_html
+    || (currentPart?.content as any)?.shared_content_html
+    || (Array.isArray((currentPart?.content as any)?.question_groups) && (currentPart?.content as any).question_groups.length > 0
+        ? (currentPart?.content as any).question_groups
+            .map((g: any) => {
+              let html = '';
+              const imgs = g.shared_images || (g.shared_media?.url ? [g.shared_media.url] : []);
+              if (imgs.length > 0) {
+                html += imgs.map((img: string) => `<p style="text-align: center; margin: 12px 0;"><img src="${img}" alt="Illustration" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" /></p>`).join('');
+              }
+              if (g.content_html) {
+                html += g.content_html;
+              }
+              return html;
+            })
+            .filter(Boolean)
+            .join('<hr style="margin: 24px 0; border: none; border-top: 1px dashed #cbd5e1;" />')
+        : undefined);
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
   const partTitle = currentPart?.title || currentPart?.content?.part_title || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
   const isMockFull = workspace.test_mode === 'MOCK_TEST' && workspace.test_scope === 'FULL_EXAM';
@@ -399,7 +419,19 @@ const WorkspacePage: React.FC = () => {
                   {partTitle}
                 </span>
                 <span className="text-xs text-slate-500">
-                  IELTS Academic {currentSkill === 'WRITING' ? 'Writing' : 'Reading'}
+                  {(() => {
+                    const snapType = (workspace?.exam_snapshot?.type || '').toUpperCase();
+                    let certLabel = 'IELTS Academic';
+                    if (snapType.includes('TOEIC')) {
+                      certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
+                    } else if (snapType.includes('NLTV') || snapType.includes('VSTEP')) {
+                      certLabel = 'NLTV';
+                    } else if (snapType.includes('GENERAL')) {
+                      certLabel = 'IELTS General';
+                    }
+                    const skillLabel = currentSkill === 'WRITING' ? 'Writing' : currentSkill === 'LISTENING' ? 'Listening' : 'Reading';
+                    return `${certLabel} ${skillLabel}`;
+                  })()}
                 </span>
               </div>
               {isPractice && currentSkill === 'READING' && (
@@ -445,7 +477,9 @@ const WorkspacePage: React.FC = () => {
                 </div>
               ) : passageHtml ? (
                 <div
-                  dangerouslySetInnerHTML={{ __html: passageHtml }}
+                  dangerouslySetInnerHTML={{
+                    __html: formatHtmlContent(passageHtml)
+                  }}
                   className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
                 />
               ) : partInstruction ? (

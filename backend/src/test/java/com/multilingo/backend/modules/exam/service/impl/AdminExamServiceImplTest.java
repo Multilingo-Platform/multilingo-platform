@@ -134,4 +134,45 @@ class AdminExamServiceImplTest {
         verify(sectionRepository, times(1)).deleteByExam_Id(1);
         verify(examRepository, times(1)).deleteById(1);
     }
+
+    @Test
+    void getAllExams_CalculatesQuestionsAndPartsCorrectly() {
+        Exam exam = new Exam();
+        exam.setId(1);
+        exam.setCode("TOEIC-123456");
+        exam.setTitle("TOEIC Test");
+        exam.setType("TOEIC_LR");
+        exam.setIsPublished(true);
+        exam.setDurationMinutes(120);
+
+        ExamSection section = new ExamSection();
+        section.setId(10);
+        section.setExam(exam);
+
+        com.multilingo.backend.modules.exam.entity.ExamPart part1 = new com.multilingo.backend.modules.exam.entity.ExamPart();
+        part1.setId(101);
+        part1.setContentData(Map.of(
+                "question_groups", List.of(
+                        Map.of("questions", List.of(Map.of("id", "q1"), Map.of("id", "q2"))),
+                        Map.of("questions", List.of(Map.of("id", "q3")))
+                )
+        ));
+
+        com.multilingo.backend.modules.exam.entity.ExamPart part2 = new com.multilingo.backend.modules.exam.entity.ExamPart();
+        part2.setId(102);
+        part2.setContentData(Map.of(
+                "questions", List.of(Map.of("id", "q4"), Map.of("id", "q5"))
+        ));
+
+        when(examRepository.findAll()).thenReturn(List.of(exam));
+        when(sectionRepository.findByExam_Id(1)).thenReturn(List.of(section));
+        when(partRepository.findBySection_Id(10)).thenReturn(List.of(part1, part2));
+
+        List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse> results = examService.getAllExams();
+
+        assertThat(results).hasSize(1);
+        com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse summary = results.get(0);
+        assertThat(summary.getParts()).isEqualTo(2);
+        assertThat(summary.getQuestions()).isEqualTo(5);
+    }
 }

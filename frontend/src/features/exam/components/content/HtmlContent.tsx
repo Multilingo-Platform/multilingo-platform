@@ -1,5 +1,6 @@
 import React from 'react';
 import DOMPurify from 'dompurify';
+import { formatHtmlContent } from '../../../../utils/htmlUtils';
 
 interface HtmlContentProps {
   html: string | null;
@@ -12,7 +13,8 @@ interface HtmlContentProps {
  */
 const HtmlContent: React.FC<HtmlContentProps> = ({ html, className }) => {
   if (!html) return null;
-  const clean = DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  const formatted = formatHtmlContent(html);
+  const clean = DOMPurify.sanitize(formatted, { USE_PROFILES: { html: true } });
   return <div className={className} dangerouslySetInnerHTML={{ __html: clean }} />;
 };
 

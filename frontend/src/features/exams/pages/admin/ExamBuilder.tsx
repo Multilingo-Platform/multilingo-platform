@@ -3,7 +3,9 @@ import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap, CheckCircle
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import MediaUploadButton from '../../../../components/common/MediaUploadButton';
+import RichTextEditor from '../../../../components/common/RichTextEditor';
 import Swal from 'sweetalert2';
+import './ExamBuilder.css';
 
 interface QuestionMetadata {
   options?: string[];
@@ -27,6 +29,7 @@ interface QuestionGroup {
   content_html: string;
   shared_audio?: { url: string; duration_seconds?: number };
   shared_media?: { type: 'image'; url: string; display_config?: { size_preset: string; alignment: string } };
+  shared_images?: string[];
   questions: Question[];
 }
 
@@ -50,6 +53,48 @@ const QUESTION_TYPES = [
   { value: 'DIAGRAM_LABELING', label: 'Diagram Labeling' },
   { value: 'ESSAY', label: 'Viết tự luận (Essay)' }
 ];
+
+export const EXAM_TYPE_OPTIONS: Record<string, string> = {
+  'IELTS_ACADEMIC': 'IELTS Academic',
+  'IELTS_GENERAL': 'IELTS General',
+  'TOEIC_LR': 'TOEIC (Listening & Reading)',
+  'TOEIC_WRITING': 'TOEIC Writing',
+  'NLTV_B1_C1': 'NLTV (B1 - C1)',
+  'NLTV_A1_A2': 'NLTV (A1 - A2)',
+  'OTHER': 'Khác (Other)'
+};
+
+export const normalizeExamType = (raw: string): string => {
+  if (!raw) return 'IELTS_ACADEMIC';
+  const clean = raw.trim().toUpperCase();
+  if (
+    clean === 'TOEIC' ||
+    clean === 'TOEIC_LR' ||
+    clean === 'TOEIC_LISTENING_READING' ||
+    clean.includes('TOEIC (LISTENING & READING)') ||
+    clean.includes('LISTENING & READING') ||
+    clean.includes('L&R')
+  ) {
+    return 'TOEIC_LR';
+  }
+  if (clean === 'TOEIC_WRITING' || clean.includes('TOEIC WRITING')) {
+    return 'TOEIC_WRITING';
+  }
+  if (clean === 'IELTS_GENERAL' || clean.includes('GENERAL')) {
+    return 'IELTS_GENERAL';
+  }
+  if (clean === 'IELTS' || clean === 'IELTS_ACADEMIC' || clean.includes('ACADEMIC')) {
+    return 'IELTS_ACADEMIC';
+  }
+  if (clean === 'NLTV' || clean === 'NLTV_B1_C1' || clean.includes('B1 - C1') || clean.includes('B1_C1')) {
+    return 'NLTV_B1_C1';
+  }
+  if (clean === 'NLTV_A1_A2' || clean.includes('A1 - A2') || clean.includes('A1_A2')) {
+    return 'NLTV_A1_A2';
+  }
+  if (clean === 'OTHER') return 'OTHER';
+  return clean;
+};
 
 const getPartBounds = (partTitle: string, examType: string) => {
   if (examType.startsWith('IELTS')) {
@@ -138,7 +183,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   useEffect(() => {
     if (initialData) {
       setExamTitle(initialData.title || 'Đề thi Mới');
-      setExamType(initialData.type || 'IELTS_ACADEMIC');
+      const rawType = initialData.type || 'IELTS_ACADEMIC';
+      const normalizedType = normalizeExamType(rawType);
+      setExamType(normalizedType);
       
       const publishedState = initialData.published !== undefined ? initialData.published : initialData.isPublished;
       setIsPublished(publishedState !== false);
@@ -151,7 +198,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             instruction: p.contentData?.instruction || '',
             shared_audio: p.contentData?.shared_audio,
             shared_content_html: p.contentData?.shared_content_html,
-            question_groups: p.contentData?.question_groups || []
+            question_groups: (p.contentData?.question_groups || []).map((g: any) => ({
+              ...g,
+              shared_images: g.shared_images || (g.shared_media?.url ? [g.shared_media.url] : [])
+            }))
           });
         });
       });
@@ -345,7 +395,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       });
     } 
     else if (type === 'TOEIC') {
-      setExamType('TOEIC_LISTENING_READING');
+      setExamType('TOEIC_LR');
       setExamTitle('TOEIC L&R Mock Test');
       // TOEIC Listening (100 qs)
       newParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) }); // 6 groups (1 pic each), 1 q each
@@ -374,7 +424,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       ] });
     }
     else if (type === 'NLTV') {
-      setExamType('NLTV');
+      setExamType('NLTV_B1_C1');
       setExamTitle('Đánh giá Năng lực Tiếng Việt (NLTV)');
       
       // Listening
@@ -501,13 +551,145 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     setParts(newParts);
   };
 
-  const generateExcelTemplate = async (partsData: ExamPart[], typeName: string) => {
+  const generateExcelTemplate = async (partsData: ExamPart[], typeName: string, title?: string) => {
     if (partsData.length === 0) {
       Swal.fire('Lỗi', 'Cấu trúc sườn đề trống, không thể xuất file mẫu.', 'error');
       return;
     }
 
+    const currentTitle = (title || examTitle || 'Đề thi Mới').trim();
+    const normalizedType = normalizeExamType(typeName);
+    const typeDisplay = EXAM_TYPE_OPTIONS[normalizedType] || typeName;
+
+    const totalParts = partsData.length;
+    let totalQuestions = 0;
+    partsData.forEach(p => {
+      p.question_groups.forEach(g => {
+        totalQuestions += g.questions.length;
+      });
+    });
+
     const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Multilingo Platform';
+    workbook.lastModifiedBy = 'Multilingo Admin';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    workbook.title = currentTitle;
+    workbook.subject = normalizedType;
+    workbook.description = `Đề thi ${currentTitle} - Loại: ${typeDisplay}`;
+
+    // ==========================================
+    // SHEET 1: THÔNG TIN ĐỀ THI (METADATA)
+    // ==========================================
+    const infoSheet = workbook.addWorksheet('Thông Tin Đề Thi', {
+      views: [{ showGridLines: true }]
+    });
+
+    infoSheet.columns = [
+      { width: 32 }, // Cột A
+      { width: 48 }, // Cột B
+      { width: 55 }  // Cột C
+    ];
+
+    // Banner A1:C1
+    infoSheet.mergeCells('A1:C1');
+    const bannerCell = infoSheet.getCell('A1');
+    bannerCell.value = 'THÔNG TIN CẤU TRÚC ĐỀ THI - MULTILINGO PLATFORM';
+    bannerCell.font = { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    bannerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF312E81' } };
+    bannerCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    infoSheet.getRow(1).height = 36;
+
+    // Sub-banner A2:C2
+    infoSheet.mergeCells('A2:C2');
+    const subBanner = infoSheet.getCell('A2');
+    subBanner.value = 'File Excel chuẩn dùng để soạn thảo & nhập (Import) trực tiếp vào hệ thống Multilingo';
+    subBanner.font = { name: 'Segoe UI', size: 9.5, italic: true, color: { argb: 'FF4338CA' } };
+    subBanner.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2FF' } };
+    subBanner.alignment = { vertical: 'middle', horizontal: 'center' };
+    infoSheet.getRow(2).height = 24;
+
+    infoSheet.getRow(3).height = 12;
+
+    // Header A4:C4
+    const infoHeaderRow = infoSheet.getRow(4);
+    infoHeaderRow.values = ['Thông tin (Field)', 'Giá trị (Value)', 'Ghi chú & Hướng dẫn (Notes)'];
+    infoHeaderRow.font = { name: 'Segoe UI', size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    infoHeaderRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4338CA' } };
+    infoHeaderRow.alignment = { vertical: 'middle', horizontal: 'left' };
+    infoHeaderRow.height = 28;
+
+    const infoRows = [
+      {
+        field: 'Tên đề thi',
+        value: currentTitle,
+        notes: 'Bắt buộc: Tên đề thi sẽ tự động được nhận diện và cập nhật vào hệ thống khi import.'
+      },
+      {
+        field: 'Loại chứng chỉ',
+        value: typeDisplay,
+        notes: 'Tên hiển thị của loại bài thi chuẩn.'
+      },
+      {
+        field: 'Mã loại chứng chỉ',
+        value: normalizedType,
+        notes: 'Mã định danh hệ thống (IELTS_ACADEMIC, TOEIC_LR, TOEIC_WRITING, NLTV_B1_C1...).'
+      },
+      {
+        field: 'Tổng số phần thi (Parts)',
+        value: totalParts,
+        notes: 'Số lượng phần thi (Parts) có trong đề.'
+      },
+      {
+        field: 'Tổng số câu hỏi (Questions)',
+        value: totalQuestions,
+        notes: 'Số câu hỏi đã có sẵn trong bảng câu hỏi.'
+      },
+      {
+        field: 'Thời gian xuất file',
+        value: new Date().toLocaleString('vi-VN'),
+        notes: 'Ngày giờ xuất file từ Multilingo Platform.'
+      },
+      {
+        field: 'Phiên bản mẫu (Version)',
+        value: '2.0 (Full Metadata)',
+        notes: 'Hệ thống hỗ trợ đọc tự động Tên đề & Loại chứng chỉ từ bản 2.0.'
+      }
+    ];
+
+    infoRows.forEach((item, index) => {
+      const rowNum = 5 + index;
+      const r = infoSheet.getRow(rowNum);
+      r.values = [item.field, item.value, item.notes];
+      r.height = 26;
+      
+      const isEven = index % 2 === 0;
+      const bgArgb = isEven ? 'FFFFFFFF' : 'FFF8FAFC';
+      
+      for (let c = 1; c <= 3; c++) {
+        const cell = r.getCell(c);
+        cell.font = { name: 'Segoe UI', size: 10, bold: c === 1 || (c === 2 && index === 0) };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+      }
+
+      if (index === 0) {
+        r.getCell(2).font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FF1E293B' } };
+      }
+      if (index === 2) {
+        r.getCell(2).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF4338CA' } };
+      }
+    });
+
+    // ==========================================
+    // SHEET 2: EXAM TEMPLATE (DANH SÁCH CÂU HỎI)
+    // ==========================================
     const sheet = workbook.addWorksheet('Exam Template');
 
     // Define columns
@@ -541,7 +723,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       
       part.question_groups.forEach((group, gIdx) => {
         const groupName = `Group ${gIdx + 1}`;
-        const groupText = group.content_html ? group.content_html : '';
+        const groupText = group.content_html || part.shared_content_html || '';
         const groupStartRow = rowIndex;
         
         group.questions.forEach((q, qIdx) => {
@@ -558,24 +740,37 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           
           let correct = '';
           if (q.metadata) {
-            if (q.metadata.correct_option_index !== undefined) {
+            if (q.metadata.correct_option_index !== undefined && q.metadata.correct_option_index !== null) {
               correct = String.fromCharCode(65 + q.metadata.correct_option_index);
-            } else if (q.metadata.correct_option_indices !== undefined && Array.isArray(q.metadata.correct_option_indices)) {
-               correct = q.metadata.correct_option_indices.map((i: number) => String.fromCharCode(65 + i)).join(',');
+            } else if (q.metadata.correct_option_indices !== undefined && Array.isArray(q.metadata.correct_option_indices) && q.metadata.correct_option_indices.length > 0) {
+              correct = q.metadata.correct_option_indices.map((i: number) => String.fromCharCode(65 + i)).join(',');
             } else if (q.metadata.correct_answer) {
-               correct = Array.isArray(q.metadata.correct_answer) ? q.metadata.correct_answer.join(',') : q.metadata.correct_answer;
-               if (q.type && q.type.includes('MULTIPLE_CHOICE')) {
-                 if (Array.isArray(q.metadata.correct_answer)) {
-                    const mapped = q.metadata.correct_answer.map((ans: string) => {
+              if (Array.isArray(q.metadata.correct_answer)) {
+                const validAnswers = q.metadata.correct_answer.filter((ans: string) => typeof ans === 'string' && ans.trim() !== '');
+                if (validAnswers.length > 0) {
+                  if (q.type && q.type.includes('MULTIPLE_CHOICE')) {
+                    const mapped = validAnswers.map((ans: string) => {
                       const idx = q.metadata.options?.indexOf(ans);
                       return idx !== undefined && idx >= 0 ? String.fromCharCode(65 + idx) : ans;
                     });
                     correct = mapped.join(',');
-                 } else {
-                    const idx = q.metadata.options?.indexOf(q.metadata.correct_answer);
-                    if (idx !== undefined && idx >= 0) correct = String.fromCharCode(65 + idx);
-                 }
-               }
+                  } else {
+                    correct = validAnswers.join(',');
+                  }
+                }
+              } else if (typeof q.metadata.correct_answer === 'string' && q.metadata.correct_answer.trim() !== '') {
+                const trimmedAns = q.metadata.correct_answer.trim();
+                if (q.type && q.type.includes('MULTIPLE_CHOICE')) {
+                  const idx = q.metadata.options?.indexOf(trimmedAns);
+                  if (idx !== undefined && idx >= 0) {
+                    correct = String.fromCharCode(65 + idx);
+                  } else {
+                    correct = trimmedAns;
+                  }
+                } else {
+                  correct = trimmedAns;
+                }
+              }
             }
           }
 
@@ -590,8 +785,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             correct: correct,
             explanation: q.metadata?.explanation || '',
             partMedia: part.shared_audio?.url || '',
-            groupMedia: group.shared_media?.url || group.shared_audio?.url || '',
-            qMedia: ''
+            groupMedia: (group.shared_images && group.shared_images.length > 0)
+              ? group.shared_images.join(', ')
+              : (group.shared_media?.url || group.shared_audio?.url || ''),
+            qMedia: (q.metadata as any)?.media?.url || ''
           });
 
           // Add Data Validation
@@ -635,6 +832,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       }
     });
 
+    // ==========================================
+    // SHEET 3: HƯỚNG DẪN ĐIỀN FORM
+    // ==========================================
     const guideSheet = workbook.addWorksheet('Hướng dẫn điền Form');
     guideSheet.columns = [
       { header: 'Vấn đề cần lưu ý', key: 'item', width: 30 },
@@ -656,11 +856,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `Template_${typeName || 'Exam'}.xlsx`);
+    const cleanFileName = currentTitle
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .trim()
+      .replace(/\s+/g, '_');
+    saveAs(blob, `${cleanFileName || `Template_${normalizedType}`}.xlsx`);
   };
 
   const handleExportTemplate = () => {
-    generateExcelTemplate(parts, examType);
+    generateExcelTemplate(parts, examType, examTitle);
   };
 
   const handleExportStandardTemplate = () => {
@@ -786,7 +990,35 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [...createToeicGroups(147, 4, 2, 4), ...createToeicGroups(155, 3, 3, 4), ...createToeicGroups(164, 3, 4, 4), ...createToeicGroups(176, 5, 5, 4)] });
         }
         
-        generateExcelTemplate(tempParts, type);
+        let targetType = 'IELTS_ACADEMIC';
+        let defaultTitle = 'Đề thi IELTS Academic Mẫu';
+        if (type === 'CUSTOM_EMPTY') {
+          targetType = examType;
+          defaultTitle = examTitle || 'Sườn đề thi tùy chỉnh';
+        } else if (type === 'TOEIC') {
+          targetType = 'TOEIC_LR';
+          defaultTitle = 'Đề thi TOEIC Listening & Reading Mẫu';
+        } else if (type === 'TOEIC_WRITING') {
+          targetType = 'TOEIC_WRITING';
+          defaultTitle = 'Đề thi TOEIC Writing Mẫu';
+        } else if (type === 'NLTV') {
+          targetType = 'NLTV_B1_C1';
+          defaultTitle = 'Đề thi Năng Lực Tiếng Việt Mẫu';
+        } else if (type.includes('TOEIC_WRIT')) {
+          targetType = 'TOEIC_WRITING';
+          defaultTitle = `Mẫu TOEIC Writing - ${type.replace(/_/g, ' ')}`;
+        } else if (type.includes('TOEIC')) {
+          targetType = 'TOEIC_LR';
+          defaultTitle = `Mẫu TOEIC - ${type.replace(/_/g, ' ')}`;
+        } else if (type.includes('NLTV')) {
+          targetType = 'NLTV_B1_C1';
+          defaultTitle = `Mẫu NLTV - ${type.replace(/_/g, ' ')}`;
+        } else {
+          targetType = 'IELTS_ACADEMIC';
+          defaultTitle = `Mẫu IELTS Academic - ${type.replace(/_/g, ' ')}`;
+        }
+        
+        generateExcelTemplate(tempParts, targetType, defaultTitle);
       }
     });
   };
@@ -800,10 +1032,80 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       const buffer = await file.arrayBuffer();
       await workbook.xlsx.load(buffer);
 
-      const sheet = workbook.getWorksheet(1);
+      // Find Info Sheet (if present)
+      const infoSheet = workbook.getWorksheet('Thông Tin Đề Thi')
+        || workbook.getWorksheet('Thông tin đề thi')
+        || workbook.getWorksheet('Exam Info')
+        || workbook.getWorksheet('Exam Information');
+
+      // Find Question Sheet
+      let sheet = workbook.getWorksheet('Exam Template')
+        || workbook.getWorksheet('Danh sách câu hỏi')
+        || workbook.getWorksheet('Đề thi');
+
       if (!sheet) {
-        Swal.fire('Lỗi', 'File không đúng định dạng', 'error');
+        // Fallback: pick the first worksheet that is NOT infoSheet and NOT guideSheet
+        sheet = workbook.worksheets.find(s => {
+          const sName = s.name.toLowerCase();
+          return !sName.includes('thông tin') && !sName.includes('hướng dẫn') && !sName.includes('info') && !sName.includes('guide');
+        }) || workbook.getWorksheet(1);
+      }
+
+      if (!sheet) {
+        Swal.fire('Lỗi', 'File không đúng định dạng hoặc không tìm thấy bảng câu hỏi.', 'error');
         return;
+      }
+
+      // Read metadata from Info Sheet
+      let importedTitle = '';
+      let importedType = '';
+
+      if (infoSheet) {
+        infoSheet.eachRow((row) => {
+          const col1 = (row.getCell(1).text || '').trim().toLowerCase();
+          const col2 = (row.getCell(2).text || '').trim();
+          if (!col2) return;
+
+          if (col1.includes('tên đề') || col1.includes('exam title') || col1.includes('tiêu đề')) {
+            importedTitle = col2;
+          }
+          if (col1.includes('mã loại') || col1.includes('type code')) {
+            importedType = col2;
+          } else if (!importedType && (col1.includes('loại chứng chỉ') || col1.includes('exam type'))) {
+            importedType = col2;
+          }
+        });
+      }
+
+      // Fallback: read from workbook metadata properties
+      if (!importedTitle && workbook.title && workbook.title.trim()) {
+        const wbTitle = workbook.title.trim();
+        if (wbTitle.toLowerCase() !== 'exam template') {
+          importedTitle = wbTitle;
+        }
+      }
+      if (!importedType && workbook.subject && workbook.subject.trim()) {
+        importedType = workbook.subject.trim();
+      }
+
+      // Fallback: deduce title from file name if not generic
+      if (!importedTitle) {
+        const rawFileName = file.name.replace(/\.[^/.]+$/, '').trim();
+        const lowerName = rawFileName.toLowerCase();
+        if (!lowerName.startsWith('template_') && !lowerName.startsWith('exam_template') && lowerName !== 'template') {
+          importedTitle = rawFileName.replace(/_/g, ' ').replace(/-/g, ' ').trim();
+        }
+      }
+
+      // Determine question table header row dynamically
+      let headerRowIndex = 1;
+      for (let r = 1; r <= Math.min(10, sheet.rowCount); r++) {
+        const cell1 = (sheet.getRow(r).getCell(1).text || '').toLowerCase();
+        const cell2 = (sheet.getRow(r).getCell(2).text || '').toLowerCase();
+        if (cell1.includes('phần') || cell1.includes('part') || cell2.includes('nhóm') || cell2.includes('group')) {
+          headerRowIndex = r;
+          break;
+        }
       }
 
       const tempParts: ExamPart[] = [];
@@ -821,7 +1123,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       };
 
       sheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return; // Skip header
+        if (rowNumber <= headerRowIndex) return; // Skip header
 
         const rawPartName = getCellValue(row.getCell(1));
         const rawGroupName = getCellValue(row.getCell(2));
@@ -855,15 +1157,25 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         }
 
         if (groupName !== lastGroupName || !currentGroup) {
+          const groupImageUrls = rawGroupMedia
+            ? rawGroupMedia.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean)
+            : [];
           currentGroup = {
             group_id: generateId('group'),
             instruction: rawInstruction,
             content_html: rawPassage,
             questions: [],
-            shared_media: rawGroupMedia ? { type: 'image', url: rawGroupMedia } : undefined
+            shared_images: groupImageUrls.length > 0 ? groupImageUrls : undefined,
+            shared_media: groupImageUrls.length > 0 ? { type: 'image', url: groupImageUrls[0], display_config: { size_preset: 'medium', alignment: 'center' } } : undefined
           };
           if (currentPart) currentPart.question_groups.push(currentGroup);
           lastGroupName = groupName;
+        } else if (rawGroupMedia && (!currentGroup.shared_images || currentGroup.shared_images.length === 0)) {
+          const groupImageUrls = rawGroupMedia.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+          if (groupImageUrls.length > 0) {
+            currentGroup.shared_images = groupImageUrls;
+            currentGroup.shared_media = { type: 'image', url: groupImageUrls[0], display_config: { size_preset: 'medium', alignment: 'center' } };
+          }
         }
 
         const rawOptA = getCellValue(row.getCell(7));
@@ -881,15 +1193,19 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         else if (hasC) options = [rawOptA, rawOptB, rawOptC];
         else if (hasB) options = [rawOptA, rawOptB];
         else if (hasA) options = [rawOptA];
-        else if (type.includes('MULTIPLE_CHOICE')) options = ['', '', '', ''];
+        else if (type.includes('MULTIPLE_CHOICE')) {
+          const isPart2 = (partName || '').toLowerCase().includes('part 2') || (partName || '').toLowerCase().includes('phần 2');
+          options = isPart2 ? ['', '', ''] : ['', '', '', ''];
+        }
         
-        let parsedCorrectAnswer: any = correct;
+        const cleanCorrect = (correct || '').trim();
+        let parsedCorrectAnswer: any = cleanCorrect;
         let correctOptionIndex: number | undefined = undefined;
         let correctOptionIndices: number[] | undefined = undefined;
         
-        if (type.includes('MULTIPLE_CHOICE') && correct) {
+        if (type.includes('MULTIPLE_CHOICE') && cleanCorrect !== '') {
            if (type === 'MULTIPLE_CHOICE_MULTI') {
-               const parts = correct.split(',').map(s => s.trim().toUpperCase());
+               const parts = cleanCorrect.split(',').map(s => s.trim().toUpperCase());
                correctOptionIndices = [];
                parsedCorrectAnswer = [];
                parts.forEach(p => {
@@ -907,7 +1223,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                });
                if (correctOptionIndices.length === 0) correctOptionIndices = undefined;
            } else {
-               const p = correct.trim().toUpperCase();
+               const p = cleanCorrect.toUpperCase();
                let idx = -1;
                if (p === 'A') idx = 0;
                else if (p === 'B') idx = 1;
@@ -943,31 +1259,82 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         currentGroup.questions.push(newQuestion);
       });
 
-      let detectedType = 'IELTS_ACADEMIC';
-      if (tempParts.length > 0) {
-        const firstTitle = tempParts[0].part_title.toLowerCase();
-        if (firstTitle.includes('kỹ năng') || firstTitle.includes('nghe') || firstTitle.includes('đọc')) {
-          detectedType = 'NLTV';
-        } else if (firstTitle.includes('photographs') || firstTitle.includes('question-response') || firstTitle.includes('conversations') || firstTitle.includes('talks') || firstTitle.includes('incomplete sentences') || firstTitle.includes('text completion') || firstTitle.includes('reading comprehension')) {
-          detectedType = 'TOEIC';
-        } else if (firstTitle.includes('write a sentence') || firstTitle.includes('written request') || firstTitle.includes('opinion essay')) {
-          detectedType = 'TOEIC_WRITING';
+      let detectedType = importedType ? normalizeExamType(importedType) : '';
+
+      if (!detectedType) {
+        const fileNameLower = (file.name || '').toLowerCase();
+        const allTitlesLower = tempParts.map(p => p.part_title.toLowerCase()).join(' ');
+
+        if (
+          fileNameLower.includes('toeic') ||
+          allTitlesLower.includes('toeic') ||
+          allTitlesLower.includes('photographs') ||
+          allTitlesLower.includes('question-response') ||
+          allTitlesLower.includes('conversations') ||
+          allTitlesLower.includes('talks') ||
+          allTitlesLower.includes('incomplete sentences') ||
+          allTitlesLower.includes('text completion') ||
+          allTitlesLower.includes('reading comprehension') ||
+          (/part\s*[5-7]\b/.test(allTitlesLower) && !allTitlesLower.includes('passage')) ||
+          (tempParts.length >= 7 && /part\s*1\b/.test(allTitlesLower))
+        ) {
+          if (fileNameLower.includes('writing') || allTitlesLower.includes('write a sentence') || allTitlesLower.includes('written request') || allTitlesLower.includes('opinion essay')) {
+            detectedType = 'TOEIC_WRITING';
+          } else {
+            detectedType = 'TOEIC_LR';
+          }
+        } else if (
+          fileNameLower.includes('nltv') ||
+          fileNameLower.includes('vstep') ||
+          allTitlesLower.includes('nltv') ||
+          allTitlesLower.includes('tiếng việt') ||
+          (allTitlesLower.includes('kỹ năng') && (allTitlesLower.includes('nghe') || allTitlesLower.includes('đọc') || allTitlesLower.includes('viết')))
+        ) {
+          detectedType = 'NLTV_B1_C1';
+        } else if (fileNameLower.includes('general') || allTitlesLower.includes('general')) {
+          detectedType = 'IELTS_GENERAL';
         } else {
           detectedType = 'IELTS_ACADEMIC';
         }
       }
+
       setExamType(detectedType);
+
+      const finalExamTitle = (importedTitle && importedTitle.trim())
+        ? importedTitle.trim()
+        : (detectedType.startsWith('TOEIC')
+            ? (detectedType === 'TOEIC_WRITING' ? 'TOEIC Writing Test' : 'TOEIC L&R Test')
+            : (detectedType.startsWith('NLTV')
+                ? 'Năng Lực Tiếng Việt Test'
+                : (detectedType.includes('GENERAL') ? 'IELTS General Training Test' : 'IELTS Academic Mock Test')));
+
+      setExamTitle(finalExamTitle);
       setParts(tempParts);
+      setActivePartIndex(0);
       setWizardMode('BUILDER');
-      Swal.fire('Thành công', 'Đã trích xuất cấu trúc đề từ Excel!', 'success');
-      
-      // Reset input
+
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error) {
+
+      const totalQuestionsCount = tempParts.reduce((acc, p) => acc + p.question_groups.reduce((gAcc, g) => gAcc + g.questions.length, 0), 0);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Nhập Đề Thi Thành Công!',
+        html: `
+          <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; padding: 0.5rem;">
+            <p style="margin-bottom: 0.4rem;"><b>Tên đề thi:</b> <span style="color: var(--primary); font-weight: 700;">${finalExamTitle}</span></p>
+            <p style="margin-bottom: 0.4rem;"><b>Loại chứng chỉ:</b> ${EXAM_TYPE_OPTIONS[detectedType] || detectedType}</p>
+            <p style="margin-bottom: 0.4rem;"><b>Số phần thi:</b> ${tempParts.length} phần</p>
+            <p style="margin-bottom: 0;"><b>Tổng số câu hỏi:</b> ${totalQuestionsCount} câu</p>
+          </div>
+        `,
+        confirmButtonText: 'Bắt đầu xem & chỉnh sửa'
+      });
+    } catch (error: any) {
       console.error(error);
-      Swal.fire('Lỗi', 'Không thể đọc file Excel. Vui lòng kiểm tra lại định dạng.', 'error');
+      Swal.fire('Lỗi', 'Không thể đọc file Excel: ' + (error?.message || 'Vui lòng kiểm tra lại định dạng.'), 'error');
     }
   };
 
@@ -983,13 +1350,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
   if (wizardMode === 'START') {
     return (
-      <div style={{ background: 'var(--bg-secondary)', padding: '3rem 2rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-md)' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', textAlign: 'center' }}>Bắt đầu tạo Đề thi</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1rem', textAlign: 'center' }}>Chọn phương thức phù hợp để xây dựng cấu trúc đề thi của bạn.</p>
+      <div className="eb-wizard-container">
+        <h2 className="eb-wizard-title">Bắt đầu tạo Đề thi</h2>
+        <p className="eb-wizard-subtitle">Chọn phương thức phù hợp để xây dựng cấu trúc đề thi của bạn.</p>
         
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1.5rem', width: '100%', maxWidth: '1000px' }}>
+        <div className="eb-wizard-grid">
           
-          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('FULL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card eb-wizard-card hover-bg-tertiary" onClick={() => setWizardMode('FULL')}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.3)' }}>
               <AlignLeft size={28} color="white" />
             </div>
@@ -997,7 +1364,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Sinh toàn bộ cấu trúc chuẩn của một đề thi hoàn chỉnh (IELTS, TOEIC, NLTV...)</p>
           </div>
 
-          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('SKILL')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card eb-wizard-card hover-bg-tertiary" onClick={() => setWizardMode('SKILL')}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)' }}>
               <Zap size={28} color="white" />
             </div>
@@ -1005,7 +1372,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tạo nhanh toàn bộ cấu trúc cho một kỹ năng riêng biệt (Reading, Listening...)</p>
           </div>
 
-          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => setWizardMode('PART')} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card eb-wizard-card hover-bg-tertiary" onClick={() => setWizardMode('PART')}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)' }}>
               <Plus size={28} color="white" />
             </div>
@@ -1014,7 +1381,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           </div>
 
           <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls" onChange={handleImportExcel} />
-          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => fileInputRef.current?.click()} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card eb-wizard-card hover-bg-tertiary" onClick={() => fileInputRef.current?.click()}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #db2777 0%, #be185d 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(190, 24, 93, 0.3)' }}>
               <Upload size={28} color="white" />
             </div>
@@ -1022,7 +1389,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tải lên file Excel chuẩn để hệ thống tự động bóc tách và trích xuất toàn bộ cấu trúc & câu hỏi</p>
           </div>
 
-          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={handleExportStandardTemplate} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card eb-wizard-card hover-bg-tertiary" onClick={handleExportStandardTemplate}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(4, 120, 87, 0.3)' }}>
               <Download size={28} color="white" />
             </div>
@@ -1030,7 +1397,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Tải xuống file Excel trắng được thiết lập chuẩn cấu trúc và dropdown để điền dữ liệu</p>
           </div>
 
-          <div className="ed-card hover-bg-tertiary" style={{ flex: '1 1 280px', maxWidth: '320px', flexDirection: 'column', padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', border: '2px solid transparent', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center' }} onClick={() => { setParts([{ part_title: 'Part 1', instruction: '', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'MULTIPLE_CHOICE', question_text: 'Câu 1', metadata: { correct_answer: '' } }] }] }]); setWizardMode('BUILDER'); }} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+          <div className="ed-card eb-wizard-card hover-bg-tertiary" onClick={() => { setParts([{ part_title: 'Part 1', instruction: '', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'MULTIPLE_CHOICE', question_text: 'Câu 1', metadata: { correct_answer: '' } }] }] }]); setWizardMode('BUILDER'); }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(109, 40, 217, 0.3)' }}>
               <Edit3 size={28} color="white" />
             </div>
@@ -1051,8 +1418,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
   if (wizardMode === 'FULL') {
     return (
-      <div style={{ background: 'var(--bg-secondary)', padding: '3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '2rem' }}>Chọn Loại Sườn Đề</h2>
+      <div className="eb-wizard-container">
+        <h2 className="eb-wizard-title" style={{ marginBottom: '2rem' }}>Chọn Loại Sườn Đề</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: '400px' }}>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('IELTS'); setWizardMode('BUILDER'); }}>Full IELTS Academic</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('TOEIC'); setWizardMode('BUILDER'); }}>Full TOEIC L&R</button>
@@ -1066,8 +1433,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
   if (wizardMode === 'SKILL') {
     return (
-      <div style={{ background: 'var(--bg-secondary)', padding: '3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '2rem' }}>Chọn Kỹ Năng Cần Thêm</h2>
+      <div className="eb-wizard-container">
+        <h2 className="eb-wizard-title" style={{ marginBottom: '2rem' }}>Chọn Kỹ Năng Cần Thêm</h2>
         <div style={{ width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <select className="input-field" style={{ padding: '0.75rem', fontSize: '1rem', background: 'white' }} value={selectedSkill} onChange={e => setSelectedSkill(e.target.value)}>
             <option value="IELTS_LISTENING">IELTS - Listening (4 Parts)</option>
@@ -1090,8 +1457,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
   if (wizardMode === 'PART') {
     return (
-      <div style={{ background: 'var(--bg-secondary)', padding: '3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '2rem' }}>Chọn Part Lẻ Cần Thêm</h2>
+      <div className="eb-wizard-container">
+        <h2 className="eb-wizard-title" style={{ marginBottom: '2rem' }}>Chọn Part Lẻ Cần Thêm</h2>
         <div style={{ width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <select className="input-field" style={{ padding: '0.75rem', fontSize: '1rem', background: 'white' }} value={selectedSpecificPart} onChange={e => setSelectedSpecificPart(e.target.value)}>
             <optgroup label="IELTS Academic">
@@ -1132,18 +1499,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   }
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', paddingBottom: '3rem', borderRadius: 'var(--radius-md)' }}>
+    <div className="eb-container">
       {/* Builder Top Banner */}
-      <div style={{ 
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
-        padding: '2rem 1.5rem', 
-        borderRadius: 'var(--radius-lg)',
-        color: 'white',
-        marginBottom: '1.5rem',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      <div className="eb-top-banner">
         {/* Background Pattern */}
         <div style={{ position: 'absolute', right: '-5%', top: '-20%', opacity: 0.05, transform: 'scale(1.5)', pointerEvents: 'none' }}>
           <Settings size={200} />
@@ -1151,21 +1509,21 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         
         <div className="flex-between" style={{ position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', marginBottom: '0.35rem', letterSpacing: '-0.5px' }}>Trình Tạo Đề Thi Nâng Cao</h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Thiết kế và tùy chỉnh cấu trúc đề thi một cách trực quan.</p>
+            <h3 className="eb-top-banner-title">Trình Tạo Đề Thi Nâng Cao</h3>
+            <p className="eb-top-banner-desc">Thiết kế và tùy chỉnh cấu trúc đề thi một cách trực quan.</p>
           </div>
         </div>
       </div>
 
       {/* Basic Info Card */}
-      <div className="ed-card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)', borderRadius: 'var(--radius-lg)' }}>
+      <div className="ed-card eb-info-card">
         <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>Thông tin Cơ bản</h4>
-        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 300px' }}>
+        <div className="eb-info-grid">
+          <div className="eb-info-title-group">
             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tên đề thi *</label>
             <input type="text" className="input-field" value={examTitle} onChange={e => setExamTitle(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }} />
           </div>
-          <div style={{ width: '250px', flexGrow: 0 }}>
+          <div className="eb-info-type-group">
             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loại chứng chỉ</label>
             <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
               <optgroup label="IELTS">
@@ -1173,20 +1531,19 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                 <option value="IELTS_GENERAL">IELTS General</option>
               </optgroup>
               <optgroup label="TOEIC">
-                <option value="TOEIC_LR">TOEIC L&R</option>
-                <option value="TOEIC_SPEAKING">TOEIC Speaking</option>
+                <option value="TOEIC_LR">TOEIC (Listening & Reading)</option>
                 <option value="TOEIC_WRITING">TOEIC Writing</option>
               </optgroup>
-              <optgroup label="Năng Lực Tiếng Việt">
-                <option value="NLTV_A1_A2">NLTV (A1-A2)</option>
-                <option value="NLTV_B1_C1">NLTV (B1-C1)</option>
+              <optgroup label="Năng Lực Tiếng Việt (VSTEP)">
+                <option value="NLTV_B1_C1">NLTV (B1 - C1)</option>
+                <option value="NLTV_A1_A2">NLTV (A1 - A2)</option>
               </optgroup>
               <optgroup label="Khác">
                 <option value="OTHER">Khác (Other)</option>
               </optgroup>
             </select>
           </div>
-          <div style={{ width: '220px', flexGrow: 0 }}>
+          <div className="eb-info-status-group">
             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trạng thái hiển thị</label>
             <div 
               onClick={() => setIsPublished(!isPublished)}
@@ -1230,24 +1587,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       ) : (
         <div>
           {/* TABS */}
-          <div style={{ display: 'flex', overflowX: 'auto', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-light)' }}>
+          <div className="eb-tabs-container">
             {parts.map((tabPart, tabIndex) => (
               <button 
                 key={tabIndex} 
                 onClick={() => setActivePartIndex(tabIndex)}
-                style={{ 
-                  padding: '0.75rem 1.5rem', 
-                  border: 'none', 
-                  background: 'transparent',
-                  borderBottom: activePartIndex === tabIndex ? '3px solid var(--primary)' : '3px solid transparent',
-                  color: activePartIndex === tabIndex ? 'var(--primary)' : 'var(--text-secondary)',
-                  fontWeight: activePartIndex === tabIndex ? 700 : 500,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'all 0.2s ease'
-                }}
+                className={`eb-tab-btn ${activePartIndex === tabIndex ? 'active' : ''}`}
               >
                 {tabPart.part_title || `Part ${tabIndex + 1}`}
               </button>
@@ -1268,7 +1613,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                borderBottom: '3px solid transparent'
+                borderBottom: '3px solid transparent',
+                whiteSpace: 'nowrap'
               }}
             >
               <Plus size={18} /> Thêm Part
@@ -1281,53 +1627,125 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             const part = parts[pIndex];
             if (!part) return null;
             return (
-              <div className="ed-card" style={{ padding: '1.5rem', background: 'var(--bg-primary)', borderLeft: '4px solid var(--primary)', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem' }}>
-                  <button className="btn" style={{ padding: '0.25rem 0.5rem', color: 'var(--danger)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-light)' }} onClick={() => {
-                    if (window.confirm('Bạn có chắc muốn xóa Part này?')) {
-                      const newParts = [...parts];
-                      newParts.splice(pIndex, 1);
-                      setParts(newParts);
-                      if (activePartIndex >= newParts.length) setActivePartIndex(Math.max(0, newParts.length - 1));
-                    }
-                  }}>
-                    <Trash2 size={16} /> Xóa Part
-                  </button>
-                </div>
-                
-                {/* Part Settings */}
-                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
-                  <div style={{ flex: 1, maxWidth: '300px' }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Tiêu đề Part</label>
-                    <input type="text" className="input-field" value={part.part_title} onChange={(e) => updatePart(pIndex, 'part_title', e.target.value)} />
+              <div className="ed-card eb-part-card">
+                <div className="eb-part-header">
+                  <div className="eb-part-inputs">
+                    <div className="eb-part-title-input">
+                      <label style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Tiêu đề Part</label>
+                      <input type="text" className="input-field" value={part.part_title} onChange={(e) => updatePart(pIndex, 'part_title', e.target.value)} />
+                    </div>
+                    <div className="eb-part-instr-input">
+                      <label style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Hướng dẫn chung (Instruction)</label>
+                      <input type="text" className="input-field" value={part.instruction || ''} onChange={e => updatePart(pIndex, 'instruction', e.target.value)} placeholder="VD: Listen to the conversation..." />
+                    </div>
                   </div>
-                  <div style={{ flex: 2 }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Hướng dẫn chung (Instruction)</label>
-                    <input type="text" className="input-field" value={part.instruction || ''} onChange={e => updatePart(pIndex, 'instruction', e.target.value)} placeholder="VD: Listen to the conversation..." />
+                  <div>
+                    <button className="btn" style={{ padding: '0.5rem 0.75rem', color: 'var(--danger)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-light)', whiteSpace: 'nowrap' }} onClick={() => {
+                      if (window.confirm('Bạn có chắc muốn xóa Part này?')) {
+                        const newParts = [...parts];
+                        newParts.splice(pIndex, 1);
+                        setParts(newParts);
+                        if (activePartIndex >= newParts.length) setActivePartIndex(Math.max(0, newParts.length - 1));
+                      }
+                    }}>
+                      <Trash2 size={16} /> Xóa Part
+                    </button>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
-                  {/* CHỈ HIỆN AUDIO NẾU LÀ KỸ NĂNG NGHE */}
-                  {(part.part_title.toLowerCase().includes('listen') || part.part_title.toLowerCase().includes('nghe')) && (
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}><Music size={14} color="var(--primary)" /> Shared Audio URL</label>
-                        <MediaUploadButton type="audio" onUploadSuccess={(url) => updatePart(pIndex, 'shared_audio', { url: url, duration_seconds: 0 })} label="Upload Audio" />
+                <div style={{ marginBottom: '1.5rem' }}>
+                  {/* AUDIO CHO PART */}
+                  {(() => {
+                    const titleLower = (part.part_title || '').toLowerCase();
+                    const isDefaultListening =
+                      titleLower.includes('listen') ||
+                      titleLower.includes('nghe') ||
+                      titleLower.includes('audio') ||
+                      /part\s*[1-4]\b/i.test(titleLower) ||
+                      titleLower.includes('photographs') ||
+                      titleLower.includes('question-response') ||
+                      titleLower.includes('conversations') ||
+                      titleLower.includes('talks') ||
+                      (examType.includes('TOEIC') && pIndex < 4);
+
+                    const showAudioBox = isDefaultListening || part.shared_audio !== undefined;
+
+                    if (showAudioBox) {
+                      return (
+                        <div className="eb-audio-box">
+                          <div className="eb-audio-box-header">
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              <Music size={16} color="var(--primary)" /> File Audio cho Part này (Listening Audio)
+                            </label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <MediaUploadButton
+                                type="audio"
+                                onUploadSuccess={(url) => updatePart(pIndex, 'shared_audio', { url: url, duration_seconds: 0 })}
+                                label="Upload File Audio"
+                              />
+                              {part.shared_audio?.url ? (
+                                <button
+                                  type="button"
+                                  style={{ background: 'none', border: 'none', color: 'var(--danger, #ef4444)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem' }}
+                                  onClick={() => updatePart(pIndex, 'shared_audio', { url: '', duration_seconds: 0 })}
+                                  title="Xóa link audio hiện tại"
+                                >
+                                  <Trash2 size={13} /> Xóa Audio
+                                </button>
+                              ) : !isDefaultListening ? (
+                                <button
+                                  type="button"
+                                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem' }}
+                                  onClick={() => updatePart(pIndex, 'shared_audio', undefined)}
+                                  title="Đóng phần đính kèm Audio"
+                                >
+                                  <Trash2 size={13} /> Bỏ Audio
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                          <input
+                            type="text"
+                            className="input-field"
+                            value={part.shared_audio?.url || ''}
+                            onChange={e => updatePart(pIndex, 'shared_audio', { url: e.target.value, duration_seconds: 0 })}
+                            placeholder="Nhập đường dẫn URL file .mp3 cho Part này hoặc bấm 'Upload File Audio' ở trên..."
+                          />
+                          {part.shared_audio?.url && (
+                            <div style={{ marginTop: '0.5rem' }}>
+                              <audio controls src={part.shared_audio.url} style={{ width: '100%', height: '36px' }} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', padding: '0.35rem 0.75rem', background: 'transparent', border: '1px dashed var(--border-medium, #cbd5e1)', cursor: 'pointer' }}
+                          onClick={() => updatePart(pIndex, 'shared_audio', { url: '', duration_seconds: 0 })}
+                        >
+                          <Music size={14} color="var(--primary)" /> + Thêm Audio cho Part này
+                        </button>
                       </div>
-                      <input type="text" className="input-field" value={part.shared_audio?.url || ''} onChange={e => updatePart(pIndex, 'shared_audio', { url: e.target.value, duration_seconds: 0 })} placeholder="Nhập Link Mp3 cho Part này..." />
-                      {part.shared_audio?.url && (
-                        <audio controls src={part.shared_audio.url} style={{ width: '100%', marginTop: '0.5rem', height: '36px' }} />
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC NLTV ĐỌC */}
                 {(part.part_title.toLowerCase().includes('passage') || (examType === 'NLTV' && part.part_title.toLowerCase().includes('đọc'))) && (
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><AlignLeft size={14} color="var(--primary)" /> Nội dung Bài Đọc (Shared Reading Passage)</label>
-                    <textarea className="input-field" rows={6} value={part.shared_content_html || ''} onChange={e => updatePart(pIndex, 'shared_content_html', e.target.value)} placeholder="<p>Nhập mã HTML của toàn bộ bài đọc IELTS/NLTV tại đây...</p>"></textarea>
+                    <RichTextEditor
+                      label="Nội dung Bài Đọc Chung (Shared Reading Passage)"
+                      value={part.shared_content_html || ''}
+                      onChange={val => updatePart(pIndex, 'shared_content_html', val)}
+                      placeholder="Nhập hoặc dán nội dung bài đọc tại đây (hỗ trợ cả văn bản thường và định dạng)..."
+                      rows={6}
+                      minHeight="180px"
+                    />
                   </div>
                 )}
 
@@ -1342,44 +1760,88 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                     const isPartFullForGroup = boundsForGroup && nextStartForGroup > boundsForGroup.end;
                     
                     return (
-                    <div key={group.group_id} style={{ 
-                      border: isWriting ? 'none' : '1px solid var(--border-light)', 
-                      borderRadius: isWriting ? '0' : 'var(--radius-md)', 
-                      padding: isWriting ? '0' : '1.5rem', 
-                      marginBottom: '1.5rem', 
-                      position: 'relative' 
-                    }}>
-                      {!isWriting && <span style={{ position: 'absolute', top: '-12px', left: '1rem', background: 'var(--bg-primary)', padding: '0 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>GROUP {gIndex + 1} ({group.questions.length} CÂU)</span>}
+                    <div key={group.group_id} className={`eb-group-card ${isWriting ? 'no-border' : ''}`}>
+                      {!isWriting && <span className="eb-group-header-badge">GROUP {gIndex + 1} ({group.questions.length} CÂU)</span>}
                       
-                      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                        <div style={{ flex: 1 }}>
+                      <div className="eb-group-row">
+                        <div className="eb-group-col">
                           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>Instruction</label>
                           <input type="text" className="input-field" value={group.instruction || ''} onChange={e => updateGroup(pIndex, gIndex, 'instruction', e.target.value)} placeholder="Choose the correct letter..." />
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}><Image size={14} color="var(--accent)" /> Shared Image (VD: Bản đồ/Biểu đồ cho Task 1)</label>
-                            <MediaUploadButton type="images" onUploadSuccess={(url) => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: url, display_config: { size_preset: 'medium', alignment: 'center' } })} label="Upload Image" />
-                          </div>
-                          <input type="text" className="input-field" value={group.shared_media?.url || ''} onChange={e => updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: e.target.value, display_config: { size_preset: 'medium', alignment: 'center' } })} placeholder="Nhập Link Ảnh..." />
-                          {group.shared_media?.url && (
-                            <div style={{ marginTop: '0.5rem', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', padding: '0.5rem', background: 'white', display: 'inline-block' }}>
-                              <img src={group.shared_media.url} alt="Preview" style={{ maxHeight: '150px', maxWidth: '100%', objectFit: 'contain' }} />
-                            </div>
-                          )}
+                        <div className="eb-group-col">
+                          {(() => {
+                            const currentImages = group.shared_images || (group.shared_media?.url ? [group.shared_media.url] : []);
+                            return (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
+                                    <Image size={14} color="var(--accent)" /> Shared Images ({currentImages.length} ảnh)
+                                  </label>
+                                  <MediaUploadButton
+                                    type="images"
+                                    onUploadSuccess={(url) => {
+                                      const updated = [...currentImages, url];
+                                      updateGroup(pIndex, gIndex, 'shared_images', updated);
+                                      updateGroup(pIndex, gIndex, 'shared_media', { type: 'image', url: updated[0], display_config: { size_preset: 'medium', alignment: 'center' } });
+                                    }}
+                                    label="+ Thêm ảnh"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  className="input-field"
+                                  value={currentImages.join(', ')}
+                                  onChange={e => {
+                                    const urls = e.target.value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+                                    updateGroup(pIndex, gIndex, 'shared_images', urls);
+                                    updateGroup(pIndex, gIndex, 'shared_media', urls.length > 0 ? { type: 'image', url: urls[0], display_config: { size_preset: 'medium', alignment: 'center' } } : undefined);
+                                  }}
+                                  placeholder="Nhập link ảnh (ngăn cách bằng dấu phẩy nếu nhiều ảnh)..."
+                                />
+                                {currentImages.length > 0 && (
+                                  <div className="eb-image-gallery">
+                                    {currentImages.map((imgUrl, imgIdx) => (
+                                      <div key={imgIdx} className="eb-gallery-item">
+                                        <span className="eb-gallery-badge">Ảnh {imgIdx + 1}</span>
+                                        <img src={imgUrl} alt={`Ảnh ${imgIdx + 1}`} className="eb-gallery-img" />
+                                        <button
+                                          type="button"
+                                          className="eb-gallery-del-btn"
+                                          onClick={() => {
+                                            const updated = currentImages.filter((_, idx) => idx !== imgIdx);
+                                            updateGroup(pIndex, gIndex, 'shared_images', updated);
+                                            updateGroup(pIndex, gIndex, 'shared_media', updated.length > 0 ? { type: 'image', url: updated[0], display_config: { size_preset: 'medium', alignment: 'center' } } : undefined);
+                                          }}
+                                          title="Xóa ảnh này"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                       
                       <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>Content HTML (Đoạn văn / Đề bài)</label>
-                        <textarea className="input-field" rows={3} value={group.content_html || ''} onChange={e => updateGroup(pIndex, gIndex, 'content_html', e.target.value)} placeholder="<p>Nhập HTML đoạn văn tại đây...</p>"></textarea>
+                        <RichTextEditor
+                          label="Nội dung Đoạn văn / Đề bài (Passage / Prompt)"
+                          value={group.content_html || ''}
+                          onChange={val => updateGroup(pIndex, gIndex, 'content_html', val)}
+                          placeholder="Nhập hoặc dán đoạn văn bài đọc tại đây (hỗ trợ cả văn bản thường và định dạng)..."
+                          rows={4}
+                          minHeight="130px"
+                        />
                       </div>
 
                       <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
 
                         {/* ẨN TẠO NHANH NẾU LÀ KỸ NĂNG VIẾT HOẶC ĐÃ CÓ CÂU HỎI */}
                         {(!isWriting && group.questions.length === 0) && (
-                          <div className="flex-center" style={{ gap: '1rem', background: 'white', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--primary-light)', marginBottom: '1rem' }}>
+                          <div className="flex-center eb-batch-bar">
                             {(() => {
                               if (isPartFullForGroup) return <span style={{ color: 'var(--text-muted)' }}>Đã tạo đủ số lượng câu hỏi cho Part này.</span>;
 
@@ -1447,19 +1909,29 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                       </button>
                                     </div>
                                     {q.metadata.options.length > 0 ? (
-                                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                      <div className="eb-options-grid">
                                         {q.metadata.options.map((opt, oIdx) => {
                                           const isMulti = q.type === 'MULTIPLE_CHOICE_MULTI';
-                                          const isChecked = isMulti 
+                                          const hasValidAnswer = isMulti
                                             ? (q.metadata.correct_option_indices !== undefined 
-                                                ? q.metadata.correct_option_indices.includes(oIdx) 
-                                                : Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.includes(opt))
+                                                ? q.metadata.correct_option_indices.length > 0 
+                                                : (Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.length > 0))
                                             : (q.metadata.correct_option_index !== undefined 
-                                                ? q.metadata.correct_option_index === oIdx 
-                                                : q.metadata.correct_answer === opt);
+                                                ? q.metadata.correct_option_index !== null 
+                                                : (Boolean(q.metadata.correct_answer) && q.metadata.correct_answer !== ''));
+
+                                          const isChecked = hasValidAnswer
+                                            ? (isMulti 
+                                                ? (q.metadata.correct_option_indices !== undefined 
+                                                    ? q.metadata.correct_option_indices.includes(oIdx) 
+                                                    : (Array.isArray(q.metadata.correct_answer) && opt !== '' && q.metadata.correct_answer.includes(opt)))
+                                                : (q.metadata.correct_option_index !== undefined 
+                                                    ? q.metadata.correct_option_index === oIdx 
+                                                    : (opt !== '' && q.metadata.correct_answer === opt)))
+                                            : false;
                                             
                                           return (
-                                            <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', border: `1px solid ${isChecked ? 'var(--success)' : 'var(--border-light)'}` }}>
+                                            <div key={oIdx} className="eb-option-item" style={{ border: `1px solid ${isChecked ? 'var(--success)' : 'var(--border-light)'}` }}>
                                               <input 
                                                 type={isMulti ? "checkbox" : "radio"} 
                                                 name={`q_${pIndex}_${gIndex}_${qIndex}`}
@@ -1496,13 +1968,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                                     if (q.metadata.correct_option_indices && q.metadata.correct_option_indices.includes(oIdx)) {
                                                       const newCorrectAnswers = q.metadata.correct_option_indices.map((i: number) => newOpts[i]);
                                                       updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newCorrectAnswers);
-                                                    } else if (q.metadata.correct_option_indices === undefined && Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.includes(oldVal)) {
+                                                    } else if (q.metadata.correct_option_indices === undefined && oldVal !== '' && Array.isArray(q.metadata.correct_answer) && q.metadata.correct_answer.includes(oldVal)) {
                                                       let currentArr = [...q.metadata.correct_answer];
                                                       currentArr = currentArr.map(v => v === oldVal ? newVal : v);
                                                       updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', currentArr);
                                                     }
                                                   } else {
-                                                    if (q.metadata.correct_option_index === oIdx || (q.metadata.correct_option_index === undefined && q.metadata.correct_answer === oldVal)) {
+                                                    if (q.metadata.correct_option_index === oIdx || (q.metadata.correct_option_index === undefined && oldVal !== '' && q.metadata.correct_answer === oldVal)) {
                                                       updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newVal);
                                                     }
                                                   }
@@ -1569,7 +2041,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                       </div>
                       
                       {!isFixedStructure && (
-                        <button className="btn" style={{ position: 'absolute', top: '-12px', right: '1rem', padding: '0.1rem 0.5rem', color: 'var(--danger)', background: 'var(--bg-primary)', border: 'none' }} onClick={() => {
+                        <button className="btn eb-group-delete-btn" onClick={() => {
                           const newParts = [...parts];
                           newParts[pIndex].question_groups.splice(gIndex, 1);
                           setParts(newParts);
@@ -1608,12 +2080,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         </div>
       )}
 
-      <div className="flex-center" style={{ gap: '1rem', marginTop: '2rem', justifyContent: 'flex-end', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
-        <div className="flex-center" style={{ gap: '1rem' }}>
-          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-dark)', borderColor: 'var(--success)', background: 'var(--success-light)' }} onClick={handleExportTemplate}>
+      <div className="eb-bottom-bar">
+        <div className="eb-bottom-actions">
+          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--success-dark)', borderColor: 'var(--success)', background: 'var(--success-light)' }} onClick={handleExportTemplate}>
             <FileText size={18} /> Xuất Excel
           </button>
-          <button className="btn btn-outline" onClick={() => {
+          <button className="btn btn-outline" style={{ justifyContent: 'center' }} onClick={() => {
             Swal.fire({
               title: 'Hủy bỏ?',
               text: 'Bạn có chắc chắn muốn hủy? Toàn bộ nội dung đang làm sẽ bị xóa.',
@@ -1627,7 +2099,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               }
             });
           }}>Hủy</button>
-          <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Lưu Đề Thi</button>
+          <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={handleSave}><Save size={18} /> Lưu Đề Thi</button>
         </div>
       </div>
     </div>
