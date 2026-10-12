@@ -195,8 +195,8 @@ public class QuizPracticeServiceImpl implements QuizPracticeService {
                 throw new AppException(ErrorCode.QUIZ_INVALID_REQUEST);
             }
             String selected = answer.getSelectedOptionId();
-            if (selected != null && !selected.isBlank()
-                    && question.getOptions().stream().noneMatch(option -> option.getOptionId().equalsIgnoreCase(selected.trim()))) {
+            if (selected == null || selected.isBlank()
+                    || question.getOptions().stream().noneMatch(option -> option.getOptionId().equalsIgnoreCase(selected.trim()))) {
                 throw new AppException(ErrorCode.QUIZ_INVALID_REQUEST);
             }
         }

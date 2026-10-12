@@ -316,4 +316,40 @@ class QuizPracticeServiceTest {
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.QUIZ_SESSION_EXPIRED);
     }
+
+    @Test
+    @DisplayName("TC_PRACTICE_07: Nộp bài nhưng có câu chưa chọn đáp án (selectedOptionId null hoặc blank) -> Ném QUIZ_INVALID_REQUEST")
+    void submitPracticeSession_missingSelectedOption_throwsQuizInvalidRequest() throws Exception {
+        String sessionId = "sess-missing-option";
+        PracticeSessionSnapshotDto snapshot = PracticeSessionSnapshotDto.builder()
+                .sessionId(sessionId)
+                .userId(1)
+                .deckId(10)
+                .expiresAt(Instant.now().plusSeconds(600))
+                .totalQuestions(1)
+                .questions(List.of(
+                        PracticeQuestionSnapshotDto.builder()
+                                .questionId(1)
+                                .targetWord("apple")
+                                .correctOptionId("A")
+                                .options(List.of(PracticeOptionDto.builder().optionId("A").text("Táo").build()))
+                                .build()
+                ))
+                .build();
+
+        SubmitPracticeRequest req = SubmitPracticeRequest.builder()
+                .durationSeconds(20)
+                .answers(List.of(
+                        SubmitPracticeAnswerDto.builder().questionId(1).selectedOptionId(null).build()
+                ))
+                .build();
+
+        when(receiptRepository.findByUserIdAndSessionId(1, sessionId)).thenReturn(Optional.empty());
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("practice:session:" + sessionId)).thenReturn(objectMapper.writeValueAsString(snapshot));
+
+        assertThatThrownBy(() -> quizPracticeService.submitPracticeSession(sessionId, req, 1))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.QUIZ_INVALID_REQUEST);
+    }
 }

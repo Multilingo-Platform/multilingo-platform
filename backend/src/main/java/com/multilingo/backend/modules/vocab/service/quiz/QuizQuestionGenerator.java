@@ -34,6 +34,20 @@ public class QuizQuestionGenerator {
             throw new AppException(ErrorCode.QUIZ_INSUFFICIENT_CONTENT);
         }
 
+        long distinctMeanings = allDeckCards.stream()
+                .map(UserFlashcard::getCustomMeaning)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .distinct()
+                .count();
+
+        if (distinctMeanings < QuizPracticeConstants.MIN_REQUIRED_CARDS) {
+            log.warn("Không đủ số lượng nghĩa phân biệt trong bộ thẻ: {} nghĩa (yêu cầu tối thiểu {})",
+                    distinctMeanings, QuizPracticeConstants.MIN_REQUIRED_CARDS);
+            throw new AppException(ErrorCode.QUIZ_INSUFFICIENT_CONTENT);
+        }
+
         Instant now = Instant.now();
         String normalizedFilter = (filterStatus != null && !filterStatus.isBlank())
                 ? filterStatus.trim().toUpperCase()
@@ -120,7 +134,9 @@ public class QuizQuestionGenerator {
             return true;
         }
         if (QuizPracticeConstants.FILTER_STATUS_DUE.equals(filterStatus)) {
-            return card.getNextReviewDate() != null && !card.getNextReviewDate().isAfter(now);
+            return card.getNextReviewDate() != null
+                    && !card.getNextReviewDate().isAfter(now)
+                    && (card.getStatus() == null || !com.multilingo.backend.modules.vocab.constant.VocabStudyConstants.STATUS_MASTERED.equalsIgnoreCase(card.getStatus()));
         }
         return card.getStatus() != null && card.getStatus().equalsIgnoreCase(filterStatus);
     }

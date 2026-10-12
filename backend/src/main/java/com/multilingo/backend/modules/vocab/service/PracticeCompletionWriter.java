@@ -57,7 +57,8 @@ public class PracticeCompletionWriter {
         if (!reserveCompletion(userId, snapshot, requestHash, now)) {
             return readCompletedResult(userId, snapshot.getSessionId(), requestHash);
         }
-        if (snapshot.getExpiresAt().isBefore(now)) {
+        Instant current = Instant.now();
+        if (snapshot.getExpiresAt().isBefore(current)) {
             throw new AppException(ErrorCode.QUIZ_SESSION_EXPIRED);
         }
 
@@ -80,7 +81,7 @@ public class PracticeCompletionWriter {
         StudyActivityRecord activity = StudyActivityRecord.builder()
                 .userId(userId)
                 .studyMinutes(durationSeconds / QuizPracticeConstants.SECONDS_PER_MINUTE)
-                .cardsReviewed(snapshot.getTotalQuestions())
+                .cardsReviewed(0)
                 .xpEarned(QuizPracticeConstants.PRACTICE_COMPLETION_XP)
                 .activityType(QuizPracticeConstants.ACTIVITY_TYPE_PRACTICE)
                 .questionsAnswered(snapshot.getTotalQuestions())

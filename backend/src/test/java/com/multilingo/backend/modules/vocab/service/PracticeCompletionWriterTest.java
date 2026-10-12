@@ -128,9 +128,10 @@ class PracticeCompletionWriterTest {
         assertThat(response.getTimeSpentSeconds()).isEqualTo(125);
         assertThat(response.getWrongAnswers()).isEmpty();
 
-        // Kiểm tra recordActivity nhận đúng studyMinutes = 2 (floor của 125/60)
+        // Kiểm tra recordActivity nhận đúng studyMinutes = 2 (floor của 125/60), cardsReviewed = 0 (không làm tăng SRS), questionsAnswered = 1
         verify(studyActivityService).recordActivity(argThat(r ->
                 r.getStudyMinutes() == 2 && r.getXpEarned() == 10 && "PRACTICE".equals(r.getActivityType())
+                        && r.getCardsReviewed() == 0 && r.getQuestionsAnswered() == 1
         ));
         verify(receiptRepository).updateResultJson(eq(userId), eq(sessionId), anyString(), any(Instant.class));
     }
