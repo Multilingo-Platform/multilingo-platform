@@ -223,3 +223,78 @@ export interface TestAnswerState {
   questionNumber: number;
   selectedKey?: string;
 }
+
+// ==========================================
+// Chế độ Luyện tập Từ vựng Redis + Receipt (UC12.4 Practice)
+// ==========================================
+export type VocabFilterStatus = 'ALL' | 'NEW' | 'LEARNING' | 'MASTERED' | 'DUE';
+
+export interface CreateQuizSessionRequest {
+  limit?: number;
+  filterStatus?: VocabFilterStatus;
+}
+
+
+// ==========================================
+// Chế độ Luyện tập Từ vựng Redis + Receipt (UC12.4 Practice)
+// ==========================================
+export interface PracticeOptionDto {
+  optionId: string;
+  text: string;
+}
+
+export interface PracticeQuestionSnapshotDto {
+  questionId: number;
+  cardId: number;
+  targetWord: string;
+  phonetic?: string;
+  pos?: string;
+  sentence?: string;
+  options: PracticeOptionDto[];
+  correctOptionId: string;
+  explanation?: string;
+}
+
+export interface PracticeSessionSnapshotDto {
+  sessionId: string;
+  userId: number;
+  deckId: number;
+  deckName?: string;
+  filterStatus: VocabFilterStatus;
+  totalQuestions: number;
+  createdAt: string;
+  expiresAt: string;
+  questions: PracticeQuestionSnapshotDto[];
+}
+
+export interface SubmitPracticeAnswerDto {
+  questionId: number;
+  selectedOptionId?: string;
+}
+
+export interface SubmitPracticeRequest {
+  durationSeconds?: number;
+  answers: SubmitPracticeAnswerDto[];
+}
+
+export interface PracticeWrongAnswerDto {
+  questionId: number;
+  cardId: number;
+  word: string;
+  selectedOptionId?: string;
+  correctOptionId: string;
+  correctMeaning: string;
+}
+
+export interface SubmitPracticeResponse {
+  sessionId: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracyPercent: number;
+  xpEarned: number;
+  currentStreak: number;
+  streakIncremented: boolean;
+  timeSpentSeconds: number;
+  wrongAnswers: PracticeWrongAnswerDto[];
+}
+
