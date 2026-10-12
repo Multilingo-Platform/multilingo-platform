@@ -54,6 +54,12 @@ public enum ErrorCode {
     FLASHCARD_LANG_INVALID(1211, HttpStatus.UNPROCESSABLE_ENTITY, "Mã ngôn ngữ không hợp lệ"),
     DECK_EMPTY(1212, HttpStatus.BAD_REQUEST, "Bộ thẻ chưa có từ vựng nào để ôn tập"),
     INVALID_SRS_RATING(1213, HttpStatus.BAD_REQUEST, "Mức độ đánh giá SRS không hợp lệ (chỉ chấp nhận REMEMBERED hoặc FORGOTTEN)"),
+    QUIZ_INVALID_REQUEST(1214, HttpStatus.BAD_REQUEST, "Yêu cầu luyện tập không hợp lệ"),
+    QUIZ_INSUFFICIENT_CONTENT(1215, HttpStatus.UNPROCESSABLE_ENTITY, "Không đủ từ vựng để tạo bài luyện tập (tối thiểu 4 từ vựng)"),
+    QUIZ_SESSION_NOT_FOUND(1216, HttpStatus.NOT_FOUND, "Không tìm thấy phiên luyện tập"),
+    QUIZ_SESSION_EXPIRED(1217, HttpStatus.GONE, "Phiên luyện tập đã hết hạn"),
+    QUIZ_IDEMPOTENCY_CONFLICT(1218, HttpStatus.CONFLICT, "Khóa thao tác bị xung đột dữ liệu"),
+    QUIZ_ALREADY_SUBMITTED(1219, HttpStatus.CONFLICT, "Phiên luyện tập đã được nộp trước đó"),
 
     // Exam Builder Errors (14xx)
     EXAM_NOT_FOUND(1401, HttpStatus.NOT_FOUND, "Không tìm thấy đề thi yêu cầu"),
