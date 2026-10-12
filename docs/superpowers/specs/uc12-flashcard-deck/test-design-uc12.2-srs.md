@@ -27,7 +27,7 @@
      - Tính điểm thưởng kinh nghiệm (+10 XP cơ bản + 2 XP/thẻ nhớ).
 - **Out-of-Scope (Thực hiện ở các UC khác):**
   - Chế độ Quiz trắc nghiệm 4 đáp án (thuộc `UC012.3`).
-  - Chế độ Thi thử tính giờ (thuộc `UC012.4`).
+  - Chế độ Thi thử tính giờ (xem uc12.5-kiem-tra-tu-vung.md); Luyện tập Quiz UC012.4 có đặc tả riêng.
   - Trò chơi ghép thẻ tốc độ (thuộc `UC012.5`).
 
 ---
@@ -41,7 +41,7 @@ Feature: Ôn tập Flashcard SRS Backend APIs
 
   Scenario: Khởi tạo phiên ôn tập thành công trên bộ thẻ hợp lệ
     Given Người dùng "user1" (ID: 1) sở hữu bộ thẻ #1 có 5 thẻ từ vựng
-    When Người dùng gọi API GET "/api/v1/vocab/decks/1/study-session" với Header "X-User-Id: 1"
+    When Người dùng gọi API GET "/api/v1/vocab/decks/1/study-session" với JWT của user 1 (sau chuyển đổi identity theo kế hoạch UC012.4)
     Then Hệ thống trả về HTTP 200 OK với ApiResponse success
     And Dữ liệu trả về chứa danh sách thẻ có maskedSentence được ẩn từ vựng gốc
 
