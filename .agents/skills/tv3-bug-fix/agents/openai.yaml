@@ -1,0 +1,4 @@
+interface:
+  display_name: "TV3 Bug Fix"
+  short_description: "Chẩn đoán và sửa bug trong các feature TV3"
+  default_prompt: "Dùng $tv3-bug-fix để tái hiện và sửa bug TV3 theo plan, handoff và regression test."
