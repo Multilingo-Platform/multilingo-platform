@@ -11,6 +11,21 @@ const UserLayout = () => {
   const location = useLocation();
   const isPaymentResultPage = location.pathname.includes('/payment/result');
 
+  // Kiểm tra nếu đang ở chế độ làm bài / ôn tập / thi thử Flashcard toàn màn hình
+  const searchParams = new URLSearchParams(location.search);
+  const flashcardMode = searchParams.get('mode');
+  const isFlashcardFullscreenMode =
+    location.pathname.includes('/flashcards') &&
+    ['study', 'practice', 'quiz', 'test', 'match'].includes(flashcardMode || '');
+
+  if (isFlashcardFullscreenMode) {
+    return (
+      <main style={{ minHeight: '100vh', width: '100%', margin: 0, padding: 0 }}>
+        <Outlet />
+      </main>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       {/* Top Navbar */}
