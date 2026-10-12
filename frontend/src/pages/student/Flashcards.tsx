@@ -283,10 +283,13 @@ const Flashcards: React.FC = () => {
     }
   };
 
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+
   /**
    * Xử lý khi người dùng gõ tìm kiếm hoặc chọn lọc trạng thái trong màn hình chi tiết
    */
   const handleFilterCards = (keyword: string, status: string) => {
+    setFilterStatus(status || 'ALL');
     if (selectedDeck) {
       fetchCards(selectedDeck.id, keyword, status);
     }
@@ -350,6 +353,7 @@ const Flashcards: React.FC = () => {
           <QuizPracticeView
             deck={selectedDeck}
             cards={cards}
+            initialFilterStatus={filterStatus as any}
             onBack={() => setViewMode('DECK_DETAIL')}
           />
         </Suspense>

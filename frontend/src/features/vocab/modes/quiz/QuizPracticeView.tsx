@@ -15,6 +15,8 @@ import type {
   PracticeSessionSnapshotDto,
   SubmitPracticeResponse,
   SubmitPracticeAnswerDto,
+  SubmitPracticeRequest,
+  VocabFilterStatus,
 } from '../../types/vocab.types';
 import { vocabApi } from '../../api/vocabApi';
 import { quizSessionStore } from '../../utils/quizSessionStore';
@@ -35,6 +37,8 @@ export interface QuizPracticeViewProps {
   onBack: () => void;
   /** Callback tùy chọn khi kết thúc bài học để refresh lại decks */
   onFinish?: () => void;
+  /** Bộ lọc trạng thái từ vựng ban đầu (tùy chọn) */
+  initialFilterStatus?: VocabFilterStatus;
 }
 
 /**
@@ -84,6 +88,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
   cards,
   onBack,
   onFinish,
+  initialFilterStatus,
 }) => {
   const { playCorrectSound, playWrongSound, playVictorySound } = useSoundEffects();
 
@@ -102,47 +107,86 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
   const [totalElapsedTime, setTotalElapsedTime] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Đóng băng payload khi submit (chống đổi hash gây 409 conflict khi retry)
+  const frozenPayloadRef = useRef<SubmitPracticeRequest | null>(null);
+
   // --- Trạng thái nộp bài & Kết quả ---
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submissionResult, setSubmissionResult] = useState<SubmitPracticeResponse | null>(null);
   const [showMistakes, setShowMistakes] = useState<boolean>(false);
 
   /**
-   * Khởi tạo bài trắc nghiệm từ Backend API (Lấy mặc định tối đa 15 câu, hoặc bằng số từ có sẵn)
+   * Khởi tạo bài trắc nghiệm từ Backend API hoặc khôi phục phiên đang làm dở (F5 / Reload)
    */
-  const initPracticeSession = useCallback(async () => {
-    if (cards.length < 4) {
-      setLoadingSession(false);
-      return;
-    }
+  const initPracticeSession = useCallback(
+    async (forceNew: boolean = false) => {
+      if (cards.length < 4) {
+        setLoadingSession(false);
+        return;
+      }
 
-    try {
-      setLoadingSession(true);
-      const snapshot = await vocabApi.createPracticeSession(deck.id, {
-        filterStatus: 'ALL',
-        limit: 15,
-      });
-      setSession(snapshot);
-      setCurrentIndex(0);
-      setSelectedAnswers({});
-      setCurrentSelectedOptionId(null);
-      setIsAnsweredCurrent(false);
-      setSubmissionResult(null);
-      setTotalElapsedTime(0);
-      setQuestionStartTime(Date.now());
+      // Khôi phục phiên làm bài nếu có phiên active còn hạn và không bắt buộc tạo mới
+      if (!forceNew) {
+        const cached = quizSessionStore.getActiveSession(deck.id);
+        if (cached && cached.session && cached.session.questions?.length > 0) {
+          setSession(cached.session);
+          setCurrentIndex(cached.currentIndex);
+          setSelectedAnswers(cached.selectedAnswers);
+          setTotalElapsedTime(cached.totalElapsedTime);
+          const currentQId = cached.session.questions[cached.currentIndex]?.questionId;
+          const currentAnswer = currentQId ? cached.selectedAnswers[currentQId] : undefined;
+          if (currentAnswer) {
+            setCurrentSelectedOptionId(currentAnswer.selectedOptionId);
+            setIsAnsweredCurrent(true);
+          } else {
+            setCurrentSelectedOptionId(null);
+            setIsAnsweredCurrent(false);
+          }
+          setSubmissionResult(null);
+          setQuestionStartTime(Date.now());
+          setLoadingSession(false);
+          return;
+        }
+      }
 
-      // Lưu tiến độ ban đầu
-      quizSessionStore.saveProgress(snapshot.sessionId, 0, {}, 0);
-    } catch (err: unknown) {
-      console.error('Lỗi khi tạo phiên trắc nghiệm:', err);
-      const msg = err instanceof Error ? err.message : 'Không đủ từ vựng để tạo bài luyện tập';
-      alertUtil.toast(msg, 'error');
-    } finally {
-      setLoadingSession(false);
-    }
-  }, [deck.id, cards.length]);
+      try {
+        setLoadingSession(true);
+        const filter = initialFilterStatus || 'ALL';
+        const snapshot = await vocabApi.createPracticeSession(deck.id, {
+          filterStatus: filter,
+          limit: 15,
+        });
+        setSession(snapshot);
+        setCurrentIndex(0);
+        setSelectedAnswers({});
+        setCurrentSelectedOptionId(null);
+        setIsAnsweredCurrent(false);
+        setSubmissionResult(null);
+        setTotalElapsedTime(0);
+        setQuestionStartTime(Date.now());
+        frozenPayloadRef.current = null;
 
-  // Tự động khởi tạo phiên học khi vào chế độ Luyện tập
+        // Lưu phiên active vào LocalStorage
+        quizSessionStore.saveActiveSession(deck.id, {
+          deckId: deck.id,
+          session: snapshot,
+          currentIndex: 0,
+          selectedAnswers: {},
+          totalElapsedTime: 0,
+          lastUpdated: Date.now(),
+        });
+      } catch (err: unknown) {
+        console.error('Lỗi khi tạo phiên trắc nghiệm:', err);
+        const msg = err instanceof Error ? err.message : 'Không đủ từ vựng để tạo bài luyện tập';
+        alertUtil.toast(msg, 'error');
+      } finally {
+        setLoadingSession(false);
+      }
+    },
+    [deck.id, cards.length, initialFilterStatus]
+  );
+
+  // Tự động khởi tạo hoặc khôi phục phiên học khi vào chế độ Luyện tập
   useEffect(() => {
     initPracticeSession();
   }, [initPracticeSession]);
@@ -190,20 +234,15 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
       };
       setSelectedAnswers(nextAnswers);
 
-      // Đồng bộ tiến độ vào LocalStorage
-      const legacyAnswersFormat: Record<number, { selectedOption: string; timeSpentSeconds: number }> = {};
-      Object.entries(nextAnswers).forEach(([qId, val]) => {
-        legacyAnswersFormat[Number(qId)] = {
-          selectedOption: val.selectedOptionId,
-          timeSpentSeconds: val.timeSpentSeconds,
-        };
-      });
-      quizSessionStore.saveProgress(
-        session.sessionId,
+      // Đồng bộ tiến độ vào active session trong LocalStorage
+      quizSessionStore.saveActiveSession(deck.id, {
+        deckId: deck.id,
+        session,
         currentIndex,
-        legacyAnswersFormat,
-        totalElapsedTime
-      );
+        selectedAnswers: nextAnswers,
+        totalElapsedTime,
+        lastUpdated: Date.now(),
+      });
     },
     [
       isAnsweredCurrent,
@@ -215,6 +254,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
       totalElapsedTime,
       playCorrectSound,
       playWrongSound,
+      deck.id,
     ]
   );
 
@@ -226,20 +266,30 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
     try {
       setIsSubmitting(true);
 
-      const answerDtos: SubmitPracticeAnswerDto[] = session.questions.map((q) => {
-        const recorded = selectedAnswers[q.questionId];
-        return {
-          questionId: q.questionId,
-          selectedOptionId: recorded ? recorded.selectedOptionId : undefined,
+      let payloadToSubmit: SubmitPracticeRequest;
+      if (frozenPayloadRef.current) {
+        // Tái sử dụng đúng frozen payload khi retry do rớt mạng/timeout để đảm bảo hash không đổi, tránh lỗi 409 Conflict
+        payloadToSubmit = frozenPayloadRef.current;
+      } else {
+        const answerDtos: SubmitPracticeAnswerDto[] = session.questions.map((q) => {
+          const recorded = selectedAnswers[q.questionId];
+          return {
+            questionId: q.questionId,
+            selectedOptionId: recorded ? recorded.selectedOptionId : undefined,
+          };
+        });
+        payloadToSubmit = {
+          durationSeconds: totalElapsedTime,
+          answers: answerDtos,
         };
-      });
+        frozenPayloadRef.current = payloadToSubmit;
+      }
 
-      const result = await vocabApi.submitPracticeSession(session.sessionId, {
-        durationSeconds: totalElapsedTime,
-        answers: answerDtos,
-      });
+      const result = await vocabApi.submitPracticeSession(session.sessionId, payloadToSubmit);
 
       setSubmissionResult(result);
+      frozenPayloadRef.current = null;
+      quizSessionStore.clearActiveSession(deck.id);
       quizSessionStore.clearProgress(session.sessionId);
       playVictorySound();
       if (onFinish) onFinish();
@@ -250,7 +300,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [session, selectedAnswers, totalElapsedTime, playVictorySound, onFinish]);
+  }, [session, selectedAnswers, totalElapsedTime, playVictorySound, onFinish, deck.id]);
 
   /**
    * Chuyển sang câu tiếp theo hoặc tự động nộp bài ở câu cuối
@@ -264,11 +314,21 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
       setCurrentSelectedOptionId(null);
       setIsAnsweredCurrent(false);
       setQuestionStartTime(Date.now());
+
+      // Cập nhật câu hiện tại vào active session
+      quizSessionStore.saveActiveSession(deck.id, {
+        deckId: deck.id,
+        session,
+        currentIndex: nextIdx,
+        selectedAnswers,
+        totalElapsedTime,
+        lastUpdated: Date.now(),
+      });
     } else {
       // Câu cuối cùng -> Tự động nộp bài
       handleSubmitQuiz();
     }
-  }, [isAnsweredCurrent, session, currentIndex, handleSubmitQuiz]);
+  }, [isAnsweredCurrent, session, currentIndex, handleSubmitQuiz, deck.id, selectedAnswers, totalElapsedTime]);
 
   /**
    * Xác nhận thoát
@@ -284,10 +344,12 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
       UI_TEXT.exitCancelBtn
     );
     if (isConfirmed) {
+      quizSessionStore.clearActiveSession(deck.id);
       if (session) quizSessionStore.clearProgress(session.sessionId);
+      frozenPayloadRef.current = null;
       onBack();
     }
-  }, [submissionResult, session, onBack]);
+  }, [submissionResult, session, onBack, deck.id]);
 
   /**
    * Lắng nghe phím tắt: 1-4 chọn phương án, Enter câu tiếp theo, Esc thoát
@@ -395,7 +457,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
             totalCards={submissionResult.totalQuestions}
             totalCardsLabel="Tổng số câu"
             extraStats={extraStats}
-            onPlayAgain={initPracticeSession}
+            onPlayAgain={() => initPracticeSession(true)}
             playAgainText="Luyện tập lại"
             onBackToDeck={onBack}
             backToDeckText="Quay lại bộ thẻ"

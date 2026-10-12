@@ -6,6 +6,7 @@ import type {
   Flashcard,
   CreateDeckRequest,
   CreateFlashcardRequest,
+  VocabFilterStatus,
 } from '../types/vocab.types';
 import { alertUtil } from '../../../utils/alert';
 import { DeckListView } from '../components/deck/DeckListView';
@@ -276,8 +277,11 @@ export const FlashcardsPage: React.FC = () => {
     }
   };
 
+  const [filterStatus, setFilterStatus] = useState<VocabFilterStatus>('ALL');
+
   const handleFilterCards = useCallback(
     (keyword: string, status: string) => {
+      setFilterStatus((status as VocabFilterStatus) || 'ALL');
       if (selectedDeckId) {
         fetchCards(selectedDeckId, keyword, status);
       }
@@ -363,6 +367,7 @@ export const FlashcardsPage: React.FC = () => {
             <QuizPracticeView
               deck={selectedDeck}
               cards={cards}
+              initialFilterStatus={filterStatus}
               onBack={() => setSearchParams({ deckId: String(selectedDeck.id) })}
               onFinish={() => {
                 fetchDecks();
