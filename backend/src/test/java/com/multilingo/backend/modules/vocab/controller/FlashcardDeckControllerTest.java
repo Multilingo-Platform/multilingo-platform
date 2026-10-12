@@ -10,6 +10,8 @@ import com.multilingo.backend.modules.vocab.dto.response.DeckDetailResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckSummaryResponse;
 import com.multilingo.backend.modules.vocab.service.FlashcardDeckService;
+import com.multilingo.backend.modules.vocab.security.VocabIdentityResolver;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,9 @@ class FlashcardDeckControllerTest {
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @MockBean
+    private VocabIdentityResolver identityResolver;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -50,6 +55,11 @@ class FlashcardDeckControllerTest {
 
     @MockBean
     private FlashcardDeckService flashcardDeckService;
+
+    @BeforeEach
+    void setUp() {
+        when(identityResolver.requireUserId()).thenReturn(1);
+    }
 
     @Test
     @DisplayName("TC_VOCAB_DECK_01: GET /api/v1/vocab/decks - Lấy danh sách bộ thẻ thành công 200 OK")
@@ -158,6 +168,7 @@ class FlashcardDeckControllerTest {
     @Test
     @DisplayName("TC_VOCAB_DECK_05: GET /api/v1/vocab/decks/{id} - Chặn IDOR trả về 403 Forbidden")
     void getDeckDetail_forbidden() throws Exception {
+        when(identityResolver.requireUserId()).thenReturn(2);
         when(flashcardDeckService.getDeckDetail(10, 2))
                 .thenThrow(new AppException(ErrorCode.FORBIDDEN));
 

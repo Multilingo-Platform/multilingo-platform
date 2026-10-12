@@ -44,7 +44,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/health", "/api/test/**", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh-token").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/users").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/api/v1/vocab/**").permitAll()
                 .requestMatchers("/api/v1/billing/vnpay/ipn").permitAll()
                 .anyRequest().authenticated()
             );

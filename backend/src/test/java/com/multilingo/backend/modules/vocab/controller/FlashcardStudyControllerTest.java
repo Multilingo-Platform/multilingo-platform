@@ -11,6 +11,8 @@ import com.multilingo.backend.modules.vocab.dto.response.FlashcardStudyCardDto;
 import com.multilingo.backend.modules.vocab.dto.response.StudySessionResponse;
 import com.multilingo.backend.modules.vocab.dto.response.StudySessionSummaryResponse;
 import com.multilingo.backend.modules.vocab.service.FlashcardStudyService;
+import com.multilingo.backend.modules.vocab.security.VocabIdentityResolver;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +48,9 @@ class FlashcardStudyControllerTest {
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @MockBean
+    private VocabIdentityResolver identityResolver;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -54,6 +59,11 @@ class FlashcardStudyControllerTest {
 
     @MockBean
     private FlashcardStudyService flashcardStudyService;
+
+    @BeforeEach
+    void setUp() {
+        when(identityResolver.requireUserId()).thenReturn(1);
+    }
 
     @Test
     @DisplayName("GET /api/v1/vocab/decks/{deckId}/study-session - Thành công 200 OK")
