@@ -64,6 +64,10 @@ class FlashcardStudyServiceTest {
     @Mock
     private UserStudyStatRepository userStudyStatRepository;
 
+    @org.mockito.Spy
+    private com.multilingo.backend.modules.vocab.mapper.FlashcardStudyMapper flashcardStudyMapper =
+            org.mapstruct.factory.Mappers.getMapper(com.multilingo.backend.modules.vocab.mapper.FlashcardStudyMapper.class);
+
     @InjectMocks
     private FlashcardStudyServiceImpl flashcardStudyService;
 

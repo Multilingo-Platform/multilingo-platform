@@ -19,8 +19,8 @@
 - [x] **Chặng 0: Khởi Tạo Nền Tảng, Khung Module & i18n** *(Đã hoàn thành - Commit `b415397`, `5854c62`, `1566715`)*
 - [x] **Chặng 1: UC012 - Quản Lý Sổ Tay & Bộ Thẻ Từ Vựng (Bảng 2.32)** *(Đã hoàn thành)*
 - [ ] **Chặng 2: UC12.2 - Chế Độ Ôn Tập Flashcard SRS (Spaced Repetition)**
-- [ ] **Chặng 3: UC12.3 & UC12.5 - Ghép Từ / Trắc Nghiệm & Trò Chơi Ghép Thẻ 60s**
-- [ ] **Chặng 4: UC12.4 - Thi Thử Từ Vựng Tính Giờ (Formal Assessment Test)**
+- [ ] **Chặng 3: UC12.4 & Match - Ghép Từ / Trắc Nghiệm & Trò Chơi Ghép Thẻ 60s**
+- [ ] **Chặng 4: Kiểm tra - Thi Thử Từ Vựng Tính Giờ (Formal Assessment Test)**
 - [ ] **Chặng 5: Đóng Gói Router, Dọn Dẹp Mã Nguồn Cũ & Nghiệm Thu Toàn Diện**
 
 ---
@@ -100,11 +100,8 @@
 
 ---
 
-### CHẶNG 3: UC12.3 & UC12.5 - GHÉP TỪ / TRẮC NGHIỆM & TRÒ CHƠI GHÉP THẺ 60S
-- [ ] **Task 3.1:** Xây dựng `features/vocab/modes/quiz/QuizPracticeView.tsx` (UC12.3):
-  - Sinh 4 đáp án A, B, C, D bằng `distractorGenerator.ts`.
-  - Instant Feedback: Đổi màu xanh/đỏ tức thì kèm âm thanh qua `useSoundEffects`.
-  - Hiển thị giải thích chi tiết, phím tắt `<Enter>` qua câu tiếp.
+### CHẶNG 3: UC12.4 & Match - GHÉP TỪ / TRẮC NGHIỆM & TRÒ CHƠI GHÉP THẺ 60S
+- [ ] **Task 3.1:** Thực hiện Quiz UC012.4 theo [kế hoạch BE–FE chính](uc12-flashcard-deck/2026-10-10-uc012.4-frontend-quiz-practice.md), [đặc tả](../specs/uc12-flashcard-deck/uc12.4-hoc-tu-vung.md) và [test design](../specs/uc12-flashcard-deck/test-design-uc12.4-quiz.md). Không giữ task sinh đề/chấm/lưu Quiz riêng trong roadmap tổng quan.
 - [ ] **Task 3.2:** Xây dựng `features/vocab/modes/match/MatchGameView.tsx` (UC12.5):
   - Bàn cờ Responsive 12 ô (6 từ + 6 nghĩa).
   - Tận dụng `useVocabTimer` đếm ngược 60 giây, phạt trừ 5s khi chọn sai cặp.
@@ -112,7 +109,7 @@
 
 ---
 
-### CHẶNG 4: UC12.4 - THI THỬ TÍNH GIỜ (FORMAL ASSESSMENT TEST)
+### CHẶNG 4: KIỂM TRA - THI THỬ TÍNH GIỜ (FORMAL ASSESSMENT TEST)
 - [ ] **Task 4.1:** Xây dựng `features/vocab/modes/test/TestQuestionPalette.tsx` (Bảng câu hỏi chuyển nhanh 1 ➔ N).
 - [ ] **Task 4.2:** Xây dựng `features/vocab/modes/test/VocabTestView.tsx`:
   - Không lộ đáp án trong lúc làm bài, tính giờ bằng `useVocabTimer`.

@@ -99,4 +99,32 @@ export const vocabApi = {
     )) as unknown as ApiResponse<StudySessionSummaryResponse>;
     return res.data;
   },
+
+  // ==========================================
+  // 4. Chế độ Luyện tập Trắc nghiệm (UC12.4)
+  // ==========================================
+  // Chế độ Luyện tập Từ vựng Redis + Receipt (UC12.4 Practice)
+  // ==========================================
+  createPracticeSession: async (
+    deckId: number,
+    data?: import('../types/vocab.types').CreateQuizSessionRequest
+  ): Promise<import('../types/vocab.types').PracticeSessionSnapshotDto> => {
+    const res = (await axiosClient.post(
+      `/v1/vocab/decks/${deckId}/practice/sessions`,
+      data || {}
+    )) as unknown as ApiResponse<import('../types/vocab.types').PracticeSessionSnapshotDto>;
+    return res.data;
+  },
+
+  submitPracticeSession: async (
+    sessionId: string,
+    data: import('../types/vocab.types').SubmitPracticeRequest
+  ): Promise<import('../types/vocab.types').SubmitPracticeResponse> => {
+    const res = (await axiosClient.post(
+      `/v1/vocab/practice/sessions/${sessionId}/submit`,
+      data
+    )) as unknown as ApiResponse<import('../types/vocab.types').SubmitPracticeResponse>;
+    return res.data;
+  },
 };
+

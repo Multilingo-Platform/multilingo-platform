@@ -16,7 +16,7 @@ import { ConfirmDeleteDeckModal } from '../../components/vocab/ConfirmDeleteDeck
 
 // Code-splitting Lazy Loading cho các chế độ học tập nâng cao để tối ưu kích thước bundle ban đầu
 const QuizPracticeView = lazy(() =>
-  import('../../components/vocab/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
+  import('../../features/vocab/modes/quiz/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
 );
 const VocabTestView = lazy(() =>
   import('../../components/vocab/VocabTestView').then((m) => ({ default: m.VocabTestView }))
@@ -283,10 +283,13 @@ const Flashcards: React.FC = () => {
     }
   };
 
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+
   /**
    * Xử lý khi người dùng gõ tìm kiếm hoặc chọn lọc trạng thái trong màn hình chi tiết
    */
   const handleFilterCards = (keyword: string, status: string) => {
+    setFilterStatus(status || 'ALL');
     if (selectedDeck) {
       fetchCards(selectedDeck.id, keyword, status);
     }
@@ -350,6 +353,7 @@ const Flashcards: React.FC = () => {
           <QuizPracticeView
             deck={selectedDeck}
             cards={cards}
+            initialFilterStatus={filterStatus as any}
             onBack={() => setViewMode('DECK_DETAIL')}
           />
         </Suspense>

@@ -54,8 +54,8 @@ export const ModeHeader: React.FC<ModeHeaderProps> = ({
         {/* Góc phải: Bộ đếm tiến độ thẻ & Nút Dừng */}
         <div className="flex items-center gap-3 shrink-0">
           {currentIndex !== undefined && totalItems !== undefined && (
-            <div className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs sm:text-sm font-bold text-slate-700">
-              Thẻ <span className="text-amber-600">{currentIndex}</span> / {totalItems}
+            <div className="px-3 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700">
+              Thẻ <span className="text-amber-600 font-bold">{currentIndex}</span> / {totalItems}
             </div>
           )}
 

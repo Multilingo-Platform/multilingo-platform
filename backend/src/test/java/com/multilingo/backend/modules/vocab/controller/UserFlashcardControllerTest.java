@@ -8,6 +8,8 @@ import com.multilingo.backend.modules.vocab.dto.request.CreateFlashcardRequest;
 import com.multilingo.backend.modules.vocab.dto.request.UpdateFlashcardRequest;
 import com.multilingo.backend.modules.vocab.dto.response.FlashcardResponse;
 import com.multilingo.backend.modules.vocab.service.UserFlashcardService;
+import com.multilingo.backend.modules.vocab.security.VocabIdentityResolver;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,9 @@ class UserFlashcardControllerTest {
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @MockBean
+    private VocabIdentityResolver identityResolver;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -50,6 +55,11 @@ class UserFlashcardControllerTest {
 
     @MockBean
     private UserFlashcardService userFlashcardService;
+
+    @BeforeEach
+    void setUp() {
+        when(identityResolver.requireUserId()).thenReturn(1);
+    }
 
     @Test
     @DisplayName("TC_VOCAB_CARD_01 & 02: GET /api/v1/vocab/decks/{deckId}/cards - Lấy danh sách thẻ từ vựng 200 OK")
@@ -157,6 +167,7 @@ class UserFlashcardControllerTest {
     @Test
     @DisplayName("TC_VOCAB_CARD_07: POST /api/v1/vocab/decks/{deckId}/cards - Chặn IDOR trả về 403 Forbidden")
     void addCard_forbidden() throws Exception {
+        when(identityResolver.requireUserId()).thenReturn(2);
         CreateFlashcardRequest req = CreateFlashcardRequest.builder()
                 .customWord("hack")
                 .customMeaning("nghĩa")

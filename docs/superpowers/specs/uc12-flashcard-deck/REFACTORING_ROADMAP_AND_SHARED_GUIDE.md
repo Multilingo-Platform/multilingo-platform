@@ -21,7 +21,7 @@ frontend/src/features/vocab/
 │   ├── useKeyboardShortcuts.ts       # Hook lắng nghe phím tắt (Space lật thẻ, 1/2 đánh giá, Enter tiếp tục)
 │   └── useSoundEffects.ts            # Web Audio API phát âm thanh đúng (ting) / sai (buzz) tức thì
 ├── utils/                            # CÁC TIỆN ÍCH DÙNG CHUNG
-│   ├── distractorGenerator.ts        # Thuật toán bốc phương án nhiễu ngẫu nhiên (cho Quiz & Test)
+│   ├── distractorGenerator.ts        # Tiện ích cũ; Quiz mới nhận snapshot BE, không dùng làm nguồn đề
 │   └── vocabFormatters.ts            # Định dạng thời gian (mm:ss), tính % chính xác, tính điểm combo
 ├── components/                       # CÁC THÀNH PHẦN GIAO DIỆN DÙNG CHUNG
 │   ├── common/
@@ -41,13 +41,13 @@ frontend/src/features/vocab/
 │   ├── srs/                          # UC12.2: Ôn tập Flashcard SRS
 │   │   ├── SrsStudyView.tsx
 │   │   └── FlipCard.tsx              # Component thẻ lật 3D
-│   ├── quiz/                         # UC12.3: Học từ vựng / Ghép từ (Quiz trắc nghiệm)
+│   ├── quiz/                         # UC12.4: Luyện tập Quiz (xem đặc tả chính)
 │   │   ├── QuizPracticeView.tsx
 │   │   └── QuizOptionButton.tsx      # Nút phương án A, B, C, D đổi màu tức thì
 │   ├── match/                        # UC12.5: Trò chơi Ghép thẻ tốc độ 60s
 │   │   ├── MatchGameView.tsx
 │   │   └── MatchTile.tsx             # Ô thẻ từ vựng / định nghĩa có animation
-│   └── test/                         # UC12.4: Thi thử từ vựng có tính giờ
+│   └── test/                         # Kiểm tra: Thi thử từ vựng có tính giờ
 │       ├── VocabTestView.tsx
 │       ├── TestQuestionPalette.tsx   # Bảng điều hướng câu hỏi 1 -> N
 │       └── TestReviewModal.tsx       # Xem lại chi tiết đáp án sau khi thi
@@ -104,12 +104,12 @@ Chúng ta chia quá trình làm thành **5 chặng độc lập**. Sau mỗi ch�
 └───────────────────────────────────┬────────────────────────────────────┘
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│  CHẶNG 3: UC12.3 & UC12.5 - GAME & LUYỆN TẬP (Quiz & Speed Match)      │
+│  CHẶNG 3: UC12.4 & Match - GAME & LUYỆN TẬP (Quiz & Speed Match)      │
 │  Refactor QuizPracticeView, MatchGameView, tích hợp useSoundEffects    │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│  CHẶNG 4: UC12.4 - THI THỬ TÍNH GIỜ (Formal Vocab Assessment Test)     │
+│  CHẶNG 4: KIỂM TRA - THI THỬ TÍNH GIỜ (Formal Vocab Assessment Test)     │
 │  Refactor VocabTestView, QuestionPalette, Review Answers sau khi thi   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -160,25 +160,15 @@ Chúng ta chia quá trình làm thành **5 chặng độc lập**. Sau mỗi ch�
 
 ---
 
-### Chặng 3: UC12.3 & UC12.5 - Ghép Từ / Trắc Nghiệm & Trò Chơi Ghép Thẻ 60s
-*   **Mục tiêu:** Hoàn thiện 2 chế độ luyện tập có tính tương tác cao và gamification.
-*   **File refactor:**
-    - `modes/quiz/QuizPracticeView.tsx` (UC12.3 - Học từ vựng / Ghép từ)
-    - `modes/match/MatchGameView.tsx` (UC12.5 - Trò chơi Ghép thẻ tốc độ)
-*   **Điểm nâng cấp:**
-    - **QuizPracticeView:**
-      + Dùng `distractorGenerator.ts` sinh 4 phương án trắc nghiệm A, B, C, D (1 đúng + 3 nhiễu).
-      + Instant Feedback: Chọn xong ô đúng hóa xanh, ô sai hóa đỏ + làm nổi bật đáp án đúng; phát âm thanh qua `useSoundEffects`.
-      + Hiển thị giải thích ngữ cảnh chi tiết trước khi bấm Tiếp tục (`<Enter>`).
-    - **MatchGameView:**
-      + Tận dụng `useVocabTimer` đếm ngược 60 giây, hỗ trợ hàm `deductTime(5)` khi người dùng chọn sai cặp thẻ.
-      + Bàn cờ 12 ô (6 từ + 6 nghĩa) có hiệu ứng khớp thẻ: Đúng phát âm thanh vui tươi và biến mất; Sai rung lắc (shake) và trừ 5 giây.
-      + Lưu kỷ lục điểm cao cá nhân vào `localStorage` / hồ sơ.
-*   **Tiêu chí nghiệm thu (AC):** Cả 2 chế độ đều kiểm tra chặn nếu bộ thẻ chưa đủ số từ tối thiểu (Quiz cần $\ge 4$ từ, Match Game cần $\ge 6$ từ); trải nghiệm game mượt mà không delay.
+### Chặng 3: Luyện tập UC012.4 và Ghép thẻ
+
+Quiz được triển khai theo [đặc tả chính](uc12.4-hoc-tu-vung.md), [test design](test-design-uc12.4-quiz.md) và [kế hoạch BE–FE duy nhất](../../plans/uc12-flashcard-deck/2026-10-10-uc012.4-frontend-quiz-practice.md). Roadmap này không giữ task hoặc thuật toán Quiz riêng. FE phản hồi cục bộ, BE tạo snapshot và xác nhận batch submit; không dùng generator FE làm nguồn đề chính sau tích hợp.
+
+Match giữ roadmap riêng: modes/match/MatchGameView.tsx, timer, bảng ghép và hiệu ứng. Quy tắc Match xem đặc tả chế độ tương ứng; không áp quy tắc thưởng Quiz sang Match.
 
 ---
 
-### Chặng 4: UC12.4 - Thi Thử Từ Vựng Tính Giờ (Formal Assessment Test)
+### Chặng 4: Kiểm tra - Thi Thử Từ Vựng Tính Giờ (Formal Assessment Test)
 *   **Mục tiêu:** Phòng thi trắc nghiệm nghiêm túc, khách quan, có xem lại bài thi chi tiết.
 *   **File refactor:**
     - `modes/test/VocabTestView.tsx`

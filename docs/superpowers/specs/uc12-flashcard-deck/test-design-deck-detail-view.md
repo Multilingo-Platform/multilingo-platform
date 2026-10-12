@@ -6,7 +6,7 @@
 - **Tài liệu tham chiếu:**
   - [uc12.1-quan-ly-bo-the-va-the-tu-vung.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/superpowers/specs/uc12-flashcard-deck/uc12.1-quan-ly-bo-the-va-the-tu-vung.md)
   - [uc12.2-on-tap-flashcard.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/superpowers/specs/uc12-flashcard-deck/uc12.2-on-tap-flashcard.md)
-  - [uc12.3-hoc-tu-vung.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/superpowers/specs/uc12-flashcard-deck/uc12.3-hoc-tu-vung.md)
+  - [uc12.4-hoc-tu-vung.md](uc12.4-hoc-tu-vung.md)
   - [uc12.4-kiem-tra-tu-vung.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/superpowers/specs/uc12-flashcard-deck/uc12.4-kiem-tra-tu-vung.md)
   - [uc12.5-tro-choi-ghep-the-toc-do.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/superpowers/specs/uc12-flashcard-deck/uc12.5-tro-choi-ghep-the-toc-do.md)
   - [uc12.6-xoa-the-ghi-nho-flashcard.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/superpowers/specs/uc12-flashcard-deck/uc12.6-xoa-the-ghi-nho-flashcard.md)
@@ -21,7 +21,7 @@ Chuẩn hóa màn hình **Chi tiết của một bộ thẻ** khi người dùng
 2. **Cụm 4 Chế độ Học & Chơi:**
    - 🗂️ **Flashcard:** Ôn tập lặp lại ngắt quãng SRS lật thẻ 3D (UC012.2).
    - 🎯 **Ôn tập (Học từ vựng):** Trắc nghiệm 4 đáp án chọn nghĩa (UC012.3, yêu cầu bộ thẻ >= 4 từ).
-   - 📝 **Thi (Kiểm tra từ vựng):** Thi thử có tính giờ, chấm điểm và xem lại bài làm (UC012.4, yêu cầu bộ thẻ >= 4 từ).
+   - 📝 **Thi (Kiểm tra từ vựng):** Thi thử có tính giờ, chấm điểm và xem lại bài làm (xem uc12.5-kiem-tra-tu-vung.md, yêu cầu bộ thẻ >= 4 từ).
    - ⚡ **Ghép từ (Ghép thẻ tốc độ):** Trò chơi phản xạ nối từ - nghĩa trong 60 giây (UC012.5, yêu cầu bộ thẻ >= 6 từ).
 3. **Quản lý Thẻ từ vựng bên trong bộ (Thêm - Sửa - Xóa 1 thẻ):**
    - Nút **"+ Thêm từ mới"** mở Modal thêm từ vựng.
@@ -95,7 +95,7 @@ Feature: Màn hình Chi tiết Bộ thẻ Từ vựng (Deck Detail Hub)
 | **2. Negative** | - Bộ thẻ có 0 từ: 4 chế độ bị disabled, nhắc nhở thêm từ vựng.<br>- Xóa thẻ nhưng bấm "Hủy bỏ": Thẻ giữ nguyên không bị xóa. |
 | **3. Boundary** | - Deck có 3 từ: Flashcard active; Quiz, Thi, Ghép từ disabled.<br>- Deck có 4 từ: Flashcard, Quiz, Thi active; Ghép từ disabled.<br>- Deck có 6 từ: Toàn bộ 4 chế độ đều active. |
 | **4. Edge Cases** | - Từ vựng có nghĩa hoặc câu ví dụ rất dài: Bố cục co giãn không bị vỡ layout.<br>- Xóa thẻ cuối cùng trong bộ: Tự động chuyển về trạng thái rỗng (Empty State) thân thiện. |
-| **5. Security** | Thao tác Thêm/Sửa/Xóa 1 thẻ gửi đúng `deckId`, `cardId` và header `X-User-Id`, kiểm soát IDOR. |
+| **5. Security** | Thao tác Thêm/Sửa/Xóa 1 thẻ gửi đúng `deckId`, `cardId` và JWT principal, kiểm soát IDOR. |
 | **6. UI/UX** | Giao diện chuẩn EdTech cổ điển ấm áp (Warm Classic), bo góc nhẹ (4px - 10px), hover mượt mà. |
 
 ---

@@ -34,13 +34,13 @@ UC012 đóng vai trò là **Trung tâm điều phối (Launchpad / Navigation Hu
 4. **Hub điều hướng học tập:**
    - Hiển thị các nút điều hướng chuẩn bị cho các chế độ học:
      - *Thẻ ghi nhớ (Flashcard SRS)* -> route sang UC12.2
-     - *Học (Quiz chấm ngay)* -> route sang UC12.3
-     - *Kiểm tra (Test nộp bài)* -> route sang UC12.4
+     - *Luyện tập (Quiz chấm ngay)* -> route sang UC12.4
+     - *Kiểm tra (Test nộp bài)* -> xem uc12.5-kiem-tra-tu-vung.md
      - *Ghép thẻ (Speed Match)* -> route sang UC12.5
 
 ### 2.2. Out-of-Scope (Thực hiện ở các UC tiếp theo)
 - Thuật toán chấm điểm SRS và lật thẻ 3D (`UC12.2`).
-- Logic sinh câu hỏi và chấm thi Quiz (`UC12.3`) và Test Engine (`UC12.4`).
+- Logic phiên và chấm Quiz (`UC12.4`, xem [đặc tả chính](uc12.4-hoc-tu-vung.md)) và Test Engine (xem [đặc tả kiểm tra](uc12.5-kiem-tra-tu-vung.md)).
 - Cơ chế bàn cờ game ghép thẻ (`UC12.5`).
 - Tính năng chia sẻ cộng đồng / Clone bộ thẻ của người khác (sẽ thực hiện ở Phase cộng đồng).
 
@@ -218,3 +218,11 @@ Then Hệ thống lọc các thẻ có custom_word hoặc custom_meaning chứa 
 | **TC_VOCAB_CARD_03** | Happy Path | Thêm thẻ từ vựng mới vào deck thành công | User sở hữu deck | Gửi POST `/api/v1/vocab/decks/1/cards` | `{"customWord": "Ubiquitous", "customMeaning": "Có mặt ở khắp nơi"}` | HTTP 201, thẻ được lưu với status mặc định "NEW", easeFactor=2.5 |
 | **TC_VOCAB_CARD_04** | Negative | Thêm thẻ từ vựng thiếu nghĩa tự định nghĩa | User sở hữu deck | Gửi POST `/api/v1/vocab/decks/1/cards` | `{"customWord": "Test", "customMeaning": ""}` | HTTP 422, thông báo "Nghĩa từ vựng không được để trống" |
 | **TC_VOCAB_CARD_05** | Happy Path | Xóa một thẻ từ vựng khỏi deck | Thẻ ID=10 thuộc deck của user | Gửi DELETE `/api/v1/vocab/cards/10` | Token chủ sở hữu | HTTP 200, thẻ bị xóa vĩnh viễn |
+
+## Tài liệu chính UC012.4 — cập nhật 2026-10-11
+
+- [Đặc tả nghiệp vụ, kiến trúc và API Quiz](uc12.4-hoc-tu-vung.md).
+- [AC và test cases Quiz](test-design-uc12.4-quiz.md).
+- [Kế hoạch triển khai BE–FE](../../plans/uc12-flashcard-deck/2026-10-10-uc012.4-frontend-quiz-practice.md).
+
+Các tài liệu tổng quan chỉ điều hướng; không định nghĩa lại payload hay quy tắc XP của Quiz. UC012.4 là Luyện tập; mã cũ UC12.3 cho Quiz và UC12.4 cho Test trong roadmap được thay bằng tên chế độ/đặc tả riêng để tránh nhầm.
