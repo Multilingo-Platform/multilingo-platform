@@ -24,6 +24,12 @@ import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
 import { applyHighlights } from '../utils/htmlHighlight';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
+import { usePracticeFeedback } from '../hooks/usePracticeFeedback';
+import { usePracticeRetry } from '../hooks/usePracticeRetry';
+import { PracticeQuestionFeedback } from '../components/practice/PracticeQuestionFeedback';
+import { PracticeRetryToolbar } from '../components/practice/PracticeRetryToolbar';
+import { selectRetryQuestionIds, filterRetryGroups } from '../utils/practiceRetry';
+import { AlertCircle } from 'lucide-react';
 import { useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
@@ -126,6 +132,18 @@ const WorkspacePage: React.FC = () => {
   const [splitRatio, setSplitRatio] = useState<number>(50);
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
+
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileViewport(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!isDraggingSplit) return;
@@ -309,6 +327,42 @@ const WorkspacePage: React.FC = () => {
     [partQuestionGroups],
   );
 
+  const isPracticeMode = activeWorkspace?.test_mode === 'PRACTICE';
+
+  const practiceFeedback = usePracticeFeedback({
+    workspace: isPracticeMode ? activeWorkspace : null,
+    partId: isPracticeMode ? partId : null,
+    questions: isPracticeMode ? partQuestions : [],
+    isLocked: submission.isLocked(),
+  });
+
+  const retryContextKey = isPracticeMode && activeWorkspace?.attempt_id != null
+    ? `${activeWorkspace.attempt_id}:${answersState.contextRevision}`
+    : null;
+
+  const practiceRetry = usePracticeRetry(
+    retryContextKey,
+    isPracticeMode ? partId : null
+  );
+
+  const isFeedbackBlocked = Boolean(practiceFeedback.blockedMessage);
+
+  const handleStartRetry = () => {
+    if (isFeedbackBlocked || submission.isLocked() || isCurrentSectionLocked) return;
+    const retryIds = selectRetryQuestionIds(partQuestions, practiceFeedback.wrongQuestionIds);
+    if (retryIds.length > 0) {
+      practiceFeedback.hideFeedback(retryIds);
+      practiceRetry.start(retryIds);
+    }
+  };
+
+  const displayQuestionGroups = useMemo(() => {
+    if (isPracticeMode && practiceRetry.active) {
+      return filterRetryGroups(partQuestionGroups, new Set(practiceRetry.questionIds));
+    }
+    return partQuestionGroups;
+  }, [isPracticeMode, practiceRetry.active, practiceRetry.questionIds, partQuestionGroups]);
+
   // Compute unanswered questions across the entire exam
   const allQuestions = useMemo(() => {
     return allParts.flatMap((p: any) => {
@@ -331,8 +385,13 @@ const WorkspacePage: React.FC = () => {
     return Math.max(0, allQuestions.length - answered);
   }, [allQuestions, answersState.answers]);
 
-
-  const handleSubmit = (isTimeout = false) => submission.submit(isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL');
+  const handleSubmit = (isTimeout = false) => {
+    if (isPracticeMode) {
+      practiceFeedback.suspend();
+      practiceRetry.stop();
+    }
+    return submission.submit(isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL');
+  };
 
   useEffect(() => {
     if (!submission.result || submission.result.attempt_id !== attemptId) return;
@@ -736,7 +795,12 @@ const WorkspacePage: React.FC = () => {
       )}
 
       {/* 2. MAIN BODY: SPLIT-PANE WORKSPACE */}
-      <div ref={workspaceContainerRef} className="flex flex-1 overflow-hidden relative">
+      <div
+        ref={workspaceContainerRef}
+        className={`flex flex-1 overflow-hidden relative ${
+          isPracticeMode ? 'flex-col md:flex-row' : ''
+        }`}
+      >
         {/* LEFT PANE: Reading Passage or Writing Prompt Workspace */}
         {currentSkill !== 'LISTENING' && allParts.length > 0 && (
           <section
@@ -847,10 +911,16 @@ const WorkspacePage: React.FC = () => {
 
         {/* RIGHT PANE: Questions & Interaction */}
         <main
-          style={currentSkill !== 'LISTENING' && allParts.length > 0 ? { width: `${100 - splitRatio}%` } : undefined}
-          className={`flex-1 flex flex-col bg-slate-50 h-full overflow-hidden ${
-            currentSkill === 'LISTENING' ? 'items-center' : ''
-          } ${isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'}`}
+          style={
+            (!isPracticeMode || !isMobileViewport) && currentSkill !== 'LISTENING' && allParts.length > 0
+              ? { width: `${100 - splitRatio}%` }
+              : undefined
+          }
+          className={`flex-1 flex flex-col bg-slate-50 overflow-hidden ${
+            isPracticeMode ? 'w-full md:w-auto min-h-0' : 'h-full'
+          } ${currentSkill === 'LISTENING' ? 'items-center' : ''} ${
+            isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
+          }`}
         >
           {/* Scrollable Questions Container */}
           <div className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 w-full ${currentSkill === 'LISTENING' ? 'max-w-4xl' : ''}`}>
@@ -872,7 +942,38 @@ const WorkspacePage: React.FC = () => {
                   </>
                 )}
 
-                {partQuestionGroups.map((group: any) => (
+                {isPracticeMode && practiceFeedback.blockedMessage && (
+                  <div
+                    role="alert"
+                    className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-900 flex flex-wrap items-center justify-between gap-3 shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-red-600 shrink-0" aria-hidden="true" />
+                      <span className="font-medium">{practiceFeedback.blockedMessage}</span>
+                    </div>
+                    {practiceFeedback.blockedMessage.includes('tải lại trang') && (
+                      <button
+                        type="button"
+                        onClick={handleReload}
+                        className="px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                      >
+                        Tải lại trang
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {isPracticeMode && (
+                  <PracticeRetryToolbar
+                    wrongCount={practiceFeedback.wrongQuestionIds.length}
+                    retryActive={practiceRetry.active}
+                    onStartRetry={handleStartRetry}
+                    onStopRetry={practiceRetry.stop}
+                    disabled={submission.isLocked() || isCurrentSectionLocked || isFeedbackBlocked}
+                  />
+                )}
+
+                {displayQuestionGroups.map((group: any) => (
                   <div
                     key={group.group_id}
                     data-testid={`question-group-${group.group_id}`}
@@ -960,6 +1061,18 @@ const WorkspacePage: React.FC = () => {
                                 }}
                               />
                             </fieldset>
+                            {isPracticeMode && (
+                              <PracticeQuestionFeedback
+                                questionId={qId}
+                                questionNumber={q.question_number}
+                                questionType={q.type}
+                                feedback={practiceFeedback.getFeedback(qId)}
+                                onCheck={practiceFeedback.check}
+                                onReload={handleReload}
+                                busy={practiceFeedback.busy}
+                                disabled={isCurrentSectionLocked || submission.isLocked() || isFeedbackBlocked}
+                              />
+                            )}
                           </div>
                         </div>
                       );
@@ -1013,7 +1126,13 @@ const WorkspacePage: React.FC = () => {
         </main>
 
         {/* 3. RIGHT SIDEBAR: QUESTION PALETTE DOCK */}
-        <aside className="w-64 sm:w-72 shrink-0 bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden shadow-xs">
+        <aside
+          className={`${
+            isPracticeMode
+              ? 'w-full md:w-64 md:sm:w-72 h-auto max-h-72 md:h-full md:max-h-none border-t md:border-t-0 md:border-l'
+              : 'w-64 sm:w-72 h-full border-l'
+          } shrink-0 bg-white border-slate-200 flex flex-col overflow-hidden shadow-xs`}
+        >
           <div className="flex-1 overflow-y-auto flex flex-col">
             {/* Part Switcher in Sidebar */}
             {allParts.length > 1 && (
@@ -1076,6 +1195,7 @@ const WorkspacePage: React.FC = () => {
                 allParts={allParts}
                 activePartId={partId}
                 lockedPartIds={submission.isLocked() ? allParts.map(p => (p as any).part_id ?? p.id) : lockedPartIds}
+                visibleQuestionIds={isPracticeMode && practiceRetry.active ? practiceRetry.questionIds : undefined}
                 onNavigate={(targetPartId, qId) => {
                   if (submission.isLocked()) return;
                   if (targetPartId !== partId) {

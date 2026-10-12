@@ -677,3 +677,34 @@ Không có finding P0/P1.
 ### OUT-OF-SCOPE / next action
 
 Không xác nhận defect ngoài TV3-15. Không tái audit các thay đổi TV3 trước đó hay artifacts không liên quan. Bổ sung assertions AC-05 cho timestamp và grading metadata rồi chạy lại focused suite; sau đó người thực hiện có thể dùng full-suite result đã báo trong handoff theo quy trình nghiệm thu. Không sửa code/plan, commit hoặc push trong lượt review này.
+
+## 2026-10-12 — Codex Reviewer — Re-review toàn feature TV3-15
+
+- **Agent:** Codex Reviewer; skill `tv3-code-review`.
+- **Reviewed scope:** Toàn bộ TV3-15-01–05 theo approved plan và các execution/review entries. Feature hiện nằm trong commit `8d4f98c`; đã đối chiếu diff `faa688b..8d4f98c`, sáu production files và sáu test files liên quan cùng các dependency grading/snapshot/security trong phạm vi tích hợp. HEAD là `c271f0f` (skill artifacts), không có staged/unstaged tracked changes trước review. Hai untracked files `TV3-16-plan.md`, `TV3-16-handoff.md` được xác định là ngoài phạm vi và không chỉnh sửa.
+- **Decision: PASS.** Không xác nhận P0/P1; P2 coverage gap từ review trước chưa được bổ sung. Không phát hiện thay đổi làm tái xuất hiện các lỗi projection nested key hoặc MATCHING whitespace key đã sửa.
+
+### IN-SCOPE findings
+
+- **P0/P1:** Không có.
+- **P2 — Integration test chưa khóa toàn bộ persisted invariants.** Location: `backend/src/test/java/com/multilingo/backend/modules/testing/controller/PracticeFeedbackContractIT.java:276–284`, `:298–302`. Test so sánh version/status/resultSummary/overallScore, số answer rows và userAnswers nhưng chưa so sánh timestamps, endTime/deadline/timeSpentSeconds/sectionScores/lockedSections và AttemptAnswer.isCorrectFlags/aiFeedback/skillStats/earnedScore. Một regression ghi hoặc xóa các field này có thể vẫn làm test xanh dù trái AC-05. **Minimal fix/regression:** chụp giá trị persisted trước feedback, reload và so sánh toàn bộ field sau từng request; seed grading metadata khác null để phát hiện overwrite/clear. Đây là thiếu độ phủ test, không phải lỗi ghi dữ liệu đã được xác nhận: production service read-only, evaluator dùng đối tượng transient và không có persistence call.
+
+### Verified acceptance criteria / integration
+
+- **AC-01:** Authentication qua security chain; user lấy từ IdentityAdapter; lookup owner trước mode/status và evaluation. Wrong/missing owner và mọi MOCK_TEST status bị chặn; Practice finalized trả 409.
+- **AC-02–03:** Scope đúng tuple Part/question, không trộn ID giữa Parts; grouped/flat precedence và inherited options đúng parser. Dùng ObjectiveGradingService thật, giữ aliases/alternates, MATCHING partial score và whitespace keys; không đổi engine semantics.
+- **AC-04:** Chỉ dùng historical snapshot; source exam sửa/xóa không đổi feedback. Legacy snapshot thiếu key fail-closed, không current-exam fallback.
+- **AC-05:** Code read-only; DB tests xác nhận feedback input độc lập với autosave, không ghi đè userAnswers/version và không tạo answer rows. Phần timestamps/grading metadata chưa được assert đầy đủ như P2 nêu trên.
+- **AC-06–08:** Strict path/body types, missing khác explicit null; response allowlist 9 fields, null và BigDecimal được giữ nguyên; không expose snapshot/options/alternates/key object. Local handlers trả fixed errors/no-store, captured output không leak malformed-input sentinel. ESSAY/invalid key trả 422, không AI; create/workspace và post-submit review regressions đạt.
+- **AC-09:** Focused verification độc lập đạt; full backend evidence có trong execution entry nhưng không được reviewer chạy lại. Không yêu cầu frontend verification cho feature backend-only, không mở rộng sang UI hoặc lifecycle redesign.
+
+### Verification evidence
+
+- **Reviewer-run tại backend:** `.\mvnw.cmd "-Dtest=PracticeFeedbackRequestValidatorTest,PracticeFeedbackResponseTest,PracticeFeedbackEvaluatorTest,PracticeFeedbackServiceTest,PracticeFeedbackControllerIT,PracticeFeedbackContractIT,ObjectiveGradingServiceTest,SnapshotGradingKeyExtractorTest,DbExamAdapterSnapshotTest,TestAttemptReviewControllerIT,TestAttemptWorkspaceResponseTest" test` → **183 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS, exit 0**, kết thúc 2026-10-12 09:27:16 +07:00. Contract IT dùng controller/service/evaluator/engine/JPA thật; unit mocks chỉ kiểm tra boundary, không thay thế bằng chứng integration.
+- `git diff --check faa688b 8d4f98c -- backend` → exit 0. Kiểm tra toàn commit báo trailing spaces trong Markdown plan/handoff (hard line breaks); không phải lỗi behavior và không sửa style-only.
+- **Executor-reported, không independently rerun:** full backend suite 511 tests, 0 failures/errors/skipped theo execution entry 2026-10-11. Không chạy full suite trong lượt review.
+
+### OUT-OF-SCOPE / next required action
+
+- Không xác nhận defect ngoài TV3-15; không audit TV3-16, các feature TV3 trước đó hoặc skill changes. Các giới hạn đã chốt (Practice được xem lời giải, preview eligibility tại thời điểm read, không lưu lịch sử feedback) không được biến thành blockers.
+- **Next action:** Có thể tiếp tục nghiệm thu TV3-15; nên bổ sung regression assertions AC-05 ở P2 và chạy lại focused suite. Lượt review chỉ append handoff; không sửa production/tests/approved plan, commit hoặc push.

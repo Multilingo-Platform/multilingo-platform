@@ -9,13 +9,20 @@ import type {
   ExamResultResponse,
   ExamReviewResponse,
   TestScope,
-  TestMode
+  TestMode,
+  PracticeFeedbackRequest,
+  PracticeFeedbackResponse,
 } from '../types/api.types';
 import type { AttemptStatus, PartAnswers, UserAnswer, AnswerValue } from '../types/answer.types';
 import { normalizeAttemptResult, ResultContractError } from './resultContract';
 import { normalizeAttemptReview, ReviewContractError } from './reviewContract';
+import {
+  normalizePracticeFeedback,
+  PracticeFeedbackContractError,
+  validatePracticeFeedbackRequest,
+} from './practiceFeedbackContract';
 
-export { ReviewContractError };
+export { ReviewContractError, PracticeFeedbackContractError };
 
 export class WorkspaceContractError extends Error {
   constructor(message: string = 'Dữ liệu phiên thi không hợp lệ. Vui lòng thử tải lại.') {
@@ -430,4 +437,46 @@ export async function getAttemptReview(
     throw new ReviewContractError();
   }
   return normalizeAttemptReview(res.data, attemptId, partId);
+}
+
+/**
+ * POST /api/v1/attempts/:id/practice-feedback
+ * Checks a single question during a Practice attempt.
+ * Bounded request with 10.000 ms timeout and AbortSignal support.
+ */
+export async function checkPracticeAnswer(
+  attemptId: number,
+  req: PracticeFeedbackRequest,
+  options?: { signal?: AbortSignal }
+): Promise<PracticeFeedbackResponse> {
+  validatePracticeFeedbackRequest(attemptId, req);
+  const payload = {
+    partId: req.partId,
+    questionId: req.questionId,
+    answer:
+      req.answer === null || typeof req.answer === 'string'
+        ? req.answer
+        : Array.isArray(req.answer)
+          ? [...req.answer]
+          : { ...req.answer },
+  };
+  const res = await boundedAttemptRequest(
+    signal =>
+      axiosClient.post<unknown, ApiResponse<unknown>>(
+        `/v1/attempts/${attemptId}/practice-feedback`,
+        payload,
+        { signal, timeout: WRITE_TIMEOUT_MS }
+      ),
+    options?.signal
+  );
+  if (!isRecord(res) || res.success !== true || res.data == null) {
+    throw new PracticeFeedbackContractError();
+  }
+  return normalizePracticeFeedback(
+    res.data,
+    attemptId,
+    payload.partId,
+    payload.questionId,
+    payload.answer
+  );
 }

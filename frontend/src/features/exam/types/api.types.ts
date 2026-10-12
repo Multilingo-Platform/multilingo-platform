@@ -1,5 +1,27 @@
-import type { AttemptStatus, PartAnswers } from './answer.types';
-import type { ExamSnapshot } from './exam.types';
+import type { AttemptStatus, PartAnswers, AnswerValue } from './answer.types';
+import type { ExamSnapshot, QuestionType } from './exam.types';
+
+export type PracticeObjectiveType = Exclude<QuestionType, 'ESSAY'> | 'MATCHING';
+export type PracticeVerdict = 'CORRECT' | 'WRONG' | 'BLANK';
+export type ReviewScalar = string | number | boolean;
+
+export interface PracticeFeedbackRequest {
+  partId: number;
+  questionId: string;
+  answer: AnswerValue;
+}
+
+export interface PracticeFeedbackResponse {
+  attemptId: number;
+  partId: number;
+  questionId: string;
+  type: PracticeObjectiveType;
+  userAnswer: AnswerValue;
+  verdict: PracticeVerdict;
+  score: number;
+  correctAnswer: ReviewScalar | ReviewScalar[] | Record<string, ReviewScalar>;
+  explanation: string | null;
+}
 
 export type TestScope = 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART';
 export type TestMode = 'MOCK_TEST' | 'PRACTICE';

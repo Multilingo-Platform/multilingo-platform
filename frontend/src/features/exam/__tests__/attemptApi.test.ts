@@ -8,10 +8,13 @@ import {
   WorkspaceContractError,
   getAttemptResult,
   getAttemptReview,
+  checkPracticeAnswer,
 } from '../api/attemptApi';
 import { ReviewContractError } from '../api/reviewContract';
+import { PracticeFeedbackContractError } from '../api/practiceFeedbackContract';
 import { attemptResultFixture, resultEnvelope } from './fixtures/attemptResult';
 import { attemptReviewFixture, reviewEnvelope } from './fixtures/attemptReview';
+import { practiceFeedbackFixture, practiceFeedbackEnvelope } from './fixtures/practiceFeedback';
 
 vi.mock('../../../core/api/axiosClient', () => ({
   default: { put: vi.fn(), post: vi.fn(), get: vi.fn() },
@@ -798,5 +801,255 @@ describe('TV3-14 review GET', () => {
     controller.abort();
     await expect(getAttemptReview(42, 10, { signal: controller.signal })).rejects.toThrow();
     expect(mockAxios.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('TV3-16-01 checkPracticeAnswer', () => {
+  beforeEach(() => vi.resetAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('uses exact POST /v1/attempts/:id/practice-feedback with exact payload and bounded config', async () => {
+    mockAxios.post.mockResolvedValueOnce(
+      practiceFeedbackEnvelope(practiceFeedbackFixture({
+        score: 1,
+        userAnswer: 'A',
+        correctAnswer: 'A',
+      }))
+    );
+
+    const result = await checkPracticeAnswer(42, {
+      partId: 10,
+      questionId: 'q1',
+      answer: 'A',
+    });
+
+    expect(mockAxios.post).toHaveBeenCalledWith(
+      '/v1/attempts/42/practice-feedback',
+      {
+        partId: 10,
+        questionId: 'q1',
+        answer: 'A',
+      },
+      expect.objectContaining({
+        timeout: 10000,
+        signal: expect.any(AbortSignal),
+      })
+    );
+
+    expect(result).toEqual({
+      attemptId: 42,
+      partId: 10,
+      questionId: 'q1',
+      type: 'SINGLE_CHOICE',
+      userAnswer: 'A',
+      verdict: 'CORRECT',
+      score: 1,
+      correctAnswer: 'A',
+      explanation: 'Giải thích chi tiết cho câu q1.',
+    });
+  });
+
+  it('sends null answer correctly without extraneous fields', async () => {
+    mockAxios.post.mockResolvedValueOnce(
+      practiceFeedbackEnvelope(practiceFeedbackFixture({
+        userAnswer: null,
+        verdict: 'BLANK',
+        score: 0,
+      }))
+    );
+
+    const result = await checkPracticeAnswer(42, {
+      partId: 10,
+      questionId: 'q1',
+      answer: null,
+    });
+
+    expect(mockAxios.post).toHaveBeenCalledWith(
+      '/v1/attempts/42/practice-feedback',
+      {
+        partId: 10,
+        questionId: 'q1',
+        answer: null,
+      },
+      expect.any(Object)
+    );
+
+    expect(result.userAnswer).toBeNull();
+    expect(result.verdict).toBe('BLANK');
+  });
+
+  it.each([0, -1, 1.5, 2147483648, NaN])('invalid attemptId %s never reaches HTTP', async id => {
+    await expect(
+      checkPracticeAnswer(id, { partId: 10, questionId: 'q1', answer: 'A' })
+    ).rejects.toThrow(PracticeFeedbackContractError);
+    expect(mockAxios.post).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, 1.5, 2147483648, NaN])('invalid partId %s never reaches HTTP', async partId => {
+    await expect(
+      checkPracticeAnswer(42, { partId, questionId: 'q1', answer: 'A' })
+    ).rejects.toThrow(PracticeFeedbackContractError);
+    expect(mockAxios.post).not.toHaveBeenCalled();
+  });
+
+  it.each(['', '   '])('invalid questionId %s never reaches HTTP', async questionId => {
+    await expect(
+      checkPracticeAnswer(42, { partId: 10, questionId, answer: 'A' })
+    ).rejects.toThrow(PracticeFeedbackContractError);
+    expect(mockAxios.post).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    practiceFeedbackEnvelope({ ...practiceFeedbackFixture(), attemptId: 99 }),
+    practiceFeedbackEnvelope({ ...practiceFeedbackFixture(), partId: 99 }),
+    practiceFeedbackEnvelope({ ...practiceFeedbackFixture(), questionId: 'other' }),
+    { success: false, code: 422, message: 'Unprocessable', data: null },
+    { success: true, code: 200, message: 'Success', data: null },
+    null,
+  ])('rejects invalid envelope or mismatched receipt with PracticeFeedbackContractError %j', async envelope => {
+    mockAxios.post.mockResolvedValueOnce(envelope);
+    await expect(
+      checkPracticeAnswer(42, { partId: 10, questionId: 'q1', answer: 'A' })
+    ).rejects.toThrow(PracticeFeedbackContractError);
+  });
+
+  it.each([
+    { sent: 'A', echoed: 'B', desc: 'string value mismatch' },
+    { sent: 'A', echoed: null, desc: 'sent string but echoed null' },
+    { sent: null, echoed: 'A', desc: 'sent null but echoed string' },
+    { sent: ['A', 'B'], echoed: ['B', 'A'], desc: 'array ordering mismatch' },
+    { sent: ['A', 'B'], echoed: ['A'], desc: 'array length mismatch' },
+    { sent: { '1': 'A' }, echoed: { '1': 'B' }, desc: 'map value mismatch' },
+    { sent: { '1': 'A' }, echoed: { '2': 'A' }, desc: 'map key mismatch' },
+    { sent: { '1': 'A' }, echoed: { '1': 'A', '2': 'B' }, desc: 'map extra key' },
+  ])('rejects with PracticeFeedbackContractError when server echoes wrong answer ($desc)', async ({ sent, echoed }) => {
+    mockAxios.post.mockResolvedValueOnce(
+      practiceFeedbackEnvelope(
+        practiceFeedbackFixture({
+          userAnswer: echoed as any,
+        })
+      )
+    );
+
+    await expect(
+      checkPracticeAnswer(42, {
+        partId: 10,
+        questionId: 'q1',
+        answer: sent as any,
+      })
+    ).rejects.toThrow(PracticeFeedbackContractError);
+  });
+
+  it('accepts valid response when server echoes map with different key insertion order', async () => {
+    mockAxios.post.mockResolvedValueOnce(
+      practiceFeedbackEnvelope(
+        practiceFeedbackFixture({
+          userAnswer: { '2': 'B', '1': 'A' },
+          correctAnswer: { '1': 'A', '2': 'B' },
+        })
+      )
+    );
+
+    const result = await checkPracticeAnswer(42, {
+      partId: 10,
+      questionId: 'q1',
+      answer: { '1': 'A', '2': 'B' },
+    });
+
+    expect(result.userAnswer).toEqual({ '2': 'B', '1': 'A' });
+  });
+
+  it('accepts valid response when server echoes exact Unicode and whitespace string', async () => {
+    const unicodeWhitespace = '  Tiếng Việt 🇻🇳 \n\t  ';
+    mockAxios.post.mockResolvedValueOnce(
+      practiceFeedbackEnvelope(
+        practiceFeedbackFixture({
+          userAnswer: unicodeWhitespace,
+          correctAnswer: unicodeWhitespace,
+        })
+      )
+    );
+
+    const result = await checkPracticeAnswer(42, {
+      partId: 10,
+      questionId: 'q1',
+      answer: unicodeWhitespace,
+    });
+
+    expect(result.userAnswer).toBe(unicodeWhitespace);
+  });
+
+  it('uses captured payload tuple for normalization even if req object is mutated during in-flight request', async () => {
+    mockAxios.post.mockImplementationOnce(async () => {
+      // simulate caller mutating req while network call is in flight
+      mutableReq.partId = 999;
+      mutableReq.questionId = 'mutated_q';
+      mutableReq.answer = 'MUTATED';
+      return practiceFeedbackEnvelope(
+        practiceFeedbackFixture({
+          partId: 10,
+          questionId: 'q1',
+          userAnswer: 'A',
+        })
+      );
+    });
+
+    const mutableReq = {
+      partId: 10,
+      questionId: 'q1',
+      answer: 'A',
+    };
+
+    const result = await checkPracticeAnswer(42, mutableReq);
+    expect(result.partId).toBe(10);
+    expect(result.questionId).toBe('q1');
+    expect(result.userAnswer).toBe('A');
+  });
+
+  it.each([400, 401, 403, 404, 409, 422, 500])('preserves HTTP %s for hook classification', async status => {
+    const error = { response: { status, data: { message: 'fixed error message' } } };
+    mockAxios.post.mockRejectedValueOnce(error);
+    await expect(
+      checkPracticeAnswer(42, { partId: 10, questionId: 'q1', answer: 'A' })
+    ).rejects.toBe(error);
+  });
+
+  it('settles at whole-request deadline even when transport never settles', async () => {
+    vi.useFakeTimers();
+    mockAxios.post.mockReturnValueOnce(new Promise(() => {}));
+    const pending = checkPracticeAnswer(42, { partId: 10, questionId: 'q1', answer: 'A' });
+    const rejection = expect(pending).rejects.toThrow(/quá thời gian/i);
+    await vi.advanceTimersByTimeAsync(9999);
+    expect(mockAxios.post.mock.calls[0][2]?.signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await rejection;
+    expect(mockAxios.post.mock.calls[0][2].signal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('aborts waiting, ignores late transport settlement and removes listener/timer', async () => {
+    vi.useFakeTimers();
+    let resolve!: (value: unknown) => void;
+    mockAxios.post.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const controller = new AbortController();
+    const remove = vi.spyOn(controller.signal, 'removeEventListener');
+    const pending = checkPracticeAnswer(42, { partId: 10, questionId: 'q1', answer: 'A' }, { signal: controller.signal });
+    const rejection = expect(pending).rejects.toThrow(/hủy/i);
+    controller.abort();
+    await rejection;
+    resolve(practiceFeedbackEnvelope());
+    await Promise.resolve();
+    expect(mockAxios.post.mock.calls[0][2].signal.aborted).toBe(true);
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('already aborted signal does not dispatch transport', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      checkPracticeAnswer(42, { partId: 10, questionId: 'q1', answer: 'A' }, { signal: controller.signal })
+    ).rejects.toThrow(/hủy/i);
+    expect(mockAxios.post).not.toHaveBeenCalled();
   });
 });

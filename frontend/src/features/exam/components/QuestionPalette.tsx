@@ -4,12 +4,13 @@ import type { RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 import { isAnswered } from '../utils/answerUtils';
 
-interface QuestionPaletteProps {
+export interface QuestionPaletteProps {
   allParts?: any[];
   activePartId?: number;
   questions?: Question[];
   partId?: number;
   lockedPartIds?: Set<number> | number[];
+  visibleQuestionIds?: readonly string[] | ReadonlySet<string>;
   onNavigate: ((partId: number, questionId: string) => void) | ((questionId: string) => void);
 }
 
@@ -19,6 +20,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
   questions,
   partId: singlePartId,
   lockedPartIds,
+  visibleQuestionIds,
   onNavigate,
 }) => {
   const answers = useSelector((state: RootState) => state.answers.answers);
@@ -67,6 +69,13 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
     }
   };
 
+  const visibleQuestionIdSet = useMemo(() => {
+    if (!visibleQuestionIds) return null;
+    return visibleQuestionIds instanceof Set
+      ? visibleQuestionIds
+      : new Set(visibleQuestionIds);
+  }, [visibleQuestionIds]);
+
   return (
     <div>
       {/* Progress bar */}
@@ -109,6 +118,8 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
               ? lockedPartIds.includes(pId)
               : false;
 
+          const isCurrentActivePart = activePartId ? pId === activePartId : true;
+
           return (
             <div key={pId}>
               {normalizedParts.length > 1 && (
@@ -126,6 +137,9 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                   const answered = isAnswered(val, q.type);
                   const isFlagged = !!flags?.[pId]?.[qId];
                   const isActive = activePartId ? pId === activePartId : true;
+
+                  const isExcludedFromRetry = isCurrentActivePart && visibleQuestionIdSet !== null && !visibleQuestionIdSet.has(qId);
+                  const isCellDisabled = isPartLocked || Boolean(isExcludedFromRetry);
 
                   // Compute styles based on 3 states: Flagged, Answered, Unanswered
                   let bg = '#ffffff';
@@ -160,11 +174,11 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                       data-answered={answered ? 'true' : 'false'}
                       data-flagged={isFlagged ? 'true' : 'false'}
                       data-status={isFlagged ? 'flagged' : answered ? 'answered' : 'unanswered'}
-                      disabled={isPartLocked}
-                      aria-disabled={isPartLocked ? 'true' : 'false'}
+                      disabled={isCellDisabled}
+                      aria-disabled={isCellDisabled ? 'true' : 'false'}
                       aria-label={`Câu ${q.question_number ?? q.id}${isFlagged ? ' (đã gắn cờ)' : ''}${answered ? ' (đã trả lời)' : ' (chưa trả lời)'}`}
-                      onClick={() => { if (!isPartLocked) handleCellClick(pId, qId); }}
-                      onKeyDown={e => { if (e.key === 'Enter' && !isPartLocked) handleCellClick(pId, qId); }}
+                      onClick={() => { if (!isCellDisabled) handleCellClick(pId, qId); }}
+                      onKeyDown={e => { if (e.key === 'Enter' && !isCellDisabled) handleCellClick(pId, qId); }}
                       style={{
                         position: 'relative',
                         width: '32px',
@@ -173,7 +187,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         borderRadius: '8px',
-                        cursor: isPartLocked ? 'not-allowed' : 'pointer',
+                        cursor: isCellDisabled ? 'not-allowed' : 'pointer',
                         fontSize: '0.75rem',
                         fontWeight: '700',
                         fontFamily: 'var(--font-heading)',
@@ -182,7 +196,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                         color,
                         border,
                         boxShadow: shadow,
-                        opacity: isPartLocked ? 0.4 : (isActive ? 1 : 0.65),
+                        opacity: isCellDisabled ? 0.35 : (isActive ? 1 : 0.65),
                       }}
                     >
                       {/* Flag icon pill on top right corner */}
