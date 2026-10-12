@@ -15,6 +15,7 @@ import com.multilingo.backend.modules.vocab.dto.response.StudySessionResponse;
 import com.multilingo.backend.modules.vocab.dto.response.StudySessionSummaryResponse;
 import com.multilingo.backend.modules.vocab.entity.FlashcardDeck;
 import com.multilingo.backend.modules.vocab.entity.UserFlashcard;
+import com.multilingo.backend.modules.vocab.mapper.FlashcardStudyMapper;
 import com.multilingo.backend.modules.vocab.repository.FlashcardDeckRepository;
 import com.multilingo.backend.modules.vocab.repository.UserFlashcardRepository;
 import com.multilingo.backend.modules.vocab.service.FlashcardStudyService;
@@ -61,6 +62,7 @@ public class FlashcardStudyServiceImpl implements FlashcardStudyService {
     private final UserFlashcardRepository userFlashcardRepository;
     private final DailyStudyLogRepository dailyStudyLogRepository;
     private final UserStudyStatRepository userStudyStatRepository;
+    private final FlashcardStudyMapper flashcardStudyMapper;
 
     /**
      * Khởi tạo phiên ôn tập Flashcard cho một bộ thẻ.
@@ -108,21 +110,14 @@ public class FlashcardStudyServiceImpl implements FlashcardStudyService {
             }
         }
 
-        // 6. Chuyển đổi sang danh sách StudyCard DTO kèm maskedSentence
+        // 6. Chuyển đổi sang danh sách StudyCard DTO kèm maskedSentence qua Mapper
         List<FlashcardStudyCardDto> cardDtos = studyCards.stream()
-                .map(this::toStudyCardDto)
+                .map(flashcardStudyMapper::toStudyCardDto)
                 .toList();
 
         log.info("Khởi tạo phiên học thành công: deckId={}, tổng số thẻ={}", deckId, cardDtos.size());
 
-        return StudySessionResponse.builder()
-                .deckId(deck.getId())
-                .deckName(deck.getName())
-                .targetLanguage(deck.getTargetLanguage())
-                .sourceLanguage(deck.getSourceLanguage())
-                .totalSessionCards(cardDtos.size())
-                .cards(cardDtos)
-                .build();
+        return flashcardStudyMapper.toStudySessionResponse(deck, cardDtos);
     }
 
     /**
@@ -227,14 +222,7 @@ public class FlashcardStudyServiceImpl implements FlashcardStudyService {
                 updatedCard.getId(), updatedCard.getStatus(), updatedCard.getReviewCount(),
                 updatedCard.getIntervalDays(), updatedCard.getEaseFactor());
 
-        return CardReviewResponse.builder()
-                .cardId(updatedCard.getId())
-                .status(updatedCard.getStatus())
-                .reviewCount(updatedCard.getReviewCount())
-                .intervalDays(updatedCard.getIntervalDays())
-                .easeFactor(updatedCard.getEaseFactor())
-                .nextReviewDate(updatedCard.getNextReviewDate())
-                .build();
+        return flashcardStudyMapper.toCardReviewResponse(updatedCard);
     }
 
     /**
@@ -335,71 +323,11 @@ public class FlashcardStudyServiceImpl implements FlashcardStudyService {
         log.info("Hoàn tất phiên học thành công: userId={}, earnedXp={}, currentStreak={}, masteredCount={}",
                 userId, earnedXp, studyStat.getCurrentStreak(), masteredCount);
 
-        return StudySessionSummaryResponse.builder()
-                .earnedXp(earnedXp)
-                .currentStreak(studyStat.getCurrentStreak())
-                .totalMasteredCards((int) masteredCount)
-                .cardsReviewed(reviewedCards)
-                .build();
-    }
-
-    /**
-     * Chuyển đổi thực thể UserFlashcard sang DTO FlashcardStudyCardDto,
-     * đồng thời thực hiện logic che từ vựng đích trong câu ví dụ (maskedSentence).
-     */
-    private FlashcardStudyCardDto toStudyCardDto(UserFlashcard card) {
-        // Ưu tiên câu ví dụ tùy chỉnh của thẻ, nếu không có thì fallback sang từ điển gốc
-        String fullSentence = card.getExampleSentence();
-        if ((fullSentence == null || fullSentence.isBlank()) && card.getWord() != null) {
-            fullSentence = card.getWord().getExampleSentence();
-        }
-
-        // Tự động che từ vựng đích
-        String maskedSentence = maskWordInSentence(fullSentence, card.getCustomWord());
-
-        // Lấy thông tin ngữ âm và từ loại từ từ điển liên kết (nếu có)
-        String phonetic = card.getWord() != null ? card.getWord().getPhonetic() : null;
-        String pos = card.getWord() != null ? card.getWord().getPos() : null;
-
-        return FlashcardStudyCardDto.builder()
-                .id(card.getId())
-                .customWord(card.getCustomWord())
-                .phonetic(phonetic)
-                .pos(pos)
-                .maskedSentence(maskedSentence)
-                .customMeaning(card.getCustomMeaning())
-                .fullSentence(fullSentence)
-                .customImageUrl(card.getCustomImageUrl())
-                .reviewCount(card.getReviewCount())
-                .status(card.getStatus())
-                .build();
-    }
-
-    /**
-     * Thuật toán ẩn từ vựng đích trong câu ví dụ bằng ký tự gạch dưới "_______".
-     *
-     * ĐẶC TÍNH THUẬT TOÁN:
-     * 1. Xử lý an toàn: Kiểm tra null, chuỗi rỗng để tránh NullPointerException.
-     * 2. Không phân biệt chữ hoa, chữ thường (Case-insensitive) bằng cờ (?i).
-     * 3. Sử dụng Pattern.quote để bảo vệ ký tự đặc biệt (regex injection).
-     * 4. Ưu tiên match theo ranh giới từ vựng (\b) để tránh che nhầm các từ con.
-     * 5. Fallback tự động che theo chuỗi thô nếu ranh giới từ không match (hỗ trợ tiếng Việt hoặc từ ghép).
-     */
-    private String maskWordInSentence(String sentence, String word) {
-        if (sentence == null || sentence.isBlank() || word == null || word.isBlank()) {
-            return sentence;
-        }
-
-        String trimmedWord = word.trim();
-        // Bước 1: Thử che có ràng buộc ranh giới từ (\b)
-        String boundaryRegex = "(?i)\\b" + Pattern.quote(trimmedWord) + "\\b";
-        String masked = sentence.replaceAll(boundaryRegex, VocabStudyConstants.MASK_WORD_REPLACEMENT);
-
-        // Bước 2: Nếu chưa che được từ nào (ví dụ có dấu câu liền kề hoặc tiếng Việt có dấu), fallback che không ranh giới
-        if (masked.equals(sentence)) {
-            masked = sentence.replaceAll("(?i)" + Pattern.quote(trimmedWord), VocabStudyConstants.MASK_WORD_REPLACEMENT);
-        }
-
-        return masked;
+        return flashcardStudyMapper.toSessionSummaryResponse(
+                earnedXp,
+                studyStat.getCurrentStreak(),
+                (int) masteredCount,
+                reviewedCards
+        );
     }
 }
