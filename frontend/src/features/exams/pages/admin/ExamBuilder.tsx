@@ -23,7 +23,7 @@ interface Question {
   metadata: QuestionMetadata;
 }
 
-interface QuestionGroup {
+export interface QuestionGroup {
   group_id: string;
   instruction: string;
   content_html: string;
@@ -33,12 +33,42 @@ interface QuestionGroup {
   questions: Question[];
 }
 
-interface ExamPart {
+export interface ExamPart {
   part_title: string;
   instruction: string;
   shared_audio?: { url: string; duration_seconds?: number };
   shared_content_html?: string;
   question_groups: QuestionGroup[];
+}
+
+export function deduplicatePartAndGroupInstructions(parts: ExamPart[]): ExamPart[] {
+  return parts.map(part => {
+    let partInstruction = (part.instruction || '').trim();
+    const groups = part.question_groups || [];
+
+    // If part instruction is missing, but all groups share the exact same non-empty instruction:
+    if (!partInstruction && groups.length > 0) {
+      const firstGroupInstr = (groups[0].instruction || '').trim();
+      if (firstGroupInstr && groups.every(g => (g.instruction || '').trim() === firstGroupInstr)) {
+        partInstruction = firstGroupInstr;
+      }
+    }
+
+    const updatedGroups = groups.map(g => {
+      const groupInstr = (g.instruction || '').trim();
+      // If group instruction matches part instruction, clear it from group
+      if (partInstruction && groupInstr === partInstruction) {
+        return { ...g, instruction: '' };
+      }
+      return g;
+    });
+
+    return {
+      ...part,
+      instruction: partInstruction,
+      question_groups: updatedGroups
+    };
+  });
 }
 
 const QUESTION_TYPES = [
@@ -205,8 +235,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           });
         });
       });
-      setParts(loadedParts);
-      if (loadedParts.length > 0) {
+      const cleanedParts = deduplicatePartAndGroupInstructions(loadedParts);
+      setParts(cleanedParts);
+      if (cleanedParts.length > 0) {
         setWizardMode('BUILDER');
       }
     }
@@ -695,9 +726,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     // Define columns
     sheet.columns = [
       { header: 'Phần (Part)', key: 'part', width: 25 },
+      { header: 'Hướng dẫn chung (Phần)', key: 'partInstruction', width: 30 },
       { header: 'Nhóm (Group)', key: 'group', width: 15 },
       { header: 'Loại câu hỏi (Type)', key: 'type', width: 25 },
-      { header: 'Hướng dẫn (Instruction)', key: 'instruction', width: 30 },
+      { header: 'Hướng dẫn riêng (Nhóm)', key: 'groupInstruction', width: 30 },
       { header: 'Nội dung nhóm (Văn bản đọc/nghe)', key: 'passage', width: 40 },
       { header: 'Câu hỏi (Question Text)', key: 'question', width: 40 },
       { header: 'Lựa chọn A', key: 'optA', width: 20 },
@@ -776,9 +808,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
           sheet.addRow({
             part: partName,
+            partInstruction: part.instruction || '',
             group: groupName,
             type: qType,
-            instruction: group.instruction || part.instruction || '',
+            groupInstruction: group.instruction || '',
             passage: groupText,
             question: qText,
             optA: optA, optB: optB, optC: optC, optD: optD,
@@ -792,13 +825,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           });
 
           // Add Data Validation
-          sheet.getCell(`C${rowIndex}`).dataValidation = {
+          sheet.getCell(`D${rowIndex}`).dataValidation = {
             type: 'list',
             allowBlank: true,
             formulae: ['"MULTIPLE_CHOICE,MULTIPLE_CHOICE_MULTI,TRUE_FALSE_NOT_GIVEN,YES_NO_NOT_GIVEN,FILL_IN_THE_BLANK,MATCHING,SHORT_ANSWER"']
           };
           
-          sheet.getCell(`K${rowIndex}`).dataValidation = {
+          sheet.getCell(`L${rowIndex}`).dataValidation = {
             type: 'list',
             allowBlank: true,
             showErrorMessage: false, // Cho phép gõ chữ tự do đối với dạng Fill in the blank
@@ -812,23 +845,25 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         });
 
         if (rowIndex - 1 > groupStartRow) {
-          sheet.mergeCells(`B${groupStartRow}:B${rowIndex - 1}`);
-          sheet.mergeCells(`D${groupStartRow}:D${rowIndex - 1}`);
+          sheet.mergeCells(`C${groupStartRow}:C${rowIndex - 1}`);
           sheet.mergeCells(`E${groupStartRow}:E${rowIndex - 1}`);
-          sheet.mergeCells(`N${groupStartRow}:N${rowIndex - 1}`); // groupMedia
+          sheet.mergeCells(`F${groupStartRow}:F${rowIndex - 1}`);
+          sheet.mergeCells(`O${groupStartRow}:O${rowIndex - 1}`); // groupMedia
           
-          sheet.getCell(`B${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-          sheet.getCell(`D${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`C${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
           sheet.getCell(`E${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-          sheet.getCell(`N${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`F${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`O${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         }
       });
 
       if (rowIndex - 1 > partStartRow) {
         sheet.mergeCells(`A${partStartRow}:A${rowIndex - 1}`);
-        sheet.mergeCells(`M${partStartRow}:M${rowIndex - 1}`); // partMedia
+        sheet.mergeCells(`B${partStartRow}:B${rowIndex - 1}`);
+        sheet.mergeCells(`N${partStartRow}:N${rowIndex - 1}`); // partMedia
         sheet.getCell(`A${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-        sheet.getCell(`M${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        sheet.getCell(`B${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        sheet.getCell(`N${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
       }
     });
 
@@ -847,10 +882,11 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     guideSheet.addRow({ item: '2. CÂU TRẮC NGHIỆM (A, B, C, D)', desc: 'Áp dụng cho Loại câu hỏi: MULTIPLE_CHOICE.\n-> Điền nội dung vào cột Lựa chọn A, B, C, D (Nếu câu hỏi chỉ có 3 đáp án thì bỏ trống cột D).\n-> Cột "Đáp án đúng": Bấm chọn A, B, C hoặc D từ danh sách thả xuống.' });
     guideSheet.addRow({ item: '3. CÂU ĐÚNG / SAI / NOT GIVEN', desc: 'Áp dụng cho: TRUE_FALSE_NOT_GIVEN hoặc YES_NO_NOT_GIVEN.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": Bấm chọn TRUE, FALSE, hoặc NOT GIVEN từ danh sách thả xuống.' });
     guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple). Mặc dù cột này có icon danh sách thả xuống của Excel, nhưng bạn vẫn gõ được bình thường mà không bị báo lỗi.' });
+    guideSheet.addRow({ item: '5. HƯỚNG DẪN (INSTRUCTION)', desc: 'Cột "Hướng dẫn chung (Phần)": Điền hướng dẫn áp dụng cho toàn bộ Part (ví dụ: Listen and answer questions 1-10).\nCột "Hướng dẫn riêng (Nhóm)": Chỉ điền nếu nhóm câu hỏi đó có hướng dẫn đặc thù riêng (ví dụ: Questions 1-4: Choose the correct letter...). Nếu không có thì để trống, hệ thống sẽ tự động dùng hướng dẫn chung của phần.' });
 
     guideSheet.getColumn('desc').alignment = { wrapText: true, vertical: 'middle' };
     guideSheet.getColumn('item').alignment = { vertical: 'middle', wrapText: true };
-    for (let i = 2; i <= 5; i++) {
+    for (let i = 2; i <= 6; i++) {
       guideSheet.getRow(i).height = 65;
     }
 
@@ -1122,22 +1158,94 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         return cell.text ? cell.text.trim() : '';
       };
 
+      // Detect column indices dynamically based on header row
+      const colMap = {
+        part: 1,
+        partInstruction: -1,
+        group: 2,
+        type: 3,
+        groupInstruction: -1,
+        legacyInstruction: -1,
+        passage: 5,
+        question: 6,
+        optA: 7,
+        optB: 8,
+        optC: 9,
+        optD: 10,
+        correct: 11,
+        explanation: 12,
+        partMedia: 13,
+        groupMedia: 14,
+        qMedia: 15,
+      };
+
+      const headerRow = sheet.getRow(headerRowIndex);
+      headerRow.eachCell((cell, colNumber) => {
+        const text = (cell.text || '').toLowerCase().trim();
+        if (!text) return;
+
+        if (text.includes('hướng dẫn chung') || (text.includes('part') && text.includes('instruction')) || (text.includes('hướng dẫn') && text.includes('phần'))) {
+          colMap.partInstruction = colNumber;
+        } else if (text.includes('hướng dẫn riêng') || (text.includes('group') && text.includes('instruction')) || (text.includes('hướng dẫn') && text.includes('nhóm'))) {
+          colMap.groupInstruction = colNumber;
+        } else if (text.includes('hướng dẫn') || text.includes('instruction')) {
+          colMap.legacyInstruction = colNumber;
+        } else if (text.includes('audio') || text.includes('audio/file') || (text.includes('chung') && text.includes('phần')) || (text.includes('media') && text.includes('part'))) {
+          colMap.partMedia = colNumber;
+        } else if (text.includes('đính kèm chung') || (text.includes('media') && text.includes('group')) || (text.includes('chung') && text.includes('nhóm'))) {
+          colMap.groupMedia = colNumber;
+        } else if (text.includes('đính kèm riêng') || (text.includes('media') && text.includes('câu')) || text.includes('qmedia')) {
+          colMap.qMedia = colNumber;
+        } else if (text.includes('phần') || text.includes('part')) {
+          colMap.part = colNumber;
+        } else if (text.includes('nhóm') || text.includes('group')) {
+          colMap.group = colNumber;
+        } else if (text.includes('loại câu hỏi') || text.includes('type')) {
+          colMap.type = colNumber;
+        } else if (text.includes('nội dung') || text.includes('passage') || text.includes('văn bản')) {
+          colMap.passage = colNumber;
+        } else if (text.includes('câu hỏi') || text.includes('question text') || text === 'question') {
+          colMap.question = colNumber;
+        } else if (text.includes('lựa chọn a') || text.includes('option a') || text === 'a' || text === 'opta') {
+          colMap.optA = colNumber;
+        } else if (text.includes('lựa chọn b') || text.includes('option b') || text === 'b' || text === 'optb') {
+          colMap.optB = colNumber;
+        } else if (text.includes('lựa chọn c') || text.includes('option c') || text === 'c' || text === 'optc') {
+          colMap.optC = colNumber;
+        } else if (text.includes('lựa chọn d') || text.includes('option d') || text === 'd' || text === 'optd') {
+          colMap.optD = colNumber;
+        } else if (text.includes('đáp án đúng') || text.includes('đáp án') || text.includes('correct')) {
+          colMap.correct = colNumber;
+        } else if (text.includes('giải thích') || text.includes('explanation')) {
+          colMap.explanation = colNumber;
+        }
+      });
+
+      const getColVal = (rowObj: ExcelJS.Row, colIdx: number) => {
+        if (!colIdx || colIdx < 1) return '';
+        return getCellValue(rowObj.getCell(colIdx));
+      };
+
       sheet.eachRow((row, rowNumber) => {
         if (rowNumber <= headerRowIndex) return; // Skip header
 
-        const rawPartName = getCellValue(row.getCell(1));
-        const rawGroupName = getCellValue(row.getCell(2));
-        const type = getCellValue(row.getCell(3)) || 'MULTIPLE_CHOICE';
-        const rawInstruction = getCellValue(row.getCell(4));
-        const rawPassage = getCellValue(row.getCell(5));
-        
-        const questionText = getCellValue(row.getCell(6));
-        const correct = getCellValue(row.getCell(11));
-        const explanation = getCellValue(row.getCell(12));
-        
-        const rawPartMedia = getCellValue(row.getCell(13));
-        const rawGroupMedia = getCellValue(row.getCell(14));
-        const qMedia = getCellValue(row.getCell(15));
+        const rawPartName = getColVal(row, colMap.part);
+        const rawGroupName = getColVal(row, colMap.group);
+        const type = getColVal(row, colMap.type) || 'MULTIPLE_CHOICE';
+
+        const rawPartInstruction = colMap.partInstruction > 0 ? getColVal(row, colMap.partInstruction) : '';
+        const rawGroupInstruction = colMap.groupInstruction > 0 ? getColVal(row, colMap.groupInstruction) : '';
+        const rawLegacyInstruction = colMap.legacyInstruction > 0
+          ? getColVal(row, colMap.legacyInstruction)
+          : (colMap.partInstruction === -1 && colMap.groupInstruction === -1 ? getColVal(row, 4) : '');
+
+        const rawPassage = getColVal(row, colMap.passage);
+        const questionText = getColVal(row, colMap.question);
+        const correct = getColVal(row, colMap.correct);
+        const explanation = getColVal(row, colMap.explanation);
+        const rawPartMedia = getColVal(row, colMap.partMedia);
+        const rawGroupMedia = getColVal(row, colMap.groupMedia);
+        const qMedia = getColVal(row, colMap.qMedia);
 
         const partName = rawPartName || lastPartName;
         const groupName = rawGroupName || lastGroupName;
@@ -1145,24 +1253,38 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         if (!partName) return; // Ignore empty rows
 
         if (partName !== lastPartName) {
+          const partInstruction = rawPartInstruction || rawLegacyInstruction || '';
           currentPart = {
             part_title: partName.replace(/^Part \d+: /, ''),
-            instruction: '',
+            instruction: partInstruction,
             question_groups: [],
             shared_audio: rawPartMedia ? { url: rawPartMedia } : undefined
           };
           tempParts.push(currentPart);
           lastPartName = partName;
           lastGroupName = ''; // reset group
+        } else if (currentPart && !currentPart.instruction) {
+          if (rawPartInstruction) currentPart.instruction = rawPartInstruction;
+          else if (rawLegacyInstruction) currentPart.instruction = rawLegacyInstruction;
         }
 
         if (groupName !== lastGroupName || !currentGroup) {
+          let groupInstruction = '';
+          if (colMap.groupInstruction > 0) {
+            groupInstruction = rawGroupInstruction;
+          } else if (rawLegacyInstruction) {
+            const partInstr = currentPart?.instruction || '';
+            if (rawLegacyInstruction.trim() !== partInstr.trim()) {
+              groupInstruction = rawLegacyInstruction;
+            }
+          }
+
           const groupImageUrls = rawGroupMedia
             ? rawGroupMedia.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean)
             : [];
           currentGroup = {
             group_id: generateId('group'),
-            instruction: rawInstruction,
+            instruction: groupInstruction,
             content_html: rawPassage,
             questions: [],
             shared_images: groupImageUrls.length > 0 ? groupImageUrls : undefined,
@@ -1178,10 +1300,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           }
         }
 
-        const rawOptA = getCellValue(row.getCell(7));
-        const rawOptB = getCellValue(row.getCell(8));
-        const rawOptC = getCellValue(row.getCell(9));
-        const rawOptD = getCellValue(row.getCell(10));
+        const rawOptA = getColVal(row, colMap.optA);
+        const rawOptB = getColVal(row, colMap.optB);
+        const rawOptC = getColVal(row, colMap.optC);
+        const rawOptD = getColVal(row, colMap.optD);
         
         const hasA = rawOptA !== '';
         const hasB = rawOptB !== '';
@@ -1309,7 +1431,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                 : (detectedType.includes('GENERAL') ? 'IELTS General Training Test' : 'IELTS Academic Mock Test')));
 
       setExamTitle(finalExamTitle);
-      setParts(tempParts);
+      const cleanedParts = deduplicatePartAndGroupInstructions(tempParts);
+      setParts(cleanedParts);
       setActivePartIndex(0);
       setWizardMode('BUILDER');
 
