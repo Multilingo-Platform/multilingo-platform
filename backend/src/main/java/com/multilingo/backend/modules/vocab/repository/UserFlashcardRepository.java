@@ -15,7 +15,17 @@ import java.util.Optional;
 @Repository
 public interface UserFlashcardRepository extends JpaRepository<UserFlashcard, Integer> {
 
-    List<UserFlashcard> findAllByDeckIdAndUserIdOrderByCreatedAtDesc(Integer deckId, Integer userId);
+    @Query("""
+        SELECT u FROM UserFlashcard u
+        LEFT JOIN FETCH u.word
+        WHERE u.deck.id = :deckId
+          AND u.userId = :userId
+        ORDER BY u.createdAt DESC
+    """)
+    List<UserFlashcard> findAllByDeckIdAndUserIdOrderByCreatedAtDesc(
+        @Param("deckId") Integer deckId,
+        @Param("userId") Integer userId
+    );
 
     Optional<UserFlashcard> findByIdAndUserId(Integer id, Integer userId);
 

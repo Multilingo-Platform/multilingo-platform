@@ -107,5 +107,17 @@ describe('useExamTimer', () => {
     // Server time is now 12:00:20Z. Remaining until 12:01:00Z is 40s.
     expect(result.current.remainingSeconds).toBe(40);
   });
+
+  it('updates remainingSeconds immediately when rerendered with a new offset without delay', () => {
+    vi.setSystemTime(new Date('2026-10-10T03:00:00Z'));
+    const deadline = '2026-10-10T03:10:00Z';
+    const { result, rerender } = renderHook(
+      ({ offset }: { offset: number }) => useExamTimer(deadline, offset),
+      { initialProps: { offset: 0 } }
+    );
+    expect(result.current.remainingSeconds).toBe(600);
+    rerender({ offset: -300000 });
+    expect(result.current.remainingSeconds).toBe(900);
+  });
 });
 

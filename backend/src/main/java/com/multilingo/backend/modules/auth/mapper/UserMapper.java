@@ -13,6 +13,15 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
     @Mapping(target = "role", ignore = true)
+    @Mapping(target = "phone", ignore = true)
+    @Mapping(target = "nativeLanguage", ignore = true)
+    @Mapping(target = "targetLanguage", ignore = true)
+    @Mapping(target = "subscriptionTier", ignore = true)
+    @Mapping(target = "premiumExpiresAt", ignore = true)
+    @Mapping(target = "isActive", ignore = true)
+    @Mapping(target = "googleId", ignore = true)
+    @Mapping(target = "lastLoginAt", ignore = true)
+    @Mapping(target = "lastLoginIp", ignore = true)
     User toUser(UserCreationRequest request);
 
     @Mapping(source = "role.name", target = "role")
@@ -20,5 +29,18 @@ public interface UserMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "role", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "email", ignore = true)
+    @Mapping(target = "phone", ignore = true)
+    @Mapping(target = "nativeLanguage", ignore = true)
+    @Mapping(target = "targetLanguage", ignore = true)
+    @Mapping(target = "subscriptionTier", ignore = true)
+    @Mapping(target = "premiumExpiresAt", ignore = true)
+    @Mapping(target = "isActive", ignore = true)
+    @Mapping(target = "googleId", ignore = true)
+    @Mapping(target = "lastLoginAt", ignore = true)
+    @Mapping(target = "lastLoginIp", ignore = true)
     void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

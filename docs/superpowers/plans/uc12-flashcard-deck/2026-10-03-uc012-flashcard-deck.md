@@ -195,7 +195,7 @@ Run: `cd backend && ./mvnw test -Dtest=FlashcardDeckControllerTest`
 Expected: FAIL.
 
 - [ ] **Step 3: Viết mã nguồn `FlashcardDeckController`**
-Sử dụng `@RestController`, `@RequestMapping("/api/v1/vocab/decks")`, `@Valid`. Trích xuất `userId` linh hoạt qua `@RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId` (với fallback kiểm tra `SecurityContextHolder`), đóng gói dữ liệu vào `ApiResponse.success()`.
+Sử dụng `@RestController`, `@RequestMapping("/api/v1/vocab/decks")`, `@Valid`. Lấy `userId` từ JWT principal qua VocabIdentityResolver theo kế hoạch UC012.4; không dùng X-User-Id hoặc default userId, đóng gói dữ liệu vào `ApiResponse.success()`.
 
 - [ ] **Step 4: Chạy test xác nhận PASS**
 Run: `cd backend && ./mvnw test -Dtest=FlashcardDeckControllerTest`
@@ -227,7 +227,7 @@ Run: `cd backend && ./mvnw test -Dtest=UserFlashcardControllerTest`
 Expected: FAIL.
 
 - [ ] **Step 3: Viết mã nguồn `UserFlashcardController`**
-Kết nối `UserFlashcardService`, lấy `userId` qua `@RequestHeader(value = "X-User-Id", defaultValue = "1") Integer userId` và trả về `ApiResponse.success()`.
+Kết nối `UserFlashcardService`, lấy `userId` từ JWT principal qua VocabIdentityResolver theo kế hoạch UC012.4 và trả về `ApiResponse.success()`.
 
 - [ ] **Step 4: Chạy test xác nhận PASS**
 Run: `cd backend && ./mvnw test -Dtest=UserFlashcardControllerTest`
@@ -309,7 +309,7 @@ git commit -m "feat(ui): implement vocab decks list view with create/edit modal 
 - Header thống kê chi tiết bộ thẻ (Tổng từ, Tỷ lệ thuộc bài, Đang học, Thẻ mới).
 - **Study Mode Launchpad (Khung điều hướng sang 4 chế độ học):**
   - Nút *Thẻ ghi nhớ* (Lật thẻ SRS - chuẩn bị cho UC12.2).
-  - Nút *Học từ vựng* (Trắc nghiệm - chuẩn bị cho UC12.3).
+  - Nút *Học từ vựng* (Trắc nghiệm - UC12.4; triển khai theo kế hoạch 2026-10-10-uc012.4-frontend-quiz-practice.md).
   - Nút *Kiểm tra* (Test nộp bài - chuẩn bị cho UC12.4).
   - Nút *Ghép thẻ tốc độ* (Minigame - chuẩn bị cho UC12.5).
 - Thanh công cụ tìm kiếm và lọc từ vựng theo trạng thái (`Tất cả`, `Mới`, `Đang học`, `Đã thuộc`).

@@ -6,6 +6,7 @@ import type {
   Flashcard,
   CreateDeckRequest,
   CreateFlashcardRequest,
+  VocabFilterStatus,
 } from '../types/vocab.types';
 import { alertUtil } from '../../../utils/alert';
 import { DeckListView } from '../components/deck/DeckListView';
@@ -17,8 +18,9 @@ import { CardModal } from '../components/card/CardModal';
 const SrsStudyView = lazy(() =>
   import('../modes/srs/SrsStudyView').then((m) => ({ default: m.SrsStudyView }))
 );
+// Chặng 3 (UC012.4): Sử dụng QuizPracticeView chuẩn mới trong features/vocab/modes/quiz/
 const QuizPracticeView = lazy(() =>
-  import('../../../components/vocab/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
+  import('../modes/quiz/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
 );
 const VocabTestView = lazy(() =>
   import('../../../components/vocab/VocabTestView').then((m) => ({ default: m.VocabTestView }))
@@ -275,8 +277,11 @@ export const FlashcardsPage: React.FC = () => {
     }
   };
 
+  const [filterStatus, setFilterStatus] = useState<VocabFilterStatus>('ALL');
+
   const handleFilterCards = useCallback(
     (keyword: string, status: string) => {
+      setFilterStatus((status as VocabFilterStatus) || 'ALL');
       if (selectedDeckId) {
         fetchCards(selectedDeckId, keyword, status);
       }
@@ -285,7 +290,7 @@ export const FlashcardsPage: React.FC = () => {
   );
 
   return (
-    <div className="container py-6">
+    <div className={['DECKS_LIST', 'DECK_DETAIL', 'TEST_MODE', 'MATCH_MODE'].includes(viewMode) ? "container py-6" : ""}>
       {/* 1. Màn hình Danh sách Bộ thẻ */}
       {viewMode === 'DECKS_LIST' && (
         <DeckListView
@@ -360,9 +365,13 @@ export const FlashcardsPage: React.FC = () => {
         selectedDeck ? (
           <Suspense fallback={<div className="p-12 text-center text-slate-600 font-semibold">Đang tải phòng luyện tập...</div>}>
             <QuizPracticeView
-              deck={selectedDeck as unknown as import('../../../types/vocab').DeckSummary}
-              cards={cards as unknown as import('../../../types/vocab').Flashcard[]}
+              deck={selectedDeck}
+              cards={cards}
+              initialFilterStatus={filterStatus}
               onBack={() => setSearchParams({ deckId: String(selectedDeck.id) })}
+              onFinish={() => {
+                fetchDecks();
+              }}
             />
           </Suspense>
         ) : (

@@ -41,6 +41,6 @@ public class AttemptAnswer extends BaseEntity {
     @Column(name = "skill_stats")
     private Map<String, Object> skillStats;
 
-    @Column(name = "earned_score", precision = 4, scale = 2)
+    @Column(name = "earned_score", precision = 10, scale = 2)
     private BigDecimal earnedScore;
 }

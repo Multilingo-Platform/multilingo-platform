@@ -9,7 +9,6 @@ import java.util.TimeZone;
 @SpringBootApplication
 @EnableScheduling
 public class BackendApplication {
-
 	public static void main(String[] args) {
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		SpringApplication.run(BackendApplication.class, args);

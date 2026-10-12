@@ -11,6 +11,7 @@ import StudentExamView from "../features/exams/components/StudentExamView";
 import ExamStartPage from "../features/exam/pages/ExamStartPage";
 import WorkspacePage from "../features/exam/pages/WorkspacePage";
 import ExamResultPage from "../features/exam/pages/ExamResultPage";
+import ExamReviewPage from "../features/exam/pages/ExamReviewPage";
 
 // --- MEMBER 2 PAGES & LAYOUTS ---
 import PublicLayout from "../components/layout/PublicLayout";
@@ -30,6 +31,7 @@ import { SettingsPage } from "../features/auth/pages/SettingsPage";
 import ProtectedRoute from "../features/auth/components/ProtectedRoute";
 import { FlashcardsPage } from "../features/vocab";
 import PremiumUpgradePage from "../features/premium/pages/PremiumUpgradePage";
+import PaymentResultPage from "../features/premium/pages/PaymentResultPage";
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -117,6 +119,10 @@ export const router = createBrowserRouter([
         path: "premium",
         element: <PremiumUpgradePage />,
       },
+      {
+        path: "payment/result",
+        element: <PaymentResultPage />,
+      },
     ],
   },
 
@@ -192,7 +198,7 @@ export const router = createBrowserRouter([
 
   // --- CBT EXAM ROUTES (PROTECTED) ---
   {
-    element: <ProtectedRoute />,
+    element: <Outlet />,
     children: [
       {
         path: "/exams/:examId/start",
@@ -212,6 +218,11 @@ export const router = createBrowserRouter([
         path: "/attempts/:attemptId/result",
         element: <UserLayout />,
         children: [{ index: true, element: <ExamResultPage /> }],
+      },
+      {
+        path: "/attempts/:attemptId/review",
+        element: <UserLayout />,
+        children: [{ index: true, element: <ExamReviewPage /> }],
       },
     ],
   },

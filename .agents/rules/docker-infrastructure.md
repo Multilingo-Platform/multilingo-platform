@@ -22,4 +22,5 @@
 
 ## Test Profile
 - Backend test dùng H2 in-memory (profile `test`, file `application-test.properties`).
+- Test dùng dữ liệu fixture phải import `FixtureAdaptersTestConfig` và bật `spring.main.allow-bean-definition-overriding=true` riêng tại `@SpringBootTest` để thay adapter database bằng adapter fixture. Không bật ghi đè bean toàn cục trong `application-test.properties`; các test database vẫn cần adapter thật.
 - `./mvnw clean test` phải chạy thành công 100% mà KHÔNG cần Docker/PostgreSQL/Redis.

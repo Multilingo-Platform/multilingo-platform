@@ -76,7 +76,7 @@ class JpaEntitiesMappingTest {
                 .plan(savedPlan) // Intra-module FK
                 .vnpTxnRef("TXN_123456")
                 .amount(new BigDecimal("199000.00"))
-                .status("SUCCESS")
+                .status(com.multilingo.backend.modules.billing.entity.TransactionStatus.SUCCESS)
                 .build();
         Transaction savedTx = entityManager.persistAndFlush(tx);
         assertThat(savedTx.getId()).isPositive();
@@ -172,6 +172,19 @@ class JpaEntitiesMappingTest {
         assertThat(savedCard.getId()).isPositive();
         assertThat(savedCard.getDeck().getId()).isEqualTo(savedDeck.getId());
         assertThat(savedCard.getWord().getId()).isEqualTo(savedWord.getId());
+
+        PracticeCompletionReceipt receipt = PracticeCompletionReceipt.builder()
+                .userId(1)
+                .sessionId("sess-test-uuid")
+                .requestHash("hash-test-123")
+                .resultJson("{\"score\":10}")
+                .processedAt(Instant.now())
+                .sessionExpiresAt(Instant.now().plusSeconds(600))
+                .retainUntil(Instant.now().plusSeconds(86400))
+                .build();
+        PracticeCompletionReceipt savedReceipt = entityManager.persistAndFlush(receipt);
+        assertThat(savedReceipt.getId()).isPositive();
+        assertThat(savedReceipt.getResultJson()).isEqualTo("{\"score\":10}");
     }
 
     @Test

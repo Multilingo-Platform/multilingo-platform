@@ -59,7 +59,7 @@ public class TestAttempt extends BaseEntity {
     @Column(name = "time_spent_seconds", nullable = false)
     private Integer timeSpentSeconds = 0;
 
-    @Column(name = "overall_score", precision = 4, scale = 2)
+    @Column(name = "overall_score", precision = 10, scale = 2)
     private BigDecimal overallScore;
 
     @JdbcTypeCode(SqlTypes.JSON)

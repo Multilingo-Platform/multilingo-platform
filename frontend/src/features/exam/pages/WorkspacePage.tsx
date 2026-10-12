@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import useWorkspace from '../hooks/useWorkspace';
 import { useExamTimer } from '../hooks/useExamTimer';
 import { useAutosave } from '../hooks/useAutosave';
+import { useAttemptSubmission } from '../hooks/useAttemptSubmission';
 import { TimerDisplay } from '../components/TimerDisplay';
 import { SaveStatusBadge } from '../components/SaveStatusBadge';
 import { SubmitOverlay } from '../components/SubmitOverlay';
@@ -11,11 +13,25 @@ import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
 import { TimeUpModal } from '../components/TimeUpModal';
 import { QuestionPalette } from '../components/QuestionPalette';
 import QuestionRenderer from '../components/renderers/QuestionRenderer';
-import { autosaveAnswers, submitAttempt, lockSection } from '../api/attemptApi';
-import { setAnswer, toggleFlag, selectSaveStatus } from '../store/answerSlice';
+import AudioPlayer from '../components/AudioPlayer';
+import HtmlContent from '../components/content/HtmlContent';
+import MediaDisplay from '../components/content/MediaDisplay';
+import { lockSection } from '../api/attemptApi';
+import { setAnswer, lockAnswers, toggleFlag, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
+import { useTextSelection } from '../hooks/useTextSelection';
+import { SelectionToolbar } from '../components/content/SelectionToolbar';
+import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
+import { applyHighlights } from '../utils/htmlHighlight';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
 import { formatHtmlContent } from '../../../utils/htmlUtils';
+import { usePracticeFeedback } from '../hooks/usePracticeFeedback';
+import { usePracticeRetry } from '../hooks/usePracticeRetry';
+import { PracticeQuestionFeedback } from '../components/practice/PracticeQuestionFeedback';
+import { PracticeRetryToolbar } from '../components/practice/PracticeRetryToolbar';
+import { selectRetryQuestionIds, filterRetryGroups } from '../utils/practiceRetry';
+import { AlertCircle } from 'lucide-react';
+import { useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 
@@ -27,31 +43,108 @@ interface DictTooltip {
 
 const WorkspacePage: React.FC = () => {
   const { attemptId: attemptIdStr } = useParams<{ attemptId: string }>();
-  const attemptId = parseInt(attemptIdStr ?? '0', 10);
+  const parsedAttemptId = Number(attemptIdStr);
+  const isValidAttemptId = Number.isSafeInteger(parsedAttemptId) && parsedAttemptId >= 1 && parsedAttemptId <= 2147483647;
+  const attemptId = isValidAttemptId ? parsedAttemptId : 0;
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<RootState>();
 
-  const { workspace, loading, error, retry } = useWorkspace(attemptId);
+  const { workspace, loading, error, ready, retry, refreshError, refreshMetadata } = useWorkspace(attemptId);
+  const activeWorkspace = ready && !loading && !error && workspace?.attempt_id === attemptId ? workspace : null;
+
   const { displayTime, isExpired, isPractice } = useExamTimer(
-    workspace?.serverTime ?? null,
-    workspace?.deadline ?? null
+    activeWorkspace?.deadline ?? null,
+    activeWorkspace?.serverTimeOffset ?? 0
   );
-  useAutosave(workspace && workspace.status === 'IN_PROGRESS' ? attemptId : null);
+  const autosave = useAutosave(activeWorkspace && activeWorkspace.status === 'IN_PROGRESS' ? attemptId : null, activeWorkspace ?? undefined);
+  const submission = useAttemptSubmission(activeWorkspace, autosave);
+  const isSubmitting = submission.phase === 'waiting' || submission.phase === 'submitting';
+  const draftWarning = submission.draftWarning ?? autosave.draftWarning;
 
-  const { isDirty } = useSelector((state: RootState) => selectSaveStatus(state));
   const answersState = useSelector((state: RootState) => state.answers);
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [showTimeUp, setShowTimeUp] = useState(false);
-  const [submitResultUrl, setSubmitResultUrl] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
+  const [hasLocalDraft, setHasLocalDraft] = useState<boolean>(false);
+  const [confirmedLocks, setConfirmedLocks] = useState<{ attemptId: number; sectionIds: number[] }>({
+    attemptId,
+    sectionIds: [],
+  });
+  const [pendingTargetPartId, setPendingTargetPartId] = useState<number | null>(null);
+  const [pendingLockError, setPendingLockError] = useState<string | null>(null);
+
+  const currentAttemptIdRef = useRef<number>(attemptId);
+  const activeAttemptIdRef = useRef<number | null>(attemptId);
+  const routeLifecycleGenRef = useRef<number>(0);
+  const lockOperationGenRef = useRef<number>(0);
+  const unmountedRef = useRef<boolean>(false);
+
+  // Synchronously sync route change ref and bump lifecycle and lock generations
+  if (!Object.is(currentAttemptIdRef.current, attemptId)) {
+    currentAttemptIdRef.current = attemptId;
+    activeAttemptIdRef.current = attemptId;
+    routeLifecycleGenRef.current += 1;
+    lockOperationGenRef.current += 1;
+  }
+
+  // Component lifecycle: track unmount and invalidate in-flight operations
+  useEffect(() => {
+    unmountedRef.current = false;
+    activeAttemptIdRef.current = attemptId;
+    return () => {
+      unmountedRef.current = true;
+      activeAttemptIdRef.current = null;
+      routeLifecycleGenRef.current += 1;
+      lockOperationGenRef.current += 1;
+    };
+  }, [attemptId]);
+
+  // Sync draft check & reset selection and locks when attemptId changes
+  useEffect(() => {
+    setSelectedPartId(null);
+    setConfirmedLocks({ attemptId, sectionIds: [] });
+    setPendingTargetPartId(null);
+    setPendingLockError(null);
+    activeAttemptIdRef.current = attemptId;
+    routeLifecycleGenRef.current += 1;
+    lockOperationGenRef.current += 1;
+    if (isValidAttemptId) {
+      try {
+        setHasLocalDraft(localStorage.getItem(`exam_draft_${attemptId}`) !== null);
+      } catch {
+        setHasLocalDraft(false);
+      }
+    } else {
+      setHasLocalDraft(false);
+    }
+  }, [attemptId, isValidAttemptId]);
+
+  // Terminal state redirect effect
+  useEffect(() => {
+    if (ready && activeWorkspace && activeWorkspace.status !== 'IN_PROGRESS') {
+      navigate(`/attempts/${attemptId}/result`);
+    }
+  }, [ready, activeWorkspace, attemptId, navigate]);
 
   // Resizable split pane state (default 50/50, bounds 25% - 75%)
   const [splitRatio, setSplitRatio] = useState<number>(50);
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
+
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileViewport(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!isDraggingSplit) return;
@@ -79,29 +172,103 @@ const WorkspacePage: React.FC = () => {
   const [savedFlashcard, setSavedFlashcard] = useState(false);
   const readingContainerRef = useRef<HTMLDivElement>(null);
 
+  const sections = useMemo(() => {
+    return activeWorkspace?.exam_snapshot?.sections ?? [];
+  }, [activeWorkspace]);
+
+  // Reconcile confirmedLocks when server lockedSections arrive
+  useEffect(() => {
+    if (
+      activeWorkspace?.lockedSections &&
+      confirmedLocks.attemptId === attemptId &&
+      !unmountedRef.current &&
+      Object.is(currentAttemptIdRef.current, attemptId) &&
+      confirmedLocks.sectionIds.length > 0
+    ) {
+      const serverSet = new Set(activeWorkspace.lockedSections);
+      const remaining = confirmedLocks.sectionIds.filter(id => !serverSet.has(id));
+      if (remaining.length !== confirmedLocks.sectionIds.length) {
+        setConfirmedLocks({ attemptId, sectionIds: remaining });
+      }
+    }
+  }, [activeWorkspace?.lockedSections, attemptId, confirmedLocks]);
+
+  const lockedSections = useMemo(() => {
+    const serverLocks = activeWorkspace?.lockedSections ?? [];
+    const localLocks = confirmedLocks.attemptId === attemptId ? confirmedLocks.sectionIds : [];
+    if (localLocks.length === 0) return serverLocks;
+    const combined = new Set<number>([...serverLocks, ...localLocks]);
+    return Array.from(combined);
+  }, [activeWorkspace?.lockedSections, confirmedLocks, attemptId]);
+
   // Flatten all parts for quick selection
   const allParts = useMemo(() => {
-    return workspace?.exam_snapshot?.sections?.flatMap(s => s.parts ?? []) ?? [];
-  }, [workspace]);
+    return sections.flatMap(s => s.parts ?? []);
+  }, [sections]);
 
-  const currentSection = useMemo(() => {
-    if (selectedPartId !== null) {
-      const found = workspace?.exam_snapshot?.sections?.find(s => 
-        s.parts?.some(p => ((p as any).id === selectedPartId || (p as any).part_id === selectedPartId))
-      );
-      if (found) return found;
+  const lockedPartIds = useMemo(() => {
+    if (activeWorkspace?.test_mode !== 'MOCK_TEST' || lockedSections.length === 0) {
+      return new Set<number>();
     }
-    return workspace?.exam_snapshot?.sections?.[0];
-  }, [workspace, selectedPartId]);
+    const lockedSet = new Set<number>(lockedSections);
+    const result = new Set<number>();
+    sections.forEach(s => {
+      const sId = (s as any).section_id ?? s.id;
+      if (sId != null && lockedSet.has(sId)) {
+        s.parts?.forEach(p => {
+          const pId = (p as any).part_id ?? (p as any).id;
+          if (pId != null) result.add(pId);
+        });
+      }
+    });
+    return result;
+  }, [activeWorkspace, lockedSections, sections]);
 
-  // Active part: selected part or first part available
+  const firstUnlockedSection = useMemo(() => {
+    return sections.find(s => {
+      const sId = (s as any).section_id ?? s.id;
+      return sId != null && !lockedSections.includes(sId);
+    });
+  }, [sections, lockedSections]);
+
+  // Active part: selected part or first part of first unlocked section
   const currentPart = useMemo(() => {
+    if (allParts.length === 0) return null;
     if (selectedPartId !== null) {
       const found = allParts.find(p => (p as any).id === selectedPartId || (p as any).part_id === selectedPartId);
       if (found) return found;
     }
-    return currentSection?.parts?.[0];
-  }, [currentSection, selectedPartId, allParts]);
+    if (firstUnlockedSection && firstUnlockedSection.parts && firstUnlockedSection.parts.length > 0) {
+      return firstUnlockedSection.parts[0];
+    }
+    if (sections[0]?.parts && sections[0].parts.length > 0) {
+      return sections[0].parts[0];
+    }
+    return allParts[0] ?? null;
+  }, [allParts, selectedPartId, firstUnlockedSection, sections]);
+
+  // Keep selectedPartId in sync once initial active part resolves
+  useEffect(() => {
+    if (
+      selectedPartId === null &&
+      currentPart &&
+      !unmountedRef.current &&
+      Object.is(currentAttemptIdRef.current, attemptId)
+    ) {
+      const pId = (currentPart as any).id ?? (currentPart as any).part_id;
+      if (pId != null) {
+        setSelectedPartId(pId);
+      }
+    }
+  }, [selectedPartId, currentPart, attemptId]);
+
+  const currentSection = useMemo(() => {
+    if (!currentPart) return sections[0] ?? null;
+    const currentPId = (currentPart as any).id ?? (currentPart as any).part_id;
+    return sections.find(s =>
+      s.parts?.some(p => ((p as any).id === currentPId || (p as any).part_id === currentPId))
+    ) ?? sections[0] ?? null;
+  }, [sections, currentPart]);
 
   const currentSkill = currentSection?.skill_type || ((currentSection as any)?.name?.toUpperCase() as any) || 'READING';
 
@@ -109,27 +276,93 @@ const WorkspacePage: React.FC = () => {
     return getPartHeaderInfo(currentSkill, currentPart, currentSection?.parts, allParts);
   }, [currentSkill, currentPart, currentSection, allParts]);
 
-  // Active part questions extraction: supports both part.questions & part.content.question_groups
+  const currentPartQuestionGroups = useMemo(() => {
+    if (!currentPart) return [];
+    const backendGroups = (currentPart as any).questionGroups;
+    if (Array.isArray(backendGroups) && backendGroups.length > 0) {
+      return backendGroups;
+    }
+    const nestedGroups = currentPart.content?.question_groups;
+    return Array.isArray(nestedGroups) ? nestedGroups : [];
+  }, [currentPart]);
+
+  // Prefer grouped canonical data; PartFixture.questions is a flat compatibility view.
   const currentPartQuestions = useMemo(() => {
     if (!currentPart) return [];
+    if (currentPartQuestionGroups.length > 0) {
+      return currentPartQuestionGroups.flatMap((group: any) => group.questions ?? []);
+    }
     if (Array.isArray((currentPart as any).questions) && (currentPart as any).questions.length > 0) {
       return (currentPart as any).questions;
     }
-    return currentPart?.content?.question_groups?.flatMap((g: any) => g.questions ?? []) ?? [];
-  }, [currentPart]);
+    return [];
+  }, [currentPart, currentPartQuestionGroups]);
 
-  const partQuestions: Question[] = useMemo(() => {
-    return currentPartQuestions.map((q: any) => ({
+  const partId = (currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1;
+
+  const normalizeQuestion = (q: any, fallbackQuestionNumber: number): Question => ({
       ...q,
-      question_id: q.question_id || String(q.id),
-      question_number: q.question_number ?? q.id,
+      question_id: q.question_id ?? q.questionId ?? String(q.id),
+      question_number: q.question_number ?? q.questionNumber ?? q.id ?? fallbackQuestionNumber,
       type: q.type === 'MCQ' ? 'SINGLE_CHOICE' : q.type === 'FILL_IN' ? 'FILL_IN_THE_BLANK' : q.type,
       question_text: q.question_text || q.prompt || '',
       options: q.options ?? null,
-    }));
-  }, [currentPartQuestions]);
+    });
 
-  const partId = (currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1;
+  const partQuestionGroups = useMemo(() => {
+    const groups = currentPartQuestionGroups.length > 0
+      ? currentPartQuestionGroups
+      : [{ group_id: `legacy-part-${partId}`, instruction: null, questions: currentPartQuestions }];
+    let nextQuestionNumber = 1;
+
+    return groups.map((group: any) => ({
+      ...group,
+      questions: (group.questions ?? []).map((question: any) =>
+        normalizeQuestion(question, nextQuestionNumber++)
+      ),
+    }));
+  }, [currentPartQuestionGroups, currentPartQuestions, partId]);
+
+  const partQuestions: Question[] = useMemo(
+    () => partQuestionGroups.flatMap((group: any) => group.questions),
+    [partQuestionGroups],
+  );
+
+  const isPracticeMode = activeWorkspace?.test_mode === 'PRACTICE';
+
+  const practiceFeedback = usePracticeFeedback({
+    workspace: isPracticeMode ? activeWorkspace : null,
+    partId: isPracticeMode ? partId : null,
+    questions: isPracticeMode ? partQuestions : [],
+    isLocked: submission.isLocked(),
+  });
+
+  const retryContextKey = isPracticeMode && activeWorkspace?.attempt_id != null
+    ? `${activeWorkspace.attempt_id}:${answersState.contextRevision}`
+    : null;
+
+  const practiceRetry = usePracticeRetry(
+    retryContextKey,
+    isPracticeMode ? partId : null
+  );
+
+  const isFeedbackBlocked = Boolean(practiceFeedback.blockedMessage);
+
+  const handleStartRetry = () => {
+    if (isFeedbackBlocked || submission.isLocked() || isCurrentSectionLocked) return;
+    const retryIds = selectRetryQuestionIds(partQuestions, practiceFeedback.wrongQuestionIds);
+    if (retryIds.length > 0) {
+      practiceFeedback.hideFeedback(retryIds);
+      practiceRetry.start(retryIds);
+    }
+  };
+
+  const displayQuestionGroups = useMemo(() => {
+    if (isPracticeMode && practiceRetry.active) {
+      return filterRetryGroups(partQuestionGroups, new Set(practiceRetry.questionIds));
+    }
+    return partQuestionGroups;
+  }, [isPracticeMode, practiceRetry.active, practiceRetry.questionIds, partQuestionGroups]);
 
   // Compute unanswered questions across the entire exam
   const allQuestions = useMemo(() => {
@@ -153,80 +386,158 @@ const WorkspacePage: React.FC = () => {
     return Math.max(0, allQuestions.length - answered);
   }, [allQuestions, answersState.answers]);
 
-  const handleSubmit = async (isTimeout = false) => {
-    setIsSubmitting(true);
-    try {
-      // Pre-submit flush: push unsaved answers to server before closing attempt
-      if (isDirty) {
-        const answers = Object.entries(answersState.answers).map(([pId, qMap]) => ({
-          part_id: Number(pId),
-          answers: Object.entries(qMap as any).map(([question_id, answer]) => ({ question_id, answer: answer as any })),
-        }));
-        await autosaveAnswers(attemptId, { version: answersState.version, answers });
-        try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
-      }
-      const result = await submitAttempt(attemptId, {
-        version: answersState.version,
-        answers: [],
-        reason: isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL',
-      });
-      // Always clean up localStorage draft after successful submit
-      try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
-      if (isTimeout) {
-        setSubmitResultUrl(result.redirect_url);
-      } else {
-        navigate(result.redirect_url);
-      }
-    } catch (err: any) {
-      try { localStorage.removeItem(`exam_draft_${attemptId}`); } catch { /* ignore */ }
-      const resultUrl = `/attempts/${attemptId}/result`;
-      if (isTimeout) {
-        setSubmitResultUrl(resultUrl);
-      } else {
-        const is409 = err?.response?.status === 409 || err?.message?.includes('409') || err?.code === 409;
-        if (is409) {
-          navigate(resultUrl);
-        }
-      }
-    } finally {
-      setIsSubmitting(false);
+  const handleSubmit = (isTimeout = false) => {
+    if (isPracticeMode) {
+      practiceFeedback.suspend();
+      practiceRetry.stop();
     }
+    return submission.submit(isTimeout ? 'TIMEOUT_CLIENT' : 'MANUAL');
   };
+
+  useEffect(() => {
+    if (!submission.result || submission.result.attempt_id !== attemptId) return;
+    try {
+      localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(store.getState().answers.highlights));
+    } catch { /* highlights are best-effort local metadata */ }
+    if (!showTimeUp && !isExpired) navigate(submission.result.redirect_url);
+  }, [submission.result, attemptId, showTimeUp, isExpired, navigate, store]);
+
+  useEffect(() => {
+    setShowConfirm(false);
+    setShowOverlay(false);
+    setShowTimeUp(false);
+  }, [attemptId, answersState.contextRevision]);
 
   // Auto-submit when time expires
   useEffect(() => {
     if (
       isExpired &&
       !showTimeUp &&
-      !showOverlay &&
-      !isSubmitting &&
-      workspace &&
-      workspace.status === 'IN_PROGRESS' &&
-      workspace.deadline !== null
+      activeWorkspace &&
+      activeWorkspace.status === 'IN_PROGRESS' &&
+      activeWorkspace.deadline !== null
     ) {
+      dispatch(lockAnswers({ attemptId: activeWorkspace.attempt_id, contextRevision: answersState.contextRevision }));
       setShowTimeUp(true);
       handleSubmit(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExpired, showTimeUp, showOverlay, isSubmitting, workspace]);
+  }, [isExpired, showTimeUp, showOverlay, isSubmitting, activeWorkspace, answersState.contextRevision, dispatch]);
 
-  // Handle text selection in Reading Passage for AI Dictionary popup
-  const handlePassageMouseUp = () => {
-    const selection = window.getSelection();
-    const text = selection?.toString().trim();
-    if (text && text.length > 1 && text.length < 35 && /^[a-zA-Z\s-]+$/.test(text)) {
-      const range = selection?.getRangeAt(0);
-      const rect = range?.getBoundingClientRect();
-      if (rect) {
-        setDictTooltip({
-          word: text,
-          x: Math.max(16, rect.left + rect.width / 2 - 140),
-          y: Math.max(70, rect.bottom + 8),
-        });
-        setSavedFlashcard(false);
+  // Passage and Highlight state
+  const passageHtml = (currentPart as any)?.contentHtml
+    || (currentPart as any)?.content_html
+    || currentPart?.content?.content_html
+    || (currentPart?.content as any)?.shared_content_html
+    || (Array.isArray((currentPart?.content as any)?.question_groups) && (currentPart?.content as any).question_groups.length > 0
+        ? (currentPart?.content as any).question_groups
+            .map((g: any) => {
+              let html = '';
+              const imgs = g.shared_images || (g.shared_media?.url ? [g.shared_media.url] : []);
+              if (imgs.length > 0) {
+                html += imgs.map((img: string) => `<p style="text-align: center; margin: 12px 0;"><img src="${img}" alt="Illustration" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" /></p>`).join('');
+              }
+              if (g.content_html) {
+                html += g.content_html;
+              }
+              return html;
+            })
+            .filter(Boolean)
+            .join('<hr style="margin: 24px 0; border: none; border-top: 1px dashed #cbd5e1;" />')
+        : '') || '';
+  const partSharedAudio = (currentPart as any)?.sharedAudio
+    || (currentPart as any)?.shared_audio
+    || currentPart?.content?.shared_audio;
+  const partSharedMedia = (currentPart as any)?.sharedMedia
+    || (currentPart as any)?.shared_media
+    || currentPart?.content?.shared_media;
+  const passageId = String((currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1);
+  const passageHash = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < passageHtml.length; i++) {
+      hash = ((hash << 5) - hash) + passageHtml.charCodeAt(i);
+      hash |= 0;
+    }
+    return String(hash);
+  }, [passageHtml]);
+
+  const highlightsData = useSelector((state: RootState) => selectHighlights(state, passageId));
+  const highlights = highlightsData?.contentHash === passageHash ? highlightsData.items : [];
+
+  const highlightEnabled = currentSkill === 'READING' && (activeWorkspace?.test_mode === 'PRACTICE' || activeWorkspace?.test_mode === 'MOCK_TEST');
+  const { selection, setSelection } = useTextSelection(readingContainerRef, !!highlightEnabled);
+  const [deleteTooltip, setDeleteTooltip] = useState<{ offset: number; top: number; left: number } | null>(null);
+
+  const handleHighlight = () => {
+    if (submission.isLocked()) return;
+    if (!selection || !readingContainerRef.current) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      const rawText = sel.toString();
+      const rawOffsets = rangeToOffsets(readingContainerRef.current, range);
+      const { start, end } = trimOffsets(rawText, rawOffsets);
+      if (start < end) {
+        dispatch(addHighlightRecord({
+          passageId,
+          contentHash: passageHash,
+          highlight: { id: Date.now().toString(), start, end, text: selection.text.substring(0, 50) }
+        }));
       }
+      sel.removeAllRanges();
+      setSelection(null);
     }
   };
+
+  const handleAiLookup = () => {
+    if (!selection) return;
+    setDictTooltip({
+      word: selection.text,
+      x: Math.max(16, selection.rect.left + selection.rect.width / 2 - 140),
+      y: Math.max(70, selection.rect.bottom + 8),
+    });
+    setSavedFlashcard(false);
+    setSelection(null);
+  };
+
+  const handlePassageClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const mark = target.closest('mark[data-hl-id]');
+
+    if (mark && window.getSelection()?.isCollapsed) {
+      let range: Range | null = null;
+      if (document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      } else if ((document as any).caretPositionFromPoint) {
+        const pos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
+        if (pos) {
+          range = document.createRange();
+          range.setStart(pos.offsetNode, pos.offset);
+          range.setEnd(pos.offsetNode, pos.offset);
+        }
+      }
+      if (range && readingContainerRef.current) {
+        const { start } = rangeToOffsets(readingContainerRef.current, range);
+        setDeleteTooltip({
+          offset: start,
+          top: e.clientY + window.scrollY + 8,
+          left: e.clientX + window.scrollX,
+        });
+        return;
+      }
+    }
+    setDeleteTooltip(null);
+  };
+
+  const handleDeleteHighlight = () => {
+    if (submission.isLocked()) return;
+    if (deleteTooltip) {
+      dispatch(removeHighlightRecord({ passageId, offset: deleteTooltip.offset }));
+      setDeleteTooltip(null);
+    }
+  };
+
+  const finalHtml = useMemo(() => applyHighlights(passageHtml, highlights), [passageHtml, highlights]);
 
   if (loading) {
     return (
@@ -263,45 +574,51 @@ const WorkspacePage: React.FC = () => {
     );
   }
 
-  if (!workspace) return null;
+  if (!activeWorkspace) return null;
 
-  if (workspace.status === 'COMPLETED') {
-    navigate(`/attempts/${attemptId}/result`);
+  if (activeWorkspace.status !== 'IN_PROGRESS') {
     return null;
   }
 
-  const passageHtml = (currentPart as any)?.contentHtml
-    || (currentPart as any)?.content_html
-    || currentPart?.content?.content_html
-    || (currentPart?.content as any)?.shared_content_html
-    || (Array.isArray((currentPart?.content as any)?.question_groups) && (currentPart?.content as any).question_groups.length > 0
-        ? (currentPart?.content as any).question_groups
-            .map((g: any) => {
-              let html = '';
-              const imgs = g.shared_images || (g.shared_media?.url ? [g.shared_media.url] : []);
-              if (imgs.length > 0) {
-                html += imgs.map((img: string) => `<p style="text-align: center; margin: 12px 0;"><img src="${img}" alt="Illustration" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" /></p>`).join('');
-              }
-              if (g.content_html) {
-                html += g.content_html;
-              }
-              return html;
-            })
-            .filter(Boolean)
-            .join('<hr style="margin: 24px 0; border: none; border-top: 1px dashed #cbd5e1;" />')
-        : undefined);
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
-  const partTitle = currentPart?.title || currentPart?.content?.part_title || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
-  const isMockFull = workspace.test_mode === 'MOCK_TEST' && workspace.test_scope === 'FULL_EXAM';
+  const partTitle = currentPart?.title
+    || (currentPart as any)?.partTitle
+    || currentPart?.content?.part_title
+    || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
+  const isMockFull = activeWorkspace.test_mode === 'MOCK_TEST' && activeWorkspace.test_scope === 'FULL_EXAM';
+  const currentSectionId = (currentSection as any)?.section_id ?? currentSection?.id;
+  const isCurrentSectionLocked = Boolean(
+    activeWorkspace.test_mode === 'MOCK_TEST'
+      && currentSectionId != null
+      && lockedSections.includes(currentSectionId)
+  );
+
+  const handleReload = () => {
+    if (isSubmitting || store.getState().answers.saveStatus === 'saving') return;
+    const currentState = store.getState().answers;
+    if (currentState.isDirty) {
+      const ok = window.confirm("Bạn có các câu trả lời chưa được lưu lên máy chủ. Bạn có chắc muốn tải lại bản mới nhất từ máy chủ?");
+      if (!ok) return;
+      try {
+        localStorage.setItem(`exam_draft_${attemptId}`, JSON.stringify(currentState.answers));
+        setHasLocalDraft(true);
+      } catch {
+        alert("Không thể giữ bản nháp trên thiết bị. Hãy sao chép bài làm trước khi tải lại.");
+        return;
+      }
+    }
+    retry();
+  };
 
   const handlePartClick = async (targetPartId: number) => {
+    if (submission.isLocked()) return;
     if (!isMockFull) {
       setSelectedPartId(targetPartId);
       return;
     }
 
     const currentSId = (currentSection as any)?.section_id ?? currentSection?.id;
-    const targetSection = workspace?.exam_snapshot?.sections?.find(s =>
+    const targetSection = sections.find(s =>
       (s.parts || []).some((p: any) => (p.part_id ?? p.id) === targetPartId)
     );
     const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
@@ -313,25 +630,25 @@ const WorkspacePage: React.FC = () => {
     }
 
     // Locked section check
-    if (workspace.lockedSections?.includes(targetSId)) {
+    if (lockedSections.includes(targetSId)) {
       alert("Phần này đã bị khóa và không thể truy cập lại.");
       return;
     }
 
     // Different section, confirm and lock current
-    if (currentSId) {
+    if (currentSId && !lockedSections.includes(currentSId)) {
       // Calculate unanswered count in current section
       let sectionUnanswered = 0;
       const parts = currentSection?.parts || [];
       for (const p of parts) {
         const pId = (p as any).part_id ?? p.id;
-        const savedAnswers = workspace.saved_answers?.find(a => (a as any).partId === pId || (a as any).part_id === pId)?.answers || [];
+        const savedAnswers = activeWorkspace.saved_answers?.find(a => (a as any).partId === pId || (a as any).part_id === pId)?.answers || [];
         const reduxAnswers = answersState.answers[pId] || {};
         const mergedAnswers: Record<string | number, any> = {
           ...savedAnswers.reduce((acc, curr) => ({ ...acc, [(curr as any).questionId ?? (curr as any).question_id]: curr.answer }), {}),
           ...reduxAnswers
         };
-        
+
         const qs = Array.isArray(p.questions) ? p.questions : (p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) || []);
         for (const q of qs) {
           const qId = q.question_id ?? q.id;
@@ -343,16 +660,91 @@ const WorkspacePage: React.FC = () => {
 
       const confirmMessage = `Sau khi tiếp tục bạn KHÔNG THỂ quay lại ${currentSection?.title || 'phần này'}.\nBạn còn ${sectionUnanswered} câu chưa làm của phần này.\nBạn có chắc chắn muốn chuyển sang ${targetSection?.title || 'phần khác'}?`;
       if (window.confirm(confirmMessage)) {
+        lockOperationGenRef.current += 1;
+        const opAttemptId = attemptId;
+        const opRouteGen = routeLifecycleGenRef.current;
+        const opGen = lockOperationGenRef.current;
+
+        const isRouteActive = () => (
+          !unmountedRef.current &&
+          Object.is(currentAttemptIdRef.current, opAttemptId) &&
+          routeLifecycleGenRef.current === opRouteGen
+        );
+
+        const isOperationActive = () => (
+          isRouteActive() &&
+          lockOperationGenRef.current === opGen &&
+          !submission.isLocked()
+        );
+
         try {
-          await lockSection(attemptId, currentSId);
-          retry(); // refresh workspace to get new lockedSections
-          setSelectedPartId(targetPartId);
+          await lockSection(opAttemptId, currentSId);
+          if (!isRouteActive()) return;
+
+          setConfirmedLocks(prev => {
+            if (!isRouteActive()) return prev;
+            if (prev.attemptId !== opAttemptId) return prev;
+            const currentIds = prev.sectionIds;
+            return currentIds.includes(currentSId)
+              ? prev
+              : { attemptId: opAttemptId, sectionIds: [...currentIds, currentSId] };
+          });
+
+          if (!isOperationActive()) return;
+
+          setPendingTargetPartId(targetPartId);
+          setPendingLockError(null);
+          try {
+            const ok = await refreshMetadata();
+            if (!isOperationActive()) return;
+
+            if (ok) {
+              setSelectedPartId(targetPartId);
+              setPendingTargetPartId(null);
+            } else {
+              setPendingLockError("Không thể làm mới thông tin phần thi sau khi khóa.");
+            }
+          } catch (refreshErr: any) {
+            if (!isOperationActive()) return;
+            setPendingLockError(refreshErr instanceof Error ? refreshErr.message : "Lỗi khi làm mới thông tin phần thi");
+          }
         } catch (e: any) {
+          if (!isOperationActive()) return;
           alert("Lỗi khi khóa phần thi: " + e.message);
         }
       }
     } else {
       setSelectedPartId(targetPartId);
+      setPendingTargetPartId(null);
+    }
+  };
+
+  const handleRetryMetadata = async () => {
+    if (submission.isLocked()) return;
+    lockOperationGenRef.current += 1;
+    const retryAttemptId = attemptId;
+    const retryRouteGen = routeLifecycleGenRef.current;
+    const retryGen = lockOperationGenRef.current;
+    const isRetryActive = () => (
+      !unmountedRef.current &&
+      Object.is(currentAttemptIdRef.current, retryAttemptId) &&
+      routeLifecycleGenRef.current === retryRouteGen &&
+      lockOperationGenRef.current === retryGen &&
+      !submission.isLocked()
+    );
+
+    setPendingLockError(null);
+    try {
+      const ok = await refreshMetadata();
+      if (!isRetryActive()) return;
+
+      if (ok && pendingTargetPartId !== null) {
+        setSelectedPartId(pendingTargetPartId);
+        setPendingTargetPartId(null);
+      }
+    } catch (err: any) {
+      if (!isRetryActive()) return;
+      setPendingLockError(err instanceof Error ? err.message : "Lỗi khi làm mới thông tin phần thi");
     }
   };
 
@@ -382,7 +774,7 @@ const WorkspacePage: React.FC = () => {
 
           <div className="flex items-center gap-2 overflow-hidden">
             <h1 className="font-heading font-bold text-slate-900 text-sm sm:text-base truncate">
-              {workspace.exam_snapshot?.title || 'Bài thi'}
+              {activeWorkspace.exam_snapshot?.title || 'Bài thi'}
             </h1>
             {allParts.length > 0 && (
               <span
@@ -397,13 +789,38 @@ const WorkspacePage: React.FC = () => {
 
         {/* Right: Save Status & Live Timer */}
         <div className="flex items-center gap-3 shrink-0">
-          <SaveStatusBadge />
+          <SaveStatusBadge onReload={handleReload} />
           <TimerDisplay displayTime={displayTime} isExpired={isExpired} isPractice={isPractice} />
         </div>
       </header>
 
+      {/* Notice Banners */}
+      {draftWarning && <div role="alert" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">{draftWarning}</div>}
+      {(refreshError || pendingLockError) && (
+        <div role="alert" className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between text-xs text-red-800 shrink-0">
+          <span>{refreshError || pendingLockError}</span>
+          <button
+            type="button"
+            onClick={handleRetryMetadata}
+            className="px-2.5 py-1 rounded border border-red-300 bg-white hover:bg-red-100 font-semibold text-red-800"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+      {hasLocalDraft && (
+        <div data-testid="local-draft-notice" className="bg-amber-50 border-b border-amber-200 px-4 py-1.5 text-xs text-amber-800 flex items-center gap-2 shrink-0">
+          <span>ℹ️ Đang dùng bản đã lưu trên máy chủ; bản nháp trên thiết bị chưa được khôi phục.</span>
+        </div>
+      )}
+
       {/* 2. MAIN BODY: SPLIT-PANE WORKSPACE */}
-      <div ref={workspaceContainerRef} className="flex flex-1 overflow-hidden relative">
+      <div
+        ref={workspaceContainerRef}
+        className={`flex flex-1 overflow-hidden relative ${
+          isPracticeMode ? 'flex-col md:flex-row' : ''
+        }`}
+      >
         {/* LEFT PANE: Reading Passage or Writing Prompt Workspace */}
         {currentSkill !== 'LISTENING' && allParts.length > 0 && (
           <section
@@ -420,7 +837,7 @@ const WorkspacePage: React.FC = () => {
                 </span>
                 <span className="text-xs text-slate-500">
                   {(() => {
-                    const snapType = (workspace?.exam_snapshot?.type || '').toUpperCase();
+                    const snapType = (activeWorkspace?.exam_snapshot?.type || '').toUpperCase();
                     let certLabel = 'IELTS Academic';
                     if (snapType.includes('TOEIC')) {
                       certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
@@ -429,7 +846,7 @@ const WorkspacePage: React.FC = () => {
                     } else if (snapType.includes('GENERAL')) {
                       certLabel = 'IELTS General';
                     }
-                    const skillLabel = currentSkill === 'WRITING' ? 'Writing' : currentSkill === 'LISTENING' ? 'Listening' : 'Reading';
+                    const skillLabel = (currentSkill as string) === 'WRITING' ? 'Writing' : 'Reading';
                     return `${certLabel} ${skillLabel}`;
                   })()}
                 </span>
@@ -449,7 +866,6 @@ const WorkspacePage: React.FC = () => {
             {/* Passage / Prompt Text Content */}
             <div
               ref={readingContainerRef}
-              onMouseUp={isPractice && currentSkill === 'READING' ? handlePassageMouseUp : undefined}
               className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
             >
               {currentSkill === 'WRITING' ? (
@@ -462,38 +878,48 @@ const WorkspacePage: React.FC = () => {
                       {partInstruction}
                     </div>
                   )}
+                  {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
+                  {partSharedMedia && partSharedMedia.url !== partQuestions[0]?.media?.url && (
+                    <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />
+                  )}
                   {partQuestions[0] && (
                     <div className="space-y-4">
                       <div className="prose prose-slate max-w-none text-slate-800 font-medium whitespace-pre-wrap">
                         {partQuestions[0].question_text}
                       </div>
-                      {partQuestions[0].media?.url && (
+                      {partQuestions[0].media && (
                         <div className="mt-4 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
-                          <img src={partQuestions[0].media.url} alt="Writing Prompt Graph" className="max-w-full h-auto max-h-[60vh] object-contain" />
+                          <MediaDisplay media={partQuestions[0].media} alt="Writing Prompt Graph" />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-              ) : passageHtml ? (
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: formatHtmlContent(passageHtml)
-                  }}
-                  className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
-                />
-              ) : partInstruction ? (
-                <div className="space-y-4">
-                  <h2 className="font-heading text-lg font-bold text-slate-900">
-                    {partTitle}
-                  </h2>
-                  <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
-                    {partInstruction}
-                  </div>
-                </div>
               ) : (
-                <div className="p-6 text-center text-slate-400 italic">
-                  Không có nội dung bài đọc cho phần thi này.
+                <div className="space-y-4">
+                  {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
+                  {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
+                  {passageHtml ? (
+                    <div onClick={handlePassageClick}>
+                      <HtmlContent
+                        html={finalHtml}
+                        className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
+                      />
+                    </div>
+                  ) : partInstruction ? (
+                    <div>
+                      <h2 className="font-heading text-lg font-bold text-slate-900">
+                        {partTitle}
+                      </h2>
+                      <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
+                        {partInstruction}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-slate-400 italic">
+                      Không có nội dung bài đọc cho phần thi này.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -517,10 +943,16 @@ const WorkspacePage: React.FC = () => {
 
         {/* RIGHT PANE: Questions & Interaction */}
         <main
-          style={currentSkill !== 'LISTENING' && allParts.length > 0 ? { width: `${100 - splitRatio}%` } : undefined}
-          className={`flex-1 flex flex-col bg-slate-50 h-full overflow-hidden ${
-            currentSkill === 'LISTENING' ? 'items-center' : ''
-          } ${isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'}`}
+          style={
+            (!isPracticeMode || !isMobileViewport) && currentSkill !== 'LISTENING' && allParts.length > 0
+              ? { width: `${100 - splitRatio}%` }
+              : undefined
+          }
+          className={`flex-1 flex flex-col bg-slate-50 overflow-hidden ${
+            isPracticeMode ? 'w-full md:w-auto min-h-0' : 'h-full'
+          } ${currentSkill === 'LISTENING' ? 'items-center' : ''} ${
+            isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
+          }`}
         >
           {/* Scrollable Questions Container */}
           <div className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 w-full ${currentSkill === 'LISTENING' ? 'max-w-4xl' : ''}`}>
@@ -534,66 +966,151 @@ const WorkspacePage: React.FC = () => {
                   </div>
                 )}
 
-                {partQuestions.map((q) => {
-                  const qId = q.question_id;
-                  const currentVal = answersState.answers?.[partId]?.[qId] ?? null;
-                  const isQuestionAnswered = isAnswered(currentVal, q.type);
-                  const isFlagged = !!answersState.flags?.[partId]?.[qId];
+                {currentSkill === 'LISTENING' && (
+                  <>
+                    {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
+                    {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
+                    {passageHtml && <HtmlContent html={passageHtml} className="prose prose-slate max-w-none" />}
+                  </>
+                )}
 
-                  // Calculate dynamic minWords based on question text/metadata or skill standards
-                  const minWords = extractMinWords(q, currentPart);
+                {isPracticeMode && practiceFeedback.blockedMessage && (
+                  <div
+                    role="alert"
+                    className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-900 flex flex-wrap items-center justify-between gap-3 shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-red-600 shrink-0" aria-hidden="true" />
+                      <span className="font-medium">{practiceFeedback.blockedMessage}</span>
+                    </div>
+                    {practiceFeedback.blockedMessage.includes('tải lại trang') && (
+                      <button
+                        type="button"
+                        onClick={handleReload}
+                        className="px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                      >
+                        Tải lại trang
+                      </button>
+                    )}
+                  </div>
+                )}
 
-                  return (
-                    <div
-                      key={qId}
-                      id={`q-${qId}`}
-                      className={`ed-card p-5 scroll-mt-4 transition-all duration-200 ${
-                        isQuestionAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3 mb-3.5">
-                        <div className="flex items-start gap-3 flex-1">
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
-                            isQuestionAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
-                          }`}>
-                            {q.question_number}
-                          </span>
-                          <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'lg:hidden' : ''}`}>
-                            {q.question_text}
-                          </div>
-                        </div>
+                {isPracticeMode && (
+                  <PracticeRetryToolbar
+                    wrongCount={practiceFeedback.wrongQuestionIds.length}
+                    retryActive={practiceRetry.active}
+                    onStartRetry={handleStartRetry}
+                    onStopRetry={practiceRetry.stop}
+                    disabled={submission.isLocked() || isCurrentSectionLocked || isFeedbackBlocked}
+                  />
+                )}
 
-                        {/* Flag toggle button */}
-                        <button
-                          type="button"
-                          data-testid={`flag-btn-${qId}`}
-                          onClick={() => dispatch(toggleFlag({ partId, questionId: qId }))}
-                          title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 shadow-2xs ${
-                            isFlagged
-                              ? 'bg-amber-100 border-amber-400 text-amber-900 ring-2 ring-amber-400/30'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                {displayQuestionGroups.map((group: any) => (
+                  <div
+                    key={group.group_id}
+                    data-testid={`question-group-${group.group_id}`}
+                    data-group-id={group.group_id}
+                    className="space-y-4"
+                  >
+                    {group.instruction && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
+                        {group.instruction}
+                      </div>
+                    )}
+                    {group.shared_audio?.url && <AudioPlayer url={group.shared_audio.url} isActive={true} />}
+                    {group.shared_media && <MediaDisplay media={group.shared_media} alt={`${group.group_id} media`} />}
+                    {(group.content_html || group.context_html) && (
+                      <HtmlContent
+                        html={group.content_html || group.context_html}
+                        className="prose prose-slate max-w-none"
+                      />
+                    )}
+                    {group.questions.map((q: Question) => {
+                      const qId = q.question_id;
+                      const currentVal = answersState.answers?.[partId]?.[qId] ?? null;
+                      const isQuestionAnswered = isAnswered(currentVal, q.type);
+                      const isFlagged = !!answersState.flags?.[partId]?.[qId];
+
+                      // Calculate dynamic minWords based on question text/metadata or skill standards
+                      const minWords = extractMinWords(q, currentPart);
+
+                      return (
+                        <div
+                          key={qId}
+                          id={`q-${qId}`}
+                          className={`ed-card p-5 scroll-mt-4 transition-all duration-200 ${
+                            isQuestionAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
                           }`}
                         >
-                          <span>{isFlagged ? '🚩' : '🏳️'}</span>
-                          <span>{isFlagged ? 'Đã xem lại' : 'Xem lại'}</span>
-                        </button>
-                      </div>
+                          <div className="flex items-start justify-between gap-3 mb-3.5">
+                            <div className="flex items-start gap-3 flex-1">
+                              <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
+                                isQuestionAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                              }`}>
+                                {q.question_number}
+                              </span>
+                              <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'lg:hidden' : ''}`}>
+                                {q.question_text}
+                              </div>
+                            </div>
 
-                      <div className="pl-10">
-                        <QuestionRenderer
-                          question={q}
-                          partId={partId}
-                          currentAnswer={currentVal}
-                          minWords={minWords}
-                          onChange={(val) => {
-                            dispatch(setAnswer({ partId, questionId: qId, value: val }));
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                            {/* Flag toggle button */}
+                            <button
+                              type="button"
+                              data-testid={`flag-btn-${qId}`}
+                              disabled={isCurrentSectionLocked || submission.isLocked()}
+                              onClick={() => {
+                                if (!isCurrentSectionLocked && !submission.isLocked()) {
+                                  dispatch(toggleFlag({ partId, questionId: qId }));
+                                }
+                              }}
+                              title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 shadow-2xs ${
+                                isFlagged
+                                  ? 'bg-amber-100 border-amber-400 text-amber-900 ring-2 ring-amber-400/30'
+                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                              }`}
+                            >
+                              <span>{isFlagged ? '🚩' : '🏳️'}</span>
+                              <span>{isFlagged ? 'Đã xem lại' : 'Xem lại'}</span>
+                            </button>
+                          </div>
+
+                          <div className="pl-10">
+                            {q.media && q.type !== 'ESSAY' && q.type !== 'MAP_LABELING' && (
+                              <MediaDisplay media={q.media} alt={`Question ${q.question_number} media`} />
+                            )}
+                            <fieldset disabled={isCurrentSectionLocked || submission.isLocked()} className="m-0 min-w-0 border-0 p-0">
+                              <QuestionRenderer
+                                question={q}
+                                partId={partId}
+                                currentAnswer={currentVal}
+                                minWords={minWords}
+                                onChange={(val) => {
+                                  if (!isCurrentSectionLocked && !submission.isLocked()) {
+                                    dispatch(setAnswer({ partId, questionId: qId, value: val }));
+                                  }
+                                }}
+                              />
+                            </fieldset>
+                            {isPracticeMode && (
+                              <PracticeQuestionFeedback
+                                questionId={qId}
+                                questionNumber={q.question_number}
+                                questionType={q.type}
+                                feedback={practiceFeedback.getFeedback(qId)}
+                                onCheck={practiceFeedback.check}
+                                onReload={handleReload}
+                                busy={practiceFeedback.busy}
+                                disabled={isCurrentSectionLocked || submission.isLocked() || isFeedbackBlocked}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-12 text-slate-400">
@@ -610,12 +1127,12 @@ const WorkspacePage: React.FC = () => {
                 const partsInSection = currentSection.parts || [];
                 if (partsInSection.length === 0) return null;
                 const lastPartId = (partsInSection[partsInSection.length - 1] as any).part_id ?? partsInSection[partsInSection.length - 1].id;
-                
+
                 if (partId === lastPartId) {
                   // Find next section's first part
-                  const sIdx = workspace.exam_snapshot.sections.findIndex(s => ((s as any).section_id ?? s.id) === ((currentSection as any).section_id ?? currentSection.id));
-                  const nextSection = sIdx !== -1 && sIdx + 1 < workspace.exam_snapshot.sections.length ? workspace.exam_snapshot.sections[sIdx + 1] : null;
-                  
+                  const sIdx = sections.findIndex(s => ((s as any).section_id ?? s.id) === ((currentSection as any).section_id ?? currentSection.id));
+                  const nextSection = sIdx !== -1 && sIdx + 1 < sections.length ? sections[sIdx + 1] : null;
+
                   if (nextSection && nextSection.parts?.length > 0) {
                     const firstPartOfNext = (nextSection.parts[0] as any).part_id ?? nextSection.parts[0].id;
                     return (
@@ -623,7 +1140,10 @@ const WorkspacePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handlePartClick(firstPartOfNext)}
-                          className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-heading font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                          disabled={submission.isLocked()}
+                          className={`px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-heading font-bold shadow-md transition-all flex items-center gap-2 ${
+                            submission.isLocked() ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
                         >
                           Chuyển sang phần tiếp theo ({nextSection.title}) <span>→</span>
                         </button>
@@ -638,7 +1158,13 @@ const WorkspacePage: React.FC = () => {
         </main>
 
         {/* 3. RIGHT SIDEBAR: QUESTION PALETTE DOCK */}
-        <aside className="w-64 sm:w-72 shrink-0 bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden shadow-xs">
+        <aside
+          className={`${
+            isPracticeMode
+              ? 'w-full md:w-64 md:sm:w-72 h-auto max-h-72 md:h-full md:max-h-none border-t md:border-t-0 md:border-l'
+              : 'w-64 sm:w-72 h-full border-l'
+          } shrink-0 bg-white border-slate-200 flex flex-col overflow-hidden shadow-xs`}
+        >
           <div className="flex-1 overflow-y-auto flex flex-col">
             {/* Part Switcher in Sidebar */}
             {allParts.length > 1 && (
@@ -654,9 +1180,10 @@ const WorkspacePage: React.FC = () => {
                     const qCount = Array.isArray(p.questions)
                       ? p.questions.length
                       : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
-                    const targetSection = workspace?.exam_snapshot?.sections?.find(s => (s.parts || []).some((part: any) => (part.part_id ?? part.id) === pId));
+                    const targetSection = sections.find(s => (s.parts || []).some((part: any) => (part.part_id ?? part.id) === pId));
                     const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
-                    const isLocked = isMockFull && workspace?.lockedSections?.includes(targetSId);
+                    const isSectionLocked = isMockFull && lockedSections.includes(targetSId);
+                    const isLocked = isSectionLocked || submission.isLocked();
 
                     return (
                       <button
@@ -699,7 +1226,10 @@ const WorkspacePage: React.FC = () => {
               <QuestionPalette
                 allParts={allParts}
                 activePartId={partId}
+                lockedPartIds={submission.isLocked() ? allParts.map(p => (p as any).part_id ?? p.id) : lockedPartIds}
+                visibleQuestionIds={isPracticeMode && practiceRetry.active ? practiceRetry.questionIds : undefined}
                 onNavigate={(targetPartId, qId) => {
+                  if (submission.isLocked()) return;
                   if (targetPartId !== partId) {
                     setSelectedPartId(targetPartId);
                     // Wait for React to render the new part's questions before scrolling
@@ -720,8 +1250,8 @@ const WorkspacePage: React.FC = () => {
           <div className="p-4 border-t border-slate-200 bg-slate-50/50">
             <button
               id="btn-submit-exam"
-              disabled={isSubmitting}
-              onClick={() => setShowConfirm(true)}
+              disabled={submission.isLocked()}
+              onClick={() => { if (!submission.isLocked()) setShowConfirm(true); }}
               className={`w-full py-3 px-4 rounded-xl font-heading font-bold text-sm border-none transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md ${
                 isSubmitting
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -789,6 +1319,25 @@ const WorkspacePage: React.FC = () => {
         </div>
       )}
 
+      {/* 4b. SELECTION TOOLBAR & DELETE TOOLTIP */}
+      <SelectionToolbar
+        selection={selection}
+        showAi={isPractice && selection !== null && selection.text.length > 1 && selection.text.length < 35 && /^[a-zA-Z\s-]+$/.test(selection.text)}
+        onHighlight={handleHighlight}
+        onAiLookup={handleAiLookup}
+      />
+
+      {deleteTooltip && createPortal(
+        <div
+          className="absolute z-50 flex items-center bg-white border border-gray-200 shadow-lg rounded-md px-3 py-1 cursor-pointer hover:bg-gray-50"
+          style={{ top: deleteTooltip.top, left: deleteTooltip.left }}
+          onClick={handleDeleteHighlight}
+        >
+          <span className="text-sm font-medium text-red-600">Xóa highlight</span>
+        </div>,
+        document.body
+      )}
+
       {/* 5. MODALS & SUBMIT OVERLAYS */}
       <SubmitConfirmModal
         open={showConfirm}
@@ -807,19 +1356,20 @@ const WorkspacePage: React.FC = () => {
       <TimeUpModal
         open={showTimeUp}
         isSubmitting={isSubmitting}
-        onClose={() => {
-          if (submitResultUrl) {
-            navigate(submitResultUrl);
-          } else {
-            navigate(`/attempts/${attemptId}/result`);
-          }
-        }}
+        error={submission.error}
+        onRetry={submission.phase === 'conflict' ? handleReload : () => { void submission.retry(); }}
+        retryLabel={submission.phase === 'conflict' ? 'Tải lại bản mới nhất' : undefined}
+        draftWarning={draftWarning}
+        onClose={submission.result ? () => navigate(submission.result!.redirect_url) : undefined}
       />
 
       <SubmitOverlay
-        visible={showOverlay}
+        visible={showOverlay && !showTimeUp && submission.phase !== 'conflict' && submission.phase !== 'succeeded'}
         isRetrying={isSubmitting}
-        onRetry={() => handleSubmit(false)}
+        error={submission.error}
+        draftWarning={draftWarning}
+        onRetry={() => { void submission.retry(); }}
+        onClose={() => setShowOverlay(false)}
       />
     </div>
   );

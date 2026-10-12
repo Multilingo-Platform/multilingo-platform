@@ -12,7 +12,7 @@
     "timestamp": "2026-10-03T14:30:00Z"
   }
   ```
-- **Xác thực Context:** Header `X-User-Id: <id>` (tạm thời cho giai đoạn phát triển trước khi tích hợp JWT filter hoàn chỉnh).
+- **Xác thực mục tiêu:** Authorization Bearer; lấy userId từ JWT principal. Các API vocab còn đọc X-User-Id trong code hiện tại phải được chuyển sang principal theo kế hoạch UC012.4; tài liệu này không chứng minh việc chuyển đổi đã hoàn thành.
 
 ---
 
@@ -21,7 +21,7 @@
 ### 1.1. Lấy danh sách bộ thẻ kèm thống kê
 - **Method:** `GET`
 - **Path:** `/api/v1/vocab/decks`
-- **Headers:** `X-User-Id: 1`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Response HTTP 200 OK:**
 ```json
 {
@@ -50,7 +50,7 @@
 ### 1.2. Tạo bộ thẻ mới
 - **Method:** `POST`
 - **Path:** `/api/v1/vocab/decks`
-- **Headers:** `Content-Type: application/json`, `X-User-Id: 1`
+- **Headers:** `Content-Type: application/json`, `Authorization: Bearer <accessToken>`
 - **Request Body:**
 ```json
 {
@@ -85,7 +85,7 @@
 ### 1.3. Chi tiết bộ thẻ
 - **Method:** `GET`
 - **Path:** `/api/v1/vocab/decks/{id}`
-- **Headers:** `X-User-Id: 1`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Response HTTP 200 OK:**
 ```json
 {
@@ -113,7 +113,7 @@
 ### 1.4. Chỉnh sửa thông tin bộ thẻ
 - **Method:** `PUT`
 - **Path:** `/api/v1/vocab/decks/{id}`
-- **Headers:** `Content-Type: application/json`, `X-User-Id: 1`
+- **Headers:** `Content-Type: application/json`, `Authorization: Bearer <accessToken>`
 - **Request Body:**
 ```json
 {
@@ -127,7 +127,7 @@
 ### 1.5. Xóa bộ thẻ
 - **Method:** `DELETE`
 - **Path:** `/api/v1/vocab/decks/{id}`
-- **Headers:** `X-User-Id: 1`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Response HTTP 200 OK:**
 ```json
 {
@@ -146,7 +146,7 @@
 ### 2.1. Lấy danh sách thẻ từ vựng trong bộ thẻ (hỗ trợ tìm kiếm & lọc)
 - **Method:** `GET`
 - **Path:** `/api/v1/vocab/decks/{deckId}/cards?keyword=&status=`
-- **Headers:** `X-User-Id: 1`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Query Params:**
   - `keyword` (Optional, string): Tìm kiếm theo từ hoặc nghĩa.
   - `status` (Optional, string): `NEW` | `LEARNING` | `MASTERED` | `ALL`.
@@ -181,7 +181,7 @@
 ### 2.2. Thêm thẻ từ vựng vào bộ thẻ
 - **Method:** `POST`
 - **Path:** `/api/v1/vocab/decks/{deckId}/cards`
-- **Headers:** `Content-Type: application/json`, `X-User-Id: 1`
+- **Headers:** `Content-Type: application/json`, `Authorization: Bearer <accessToken>`
 - **Request Body:**
 ```json
 {
@@ -224,7 +224,7 @@
 ### 2.3. Chỉnh sửa thẻ từ vựng
 - **Method:** `PUT`
 - **Path:** `/api/v1/vocab/cards/{cardId}`
-- **Headers:** `Content-Type: application/json`, `X-User-Id: 1`
+- **Headers:** `Content-Type: application/json`, `Authorization: Bearer <accessToken>`
 - **Request Body:**
 ```json
 {
@@ -239,7 +239,7 @@
 ### 2.4. Xóa thẻ từ vựng
 - **Method:** `DELETE`
 - **Path:** `/api/v1/vocab/cards/{cardId}`
-- **Headers:** `X-User-Id: 1`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Response HTTP 200 OK:**
 ```json
 {
@@ -300,3 +300,9 @@
   "timestamp": "2026-10-03T14:39:00Z"
 }
 ```
+
+## 4. Contract Luyện tập UC012.4
+
+Contract Practice nằm duy nhất tại [đặc tả UC012.4, mục 5](uc12.4-hoc-tu-vung.md#5-thiết-kế-api-contracts): POST /api/v1/vocab/decks/{deckId}/practice/sessions và POST /api/v1/vocab/practice/sessions/{sessionId}/submit. Practice tự ghi nhận khi hoàn thành; snapshot Redis và receipt PostgreSQL. Legacy /quiz-sessions chỉ dùng để drain các phiên cũ theo kế hoạch, không tạo phiên mới sau switch.
+
+Contract Thi thử nằm duy nhất tại [đặc tả UC012.5, mục 6](uc12.5-kiem-tra-tu-vung.md#6-thiết-kế-api-contracts): generate, resume, progress với expectedVersion, submit và review. Không sao chép payload để tránh các bản định nghĩa khác nhau.

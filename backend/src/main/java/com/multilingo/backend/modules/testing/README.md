@@ -47,3 +47,39 @@ com.multilingo.backend.modules.testing
 2. **Cột JSONB:** Quản lý `user_answers`, `is_correct_flags`, `ai_feedback` bằng kiểu JSONB.
 3. **Controller:** Trả về `ResponseEntity<ApiResponse<T>>`.
 4. **Tích hợp Gemini AI:** Gọi API bằng HTTP Client (WebClient / RestTemplate / Spring AI), bao bọc lỗi kết nối và ném `AppException` nếu AI timeout hoặc quota vượt giới hạn.
+
+---
+
+## 5. HẠ TẦNG GEMINI HTTP CLIENT (TV3-17 INFRASTRUCTURE)
+
+**Package:** `com.multilingo.backend.modules.testing.ai.gemini`
+
+### Cấu hình môi trường
+
+Hạ tầng Gemini Client sử dụng tiền tố `testing.gemini.*` trong `application.properties`:
+
+| Thuộc tính | Biến môi trường | Mặc định | Mô tả |
+|---|---|---|---|
+| `testing.gemini.enabled` | `GEMINI_ENABLED` | `false` | Bật/tắt client Gemini. Mặc định `false` (an toàn). |
+| `testing.gemini.api-key` | `GEMINI_API_KEY` | *(trống)* | API key Google Gemini. Bắt buộc khi bật; chỉ chấp nhận ký tự ASCII in được không khoảng trắng. |
+| `testing.gemini.model` | `GEMINI_MODEL` | *(trống)* | Bare model ID (ví dụ: `gemini-1.5-flash`). Regex: `^[A-Za-z0-9][A-Za-z0-9._-]*$`, dài 1–128. Bắt buộc khi bật. |
+| `testing.gemini.connect-timeout` | `GEMINI_CONNECT_TIMEOUT` | `5s` | Timeout kết nối TCP (`connectTimeout > 0`). |
+| `testing.gemini.request-timeout` | `GEMINI_REQUEST_TIMEOUT` | `30s` | Monotonic deadline bao trọn toàn bộ request (`connectTimeout <= requestTimeout <= 120s`). |
+
+- **Disabled theo mặc định:** Khi `testing.gemini.enabled=false`, context khởi tạo bean `GeminiClient` ở trạng thái vô hiệu hóa (`DisabledGeminiClient`). Mọi lời gọi `generate()` lập tức ném `GeminiClientException(Kind.DISABLED)` mà không tạo `HttpClient` và không gọi mạng.
+- **Fail-fast khi bật:** Khi `testing.gemini.enabled=true`, nếu thiếu hoặc sai `api-key`, `model` hay `timeouts`, Spring Boot sẽ fail-fast lúc startup bằng thông báo lỗi cố định, tuyệt đối không in giá trị key ra log.
+
+### Trạng thái tích hợp nghiệp vụ
+
+> [!IMPORTANT]
+> Client Gemini tại TV3-17 là **hạ tầng transport độc lập** và **chưa được nối vào bất kỳ use case nghiệp vụ nào** (chưa inject vào Submit test, Practice feedback hay Writing Grading Worker). Việc hoàn thành hạ tầng HTTP client không đồng nghĩa tính năng AI Writing Hints hay Auto-grading đã hoạt động.
+
+### Ranh giới trách nhiệm của Caller (Use Cases / Workers)
+
+Client chỉ chịu trách nhiệm gửi nhận envelope HTTP thô và phân loại lỗi provider. Tầng nghiệp vụ gọi client (`Caller`) có toàn quyền và bắt buộc tự quản lý:
+1. **Quyền sở hữu & Trạng thái Attempt:** Kiểm tra `userId`, quyền học viên, attempt mode (`MOCK_TEST` vs `PRACTICE`), trạng thái bài thi (`IN_PROGRESS`, `COMPLETED`).
+2. **Hạn ngạch & Tần suất (Quota / Rate-Limiting):** Kiểm tra số lần xin gợi ý AI / hạn mức lượt chấm trước khi gọi client.
+3. **Validate nội dung bài viết:** Kiểm tra độ dài essay tối thiểu, lọc nội dung rác trước khi gửi cho AI.
+4. **Chiến lược Thử lại (Retry & Backoff):** Client không tự retry. Cờ `isRetryable()` chỉ mang tính gợi ý; caller quyết định có thử lại (exponential backoff/jitter) hay không.
+5. **Validation Schema & Nghiệp vụ AI:** Parse và validate cấu trúc JSON nghiệp vụ (tiêu chí Task Achievement, Lexical, v.v.), xử lý trường hợp AI hallucinate hoặc trả Markdown fences.
+6. **Persistence & Lịch sử:** Lưu kết quả vào `attempt_answers.ai_feedback` hoặc audit logs.

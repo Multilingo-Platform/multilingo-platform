@@ -6,9 +6,11 @@ export { TimeUpOverlay };
 export interface TimeUpModalProps {
   open: boolean;
   isSubmitting: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   error?: string | null;
   onRetry?: () => void;
+  retryLabel?: string;
+  draftWarning?: string | null;
 }
 
 export const TimeUpModal: React.FC<TimeUpModalProps> = ({
@@ -17,6 +19,8 @@ export const TimeUpModal: React.FC<TimeUpModalProps> = ({
   onClose,
   error,
   onRetry,
+  retryLabel,
+  draftWarning,
 }) => {
   return (
     <TimeUpOverlay
@@ -25,6 +29,8 @@ export const TimeUpModal: React.FC<TimeUpModalProps> = ({
       error={error}
       onSubmit={() => {}}
       onRetry={onRetry}
+      retryLabel={retryLabel}
+      draftWarning={draftWarning}
       onNavigateToResult={onClose}
     />
   );

@@ -25,7 +25,7 @@
   - Empty State & Loading State.
 - **Out-of-Scope:**
   - Thuật toán chấm điểm và lật thẻ 3D SRS (thuộc UC12.2).
-  - Sinh đề và chấm điểm trắc nghiệm (thuộc UC12.3 & UC12.4).
+  - Sinh đề và chấm Quiz (UC12.4, xem [test design chính](test-design-uc12.4-quiz.md)) và Kiểm tra (xem uc12.5-kiem-tra-tu-vung.md).
   - Bàn cờ game ghép thẻ (thuộc UC12.5).
 
 ---
@@ -144,18 +144,18 @@ And Trả về HTTP 409 Conflict với message "Từ vựng này đã tồn tạ
 
 | Mã Test Case | Phân loại | Mô tả kịch bản | Tiền điều kiện | Các bước thực hiện | Dữ liệu kiểm thử | Kết quả mong đợi |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TC_VOCAB_DECK_01** | Happy Path | Lấy danh sách bộ thẻ kèm thống kê | User 1 đăng nhập, có 2 deck | Gửi `GET /api/v1/vocab/decks` | Header `X-User-Id: 1` | HTTP 200, danh sách 2 deck kèm đủ 5 trường thống kê |
+| **TC_VOCAB_DECK_01** | Happy Path | Lấy danh sách bộ thẻ kèm thống kê | User 1 đăng nhập, có 2 deck | Gửi `GET /api/v1/vocab/decks` | JWT của User 1 | HTTP 200, danh sách 2 deck kèm đủ 5 trường thống kê |
 | **TC_VOCAB_DECK_02** | Happy Path | Tạo bộ thẻ mới thành công | User 1 đăng nhập | Gửi `POST /api/v1/vocab/decks` | `{"name": "IELTS Writing", "isPublic": false}` | HTTP 201, trả về deck có ID mới, user_id=1 |
 | **TC_VOCAB_DECK_03** | Negative | Tạo bộ thẻ với tên trống | User 1 đăng nhập | Gửi `POST /api/v1/vocab/decks` | `{"name": "   "}` | HTTP 422, thông báo validation rõ ràng |
 | **TC_VOCAB_DECK_04** | Boundary | Kiểm tra độ dài tên deck tối đa 200 ký tự | User 1 đăng nhập | Gửi POST với name 200 và 201 ký tự | String 200 vs 201 ký tự | 200 -> HTTP 201 Created; 201 -> HTTP 422 Error |
-| **TC_VOCAB_DECK_05** | Security | Chặn sửa/xóa deck của user khác (IDOR) | Deck ID=10 thuộc User 1; User 2 gửi request | Gửi `PUT` hoặc `DELETE /api/v1/vocab/decks/10` | Header `X-User-Id: 2` | HTTP 403 FORBIDDEN, dữ liệu không bị thay đổi |
-| **TC_VOCAB_DECK_06** | Happy Path | Xóa bộ thẻ và cascade xóa các flashcards | Deck ID=10 có 5 flashcards | Gửi `DELETE /api/v1/vocab/decks/10` | Header `X-User-Id: 1` | HTTP 200, deck và toàn bộ 5 thẻ bị xóa khỏi DB |
+| **TC_VOCAB_DECK_05** | Security | Chặn sửa/xóa deck của user khác (IDOR) | Deck ID=10 thuộc User 1; User 2 gửi request | Gửi `PUT` hoặc `DELETE /api/v1/vocab/decks/10` | JWT của User 2 | HTTP 403 FORBIDDEN, dữ liệu không bị thay đổi |
+| **TC_VOCAB_DECK_06** | Happy Path | Xóa bộ thẻ và cascade xóa các flashcards | Deck ID=10 có 5 flashcards | Gửi `DELETE /api/v1/vocab/decks/10` | JWT của User 1 | HTTP 200, deck và toàn bộ 5 thẻ bị xóa khỏi DB |
 | **TC_VOCAB_DECK_07** | Happy Path | Tạo bộ thẻ với cặp ngôn ngữ tùy chỉnh | User 1 đăng nhập | Gửi `POST /api/v1/vocab/decks` | `{"name": "TOEIC for Korean", "targetLanguage": "en", "sourceLanguage": "ko"}` | HTTP 201, trả về deck có targetLanguage="en", sourceLanguage="ko" |
-| **TC_VOCAB_CARD_01** | Happy Path | Lọc thẻ theo trạng thái | Deck ID=10 có thẻ NEW và LEARNING | Gửi `GET /api/v1/vocab/decks/10/cards?status=NEW` | Header `X-User-Id: 1` | HTTP 200, chỉ trả về các thẻ có status="NEW" |
-| **TC_VOCAB_CARD_02** | Happy Path | Tìm kiếm từ khóa không phân biệt hoa thường | Deck ID=10 có từ "Eloquent" | Gửi `GET /api/v1/vocab/decks/10/cards?keyword=elo` | Header `X-User-Id: 1` | HTTP 200, trả về thẻ "Eloquent" |
+| **TC_VOCAB_CARD_01** | Happy Path | Lọc thẻ theo trạng thái | Deck ID=10 có thẻ NEW và LEARNING | Gửi `GET /api/v1/vocab/decks/10/cards?status=NEW` | JWT của User 1 | HTTP 200, chỉ trả về các thẻ có status="NEW" |
+| **TC_VOCAB_CARD_02** | Happy Path | Tìm kiếm từ khóa không phân biệt hoa thường | Deck ID=10 có từ "Eloquent" | Gửi `GET /api/v1/vocab/decks/10/cards?keyword=elo` | JWT của User 1 | HTTP 200, trả về thẻ "Eloquent" |
 | **TC_VOCAB_CARD_03** | Happy Path | Thêm thẻ từ vựng mới với tham số SRS mặc định | Deck ID=10 thuộc User 1 | Gửi `POST /api/v1/vocab/decks/10/cards` | `{"customWord": "Pernicious", "customMeaning": "Nguy hại"}` | HTTP 201, thẻ được lưu với status="NEW", easeFactor=2.50 |
 | **TC_VOCAB_CARD_04** | Negative | Thêm thẻ thiếu nghĩa tùy chỉnh khi không có wordId | Deck ID=10 thuộc User 1 | Gửi `POST /api/v1/vocab/decks/10/cards` | `{"customWord": "Test", "customMeaning": ""}` | HTTP 422 VALIDATION_FAILED |
 | **TC_VOCAB_CARD_05** | Conflict | Ngăn chặn thêm từ vựng đã tồn tại trong deck | Deck ID=10 đã có từ "Apple" | Gửi `POST /api/v1/vocab/decks/10/cards` với word="apple" | `{"customWord": "apple", "customMeaning": "Trái táo"}` | HTTP 409 CONFLICT, message cảnh báo trùng từ |
-| **TC_VOCAB_CARD_06** | Happy Path | Xóa một thẻ từ vựng khỏi bộ thẻ | Thẻ ID=5 thuộc deck của User 1 | Gửi `DELETE /api/v1/vocab/cards/5` | Header `X-User-Id: 1` | HTTP 200, thẻ ID=5 bị xóa |
-| **TC_VOCAB_CARD_07** | Security | Chặn sửa/xóa thẻ từ vựng của user khác (IDOR) | Thẻ ID=5 thuộc User 1; User 2 gửi request | Gửi `DELETE /api/v1/vocab/cards/5` | Header `X-User-Id: 2` | HTTP 403 FORBIDDEN |
+| **TC_VOCAB_CARD_06** | Happy Path | Xóa một thẻ từ vựng khỏi bộ thẻ | Thẻ ID=5 thuộc deck của User 1 | Gửi `DELETE /api/v1/vocab/cards/5` | JWT của User 1 | HTTP 200, thẻ ID=5 bị xóa |
+| **TC_VOCAB_CARD_07** | Security | Chặn sửa/xóa thẻ từ vựng của user khác (IDOR) | Thẻ ID=5 thuộc User 1; User 2 gửi request | Gửi `DELETE /api/v1/vocab/cards/5` | JWT của User 2 | HTTP 403 FORBIDDEN |
 | **TC_VOCAB_CARD_08** | Happy Path | Thêm thẻ liên kết DictionaryWord tự động lấy nghĩa theo source_language | Deck ID=10 (sourceLanguage="ko"), Word ID=1 có defaultMeaning: `{"ko":"사과"}` | Gửi `POST /api/v1/vocab/decks/10/cards` với wordId=1, customMeaning="" | `{"customWord": "apple", "wordId": 1}` | HTTP 201, customMeaning được tự động gán là "사과" |

@@ -1,0 +1,4 @@
+interface:
+  display_name: "TV3 Code Review"
+  short_description: "Review code changes against TV3 plans and contracts"
+  default_prompt: "Use $tv3-code-review to review the requested TV3 subtask or feature."

@@ -9,16 +9,70 @@ import answerReducer, {
   markSavePending,
   markSaveSuccess,
   markSaveError,
+  markSaveConflict,
+  markSaveStopped,
   initialState,
   reducer,
   toggleFlag,
   clearFlags,
   selectIsQuestionFlagged,
+  addHighlightRecord,
+  removeHighlightRecord,
 } from '../store/answerSlice';
 
 function makeStore() {
   return configureStore({ reducer: { answers: answerReducer } });
 }
+
+const operation = { attemptId: 1, contextRevision: 0, requestId: 'save-1', pendingVersion: 1 };
+
+describe('TV3-09 scoped mutation lock', () => {
+  function context() {
+    return reducer(initialState, setAttemptContext({ attemptId: 42, version: 7, savedAnswers: [] }));
+  }
+  function lock(state: ReturnType<typeof context>, type = 'answers/lockAnswers', revision = state.contextRevision) {
+    return reducer(state, { type, payload: { attemptId: 42, contextRevision: revision } });
+  }
+  it('blocks answer clears, flags and highlights without changing dirty counters', () => {
+    let state = context();
+    state = reducer(state, setAnswer({ partId: 10, questionId: 'essay', value: 'B' }));
+    state = reducer(state, toggleFlag({ partId: 10, questionId: 'essay' }));
+    state = reducer(state, addHighlightRecord({ passageId: 'p', contentHash: 'hash', highlight: { id: 'h', start: 0, end: 4, text: 'text' } }));
+    const locked = lock(state);
+    for (const action of [
+      setAnswer({ partId: 10, questionId: 'essay', value: null }),
+      setAnswer({ partId: 10, questionId: 'essay', value: '' }),
+      toggleFlag({ partId: 10, questionId: 'essay' }), clearFlags(),
+      addHighlightRecord({ passageId: 'p', contentHash: 'hash', highlight: { id: 'h2', start: 5, end: 8, text: 'new' } }),
+      removeHighlightRecord({ passageId: 'p', offset: 1 }),
+    ]) expect(reducer(locked, action)).toBe(locked);
+  });
+  it('ignores wrong attempt/revision and allows editing only after scoped unlock', () => {
+    const state = context();
+    expect(reducer(state, { type: 'answers/lockAnswers', payload: { attemptId: 43, contextRevision: state.contextRevision } })).toBe(state);
+    expect(lock(state, 'answers/lockAnswers', state.contextRevision - 1)).toBe(state);
+    const locked = lock(state);
+    expect(lock(locked, 'answers/unlockAnswers', state.contextRevision - 1)).toBe(locked);
+    const unlocked = lock(locked, 'answers/unlockAnswers');
+    expect(reducer(unlocked, setAnswer({ partId: 10, questionId: 'essay', value: 'C' })).answers[10].essay).toBe('C');
+    expect(locked).not.toBe(state);
+  });
+  it('accepts save acknowledgment and teardown while locked, and resets on hydration', () => {
+    let state = context();
+    state = reducer(state, setAnswer({ partId: 10, questionId: 'essay', value: 'B' }));
+    const op = { attemptId: 42, contextRevision: state.contextRevision, requestId: 'pending', pendingVersion: state.pendingVersion };
+    state = reducer(state, markSavePending(op));
+    state = lock(state);
+    state = reducer(state, markSaveSuccess({ ...op, savedAt: 123, serverVersion: 8 }));
+    expect(state).toMatchObject({ version: 8, isDirty: false, saveStatus: 'saved', isLocked: true });
+    const cleared = reducer(state, clearAnswers());
+    expect(cleared).toMatchObject({ attemptId: null, answers: {}, isLocked: false, contextRevision: state.contextRevision + 1 });
+    const hydrated = reducer(state, setAttemptContext({ attemptId: 42, version: 20, savedAnswers: [] }));
+    expect(hydrated).toMatchObject({ version: 20, isLocked: false });
+    const newLock = lock(hydrated);
+    expect(lock(newLock, 'answers/unlockAnswers', state.contextRevision)).toBe(newLock);
+  });
+});
 
 describe('answerSlice', () => {
   describe('flags', () => {
@@ -132,24 +186,31 @@ describe('answerSlice', () => {
       expect(state.isDirty).toBe(true);
     });
 
-    it('markSaveSuccess resets isDirty to false and sets lastSavedAt', () => {
+    it('markSaveSuccess resets isDirty to false, updates version to serverVersion and sets lastSavedAt', () => {
       let state = reducer(
-        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
-        markSaveSuccess({ savedAt: 1000, version: 1 })
+        { ...initialState, attemptId: 1, activeSaveId: 'save-1', version: 1, isDirty: true, pendingVersion: 1 },
+        markSaveSuccess({ ...operation, savedAt: 1000, serverVersion: 2 })
       );
       expect(state.isDirty).toBe(false);
+      expect(state.version).toBe(2);
       expect(state.lastSavedAt).toBe(1000);
       expect(state.saveStatus).toBe('saved');
     });
 
+    it('markSaveConflict sets saveStatus to conflict and preserves isDirty', () => {
+      let state = reducer({ ...initialState, attemptId: 1, activeSaveId: 'save-1', isDirty: true }, markSaveConflict(operation));
+      expect(state.isDirty).toBe(true);
+      expect(state.saveStatus).toBe('conflict');
+    });
+
     it('markSaveError keeps isDirty true', () => {
-      let state = reducer({ ...initialState, isDirty: true }, markSaveError());
+      let state = reducer({ ...initialState, attemptId: 1, activeSaveId: 'save-1', isDirty: true }, markSaveError(operation));
       expect(state.isDirty).toBe(true);
       expect(state.saveStatus).toBe('error');
     });
 
     it('markSavePending sets saveStatus to saving', () => {
-      const state = reducer(initialState, markSavePending(0));
+      const state = reducer({ ...initialState, attemptId: 1 }, markSavePending(operation));
       expect(state.saveStatus).toBe('saving');
     });
 
@@ -160,26 +221,110 @@ describe('answerSlice', () => {
       expect(state.saveStatus).toBe('idle');
     });
 
-    it('RACE: markSaveSuccess does NOT reset isDirty if new edit arrived (version mismatch)', () => {
+    it('RACE: markSaveSuccess does NOT reset isDirty if new edit arrived (pendingVersion mismatch) but updates version to serverVersion', () => {
       // pendingVersion starts at 1; one more edit arrives → pendingVersion becomes 2
       let state = reducer(
-        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
+        { ...initialState, attemptId: 1, activeSaveId: 'save-1', version: 1, isDirty: true, pendingVersion: 1 },
         setAnswer({ partId: 1, questionId: 'q1', value: 'B' })
       );
-      // In-flight save captured version=1 — responds now, but edit at version=2 is still dirty
-      state = reducer(state, markSaveSuccess({ savedAt: 1000, version: 1 }));
+      // In-flight save captured pendingVersion=1, server returns serverVersion=2 — responds now, but edit at pendingVersion=2 is still dirty
+      state = reducer(state, markSaveSuccess({ ...operation, savedAt: 1000, serverVersion: 2 }));
       expect(state.isDirty).toBe(true);   // Must stay dirty
-      expect(state.saveStatus).toBe('saved');
+      expect(state.version).toBe(2);      // Version must be updated to server version
+      expect(state.saveStatus).toBe('idle');
     });
 
-    it('RACE: markSaveSuccess resets isDirty when version matches (no new edit)', () => {
+    it('RACE: markSaveSuccess resets isDirty when pendingVersion matches (no new edit)', () => {
       let state = reducer(
-        { ...initialState, attemptId: 1, isDirty: true, pendingVersion: 1 },
-        markSavePending(1)
+        { ...initialState, attemptId: 1, version: 1, isDirty: true, pendingVersion: 1 },
+        markSavePending(operation)
       );
-      state = reducer(state, markSaveSuccess({ savedAt: 2000, version: 1 }));
+      state = reducer(state, markSaveSuccess({ ...operation, savedAt: 2000, serverVersion: 2 }));
       expect(state.isDirty).toBe(false);
+      expect(state.version).toBe(2);
       expect(state.lastSavedAt).toBe(2000);
+    });
+
+    it('handles highlight addition and removal', () => {
+      let state = reducer(
+        initialState,
+        addHighlightRecord({
+          passageId: 'p1',
+          contentHash: 'hash1',
+          highlight: { id: '1', start: 5, end: 10, text: 'abc' },
+        })
+      );
+
+      expect(state.highlights['p1'].items).toHaveLength(1);
+      expect(state.isDirty).toBe(true);
+
+      state = reducer(
+        state,
+        removeHighlightRecord({
+          passageId: 'p1',
+          offset: 7,
+        })
+      );
+
+      expect(state.highlights['p1'].items).toHaveLength(0);
+    });
+
+    it('setAttemptContext resets lastSavedAt to null and hydration fields', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      const op = { attemptId: 5, contextRevision: state.contextRevision, requestId: 'save-2', pendingVersion: 0 };
+      state = reducer(state, markSavePending(op));
+      state = reducer(state, markSaveSuccess({ ...op, savedAt: 2000, serverVersion: 1 }));
+      expect(state.lastSavedAt).toBe(2000);
+
+      state = reducer(state, setAttemptContext({ attemptId: 5, version: 2, savedAnswers: [] }));
+      expect(state.lastSavedAt).toBeNull();
+      expect(state.isDirty).toBe(false);
+      expect(state.saveStatus).toBe('idle');
+      expect(state.pendingVersion).toBe(0);
+    });
+
+    it('setAttemptContext resets flags and highlights when switching to a different attemptId', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      state = reducer(state, toggleFlag({ partId: 1, questionId: 'q_1' }));
+      state = reducer(state, addHighlightRecord({
+        passageId: 'p1',
+        contentHash: 'hash1',
+        highlight: { id: 'h1', start: 0, end: 5, text: 'hello' },
+      }));
+      expect(state.flags[1]?.['q_1']).toBe(true);
+      expect(state.highlights['p1']?.items).toHaveLength(1);
+
+      // Switch to different attemptId 6
+      state = reducer(state, setAttemptContext({ attemptId: 6, version: 1, savedAnswers: [] }));
+      expect(state.flags).toEqual({});
+      expect(state.highlights).toEqual({});
+    });
+
+    it('setAttemptContext preserves flags and highlights when rehydrating the same attemptId', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      state = reducer(state, toggleFlag({ partId: 1, questionId: 'q_1' }));
+      state = reducer(state, addHighlightRecord({
+        passageId: 'p1',
+        contentHash: 'hash1',
+        highlight: { id: 'h1', start: 0, end: 5, text: 'hello' },
+      }));
+
+      // Rehydrate same attemptId 5 (e.g. authoritative reload)
+      state = reducer(state, setAttemptContext({ attemptId: 5, version: 2, savedAnswers: [] }));
+      expect(state.flags[1]?.['q_1']).toBe(true);
+      expect(state.highlights['p1']?.items).toHaveLength(1);
+    });
+
+    it('markSaveStopped sets saveStatus to stopped and preserves isDirty', () => {
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
+      state = reducer(state, setAnswer({ partId: 1, questionId: 'q1', value: 'A' }));
+      const op = { attemptId: 5, contextRevision: state.contextRevision, requestId: 'save-1', pendingVersion: state.pendingVersion };
+      state = reducer(state, markSavePending(op));
+      expect(state.saveStatus).toBe('saving');
+      state = reducer(state, markSaveStopped(op));
+      expect(state.saveStatus).toBe('stopped');
+      expect(state.isDirty).toBe(true);
+      expect(state.activeSaveId).toBeNull();
     });
   });
 });

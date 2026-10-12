@@ -28,7 +28,8 @@ describe('TimeUpOverlay', () => {
         error="Network error"
       />
     );
-    expect(screen.getByText(/Kết nối không ổn định/i)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Network error');
+    expect(screen.queryByText(/đang thử lại/i)).not.toBeInTheDocument();
     const retryBtn = screen.getByRole('button', { name: /Thử lại ngay/i });
     fireEvent.click(retryBtn);
     expect(retryMock).toHaveBeenCalledTimes(1);

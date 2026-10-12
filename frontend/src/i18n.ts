@@ -9,15 +9,27 @@ const resources = {
   vi: { translation: translationVI }
 };
 
+const savedLanguage =
+  (typeof window !== 'undefined' &&
+    (localStorage.getItem('i18nextLng') || localStorage.getItem('multilingo_language'))) ||
+  'vi';
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'vi', // default language
-    fallbackLng: 'en',
+    lng: savedLanguage,
+    fallbackLng: 'vi',
     interpolation: {
       escapeValue: false
     }
   });
+
+i18n.on('languageChanged', (lng) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('i18nextLng', lng);
+    localStorage.setItem('multilingo_language', lng);
+  }
+});
 
 export default i18n;

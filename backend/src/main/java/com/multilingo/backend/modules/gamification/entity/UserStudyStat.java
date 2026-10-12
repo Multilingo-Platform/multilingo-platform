@@ -32,6 +32,10 @@ public class UserStudyStat extends BaseEntity {
     @Column(name = "total_learning_minutes", nullable = false)
     private Integer totalLearningMinutes = 0;
 
+    @Builder.Default
+    @Column(name = "total_xp", nullable = false)
+    private Long totalXp = 0L;
+
     @Column(name = "last_study_date")
     private LocalDate lastStudyDate;
 }

@@ -14,15 +14,35 @@ export const generateQuizQuestions = (cards: Flashcard[]): QuizQuestion[] => {
   const shuffledCards = [...validCards].sort(() => Math.random() - 0.5);
 
   return shuffledCards.map((card, index) => {
-    // Lấy 3 phương án nhiễu từ các thẻ khác
-    const otherCards = validCards.filter((c) => c.id !== card.id);
-    const shuffledOthers = [...otherCards].sort(() => Math.random() - 0.5);
-    const distractorMeanings = shuffledOthers.slice(0, 3).map((c) => c.customMeaning.trim());
+    // 1. Lọc các thẻ khác có nghĩa khác biệt với thẻ hiện tại (tránh trùng nghĩa)
+    const currentMeaning = card.customMeaning.trim();
+    const otherCards = validCards.filter(
+      (c) => c.id !== card.id && c.customMeaning.trim().toLowerCase() !== currentMeaning.toLowerCase()
+    );
 
-    // Gom 4 phương án và xáo trộn
+    // 2. Thuật toán phân tầng POS: Ưu tiên cùng từ loại (pos), sau đó đến các từ loại khác
+    const samePosCards = otherCards.filter((c) => Boolean(c.pos && card.pos && c.pos === card.pos));
+    const diffPosCards = otherCards.filter((c) => !c.pos || !card.pos || c.pos !== card.pos);
+
+    const candidates = [
+      ...samePosCards.sort(() => Math.random() - 0.5),
+      ...diffPosCards.sort(() => Math.random() - 0.5),
+    ];
+
+    // Gom tối đa 3 phương án nhiễu có nghĩa độc nhất
+    const uniqueDistractors: string[] = [];
+    for (const c of candidates) {
+      const text = c.customMeaning.trim();
+      if (!uniqueDistractors.includes(text)) {
+        uniqueDistractors.push(text);
+        if (uniqueDistractors.length === 3) break;
+      }
+    }
+
+    // 3. Gom 4 phương án và xáo trộn ngẫu nhiên
     const rawOptions = [
-      { text: card.customMeaning.trim(), isCorrect: true },
-      ...distractorMeanings.map((m) => ({ text: m, isCorrect: false })),
+      { text: currentMeaning, isCorrect: true },
+      ...uniqueDistractors.map((m) => ({ text: m, isCorrect: false })),
     ].sort(() => Math.random() - 0.5);
 
     const keys = ['A', 'B', 'C', 'D'];
@@ -45,6 +65,7 @@ export const generateQuizQuestions = (cards: Flashcard[]): QuizQuestion[] => {
       sentence: card.exampleSentence,
       options,
       explanation,
+      card,
     };
   });
 };
