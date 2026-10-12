@@ -2,6 +2,7 @@ package com.multilingo.backend.modules.testing.service;
 
 import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.modules.testing.dto.response.AutosaveVersionResponse;
 import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 
@@ -44,7 +45,7 @@ public interface TestAttemptService {
      * Autosaves draft answers for an attempt.
      * Upserts answers into attempt_answers table per partId.
      */
-    void autosaveAnswers(Integer attemptId, AutosaveAnswersRequest request);
+    AutosaveVersionResponse autosaveAnswers(Integer attemptId, AutosaveAnswersRequest request);
 
     /**
      * Submits an attempt with full SubmitAttemptRequest (reason, version, final answers).

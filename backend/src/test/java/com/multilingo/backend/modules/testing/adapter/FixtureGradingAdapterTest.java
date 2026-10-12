@@ -1,6 +1,8 @@
 package com.multilingo.backend.modules.testing.adapter;
 
 import com.multilingo.backend.modules.testing.grading.dto.GradingKey;
+import com.multilingo.backend.common.FixtureAdaptersTestConfig;
+import org.springframework.context.annotation.Import;
 import com.multilingo.backend.modules.testing.grading.dto.PartGradingKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +14,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.main.allow-bean-definition-overriding=true")
+@Import(FixtureAdaptersTestConfig.class)
 @ActiveProfiles("test")
 class FixtureGradingAdapterTest {
 

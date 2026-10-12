@@ -6,6 +6,8 @@ export interface TimeUpOverlayProps {
   error?: string | null;
   onSubmit: (reason: 'TIMEOUT_CLIENT') => Promise<void> | void;
   onRetry?: () => void;
+  retryLabel?: string;
+  draftWarning?: string | null;
   onNavigateToResult?: () => void;
 }
 
@@ -15,6 +17,8 @@ export const TimeUpOverlay: React.FC<TimeUpOverlayProps> = ({
   error = null,
   onSubmit,
   onRetry,
+  retryLabel = 'Thử lại ngay',
+  draftWarning,
   onNavigateToResult,
 }) => {
   const hasTriggeredRef = useRef(false);
@@ -52,19 +56,21 @@ export const TimeUpOverlay: React.FC<TimeUpOverlayProps> = ({
           Hệ thống đang tự động thu bài và khóa tất cả các câu trả lời của bạn.
         </p>
 
+        {draftWarning && <p className="mb-4 text-sm text-amber-800">{draftWarning}</p>}
         {error ? (
           <div className="space-y-4">
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center justify-center gap-2">
+            <div role="alert" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center justify-center gap-2">
               <span>⚠️</span>
-              <span>Kết nối không ổn định, đang thử lại...</span>
+              <span>{error}</span>
             </div>
             <button
               id="btn-retry-submit"
               type="button"
+              autoFocus
               onClick={onRetry ?? (() => onSubmit('TIMEOUT_CLIENT'))}
               className="w-full py-3 px-4 rounded-xl font-heading font-bold text-sm bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-600/20 active:scale-98 transition-all cursor-pointer"
             >
-              Thử lại ngay
+              {retryLabel}
             </button>
           </div>
         ) : isSubmitting ? (

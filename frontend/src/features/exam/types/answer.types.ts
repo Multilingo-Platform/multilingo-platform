@@ -1,5 +1,12 @@
 export type AnswerValue = string | string[] | Record<string, string> | null;
-export type AttemptStatus = 'IN_PROGRESS' | 'AI_GRADING' | 'COMPLETED';
+export type AttemptStatus =
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'GRADING_FAILED'
+  | 'AI_GRADING'
+  | 'AI_GRADING_QUEUED'
+  | 'COMPLETED'
+  | 'EXPIRED';
 export type WritingGradingStatus = 'PENDING' | 'GRADING' | 'COMPLETED' | 'FAILED';
 export type CorrectnessFlag = 'CORRECT' | 'INCORRECT' | 'SKIPPED';
 

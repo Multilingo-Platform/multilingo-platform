@@ -87,6 +87,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     case 'MAP_LABELING':
       return (
         <MapLabelingRenderer
+          questionId={question.question_id}
           options={options ?? []}
           value={currentAnswer as string | null}
           onChange={onChange}

@@ -101,4 +101,22 @@ describe('QuestionRenderer', () => {
     fireEvent.click(screen.getByLabelText('Option B'));
     expect(onChange).toHaveBeenCalledWith(['C']);
   });
+
+  it('MAP_LABELING uses stable question ids to isolate radio groups', () => {
+    const first = makeQuestion('MAP_LABELING', opts);
+    const second = { ...makeQuestion('MAP_LABELING', opts), question_id: 'q_002' };
+
+    render(
+      <>
+        <QuestionRenderer question={first} partId={1} currentAnswer={null} onChange={vi.fn()} />
+        <QuestionRenderer question={second} partId={1} currentAnswer={null} onChange={vi.fn()} />
+      </>
+    );
+
+    const radios = screen.getAllByRole('radio');
+    expect(radios.slice(0, 4).map(radio => radio.getAttribute('name')))
+      .toEqual(Array(4).fill('map-label-q_001'));
+    expect(radios.slice(4).map(radio => radio.getAttribute('name')))
+      .toEqual(Array(4).fill('map-label-q_002'));
+  });
 });

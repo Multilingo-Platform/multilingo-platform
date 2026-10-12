@@ -1,6 +1,8 @@
 package com.multilingo.backend.modules.testing.service;
 
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.common.FixtureAdaptersTestConfig;
+import org.springframework.context.annotation.Import;
 import com.multilingo.backend.modules.testing.dto.request.SubmitAttemptRequest;
 import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
@@ -24,7 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.main.allow-bean-definition-overriding=true")
+@Import(FixtureAdaptersTestConfig.class)
 @ActiveProfiles("test")
 @Transactional
 class SubmissionServiceTest {
@@ -198,10 +201,20 @@ class SubmissionServiceTest {
 
         // Inject writing section into examSnapshot of attempt
         TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
-        java.util.Map<String, Object> snapshot = new java.util.HashMap<>(attempt.getExamSnapshot());
+        java.util.Map<String, Object> snapshot = new java.util.HashMap<>(attempt.getExamSnapshot() != null ? attempt.getExamSnapshot() : java.util.Map.of());
         snapshot.put("sections", java.util.List.of(
-                java.util.Map.of("name", "Reading"),
-                java.util.Map.of("name", "Writing Task 1")
+                java.util.Map.of(
+                        "name", "Writing",
+                        "parts", java.util.List.of(
+                                java.util.Map.of(
+                                        "id", 1,
+                                        "title", "Writing Task 1",
+                                        "questions", java.util.List.of(
+                                                java.util.Map.of("id", "essay_1", "type", "ESSAY")
+                                        )
+                                )
+                        )
+                )
         ));
         attempt.setExamSnapshot(snapshot);
         testAttemptRepository.save(attempt);

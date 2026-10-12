@@ -3,6 +3,7 @@ package com.multilingo.backend.modules.testing.controller;
 import com.multilingo.backend.common.dto.ApiResponse;
 import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
+import com.multilingo.backend.modules.testing.dto.response.AutosaveVersionResponse;
 import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 import com.multilingo.backend.modules.testing.service.TestAttemptService;
@@ -53,11 +54,11 @@ public class TestAttemptController {
      * @return 200 OK
      */
     @PutMapping("/{id}/answers")
-    public ResponseEntity<ApiResponse<Void>> autosaveAnswers(
+    public ResponseEntity<ApiResponse<AutosaveVersionResponse>> autosaveAnswers(
             @PathVariable Integer id,
             @Valid @RequestBody AutosaveAnswersRequest request) {
-        testAttemptService.autosaveAnswers(id, request);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        AutosaveVersionResponse response = testAttemptService.autosaveAnswers(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**

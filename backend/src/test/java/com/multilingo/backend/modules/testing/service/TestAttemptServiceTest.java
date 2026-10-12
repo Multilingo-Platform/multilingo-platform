@@ -1,6 +1,8 @@
 package com.multilingo.backend.modules.testing.service;
 
 import com.multilingo.backend.common.exception.AppException;
+import com.multilingo.backend.common.FixtureAdaptersTestConfig;
+import org.springframework.context.annotation.Import;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
@@ -28,7 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.main.allow-bean-definition-overriding=true")
+@Import(FixtureAdaptersTestConfig.class)
 @ActiveProfiles("test")
 @Transactional
 class TestAttemptServiceTest {
@@ -367,8 +370,7 @@ class TestAttemptServiceTest {
 
         TestAttempt saved = testAttemptRepository.findById(attempt.getAttemptId()).orElseThrow();
         assertThat(saved.getSectionScores()).isNotNull();
-        // Only Part 1 was autosaved → only Reading section has an AttemptAnswer row
-        assertThat(saved.getSectionScores()).containsKey("Reading");
+        assertThat(saved.getSectionScores()).containsKey("READING");
     }
 
     @Test
@@ -390,7 +392,7 @@ class TestAttemptServiceTest {
     }
 
     @Test
-    void createAttempt_single_part_filters_exam_snapshot_to_single_part() {
+    void createAttempt_single_part_filters_exam_snapshot_and_uses_section_duration() {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
         req.setTestScope(TestScope.SINGLE_PART);
@@ -407,6 +409,8 @@ class TestAttemptServiceTest {
         List<Map<String, Object>> parts = (List<Map<String, Object>>) sections.get(0).get("parts");
         assertThat(parts).hasSize(1);
         assertThat(parts.get(0).get("id")).isEqualTo(2);
-        assertThat(response.getExamSnapshot().get("durationMinutes")).isEqualTo(20);
+        // TV3-05: a single part uses the duration of its containing section.
+        assertThat(sections.get(0).get("durationMinutes")).isEqualTo(60);
+        assertThat(response.getExamSnapshot().get("durationMinutes")).isEqualTo(60);
     }
 }

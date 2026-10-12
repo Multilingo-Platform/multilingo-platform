@@ -2,6 +2,9 @@ interface SubmitOverlayProps {
   visible: boolean;
   isRetrying: boolean;
   onRetry: () => void;
+  error?: string | null;
+  onClose?: () => void;
+  draftWarning?: string | null;
 }
 
 const SpinnerSvg = () => (
@@ -12,12 +15,12 @@ const SpinnerSvg = () => (
   </svg>
 );
 
-export function SubmitOverlay({ visible, isRetrying, onRetry }: SubmitOverlayProps) {
+export function SubmitOverlay({ visible, isRetrying, onRetry, error, onClose, draftWarning }: SubmitOverlayProps) {
   if (!visible) return null;
 
   return (
     <div
-      role="status"
+      role={isRetrying ? 'status' : 'alert'}
       aria-live="assertive"
       style={{
         position: 'fixed', inset: 0,
@@ -47,13 +50,15 @@ export function SubmitOverlay({ visible, isRetrying, onRetry }: SubmitOverlayPro
             <h2 style={{
               fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', color: '#F8FAFC', margin: '0 0 0.5rem',
             }}>
-              Hết thời gian!
+              Chưa nộp được bài
             </h2>
             <p style={{ color: '#fca5a5', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              Nộp bài thất bại — kiểm tra kết nối mạng và thử lại.
+              {error ?? 'Nộp bài thất bại — kiểm tra kết nối mạng và thử lại.'}
             </p>
             <button
               id="btn-retry-submit"
+              type="button"
+              autoFocus
               onClick={onRetry}
               style={{
                 padding: '0.75rem 2rem',
@@ -69,9 +74,11 @@ export function SubmitOverlay({ visible, isRetrying, onRetry }: SubmitOverlayPro
             >
               🔄 Thử nộp lại
             </button>
+            {onClose && <button type="button" onClick={onClose} className="mt-4 block w-full text-white underline focus-visible:ring-2 focus-visible:ring-white">Quay lại bài làm</button>}
           </div>
         </>
       )}
+      {draftWarning && <p className="max-w-md text-center text-amber-100 text-sm">{draftWarning}</p>}
     </div>
   );
 }
