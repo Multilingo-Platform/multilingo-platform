@@ -16,7 +16,7 @@ const ProfileDropdown = () => {
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const { user: myInfo } = useSelector((state: any) => state.auth);
-  
+
   const avatarLetter = myInfo?.fullName ? myInfo.fullName.charAt(0).toUpperCase() : 'U';
 
   useEffect(() => {
@@ -105,19 +105,6 @@ const ProfileDropdown = () => {
           >
             <Receipt size={18} color="var(--text-secondary)" /> {t('auth.purchase_history')}
           </div>
-
-          <div
-            className="flex-center"
-            onClick={() => {
-              i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi');
-              setShowProfileMenu(false);
-            }}
-            style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: 500, justifyContent: 'flex-start', gap: '0.75rem', color: 'var(--text-primary)' }}
-          >
-            <Globe size={18} color="var(--text-secondary)" />
-            {i18n.language === 'vi' ? 'Chuyển sang Tiếng Anh' : 'Switch to Vietnamese'}
-          </div>
-
           <div
             className="flex-center"
             onClick={handleLogout}
