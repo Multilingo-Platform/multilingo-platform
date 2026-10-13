@@ -85,6 +85,9 @@
     "duration_days": "{{days}} days",
     "empty_title": "No Purchase History Found",
     "empty_desc": "Upgrade to Premium to unlock unlimited exam practice and AI features.",
+    "packages_count": "{{count}} packages",
+    "verified_transactions": "Verified successful transactions",
+    "back_dashboard": "Back to Dashboard",
     "page_prev": "Previous",
     "page_next": "Next",
     "page_info": "Page {{current}} of {{total}}"
@@ -95,6 +98,7 @@
     "history": "Test History",
     "flashcards": "Vocabulary",
     "profile_settings": "Profile & Settings",
+    "purchase_history": "Purchase History",
     "logout": "Log out",
     "upgrade_pro": "Upgrade to PRO",
     "streak_days": "{{count}} days"

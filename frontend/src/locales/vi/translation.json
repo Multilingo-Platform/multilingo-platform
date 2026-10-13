@@ -85,6 +85,9 @@
     "duration_days": "{{days}} ngày",
     "empty_title": "Bạn chưa có giao dịch nào",
     "empty_desc": "Nâng cấp tài khoản để trải nghiệm không giới hạn kho đề thi và trợ lý AI.",
+    "packages_count": "{{count}} gói",
+    "verified_transactions": "Giao dịch đã xác thực thành công",
+    "back_dashboard": "Quay lại Bảng điều khiển",
     "page_prev": "Trang trước",
     "page_next": "Trang sau",
     "page_info": "Trang {{current}} / {{total}}"
@@ -95,6 +98,7 @@
     "history": "Lịch sử làm bài",
     "flashcards": "Từ vựng",
     "profile_settings": "Hồ sơ & Cài đặt",
+    "purchase_history": "Lịch sử mua gói",
     "logout": "Đăng xuất",
     "upgrade_pro": "Nâng cấp PRO",
     "streak_days": "{{count}} ngày"

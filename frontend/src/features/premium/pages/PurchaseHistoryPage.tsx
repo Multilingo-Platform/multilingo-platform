@@ -81,29 +81,29 @@ export const PurchaseHistoryPage: React.FC = () => {
   const isVip = currentUser?.subscriptionTier === 'PREMIUM';
 
   return (
-    <div className="min-h-screen bg-slate-50/60 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50/60 py-6 sm:py-10 px-3.5 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Navigation / Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div>
             <button
               onClick={() => navigate('/student/dashboard')}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors mb-2"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors mb-2"
             >
               <ArrowLeft size={16} />
-              Quay lại Bảng điều khiển
+              {t('billing.back_dashboard')}
             </button>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {t('billing.history_title')}
             </h1>
-            <p className="text-slate-500 mt-1 text-sm sm:text-base">
+            <p className="text-slate-500 mt-1 text-xs sm:text-base">
               {t('billing.history_desc')}
             </p>
           </div>
 
           <button
             onClick={() => navigate('/student/premium')}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-sm shadow-md shadow-orange-500/20 transition-all hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-sm shadow-md shadow-orange-500/20 transition-all hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] w-full sm:w-auto"
           >
             <Sparkles size={18} />
             {t('billing.upgrade_btn')}
@@ -111,27 +111,27 @@ export const PurchaseHistoryPage: React.FC = () => {
         </div>
 
         {/* Overview Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-6 sm:mb-8">
           {/* Card 1: Current Tier */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-start gap-4">
-            <div className={`p-3 rounded-xl ${isVip ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>
-              <Crown size={24} />
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm flex items-start gap-3.5 sm:gap-4">
+            <div className={`p-2.5 sm:p-3 rounded-xl shrink-0 ${isVip ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>
+              <Crown size={22} className="sm:w-6 sm:h-6" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {t('billing.current_plan')}
               </div>
-              <div className="text-lg font-bold text-slate-900 mt-0.5">
+              <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5 truncate">
                 {isVip ? 'PREMIUM VIP' : 'FREE TIER'}
               </div>
-              <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                <Calendar size={13} />
-                {t('billing.expires_at')}:{' '}
-                <span className="font-medium text-slate-700">
+              <div className="text-xs text-slate-500 mt-1 flex items-center gap-1 flex-wrap">
+                <Calendar size={13} className="shrink-0" />
+                <span>{t('billing.expires_at')}:</span>
+                <span className="font-semibold text-slate-700">
                   {isVip && currentUser?.premiumExpiresAt 
                     ? formatDate(currentUser.premiumExpiresAt) 
                     : isVip 
-                      ? 'Vĩnh viễn' 
+                      ? (i18n.language === 'en' ? 'Lifetime' : 'Vĩnh viễn') 
                       : t('billing.no_expiry')}
                 </span>
               </div>
@@ -139,19 +139,19 @@ export const PurchaseHistoryPage: React.FC = () => {
           </div>
 
           {/* Card 2: Total Purchased */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-orange-100 text-orange-600">
-              <Receipt size={24} />
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm flex items-start gap-3.5 sm:gap-4">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-orange-100 text-orange-600 shrink-0">
+              <Receipt size={22} className="sm:w-6 sm:h-6" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {t('billing.total_packages')}
               </div>
-              <div className="text-lg font-bold text-slate-900 mt-0.5">
-                {totalElements} {t('billing.duration_days', { days: '' }).replace(' ngày', '')}
+              <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
+                {t('billing.packages_count', { count: totalElements })}
               </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Giao dịch đã xác thực thành công
+              <div className="text-xs text-slate-500 mt-1 truncate">
+                {t('billing.verified_transactions')}
               </div>
             </div>
           </div>
@@ -195,9 +195,64 @@ export const PurchaseHistoryPage: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Desktop Table View */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              {/* 1. Mobile Cards View (Hiện trên mobile < 768px, không bị co kéo) */}
+              <div className="divide-y divide-slate-100 md:hidden">
+                {historyList.map((item) => (
+                  <div key={item.id} className="p-4 space-y-3">
+                    {/* Top Row: Tên gói & Trạng thái */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-slate-900 text-base flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0"></span>
+                          <span className="truncate">{item.planName}</span>
+                        </div>
+                        <div className="text-xs font-semibold text-orange-600 bg-orange-50 inline-block px-2 py-0.5 rounded-md mt-1">
+                          {item.durationDays ? t('billing.duration_days', { days: item.durationDays }) : 'Gói dịch vụ'}
+                        </div>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 shrink-0">
+                        <CheckCircle2 size={13} />
+                        {t('billing.status_success')}
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Số tiền nổi bật */}
+                    <div className="flex items-center justify-between bg-slate-50/80 rounded-xl px-3.5 py-2.5">
+                      <span className="text-xs text-slate-500 font-medium">{t('billing.amount')}</span>
+                      <span className="text-base font-extrabold text-slate-900">{formatVND(item.amount)}</span>
+                    </div>
+
+                    {/* Bottom Details: Mã GD & Thời gian */}
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 pt-0.5">
+                      <div>
+                        <span className="text-slate-400 block text-[11px] mb-0.5">{t('billing.order_id')}</span>
+                        <span className="font-mono text-slate-800 font-semibold bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">
+                          {item.vnpTxnRef}
+                        </span>
+                        {item.vnpTransactionNo && (
+                          <div className="text-slate-400 text-[10px] font-mono mt-0.5">
+                            No: {item.vnpTransactionNo}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-slate-400 block text-[11px] mb-0.5">{t('billing.paid_date')}</span>
+                        <span className="text-slate-700 font-medium block">
+                          {formatDate(item.paidAt || item.createdAt)}
+                        </span>
+                        <div className="text-slate-400 text-[11px] flex items-center justify-end gap-1 mt-0.5">
+                          <Building size={12} />
+                          <span>{item.bankCode || 'VNPAY'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 2. Desktop Table View (Hiện trên màn hình >= 768px) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="py-4 px-6">{t('billing.plan_name')}</th>
