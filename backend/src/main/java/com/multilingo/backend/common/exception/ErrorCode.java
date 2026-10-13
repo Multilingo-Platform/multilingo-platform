@@ -18,6 +18,7 @@ public enum ErrorCode {
     QUOTA_EXCEEDED(429, HttpStatus.TOO_MANY_REQUESTS, "Đã vượt quá hạn mức sử dụng tính năng"),
     UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định"),
     GRADING_DATA_ERROR(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu answer key lỗi hoặc không xác định loại câu"),
+    CANNOT_LOCK_SELF(400, HttpStatus.BAD_REQUEST, "Không thể tự khóa tài khoản quản trị của chính mình"),
     
     // Validation Errors cho Auth (900 - 999)
     EMAIL_REQUIRED(900, HttpStatus.BAD_REQUEST, "Email không được để trống"),
