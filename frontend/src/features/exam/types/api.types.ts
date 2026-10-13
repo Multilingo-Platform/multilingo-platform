@@ -238,3 +238,53 @@ export interface LearnerExamStructure {
   durationMinutes: number | null;
   sections: LearnerExamStructureSection[];
 }
+
+export interface WritingHintsOutlineSection {
+  title: string;
+  points: string[];
+}
+
+export interface WritingHintsVocabularyItem {
+  term: string;
+  definition: string;
+  explanation: string;
+  example: string;
+}
+
+export interface WritingHintsRequest {
+  partId: number;
+  questionId: string;
+  requestId: string;
+  learningLanguage?: string | null;
+  hintLanguage?: string | null;
+}
+
+export interface WritingHintsResponse {
+  attemptId: number;
+  partId: number;
+  questionId: string;
+  requestId: string;
+  learningLanguage: string;
+  hintLanguage: string;
+  generatedAt: string;
+  outline: WritingHintsOutlineSection[];
+  vocabulary: WritingHintsVocabularyItem[];
+  limitations: string[];
+}
+
+export interface WritingHintsFailure {
+  kind:
+    | 'pending'
+    | 'rate-limited'
+    | 'quota'
+    | 'language'
+    | 'context'
+    | 'access'
+    | 'ended'
+    | 'conflict'
+    | 'contract'
+    | 'request';
+  message: string;
+  action: 'retry' | 'change-language' | 'reload' | 'none';
+  retryAt: number | null;
+}

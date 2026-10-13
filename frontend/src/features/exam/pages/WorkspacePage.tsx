@@ -29,6 +29,8 @@ import { usePracticeFeedback } from '../hooks/usePracticeFeedback';
 import { usePracticeRetry } from '../hooks/usePracticeRetry';
 import { PracticeQuestionFeedback } from '../components/practice/PracticeQuestionFeedback';
 import { PracticeRetryToolbar } from '../components/practice/PracticeRetryToolbar';
+import { useWritingHints } from '../hooks/useWritingHints';
+import { WritingHintsPanel } from '../components/practice/WritingHintsPanel';
 import { selectRetryQuestionIds, filterRetryGroups } from '../utils/practiceRetry';
 import { AlertCircle } from 'lucide-react';
 import { useStore } from 'react-redux';
@@ -39,6 +41,10 @@ interface DictTooltip {
   word: string;
   x: number;
   y: number;
+}
+
+function isRecordedId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 }
 
 const WorkspacePage: React.FC = () => {
@@ -330,6 +336,31 @@ const WorkspacePage: React.FC = () => {
 
   const isPracticeMode = activeWorkspace?.test_mode === 'PRACTICE';
 
+  // Hints use recorded canonical IDs, never the answer editor's compatibility fallback.
+  const writingPartId = currentPart?.id ?? null;
+  const writingSection = currentPart ? sections.find(section => section.parts?.includes(currentPart)) : undefined;
+  const writingQuestionIds: (string | null)[] = currentPartQuestions.map((question: any) => {
+    const id = question.question_id ?? question.questionId ?? question.id;
+    return typeof id === 'string' && id.length > 0 ? id : isRecordedId(id) ? String(id) : null;
+  });
+  const isWritingHintsPart = Boolean(
+    isPracticeMode && activeWorkspace?.status === 'IN_PROGRESS'
+      && isRecordedId(writingPartId)
+      && sections.flatMap(section => section.parts ?? []).filter(part => part.id === writingPartId).length === 1
+      && writingSection?.skill_type === 'WRITING'
+      && isRecordedId(writingSection.id)
+      && sections.filter(section => section.id === writingSection.id).length === 1
+      && writingQuestionIds.every(id => id !== null)
+      && new Set(writingQuestionIds).size === writingQuestionIds.length
+  );
+  const isWritingSectionLocked = writingSection != null && lockedSections.includes(writingSection.id);
+  const writingHints = useWritingHints({
+    workspace: activeWorkspace,
+    partId: writingPartId,
+    questions: partQuestions,
+    isLocked: submission.isLocked,
+  });
+
   const practiceFeedback = usePracticeFeedback({
     workspace: isPracticeMode ? activeWorkspace : null,
     partId: isPracticeMode ? partId : null,
@@ -387,6 +418,7 @@ const WorkspacePage: React.FC = () => {
   }, [allQuestions, answersState.answers]);
 
   const handleSubmit = (isTimeout = false) => {
+    writingHints.suspend();
     if (isPracticeMode) {
       practiceFeedback.suspend();
       practiceRetry.stop();
@@ -956,6 +988,17 @@ const WorkspacePage: React.FC = () => {
         >
           {/* Scrollable Questions Container */}
           <div className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 w-full ${currentSkill === 'LISTENING' ? 'max-w-4xl' : ''}`}>
+            {isPracticeMode && writingHints.blockedError && (
+              <div role="alert" className="flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-950">
+                <span>{writingHints.blockedError.message}</span>
+                {writingHints.blockedError.action === 'reload' && (
+                  <button type="button" onClick={handleReload} disabled={isSubmitting || answersState.saveStatus === 'saving'}
+                    className="rounded-lg border border-amber-300 px-3 py-1.5 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50">
+                    Tải lại trang
+                  </button>
+                )}
+              </div>
+            )}
             {partQuestions.length > 0 ? (
               <div className="flex flex-col gap-4 max-w-3xl">
                 {/* Part Instruction Callout */}
@@ -1093,7 +1136,21 @@ const WorkspacePage: React.FC = () => {
                                 }}
                               />
                             </fieldset>
-                            {isPracticeMode && (
+                            {isWritingHintsPart && q.type === 'ESSAY' ? (
+                              <WritingHintsPanel
+                                key={JSON.stringify([attemptId, answersState.contextRevision, writingPartId, qId])}
+                                questionId={qId}
+                                taskNumber={q.question_number}
+                                state={writingHints.blockedError
+                                  ? { ...writingHints.getHints(qId), error: null }
+                                  : writingHints.getHints(qId)}
+                                busy={writingHints.busy}
+                                disabled={isWritingSectionLocked || submission.isLocked() || Boolean(writingHints.blockedError)}
+                                retryAfterSeconds={writingHints.retryAfterSeconds}
+                                onGenerate={(selection) => writingHints.generate(qId, selection)}
+                                onRetry={() => writingHints.retry(qId)}
+                              />
+                            ) : isPracticeMode && (
                               <PracticeQuestionFeedback
                                 questionId={qId}
                                 questionNumber={q.question_number}
@@ -1357,7 +1414,7 @@ const WorkspacePage: React.FC = () => {
         open={showTimeUp}
         isSubmitting={isSubmitting}
         error={submission.error}
-        onRetry={submission.phase === 'conflict' ? handleReload : () => { void submission.retry(); }}
+        onRetry={submission.phase === 'conflict' ? handleReload : () => { writingHints.suspend(); void submission.retry(); }}
         retryLabel={submission.phase === 'conflict' ? 'Tải lại bản mới nhất' : undefined}
         draftWarning={draftWarning}
         onClose={submission.result ? () => navigate(submission.result!.redirect_url) : undefined}
@@ -1368,7 +1425,7 @@ const WorkspacePage: React.FC = () => {
         isRetrying={isSubmitting}
         error={submission.error}
         draftWarning={draftWarning}
-        onRetry={() => { void submission.retry(); }}
+        onRetry={() => { writingHints.suspend(); void submission.retry(); }}
         onClose={() => setShowOverlay(false)}
       />
     </div>

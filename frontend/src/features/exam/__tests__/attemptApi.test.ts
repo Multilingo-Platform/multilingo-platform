@@ -9,12 +9,22 @@ import {
   getAttemptResult,
   getAttemptReview,
   checkPracticeAnswer,
+  generateWritingHints,
+  HINTS_TIMEOUT_MS,
+  WritingHintsContractError,
 } from '../api/attemptApi';
 import { ReviewContractError } from '../api/reviewContract';
 import { PracticeFeedbackContractError } from '../api/practiceFeedbackContract';
 import { attemptResultFixture, resultEnvelope } from './fixtures/attemptResult';
 import { attemptReviewFixture, reviewEnvelope } from './fixtures/attemptReview';
 import { practiceFeedbackFixture, practiceFeedbackEnvelope } from './fixtures/practiceFeedback';
+import {
+  validWritingHintsEn,
+  validWritingHintsVi,
+  validWritingHintsRequest,
+  VALID_REQUEST_ID,
+  createWritingHintsEnvelope,
+} from './fixtures/writingHints';
 
 vi.mock('../../../core/api/axiosClient', () => ({
   default: { put: vi.fn(), post: vi.fn(), get: vi.fn() },
@@ -1051,5 +1061,188 @@ describe('TV3-16-01 checkPracticeAnswer', () => {
       checkPracticeAnswer(42, { partId: 10, questionId: 'q1', answer: 'A' }, { signal: controller.signal })
     ).rejects.toThrow(/hủy/i);
     expect(mockAxios.post).not.toHaveBeenCalled();
+  });
+});
+
+describe('generateWritingHints', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('calls exact endpoint with 150s timeout, AbortSignal and strict payload allowlist', async () => {
+    mockAxios.post.mockResolvedValueOnce(createWritingHintsEnvelope(validWritingHintsEn));
+
+    const req = {
+      partId: 30,
+      questionId: 'writing-task-1',
+      requestId: VALID_REQUEST_ID,
+      essay: 'Student essay text that must not be sent',
+      answer: 'Draft text',
+      extraField: 'should be stripped',
+    } as any;
+
+    const result = await generateWritingHints(42, req);
+
+    expect(mockAxios.post).toHaveBeenCalledTimes(1);
+    const [url, postBody, postConfig] = mockAxios.post.mock.calls[0];
+    expect(url).toBe('/v1/attempts/42/writing-hints');
+    expect(postBody).toEqual({
+      partId: 30,
+      questionId: 'writing-task-1',
+      requestId: VALID_REQUEST_ID,
+    });
+    expect(postBody).not.toHaveProperty('essay');
+    expect(postBody).not.toHaveProperty('answer');
+    expect(postBody).not.toHaveProperty('extraField');
+    expect(postConfig.timeout).toBe(150_000);
+    expect(postConfig.timeout).toBe(HINTS_TIMEOUT_MS);
+    expect(postConfig.signal).toBeInstanceOf(AbortSignal);
+    expect(result.attemptId).toBe(42);
+    expect(result.partId).toBe(30);
+    expect(result.questionId).toBe('writing-task-1');
+    expect(result.outline).toHaveLength(4);
+    expect(result.vocabulary).toHaveLength(5);
+  });
+
+  it('includes canonicalized optional language fields when provided', async () => {
+    mockAxios.post.mockResolvedValueOnce(createWritingHintsEnvelope(validWritingHintsVi));
+
+    const req = {
+      partId: 30,
+      questionId: 'writing-task-1',
+      requestId: VALID_REQUEST_ID,
+      learningLanguage: 'en',
+      hintLanguage: 'vi',
+    };
+
+    const result = await generateWritingHints(42, req);
+
+    const [, postBody] = mockAxios.post.mock.calls[0];
+    expect(postBody).toEqual({
+      partId: 30,
+      questionId: 'writing-task-1',
+      requestId: VALID_REQUEST_ID,
+      learningLanguage: 'en',
+      hintLanguage: 'vi',
+    });
+    expect(result.hintLanguage).toBe('vi');
+  });
+
+  it.each([
+    { desc: 'attemptId <= 0', attemptId: 0, req: validWritingHintsRequest },
+    { desc: 'attemptId is float', attemptId: 42.5, req: validWritingHintsRequest },
+    { desc: 'attemptId is NaN', attemptId: NaN, req: validWritingHintsRequest },
+    { desc: 'partId <= 0', attemptId: 42, req: { ...validWritingHintsRequest, partId: 0 } },
+    { desc: 'partId is null', attemptId: 42, req: { ...validWritingHintsRequest, partId: null as any } },
+    { desc: 'empty questionId', attemptId: 42, req: { ...validWritingHintsRequest, questionId: '' } },
+    { desc: 'whitespace-padded questionId', attemptId: 42, req: { ...validWritingHintsRequest, questionId: ' task-1 ' } },
+    { desc: 'invalid requestId not UUID', attemptId: 42, req: { ...validWritingHintsRequest, requestId: 'not-a-uuid' } },
+    { desc: 'unsupported learningLanguage', attemptId: 42, req: { ...validWritingHintsRequest, learningLanguage: 'unsupported' } },
+    { desc: 'unsupported hintLanguage', attemptId: 42, req: { ...validWritingHintsRequest, hintLanguage: 'xyz' } },
+  ])('rejects invalid input ($desc) before dispatching HTTP request', async ({ attemptId, req }) => {
+    await expect(generateWritingHints(attemptId, req)).rejects.toThrow(WritingHintsContractError);
+    expect(mockAxios.post).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed response envelope or mismatched identity with WritingHintsContractError', async () => {
+    mockAxios.post.mockResolvedValueOnce({
+      code: 200,
+      data: {
+        ...validWritingHintsEn,
+        attemptId: 999,
+      },
+    });
+
+    await expect(generateWritingHints(42, validWritingHintsRequest)).rejects.toThrow(WritingHintsContractError);
+  });
+
+  it('rejects when server returns error envelope code', async () => {
+    mockAxios.post.mockResolvedValueOnce({
+      code: 500,
+      message: 'Internal Error',
+      data: null,
+    });
+
+    await expect(generateWritingHints(42, validWritingHintsRequest)).rejects.toThrow(WritingHintsContractError);
+  });
+
+  it.each([400, 401, 403, 404, 409, 413, 422, 429, 500, 502, 503, 504])(
+    'preserves HTTP %s rejection for downstream error classification',
+    async status => {
+      const error = {
+        response: {
+          status,
+          headers: { 'retry-after': '15' },
+          data: { code: 1604, message: 'backend detail' },
+        },
+      };
+      mockAxios.post.mockRejectedValueOnce(error);
+
+      await expect(generateWritingHints(42, validWritingHintsRequest)).rejects.toBe(error);
+    }
+  );
+
+  it('settles at whole-request deadline (150s) even when transport never settles', async () => {
+    vi.useFakeTimers();
+    mockAxios.post.mockReturnValueOnce(new Promise(() => {}));
+
+    const pending = generateWritingHints(42, validWritingHintsRequest);
+    const rejection = expect(pending).rejects.toThrow(/quá thời gian/i);
+
+    await vi.advanceTimersByTimeAsync(149_999);
+    expect(mockAxios.post.mock.calls[0][2]?.signal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await rejection;
+    expect(mockAxios.post.mock.calls[0][2]?.signal?.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('aborts waiting, ignores late transport settlement and removes listener/timer', async () => {
+    vi.useFakeTimers();
+    let resolve!: (value: unknown) => void;
+    mockAxios.post.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const controller = new AbortController();
+    const remove = vi.spyOn(controller.signal, 'removeEventListener');
+
+    const pending = generateWritingHints(42, validWritingHintsRequest, { signal: controller.signal });
+    const rejection = expect(pending).rejects.toThrow(/hủy/i);
+
+    controller.abort();
+    await rejection;
+
+    resolve(createWritingHintsEnvelope(validWritingHintsEn));
+    await Promise.resolve();
+
+    expect(mockAxios.post.mock.calls[0][2].signal.aborted).toBe(true);
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('already aborted signal does not dispatch transport', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      generateWritingHints(42, validWritingHintsRequest, { signal: controller.signal })
+    ).rejects.toThrow(/hủy/i);
+    expect(mockAxios.post).not.toHaveBeenCalled();
+  });
+
+  it('uses immutable captured payload even if caller mutates req during in-flight', async () => {
+    mockAxios.post.mockImplementationOnce(async () => {
+      mutableReq.partId = 999;
+      mutableReq.questionId = 'mutated';
+      return createWritingHintsEnvelope(validWritingHintsEn);
+    });
+
+    const mutableReq = {
+      partId: 30,
+      questionId: 'writing-task-1',
+      requestId: VALID_REQUEST_ID,
+    };
+
+    const result = await generateWritingHints(42, mutableReq);
+    expect(result.partId).toBe(30);
+    expect(result.questionId).toBe('writing-task-1');
   });
 });

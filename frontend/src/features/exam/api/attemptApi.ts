@@ -12,6 +12,8 @@ import type {
   TestMode,
   PracticeFeedbackRequest,
   PracticeFeedbackResponse,
+  WritingHintsRequest,
+  WritingHintsResponse,
 } from '../types/api.types';
 import type { AttemptStatus, PartAnswers, UserAnswer, AnswerValue } from '../types/answer.types';
 import { normalizeAttemptResult, ResultContractError } from './resultContract';
@@ -21,8 +23,13 @@ import {
   PracticeFeedbackContractError,
   validatePracticeFeedbackRequest,
 } from './practiceFeedbackContract';
+import {
+  normalizeWritingHints,
+  WritingHintsContractError,
+  validateWritingHintsRequest,
+} from './writingHintsContract';
 
-export { ReviewContractError, PracticeFeedbackContractError };
+export { ReviewContractError, PracticeFeedbackContractError, WritingHintsContractError };
 
 export class WorkspaceContractError extends Error {
   constructor(message: string = 'Dữ liệu phiên thi không hợp lệ. Vui lòng thử tải lại.') {
@@ -324,6 +331,7 @@ export interface SubmitAttemptApiRequest {
 }
 
 const WRITE_TIMEOUT_MS = 10_000;
+export const HINTS_TIMEOUT_MS = 150_000;
 
 function validateWriteContext(attemptId: number, version: number): void {
   if (![attemptId, version].every(value => Number.isSafeInteger(value) && value >= 1 && value <= 2147483647)) {
@@ -332,7 +340,11 @@ function validateWriteContext(attemptId: number, version: number): void {
 }
 
 /** Axios timeout does not include time queued behind the refresh interceptor. */
-async function boundedAttemptRequest<T>(execute: (signal: AbortSignal) => Promise<T>, external?: AbortSignal): Promise<T> {
+async function boundedAttemptRequest<T>(
+  execute: (signal: AbortSignal) => Promise<T>,
+  external?: AbortSignal,
+  timeoutMs: number = WRITE_TIMEOUT_MS
+): Promise<T> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let cancel: (() => void) | undefined;
@@ -346,7 +358,7 @@ async function boundedAttemptRequest<T>(execute: (signal: AbortSignal) => Promis
     timer = setTimeout(() => {
       reject(new Error('Yêu cầu quá thời gian. Vui lòng thử lại.'));
       controller.abort();
-    }, WRITE_TIMEOUT_MS);
+    }, timeoutMs);
   });
   try {
     if (controller.signal.aborted) return await deadline;
@@ -479,4 +491,44 @@ export async function checkPracticeAnswer(
     payload.questionId,
     payload.answer
   );
+}
+
+/**
+ * POST /api/v1/attempts/:id/writing-hints
+ * Generates outline, vocabulary, and limitations for an ESSAY question in a Practice attempt.
+ * Bounded request with 150.000 ms timeout and AbortSignal support.
+ */
+export async function generateWritingHints(
+  attemptId: number,
+  req: WritingHintsRequest,
+  options?: { signal?: AbortSignal }
+): Promise<WritingHintsResponse> {
+  const validatedReq = validateWritingHintsRequest(attemptId, req);
+  const payload: Record<string, unknown> = {
+    partId: validatedReq.partId,
+    questionId: validatedReq.questionId,
+    requestId: validatedReq.requestId,
+  };
+  if (validatedReq.learningLanguage !== undefined) {
+    payload.learningLanguage = validatedReq.learningLanguage;
+  }
+  if (validatedReq.hintLanguage !== undefined) {
+    payload.hintLanguage = validatedReq.hintLanguage;
+  }
+
+  const res = await boundedAttemptRequest(
+    signal =>
+      axiosClient.post<unknown, ApiResponse<unknown>>(
+        `/v1/attempts/${attemptId}/writing-hints`,
+        payload,
+        { signal, timeout: HINTS_TIMEOUT_MS }
+      ),
+    options?.signal,
+    HINTS_TIMEOUT_MS
+  );
+
+  return normalizeWritingHints(res, {
+    ...validatedReq,
+    attemptId,
+  });
 }
