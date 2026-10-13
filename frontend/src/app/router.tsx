@@ -1,5 +1,5 @@
 import React from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
 import StudentExamView from "../features/exams/components/StudentExamView";
