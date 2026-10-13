@@ -13,7 +13,6 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
     @Mapping(target = "role", ignore = true)
-    @Mapping(target = "phone", ignore = true)
     @Mapping(target = "nativeLanguage", ignore = true)
     @Mapping(target = "targetLanguage", ignore = true)
     @Mapping(target = "subscriptionTier", ignore = true)
@@ -33,7 +32,6 @@ public interface UserMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "email", ignore = true)
-    @Mapping(target = "phone", ignore = true)
     @Mapping(target = "nativeLanguage", ignore = true)
     @Mapping(target = "targetLanguage", ignore = true)
     @Mapping(target = "subscriptionTier", ignore = true)

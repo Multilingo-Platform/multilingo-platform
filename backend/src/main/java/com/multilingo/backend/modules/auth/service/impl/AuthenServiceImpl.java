@@ -39,12 +39,16 @@ public class AuthenServiceImpl implements AuthenService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AppException(ErrorCode.WRONG_PASSWORD);
         }
+        if (!user.getIsActive()) {
+            throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
+        }
 
         String token = jwtTokenProvider.generateToken(user);
-        
+
         // Generate Refresh Token
         String refreshTokenString = java.util.UUID.randomUUID().toString();
-        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = com.multilingo.backend.modules.auth.entity.RefreshToken.builder()
+        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = com.multilingo.backend.modules.auth.entity.RefreshToken
+                .builder()
                 .user(user)
                 .token(refreshTokenString)
                 .expiresAt(java.time.Instant.now().plusMillis(refreshTokenExpirationMs))
@@ -69,7 +73,7 @@ public class AuthenServiceImpl implements AuthenService {
             if (ttl > 0) {
                 stringRedisTemplate.opsForValue().set("BLACKLIST_TOKEN:" + jti, "invalid", ttl, TimeUnit.MILLISECONDS);
             }
-            
+
             // Revoke all refresh tokens for this user
             String email = jwtTokenProvider.getEmailFromJWT(token);
             userRepository.findByEmail(email).ifPresent(user -> {
@@ -84,7 +88,8 @@ public class AuthenServiceImpl implements AuthenService {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenString)
+        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = refreshTokenRepository
+                .findByToken(refreshTokenString)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
 
         if (refreshToken.getIsRevoked() || refreshToken.getExpiresAt().isBefore(java.time.Instant.now())) {

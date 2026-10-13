@@ -2,6 +2,7 @@ package com.multilingo.backend.modules.auth.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -16,6 +17,7 @@ public class UserCreationRequest {
 
     @NotBlank(message = "EMAIL_REQUIRED")
     @Email(message = "INVALID_EMAIL_FORMAT")
+    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "INVALID_EMAIL_FORMAT")
     String email;
 
     @NotBlank(message = "PASSWORD_REQUIRED")
@@ -25,6 +27,9 @@ public class UserCreationRequest {
     @NotBlank(message = "NAME_REQUIRED")
     @Size(max = 150, message = "INVALID_NAME_LENGTH")
     String fullName;
+
+    @Pattern(regexp = "^$|^(0[35789]\\d{8})$", message = "INVALID_PHONE_FORMAT")
+    String phone;
 
     @Size(max = 500, message = "INVALID_AVATAR_URL_LENGTH")
     String avatarUrl;
