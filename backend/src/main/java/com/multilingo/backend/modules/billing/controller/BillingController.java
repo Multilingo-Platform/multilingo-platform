@@ -16,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.AccessLevel;
 
 @RestController
-@RequestMapping("/api/v1/billing/vnpay")
+@RequestMapping("/api/v1/billing")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class BillingController {
@@ -24,7 +24,7 @@ public class BillingController {
     VNPayService vnPayService;
     com.multilingo.backend.modules.billing.service.TransactionService transactionService;
     
-    @PostMapping("/create-payment")
+    @PostMapping({"/vnpay/create-payment", "/create-payment"})
     public com.multilingo.backend.common.dto.ApiResponse<com.multilingo.backend.modules.billing.dto.response.PaymentCreateResponse> createPayment(
             @RequestBody com.multilingo.backend.modules.billing.dto.request.PaymentCreateRequest requestBody, 
             HttpServletRequest request,
@@ -49,7 +49,7 @@ public class BillingController {
         return com.multilingo.backend.common.dto.ApiResponse.success(response);
     }
     
-    @GetMapping("/ipn")
+    @GetMapping({"/vnpay/ipn", "/ipn"})
     public String ipnWebhook(@RequestParam Map<String, String> allParams) {
         String secureHash = allParams.get("vnp_SecureHash");
         if (secureHash == null || !vnPayService.verifySignature(new HashMap<>(allParams), secureHash)) {
@@ -81,10 +81,27 @@ public class BillingController {
         return "{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}";
     }
 
-    @GetMapping("/payment-return")
+    @GetMapping({"/vnpay/payment-return", "/payment-return"})
     public com.multilingo.backend.common.dto.ApiResponse<com.multilingo.backend.modules.billing.dto.response.PaymentReturnResponse> handlePaymentReturn(
             @RequestParam Map<String, String> allParams) {
         com.multilingo.backend.modules.billing.dto.response.PaymentReturnResponse response = transactionService.processPaymentReturn(allParams);
         return com.multilingo.backend.common.dto.ApiResponse.success(response);
+    }
+
+    @GetMapping({"/my-history", "/vnpay/my-history"})
+    public com.multilingo.backend.common.dto.ApiResponse<com.multilingo.backend.common.dto.PageResponse<com.multilingo.backend.modules.billing.dto.response.TransactionResponse>> getPurchaseHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        if (userDetails == null || userDetails.getUser() == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
+        }
+
+        Integer userId = userDetails.getUser().getId();
+        com.multilingo.backend.common.dto.PageResponse<com.multilingo.backend.modules.billing.dto.response.TransactionResponse> response =
+                transactionService.getPurchaseHistory(userId, page, size);
+
+        return com.multilingo.backend.common.dto.ApiResponse.success("Lấy lịch sử mua gói thành công", response);
     }
 }

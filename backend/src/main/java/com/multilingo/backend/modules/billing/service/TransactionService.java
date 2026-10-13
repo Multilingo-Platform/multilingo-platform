@@ -1,5 +1,6 @@
 package com.multilingo.backend.modules.billing.service;
 
+import com.multilingo.backend.common.dto.PageResponse;
 import com.multilingo.backend.modules.billing.dto.request.PaymentCreateRequest;
 import com.multilingo.backend.modules.billing.dto.response.PaymentReturnResponse;
 import com.multilingo.backend.modules.billing.dto.response.TransactionResponse;
@@ -10,4 +11,5 @@ public interface TransactionService {
     TransactionResponse getTransactionByRef(String vnpTxnRef);
     void processIpnSuccess(String vnpTxnRef, String vnpTransactionNo, String bankCode);
     PaymentReturnResponse processPaymentReturn(Map<String, String> allParams);
+    PageResponse<TransactionResponse> getPurchaseHistory(Integer userId, int page, int size);
 }

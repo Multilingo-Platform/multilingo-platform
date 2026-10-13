@@ -9,9 +9,16 @@ interface AuthState {
 }
 
 const initialToken = localStorage.getItem('token');
+const initialUserStr = localStorage.getItem('user');
+let initialUser: UserResponse | null = null;
+try {
+  initialUser = initialUserStr ? JSON.parse(initialUserStr) : null;
+} catch {
+  initialUser = null;
+}
 
 const initialState: AuthState = {
-  user: null, // Ideal logic: hydrate user info from token or an API call like /me
+  user: initialUser,
   token: initialToken,
   isAuthenticated: !!initialToken,
 };
@@ -29,15 +36,22 @@ const authSlice = createSlice({
       state.token = accessToken;
       state.isAuthenticated = true;
       localStorage.setItem('token', accessToken);
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+      }
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
     },
     updateUser: (state, action: PayloadAction<UserResponse>) => {
       state.user = action.payload;
+      if (action.payload) {
+        localStorage.setItem('user', JSON.stringify(action.payload));
+      }
     },
   },
 });

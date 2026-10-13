@@ -4,8 +4,9 @@ export interface UserResponse {
   fullName: string;
   avatarUrl?: string;
   role: string;
-  phone?: string;
+  phone: string;
   subscriptionTier: string;
+  premiumExpiresAt: string;
 }
 
 export interface AuthResponse {

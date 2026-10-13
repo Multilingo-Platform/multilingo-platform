@@ -5,9 +5,10 @@ import { Menu, X } from 'lucide-react';
 interface HeaderProps {
   navItems?: React.ReactNode;
   rightActions?: React.ReactNode;
+  mobileContent?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ navItems, rightActions }) => {
+const Header: React.FC<HeaderProps> = ({ navItems, rightActions, mobileContent }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
@@ -15,11 +16,39 @@ const Header: React.FC<HeaderProps> = ({ navItems, rightActions }) => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  // Khóa scroll body khi mở menu mobile
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <>
       <style>{`
+        .header-container {
+          width: 100%;
+          max-width: 1440px;
+          margin: 0 auto;
+          padding: 0 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          height: 70px;
+        }
+        @media (min-width: 1440px) {
+          .header-container {
+            padding: 0 2.5rem;
+          }
+        }
         .desktop-nav {
           display: flex;
+          align-items: center;
         }
         .mobile-toggle {
           display: none;
@@ -27,20 +56,28 @@ const Header: React.FC<HeaderProps> = ({ navItems, rightActions }) => {
           border: none;
           cursor: pointer;
           color: var(--text-primary);
+          padding: 0.5rem;
+          border-radius: 8px;
+          transition: background-color 0.2s;
+        }
+        .mobile-toggle:hover {
+          background-color: var(--bg-tertiary, #f8fafc);
         }
         .mobile-menu {
           display: none;
-          flex-direction: column;
-          background-color: var(--bg-primary, white);
-          position: absolute;
+          position: fixed;
           top: 70px;
           left: 0;
           right: 0;
-          padding: 1rem 2rem;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-          z-index: 1000;
-          gap: 1rem;
-          border-bottom: 1px solid var(--border-light, #eee);
+          bottom: 0;
+          background-color: var(--bg-primary, white);
+          z-index: 999;
+          padding: 1.25rem 1.25rem 2.5rem;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          flex-direction: column;
+          gap: 1.25rem;
+          border-top: 1px solid var(--border-light, #e2e8f0);
         }
         .mobile-menu.open {
           display: flex;
@@ -52,6 +89,7 @@ const Header: React.FC<HeaderProps> = ({ navItems, rightActions }) => {
           .mobile-toggle {
             display: flex;
             align-items: center;
+            justify-content: center;
           }
           .desktop-only {
             display: none !important;
@@ -67,49 +105,57 @@ const Header: React.FC<HeaderProps> = ({ navItems, rightActions }) => {
         }
       `}</style>
       <header className="top-nav" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
-        <div className="container flex-between" style={{ height: '70px' }}>
-          <div className="flex-center" style={{ gap: '2rem' }}>
+        <div className="header-container">
+          {/* Nhóm bên trái: Logo & Navigation chính */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
             <Link 
               to="/" 
-              style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', textDecoration: 'none' }}
+              style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', textDecoration: 'none', letterSpacing: '-0.5px' }}
             >
               Multilingo
             </Link>
             
             {navItems && (
-              <nav className="desktop-nav" style={{ gap: '1.5rem', fontWeight: 600, color: 'var(--text-secondary)', alignItems: 'center' }}>
+              <nav className="desktop-nav" style={{ gap: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                 {navItems}
               </nav>
             )}
           </div>
           
+          {/* Nhóm bên phải: Utility Actions (PRO, Streak, Lang, Avatar) */}
           {rightActions && (
-            <div className="desktop-nav flex-center" style={{ gap: '1.5rem' }}>
+            <div className="desktop-nav" style={{ gap: '0.75rem', marginLeft: 'auto' }}>
               {rightActions}
             </div>
           )}
 
-          {/* Hamburger Icon */}
+          {/* Hamburger Icon trên Mobile */}
           <button 
             className="mobile-toggle" 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Menu"
           >
-            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
 
-        {/* Mobile Dropdown */}
+        {/* Mobile Drawer (Full height viewport, có thể cuộn, không bị tràn màn hình) */}
         <div className={`mobile-menu ${isMobileMenuOpen ? 'open' : ''}`}>
-          {navItems && (
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              {navItems}
-            </nav>
-          )}
-          {rightActions && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-light, #eee)' }}>
-              {rightActions}
-            </div>
+          {mobileContent ? (
+            mobileContent
+          ) : (
+            <>
+              {navItems && (
+                <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  {navItems}
+                </nav>
+              )}
+              {rightActions && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-light, #eee)' }}>
+                  {rightActions}
+                </div>
+              )}
+            </>
           )}
         </div>
       </header>
