@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Settings, LogOut, ShieldAlert, Crown, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Settings, LogOut, ShieldAlert, Crown, Menu, X, Activity, Receipt, Bot } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { useMutation } from '@tanstack/react-query';
 import { logout } from '../../features/auth/store/authSlice';
@@ -66,16 +66,25 @@ const AdminLayout = () => {
           <NavLink to="/admin/users" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <Users size={20} /> Quản lý Người dùng
           </NavLink>
+          <NavLink to="/admin/tracking" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+            <Activity size={20} /> Giám sát & Tracking
+          </NavLink>
+          <NavLink to="/admin/transactions" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+            <Receipt size={20} /> Đối soát VNPAY
+          </NavLink>
+          <NavLink to="/admin/quotas" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+            <Bot size={20} /> Hạn mức Quota AI
+          </NavLink>
+          <NavLink to="/admin/audit" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+            <ShieldAlert size={20} /> Logs Kiểm toán
+          </NavLink>
+
+          <div style={{ marginTop: '1.5rem', padding: '0 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Nội dung & Gói</div>
           <NavLink to="/admin/exams" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <FileText size={20} /> Quản lý Đề thi
           </NavLink>
           <NavLink to="/admin/premium" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <Crown size={20} /> Quản lý Gói Premium
-          </NavLink>
-          
-          <div style={{ marginTop: '2rem', padding: '0 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Bảo mật</div>
-          <NavLink to="/admin/audit" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
-            <ShieldAlert size={20} /> Logs Hệ thống
           </NavLink>
           <NavLink to="/admin/settings" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <Settings size={20} /> Cài đặt
