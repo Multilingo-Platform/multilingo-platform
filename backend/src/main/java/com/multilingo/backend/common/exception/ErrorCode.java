@@ -93,7 +93,17 @@ public enum ErrorCode {
     PLAN_NOT_FOUND(1508, HttpStatus.NOT_FOUND, "Không tìm thấy gói cước yêu cầu"),
 
     // Testing & Attempts (16xx)
-    VERSION_CONFLICT(1601, HttpStatus.CONFLICT, "Phiên bản bài làm không khớp hoặc đã có thay đổi mới");
+    VERSION_CONFLICT(1601, HttpStatus.CONFLICT, "Phiên bản bài làm không khớp hoặc đã có thay đổi mới"),
+    WRITING_HINTS_UNAVAILABLE(1602, HttpStatus.SERVICE_UNAVAILABLE, "Dịch vụ gợi ý viết hiện không khả dụng"),
+    WRITING_HINTS_INVALID_RESPONSE(1603, HttpStatus.BAD_GATEWAY, "Phản hồi gợi ý viết không hợp lệ"),
+    WRITING_HINTS_IN_PROGRESS(1604, HttpStatus.CONFLICT, "Yêu cầu gợi ý viết đang được xử lý"),
+    WRITING_HINTS_REQUEST_CONFLICT(1605, HttpStatus.CONFLICT, "Xung đột thông tin yêu cầu gợi ý viết"),
+    WRITING_HINTS_RATE_LIMITED(1606, HttpStatus.TOO_MANY_REQUESTS, "Bạn đang gửi yêu cầu quá nhanh, vui lòng thử lại sau"),
+    WRITING_HINTS_LANGUAGE_UNSUPPORTED(1607, HttpStatus.UNPROCESSABLE_ENTITY, "Ngôn ngữ không được hỗ trợ"),
+    WRITING_HINTS_LANGUAGE_REQUIRED(1608, HttpStatus.UNPROCESSABLE_ENTITY, "Vui lòng chỉ định ngôn ngữ học tập"),
+    WRITING_HINTS_CONTEXT_UNAVAILABLE(1609, HttpStatus.UNPROCESSABLE_ENTITY, "Nội dung bài viết không khả dụng để tạo gợi ý"),
+    WRITING_HINTS_TIMEOUT(1610, HttpStatus.GATEWAY_TIMEOUT, "Yêu cầu gợi ý viết đã quá thời gian chờ"),
+    WRITING_HINTS_REQUEST_TOO_LARGE(1611, HttpStatus.PAYLOAD_TOO_LARGE, "Dung lượng yêu cầu vượt quá giới hạn cho phép");
 
     private final int code;
     private final HttpStatus httpStatus;

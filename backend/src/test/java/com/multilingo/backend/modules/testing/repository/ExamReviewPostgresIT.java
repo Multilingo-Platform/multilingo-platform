@@ -72,6 +72,7 @@ class ExamReviewPostgresIT {
                     .locations("classpath:db/migration")
                     .baselineVersion("20261006165504")
                     .baselineOnMigrate(true)
+                    .target("20261010233000")
                     .load();
 
             flyway.migrate();

@@ -83,3 +83,91 @@ Client chỉ chịu trách nhiệm gửi nhận envelope HTTP thô và phân lo�
 4. **Chiến lược Thử lại (Retry & Backoff):** Client không tự retry. Cờ `isRetryable()` chỉ mang tính gợi ý; caller quyết định có thử lại (exponential backoff/jitter) hay không.
 5. **Validation Schema & Nghiệp vụ AI:** Parse và validate cấu trúc JSON nghiệp vụ (tiêu chí Task Achievement, Lexical, v.v.), xử lý trường hợp AI hallucinate hoặc trả Markdown fences.
 6. **Persistence & Lịch sử:** Lưu kết quả vào `attempt_answers.ai_feedback` hoặc audit logs.
+
+---
+
+## 6. GỢI Ý DÀN Ý & TỪ VỰNG AI (TV3-18 AI WRITING HINTS)
+
+**Packages:**
+- `com.multilingo.backend.modules.testing.ai.hints`
+- `com.multilingo.backend.modules.testing.service.support`
+- `com.multilingo.backend.modules.testing.adapter`
+- `com.multilingo.backend.modules.testing.controller`
+
+### 6.1. Endpoint HTTP & Access Control
+
+- **Endpoint:** `POST /api/v1/attempts/{id}/writing-hints`
+- **Authentication & Authorization:**
+  - Yêu cầu người dùng đăng nhập (`@WithMockUser` / JWT). Unauthenticated trả về `401 Unauthorized`.
+  - Kiểm tra quyền sở hữu: chỉ thí sinh tạo attempt mới được gọi hints. Foreign user hoặc `MOCK_TEST` trả về `403 Forbidden` (AI Hints chỉ hỗ trợ chế độ `PRACTICE`).
+  - Kiểm tra trạng thái attempt: Chỉ cho phép khi attempt đang `IN_PROGRESS` và chưa quá hạn `deadline`. Attempt đã nộp hoặc hết hạn trả về `409 Conflict`.
+- **Contract & Headers:**
+  - Envelope chuẩn: `ResponseEntity<ApiResponse<WritingHintsResponse>>`.
+  - Header an toàn: Toàn bộ response (thành công hoặc lỗi) đều có `Cache-Control: no-store`.
+  - Header `Retry-After: <seconds>` được cấp khi request đang chờ xử lý (`409 Conflict`) hoặc đang trong khoảng cooldown (`429 Too Many Requests`). Hết quota (`QUOTA_EXCEEDED`) trả 429 không kèm `Retry-After`.
+  - Bounded input reader: Giới hạn tối đa 16 KiB stream body, từ chối payload ngoại cỡ bằng `413 Payload Too Large`.
+
+### 6.2. Cấu hình hệ thống (`testing.writing-hints.*`)
+
+| Thuộc tính | Biến môi trường | Mặc định | Mô tả |
+|---|---|---|---|
+| `testing.writing-hints.enabled` | `WRITING_HINTS_ENABLED` | `false` | Bật/tắt tính năng gợi ý AI. Mặc định `false` (an toàn). Khi `false`, trả `503 Service Unavailable`. |
+| `testing.writing-hints.min-interval` | `WRITING_HINTS_MIN_INTERVAL` | `10s` | Khoảng cách tối thiểu giữa hai lần bắt đầu gọi provider của cùng user, kể cả lần thất bại. |
+| `testing.writing-hints.lease-extension` | `WRITING_HINTS_LEASE_EXTENSION` | `15s` | Lease bằng `testing.gemini.request-timeout` (mặc định `30s`) cộng extension. Request tiếp theo của user thu hồi PENDING hết lease; không có scheduler. |
+| `testing.writing-hints.supported-languages` | `WRITING_HINTS_SUPPORTED_LANGUAGES` | `en,vi,ko,zh,ja,fr,de,es` | Catalog ngôn ngữ hỗ trợ, chuẩn hóa BCP 47 và alias ISO 639-3. |
+
+Quota dùng mã cố định `AI_WRITING_HINTS` và row đã được provision trong `user_quotas`; không có thuộc tính `quota-feature`, không tự cấp hoặc reset quota.
+
+### 6.3. Bảng dữ liệu Ledger (`writing_hint_requests`)
+
+Bảng `writing_hint_requests` được khởi tạo qua migration `V20261012180000__add_writing_hint_requests.sql` để đảm bảo tính bất biến và lưu vết phân tán:
+- `id`: Khóa chính integer tự tăng, kế thừa `BaseEntity`.
+- `request_id`: UUID bắt buộc do client gửi, chuẩn hóa lowercase; unique theo cặp `(user_id, request_id)`.
+- `attempt_id`, `user_id`, `part_id`, `question_id`: Định danh ngữ cảnh câu hỏi luyện viết.
+- `status`: Enum trạng thái (`PENDING`, `SUCCEEDED`, `FAILED`).
+- `run_id`, `lease_until`, `last_started_at`: Định danh phiên chạy, hạn lease và mốc tính cooldown; callback phiên cũ không được ghi đè kết quả hoặc hoàn reservation của phiên mới.
+- `quota_reserved`: Cờ boolean đánh dấu quota đã được trừ tạm ứng (để hoàn tiền khi fail hoặc abort).
+- `quota_id`, `quota_reset_date`: Định danh quota và kỳ đã reserve; refund không giảm counter của kỳ mới.
+- `request_fingerprint`: SHA-256 của request intent để kiểm tra xung đột trên cùng `request_id`.
+- `context_json`: Intent, ngôn ngữ đã resolve và phiên bản prompt; không lưu task text, essay hoặc prompt.
+- `result_json`: JSONB chứa response đã validate và thời điểm sinh, dùng cho replay không charge/call thêm.
+- `failure_code`: Mã lỗi an toàn, không chứa raw provider exception.
+- **Ràng buộc:** Partial Unique Index đảm bảo tại một thời điểm mỗi người dùng chỉ có tối đa một request ở trạng thái `PENDING`.
+
+### 6.4. Mô hình Transaction Coordinator (Tách biệt DB & LLM)
+
+Nhằm bảo vệ connection pool của cơ sở dữ liệu khỏi việc bị chiếm dụng trong lúc chờ LLM phản hồi, `WritingHintTransactionCoordinator` tách quy trình thành 3 pha độc lập:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│ Phase 1: BEGIN (In DB Transaction)                     │
+│ - Validate Attempt (owner, PRACTICE mode, IN_PROGRESS) │
+│ - Check Idempotency (replay cache if SUCCEEDED)        │
+│ - Check Cooldown & Reserve User Quota                  │
+│ - Insert Ledger Record (status = PENDING)              │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ Phase 2: GENERATE (OUTSIDE DB Transaction)             │
+│ - Call Gemini API via GeminiClient (HTTP transport)    │
+│ - Parse & Validate AI Output (5-10 vocab, outline)     │
+│ - Bắt timeout (504), unavailable (503), schema (502)   │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ Phase 3: COMPLETE (In DB Transaction)                  │
+│ - Fencing check: Xác nhận Attempt vẫn IN_PROGRESS      │
+│   (Nếu user đã nộp bài giữa chừng: Abort & Hoàn Quota) │
+│ - Nếu Success: Lưu response JSON, cập nhật SUCCEEDED   │
+│ - Nếu Failure: Cập nhật FAILED, Hoàn Quota tự động     │
+└────────────────────────────────────────────────────────┘
+```
+
+### 6.5. Bảo mật ngữ cảnh & Đa ngôn ngữ (Snapshot & i18n)
+
+1. **Snapshot Context Bất biến:** `WritingHintContextReader` chỉ đọc duy nhất từ `attempt.getExamSnapshot()`, tuyệt đối không truy vấn live Exam hay review mapper. Mọi answer keys, giải thích, và câu hỏi khác bị lọc bỏ trước khi đưa vào prompt LLM (chống rò rỉ đề và đáp án).
+2. **Quy tắc phân giải ngôn ngữ:** `learningLanguage` = request → `User.targetLanguage` → lỗi required/unsupported (`422`); `hintLanguage` = request → learning language đã resolve. Không dùng ngôn ngữ live Exam, native language, locale giao diện hoặc `Accept-Language` làm mặc định. Retry FAILED cùng request ID giữ ngôn ngữ đã đóng băng; đổi ngôn ngữ cần request ID mới.
+   Prompt yêu cầu mọi generated field theo `hintLanguage` và giữ nguyên đề gốc. Test fixture/schema chỉ kiểm tra contract và bảo toàn nội dung; vẫn cần staging verification để xác nhận ngôn ngữ của output từ model thật.
+3. **Bảo mật Logging (Zero Leakage):** Không bao giờ ghi raw payload bài viết học viên hay nội dung LLM vào log. Mọi ngoại lệ trả về thông điệp lỗi tĩnh theo `ErrorCode` chuẩn.
