@@ -101,4 +101,59 @@ class BillingControllerTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.status").value("SUCCESS"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.planName").value("Gói 1 Tháng"));
     }
+
+    @Test
+    void getPurchaseHistory_shouldReturnPageResponse_whenAuthenticated() throws Exception {
+        com.multilingo.backend.modules.auth.entity.User mockUser = new com.multilingo.backend.modules.auth.entity.User();
+        mockUser.setId(1);
+        com.multilingo.backend.modules.auth.security.CustomUserDetails mockUserDetails =
+                new com.multilingo.backend.modules.auth.security.CustomUserDetails(mockUser);
+
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(mockUserDetails, null, mockUserDetails.getAuthorities())
+        );
+
+        com.multilingo.backend.modules.billing.dto.response.TransactionResponse item =
+                com.multilingo.backend.modules.billing.dto.response.TransactionResponse.builder()
+                        .id(10)
+                        .planName("Gói VIP 1 Tháng")
+                        .planCode("VIP_1M")
+                        .durationDays(30)
+                        .amount(new java.math.BigDecimal("99000"))
+                        .status(com.multilingo.backend.modules.billing.entity.TransactionStatus.SUCCESS)
+                        .build();
+
+        com.multilingo.backend.common.dto.PageResponse<com.multilingo.backend.modules.billing.dto.response.TransactionResponse> mockPageResponse =
+                com.multilingo.backend.common.dto.PageResponse.<com.multilingo.backend.modules.billing.dto.response.TransactionResponse>builder()
+                        .items(java.util.List.of(item))
+                        .page(0)
+                        .size(20)
+                        .totalElements(1)
+                        .totalPages(1)
+                        .last(true)
+                        .build();
+
+        when(transactionService.getPurchaseHistory(1, 0, 20)).thenReturn(mockPageResponse);
+
+        try {
+            mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/billing/my-history")
+                    .param("page", "0")
+                    .param("size", "20"))
+                    .andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code").value(200))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.items[0].planName").value("Gói VIP 1 Tháng"))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.totalElements").value(1))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data.size").value(20));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void getPurchaseHistory_shouldThrowUnauthenticated_whenNoUserDetails() throws Exception {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/billing/my-history"))
+                .andExpect(status().isUnauthorized());
+    }
 }

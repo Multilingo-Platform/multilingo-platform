@@ -183,4 +183,72 @@ class TransactionServiceTest {
         assertNotNull(res);
         assertEquals("INVALID_SIGNATURE", res.getStatus());
     }
+
+    @Test
+    void getPurchaseHistory_shouldReturnPageResponseOfSuccessfulTransactions() {
+        Integer userId = 1;
+        int page = 0;
+        int size = 20;
+
+        SubscriptionPlan plan = new SubscriptionPlan();
+        plan.setId(1);
+        plan.setName("Gói 1 Tháng");
+        plan.setCode("VIP_1M");
+        plan.setDurationDays(30);
+
+        Transaction txn = new Transaction();
+        txn.setId(10);
+        txn.setUserId(userId);
+        txn.setPlan(plan);
+        txn.setAmount(new BigDecimal("99000"));
+        txn.setStatus(com.multilingo.backend.modules.billing.entity.TransactionStatus.SUCCESS);
+        txn.setVnpTxnRef("TXN_123");
+
+        com.multilingo.backend.modules.billing.dto.response.TransactionResponse mockResponse =
+                com.multilingo.backend.modules.billing.dto.response.TransactionResponse.builder()
+                        .id(10)
+                        .userId(userId)
+                        .planId(1)
+                        .planName("Gói 1 Tháng")
+                        .planCode("VIP_1M")
+                        .durationDays(30)
+                        .amount(new BigDecimal("99000"))
+                        .status(com.multilingo.backend.modules.billing.entity.TransactionStatus.SUCCESS)
+                        .vnpTxnRef("TXN_123")
+                        .build();
+
+        org.springframework.data.domain.Page<Transaction> mockPage =
+                new org.springframework.data.domain.PageImpl<>(java.util.List.of(txn), org.springframework.data.domain.PageRequest.of(page, size), 1);
+
+        when(transactionRepository.findByUserIdAndStatus(any(), any(), any())).thenReturn(mockPage);
+        when(transactionMapper.toResponse(txn)).thenReturn(mockResponse);
+
+        com.multilingo.backend.common.dto.PageResponse<com.multilingo.backend.modules.billing.dto.response.TransactionResponse> result =
+                transactionService.getPurchaseHistory(userId, page, size);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(1, result.getItems().size());
+        assertEquals("VIP_1M", result.getItems().get(0).getPlanCode());
+        assertEquals(30, result.getItems().get(0).getDurationDays());
+    }
+
+    @Test
+    void getPurchaseHistory_shouldReturnEmptyPageResponse_whenNoTransactions() {
+        Integer userId = 2;
+        int page = 0;
+        int size = 20;
+
+        org.springframework.data.domain.Page<Transaction> mockEmptyPage =
+                new org.springframework.data.domain.PageImpl<>(java.util.Collections.emptyList(), org.springframework.data.domain.PageRequest.of(page, size), 0);
+
+        when(transactionRepository.findByUserIdAndStatus(any(), any(), any())).thenReturn(mockEmptyPage);
+
+        com.multilingo.backend.common.dto.PageResponse<com.multilingo.backend.modules.billing.dto.response.TransactionResponse> result =
+                transactionService.getPurchaseHistory(userId, page, size);
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+        assertEquals(0, result.getItems().size());
+    }
 }

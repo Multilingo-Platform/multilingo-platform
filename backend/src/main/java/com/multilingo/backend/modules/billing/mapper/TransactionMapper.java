@@ -21,5 +21,7 @@ public interface TransactionMapper {
 
     @Mapping(target = "planId", source = "plan.id")
     @Mapping(target = "planName", source = "plan.name")
+    @Mapping(target = "planCode", source = "plan.code")
+    @Mapping(target = "durationDays", source = "plan.durationDays")
     com.multilingo.backend.modules.billing.dto.response.TransactionResponse toResponse(Transaction transaction);
 }

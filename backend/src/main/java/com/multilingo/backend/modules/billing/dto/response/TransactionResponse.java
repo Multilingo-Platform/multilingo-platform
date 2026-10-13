@@ -16,6 +16,8 @@ public class TransactionResponse {
     Integer userId;
     Integer planId;
     String planName;
+    String planCode;
+    Integer durationDays;
     String vnpTxnRef;
     String vnpTransactionNo;
     BigDecimal amount;
