@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Globe } from 'lucide-react';
+import { User, LogOut, Globe, Receipt } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMutation } from '@tanstack/react-query';
-import { logout } from '../../features/auth/store/authSlice';
+import { logout, updateUser } from '../../features/auth/store/authSlice';
 import { authApi } from '../../features/auth/api/authApi';
 import { alertUtil } from '../../utils/alert';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,21 @@ const ProfileDropdown = () => {
   const { user: myInfo } = useSelector((state: any) => state.auth);
   
   const avatarLetter = myInfo?.fullName ? myInfo.fullName.charAt(0).toUpperCase() : 'U';
+
+  useEffect(() => {
+    if (!myInfo && localStorage.getItem('token')) {
+      authApi.getMyInfo()
+        .then((res: any) => {
+          const userData = res?.data?.id ? res.data : (res?.id ? res : res?.data);
+          if (userData && (userData.id || userData.email || userData.fullName)) {
+            dispatch(updateUser(userData));
+          }
+        })
+        .catch((err) => {
+          console.warn('ProfileDropdown: Không thể tải thông tin user:', err);
+        });
+    }
+  }, [myInfo, dispatch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -81,6 +96,14 @@ const ProfileDropdown = () => {
             style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: 500, justifyContent: 'flex-start', gap: '0.75rem', color: 'var(--text-primary)' }}
           >
             <User size={18} color="var(--text-secondary)" /> {t('auth.profile_settings')}
+          </div>
+
+          <div
+            className="flex-center"
+            onClick={() => { setShowProfileMenu(false); navigate('/student/purchase-history'); }}
+            style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontWeight: 500, justifyContent: 'flex-start', gap: '0.75rem', color: 'var(--text-primary)' }}
+          >
+            <Receipt size={18} color="var(--text-secondary)" /> {t('auth.purchase_history')}
           </div>
 
           <div
