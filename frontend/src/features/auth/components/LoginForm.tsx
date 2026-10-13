@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
+import { Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../api/authApi';
 import { setCredentials } from '../store/authSlice';
 import type { LoginRequest } from '../types';
@@ -23,6 +24,7 @@ const LoginForm = () => {
   const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginRequest) => {
@@ -85,14 +87,41 @@ const LoginForm = () => {
           <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>{t('auth.password_label')}</label>
           <span style={{ fontSize: '0.825rem', color: '#c25e2e', cursor: 'pointer', fontWeight: 600 }}>{t('auth.forgot_password')}</span>
         </div>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="auth-input-field"
-          placeholder="••••••••"
-          required
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="auth-input-field"
+            style={{ paddingRight: '2.5rem' }}
+            placeholder="••••••••"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: 'absolute',
+              right: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              padding: '0.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#9ca3af',
+              cursor: 'pointer',
+              transition: 'color 0.15s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#4b5563'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+            aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </div>
 
       <button type="submit" className="auth-btn-terracotta" style={{ marginTop: '0.2rem' }} disabled={loginMutation.isPending}>
