@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Flame, Crown, User, LogOut, Globe } from 'lucide-react';
+import { Flame, Crown, User, LogOut, Globe, Receipt } from 'lucide-react';
 import Header from './Header';
 import ProfileDropdown from '../common/ProfileDropdown';
 import Footer from './Footer';
@@ -46,6 +46,9 @@ const UserLayout = () => {
             </NavLink>
             <NavLink to="/student/settings" className={({ isActive }) => `nav-item mobile-only-nav ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', gap: '0.5rem' }}>
               <User size={18} /> {t('userLayout.profile_settings')}
+            </NavLink>
+            <NavLink to="/student/purchase-history" className={({ isActive }) => `nav-item mobile-only-nav ${isActive ? 'active' : ''}`} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', gap: '0.5rem' }}>
+              <Receipt size={18} /> {t('auth.purchase_history')}
             </NavLink>
             <div className="nav-item mobile-only-nav" onClick={() => navigate('/')} style={{ height: '70px', padding: '0 0.5rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', cursor: 'pointer', color: 'var(--danger)', gap: '0.5rem' }}>
               <LogOut size={18} /> {t('userLayout.logout')}

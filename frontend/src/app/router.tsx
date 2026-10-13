@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { createBrowserRouter, Link, Navigate, Outlet } from "react-router-dom";
+import React from "react";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
-import axiosClient from "../core/api/axiosClient";
-
-import AudioUploader from "../components/common/AudioUploader";
 import StudentExamView from "../features/exams/components/StudentExamView";
 
 // --- CBT EXAM PAGES ---
@@ -38,6 +35,7 @@ import ProtectedRoute from "../features/auth/components/ProtectedRoute";
 import { FlashcardsPage } from "../features/vocab";
 import PremiumUpgradePage from "../features/premium/pages/PremiumUpgradePage";
 import PaymentResultPage from "../features/premium/pages/PaymentResultPage";
+import PurchaseHistoryPage from "../features/premium/pages/PurchaseHistoryPage";
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -128,6 +126,10 @@ export const router = createBrowserRouter([
       {
         path: "payment/result",
         element: <PaymentResultPage />,
+      },
+      {
+        path: "purchase-history",
+        element: <PurchaseHistoryPage />,
       },
     ],
   },
