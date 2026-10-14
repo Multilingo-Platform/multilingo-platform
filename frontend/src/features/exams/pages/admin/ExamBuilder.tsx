@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap, CheckCircle, FileText, Upload, Download, Edit3 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap, CheckCircle, FileText, Upload, Download, Edit3, ArrowUp } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import MediaUploadButton from '../../../../components/common/MediaUploadButton';
@@ -69,6 +70,209 @@ export function deduplicatePartAndGroupInstructions(parts: ExamPart[]): ExamPart
       question_groups: updatedGroups
     };
   });
+}
+
+export interface ExcelColumnMap {
+  part: number;
+  partInstruction: number;
+  group: number;
+  type: number;
+  groupInstruction: number;
+  legacyInstruction: number;
+  passage: number;
+  question: number;
+  optA: number;
+  optB: number;
+  optC: number;
+  optD: number;
+  correct: number;
+  explanation: number;
+  partMedia: number;
+  groupMedia: number;
+  qMedia: number;
+}
+
+export function detectExcelColumns(headers: (string | undefined)[]): ExcelColumnMap {
+  const colMap: ExcelColumnMap = {
+    part: -1,
+    partInstruction: -1,
+    group: -1,
+    type: -1,
+    groupInstruction: -1,
+    legacyInstruction: -1,
+    passage: -1,
+    question: -1,
+    optA: -1,
+    optB: -1,
+    optC: -1,
+    optD: -1,
+    correct: -1,
+    explanation: -1,
+    partMedia: -1,
+    groupMedia: -1,
+    qMedia: -1,
+  };
+
+  for (let i = 0; i < headers.length; i++) {
+    const colNumber = i + 1;
+    const headerText = headers[i];
+    const text = (headerText || '').toLowerCase().trim();
+    if (!text) continue;
+
+    if (
+      text.includes('hướng dẫn chung') ||
+      (text.includes('part') && text.includes('instruction')) ||
+      (text.includes('hướng dẫn') && text.includes('phần'))
+    ) {
+      colMap.partInstruction = colNumber;
+    } else if (
+      text.includes('hướng dẫn riêng') ||
+      (text.includes('group') && text.includes('instruction')) ||
+      (text.includes('hướng dẫn') && text.includes('nhóm'))
+    ) {
+      colMap.groupInstruction = colNumber;
+    } else if (text.includes('hướng dẫn') || text.includes('instruction')) {
+      colMap.legacyInstruction = colNumber;
+    } else if (
+      text.includes('audio') ||
+      (text.includes('chung') && text.includes('phần')) ||
+      (text.includes('media') && text.includes('part'))
+    ) {
+      colMap.partMedia = colNumber;
+    } else if (
+      text.includes('đính kèm chung') ||
+      (text.includes('media') && text.includes('group')) ||
+      (text.includes('chung') && text.includes('nhóm'))
+    ) {
+      colMap.groupMedia = colNumber;
+    } else if (
+      text.includes('đính kèm riêng') ||
+      (text.includes('media') && text.includes('câu')) ||
+      text.includes('qmedia')
+    ) {
+      colMap.qMedia = colNumber;
+    } else if (
+      text.includes('nội dung nhóm') ||
+      text.includes('văn bản') ||
+      text.includes('đoạn văn') ||
+      text.includes('passage') ||
+      text.includes('prompt') ||
+      (text.includes('nội dung') && !text.includes('câu hỏi') && !text.includes('question'))
+    ) {
+      colMap.passage = colNumber;
+    } else if (
+      !text.includes('hướng dẫn') &&
+      !text.includes('nội dung') &&
+      !text.includes('đính kèm') &&
+      !text.includes('media') &&
+      (text.includes('nhóm') || text.includes('group'))
+    ) {
+      colMap.group = colNumber;
+    } else if (
+      !text.includes('hướng dẫn') &&
+      !text.includes('audio') &&
+      !text.includes('file') &&
+      !text.includes('media') &&
+      (text.includes('phần') || text.includes('part'))
+    ) {
+      colMap.part = colNumber;
+    } else if (
+      text.includes('loại câu hỏi') ||
+      text.includes('question type') ||
+      text === 'type' ||
+      text.includes('(type)')
+    ) {
+      colMap.type = colNumber;
+    } else if (
+      text.includes('câu hỏi') ||
+      text.includes('question text') ||
+      text === 'question' ||
+      text.includes('(question')
+    ) {
+      colMap.question = colNumber;
+    } else if (
+      text.includes('lựa chọn a') ||
+      text.includes('option a') ||
+      text === 'a' ||
+      text === 'opta'
+    ) {
+      colMap.optA = colNumber;
+    } else if (
+      text.includes('lựa chọn b') ||
+      text.includes('option b') ||
+      text === 'b' ||
+      text === 'optb'
+    ) {
+      colMap.optB = colNumber;
+    } else if (
+      text.includes('lựa chọn c') ||
+      text.includes('option c') ||
+      text === 'c' ||
+      text === 'optc'
+    ) {
+      colMap.optC = colNumber;
+    } else if (
+      text.includes('lựa chọn d') ||
+      text.includes('option d') ||
+      text === 'd' ||
+      text === 'optd'
+    ) {
+      colMap.optD = colNumber;
+    } else if (
+      text.includes('đáp án đúng') ||
+      text.includes('đáp án') ||
+      text.includes('correct') ||
+      text.includes('(key)') ||
+      text === 'key'
+    ) {
+      colMap.correct = colNumber;
+    } else if (
+      text.includes('giải thích') ||
+      text.includes('explanation')
+    ) {
+      colMap.explanation = colNumber;
+    }
+  }
+
+  const is16Col = colMap.partInstruction > 0 || colMap.groupInstruction > 0 || headers.length >= 16;
+  if (is16Col) {
+    if (colMap.part === -1) colMap.part = 1;
+    if (colMap.partInstruction === -1) colMap.partInstruction = 2;
+    if (colMap.group === -1) colMap.group = 3;
+    if (colMap.type === -1) colMap.type = 4;
+    if (colMap.groupInstruction === -1) colMap.groupInstruction = 5;
+    if (colMap.passage === -1) colMap.passage = 6;
+    if (colMap.question === -1) colMap.question = 7;
+    if (colMap.optA === -1) colMap.optA = 8;
+    if (colMap.optB === -1) colMap.optB = 9;
+    if (colMap.optC === -1) colMap.optC = 10;
+    if (colMap.optD === -1) colMap.optD = 11;
+    if (colMap.correct === -1) colMap.correct = 12;
+    if (colMap.explanation === -1) colMap.explanation = 13;
+    if (colMap.partMedia === -1) colMap.partMedia = 14;
+    if (colMap.groupMedia === -1) colMap.groupMedia = 15;
+    if (colMap.qMedia === -1) colMap.qMedia = 16;
+  } else {
+    if (colMap.part === -1) colMap.part = 1;
+    if (colMap.group === -1) colMap.group = 2;
+    if (colMap.type === -1) colMap.type = 3;
+    if (colMap.legacyInstruction === -1 && colMap.partInstruction === -1 && colMap.groupInstruction === -1) {
+      colMap.legacyInstruction = 4;
+    }
+    if (colMap.passage === -1) colMap.passage = 5;
+    if (colMap.question === -1) colMap.question = 6;
+    if (colMap.optA === -1) colMap.optA = 7;
+    if (colMap.optB === -1) colMap.optB = 8;
+    if (colMap.optC === -1) colMap.optC = 9;
+    if (colMap.optD === -1) colMap.optD = 10;
+    if (colMap.correct === -1) colMap.correct = 11;
+    if (colMap.explanation === -1) colMap.explanation = 12;
+    if (colMap.partMedia === -1) colMap.partMedia = 13;
+    if (colMap.groupMedia === -1) colMap.groupMedia = 14;
+    if (colMap.qMedia === -1) colMap.qMedia = 15;
+  }
+
+  return colMap;
 }
 
 const QUESTION_TYPES = [
@@ -245,6 +449,42 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
   // Local state for batch generation
   const [batchSettings, setBatchSettings] = useState<Record<string, { type: string; start: number; end: number }>>({});
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = (e?: Event) => {
+      const adminMain = document.querySelector('.admin-main');
+      const targetScroll = e?.target && (e.target as HTMLElement).scrollTop !== undefined 
+        ? (e.target as HTMLElement).scrollTop 
+        : 0;
+      const scrollTop = Math.max(
+        window.pageYOffset || 0,
+        window.scrollY || 0,
+        document.documentElement.scrollTop || 0,
+        document.body.scrollTop || 0,
+        adminMain ? adminMain.scrollTop : 0,
+        targetScroll
+      );
+      setShowScrollTop(scrollTop > 200);
+    };
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const adminMain = document.querySelector('.admin-main');
+    if (adminMain) {
+      adminMain.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+    document.body.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const generateId = (prefix: string) => `${prefix}_${Math.random().toString(36).substr(2, 6)}`;
 
@@ -1159,67 +1399,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       };
 
       // Detect column indices dynamically based on header row
-      const colMap = {
-        part: 1,
-        partInstruction: -1,
-        group: 2,
-        type: 3,
-        groupInstruction: -1,
-        legacyInstruction: -1,
-        passage: 5,
-        question: 6,
-        optA: 7,
-        optB: 8,
-        optC: 9,
-        optD: 10,
-        correct: 11,
-        explanation: 12,
-        partMedia: 13,
-        groupMedia: 14,
-        qMedia: 15,
-      };
-
       const headerRow = sheet.getRow(headerRowIndex);
-      headerRow.eachCell((cell, colNumber) => {
-        const text = (cell.text || '').toLowerCase().trim();
-        if (!text) return;
-
-        if (text.includes('hướng dẫn chung') || (text.includes('part') && text.includes('instruction')) || (text.includes('hướng dẫn') && text.includes('phần'))) {
-          colMap.partInstruction = colNumber;
-        } else if (text.includes('hướng dẫn riêng') || (text.includes('group') && text.includes('instruction')) || (text.includes('hướng dẫn') && text.includes('nhóm'))) {
-          colMap.groupInstruction = colNumber;
-        } else if (text.includes('hướng dẫn') || text.includes('instruction')) {
-          colMap.legacyInstruction = colNumber;
-        } else if (text.includes('audio') || text.includes('audio/file') || (text.includes('chung') && text.includes('phần')) || (text.includes('media') && text.includes('part'))) {
-          colMap.partMedia = colNumber;
-        } else if (text.includes('đính kèm chung') || (text.includes('media') && text.includes('group')) || (text.includes('chung') && text.includes('nhóm'))) {
-          colMap.groupMedia = colNumber;
-        } else if (text.includes('đính kèm riêng') || (text.includes('media') && text.includes('câu')) || text.includes('qmedia')) {
-          colMap.qMedia = colNumber;
-        } else if (text.includes('phần') || text.includes('part')) {
-          colMap.part = colNumber;
-        } else if (text.includes('nhóm') || text.includes('group')) {
-          colMap.group = colNumber;
-        } else if (text.includes('loại câu hỏi') || text.includes('type')) {
-          colMap.type = colNumber;
-        } else if (text.includes('nội dung') || text.includes('passage') || text.includes('văn bản')) {
-          colMap.passage = colNumber;
-        } else if (text.includes('câu hỏi') || text.includes('question text') || text === 'question') {
-          colMap.question = colNumber;
-        } else if (text.includes('lựa chọn a') || text.includes('option a') || text === 'a' || text === 'opta') {
-          colMap.optA = colNumber;
-        } else if (text.includes('lựa chọn b') || text.includes('option b') || text === 'b' || text === 'optb') {
-          colMap.optB = colNumber;
-        } else if (text.includes('lựa chọn c') || text.includes('option c') || text === 'c' || text === 'optc') {
-          colMap.optC = colNumber;
-        } else if (text.includes('lựa chọn d') || text.includes('option d') || text === 'd' || text === 'optd') {
-          colMap.optD = colNumber;
-        } else if (text.includes('đáp án đúng') || text.includes('đáp án') || text.includes('correct')) {
-          colMap.correct = colNumber;
-        } else if (text.includes('giải thích') || text.includes('explanation')) {
-          colMap.explanation = colNumber;
-        }
+      const headerTexts: string[] = [];
+      headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        headerTexts[colNumber - 1] = cell.text ? cell.text.trim() : '';
       });
+      const colMap = detectExcelColumns(headerTexts);
 
       const getColVal = (rowObj: ExcelJS.Row, colIdx: number) => {
         if (!colIdx || colIdx < 1) return '';
@@ -1268,9 +1453,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           else if (rawLegacyInstruction) currentPart.instruction = rawLegacyInstruction;
         }
 
+        if (currentPart && !currentPart.shared_audio && rawPartMedia) {
+          currentPart.shared_audio = { url: rawPartMedia };
+        }
+
         if (groupName !== lastGroupName || !currentGroup) {
           let groupInstruction = '';
-          if (colMap.groupInstruction > 0) {
+          if (colMap.groupInstruction > 0 && rawGroupInstruction) {
             groupInstruction = rawGroupInstruction;
           } else if (rawLegacyInstruction) {
             const partInstr = currentPart?.instruction || '';
@@ -1292,11 +1481,26 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           };
           if (currentPart) currentPart.question_groups.push(currentGroup);
           lastGroupName = groupName;
-        } else if (rawGroupMedia && (!currentGroup.shared_images || currentGroup.shared_images.length === 0)) {
-          const groupImageUrls = rawGroupMedia.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
-          if (groupImageUrls.length > 0) {
-            currentGroup.shared_images = groupImageUrls;
-            currentGroup.shared_media = { type: 'image', url: groupImageUrls[0], display_config: { size_preset: 'medium', alignment: 'center' } };
+        } else {
+          if (rawPassage && currentGroup && !currentGroup.content_html) {
+            currentGroup.content_html = rawPassage;
+          }
+          if (currentGroup && !currentGroup.instruction) {
+            if (colMap.groupInstruction > 0 && rawGroupInstruction) {
+              currentGroup.instruction = rawGroupInstruction;
+            } else if (rawLegacyInstruction) {
+              const partInstr = currentPart?.instruction || '';
+              if (rawLegacyInstruction.trim() !== partInstr.trim()) {
+                currentGroup.instruction = rawLegacyInstruction;
+              }
+            }
+          }
+          if (rawGroupMedia && currentGroup && (!currentGroup.shared_images || currentGroup.shared_images.length === 0)) {
+            const groupImageUrls = rawGroupMedia.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+            if (groupImageUrls.length > 0) {
+              currentGroup.shared_images = groupImageUrls;
+              currentGroup.shared_media = { type: 'image', url: groupImageUrls[0], display_config: { size_preset: 'medium', alignment: 'center' } };
+            }
           }
         }
 
@@ -2006,7 +2210,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                   {q.question_id.split('_')[1] || (qIndex + 1)}
                                 </div>
                               )}
-                              <div style={{ flex: 1 }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
                                 {!isWriting && (
                                   <select className="input-field" style={{ padding: '0.2rem', fontSize: '0.75rem', marginBottom: '0.25rem', width: '200px' }} value={q.type} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'type', e.target.value)}>
                                     {QUESTION_TYPES.map(qt => <option key={qt.value} value={qt.value}>{qt.label}</option>)}
@@ -2144,8 +2348,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                   </div>
                                 )}
                                 {!isWriting && (
-                                  <div style={{ marginTop: '0.5rem' }}>
-                                    <input type="text" className="input-field" value={q.metadata.explanation || ''} onChange={e => updateQuestionMetadata(pIndex, gIndex, qIndex, 'explanation', e.target.value)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }} placeholder="Nhập lời giải thích (Explanation)..." />
+                                  <div style={{ marginTop: '0.75rem' }}>
+                                    <RichTextEditor
+                                      label="Lời giải thích (Explanation)"
+                                      value={q.metadata.explanation || ''}
+                                      onChange={val => updateQuestionMetadata(pIndex, gIndex, qIndex, 'explanation', val)}
+                                      placeholder="Nhập lời giải thích chi tiết cho câu hỏi (hỗ trợ văn bản thường, định dạng in đậm, dịch nghĩa, hình ảnh)..."
+                                      rows={3}
+                                      minHeight="90px"
+                                    />
                                   </div>
                                 )}
                               </div>
@@ -2225,6 +2436,20 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={handleSave}><Save size={18} /> Lưu Đề Thi</button>
         </div>
       </div>
+
+      {/* Floating Scroll To Top Button rendered at body level so it stays truly fixed in viewport */}
+      {typeof document !== 'undefined' && createPortal(
+        <button
+          type="button"
+          className={`eb-scroll-top-btn ${showScrollTop ? 'visible' : ''}`}
+          onClick={scrollToTop}
+          title="Cuộn lên đầu trang"
+          aria-label="Cuộn lên đầu trang"
+        >
+          <ArrowUp size={22} />
+        </button>,
+        document.body
+      )}
     </div>
   );
 };

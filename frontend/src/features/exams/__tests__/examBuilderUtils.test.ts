@@ -3,6 +3,7 @@ import {
   normalizeExamType,
   EXAM_TYPE_OPTIONS,
   deduplicatePartAndGroupInstructions,
+  detectExcelColumns,
   type ExamPart
 } from '../pages/admin/ExamBuilder';
 
@@ -162,5 +163,116 @@ describe('ExamBuilder utils', () => {
       expect(result[1].question_groups).toHaveLength(0);
     });
   });
+
+  describe('detectExcelColumns', () => {
+    it('correctly maps 16-column layout with separate Part and Group instructions and passage', () => {
+      const headers = [
+        'Phần (Part)',
+        'Hướng dẫn chung (Phần)',
+        'Nhóm (Group)',
+        'Loại câu hỏi (Type)',
+        'Hướng dẫn riêng (Nhóm)',
+        'Nội dung nhóm (Văn bản đọc/nghe)',
+        'Câu hỏi (Question Text)',
+        'Lựa chọn A',
+        'Lựa chọn B',
+        'Lựa chọn C',
+        'Lựa chọn D',
+        'Đáp án đúng',
+        'Giải thích',
+        'Audio/File chung (Phần)',
+        'Đính kèm chung (Nhóm)',
+        'Đính kèm riêng (Câu hỏi)'
+      ];
+
+      const colMap = detectExcelColumns(headers);
+      expect(colMap.part).toBe(1);
+      expect(colMap.partInstruction).toBe(2);
+      expect(colMap.group).toBe(3);
+      expect(colMap.type).toBe(4);
+      expect(colMap.groupInstruction).toBe(5);
+      expect(colMap.passage).toBe(6);
+      expect(colMap.question).toBe(7);
+      expect(colMap.optA).toBe(8);
+      expect(colMap.optB).toBe(9);
+      expect(colMap.optC).toBe(10);
+      expect(colMap.optD).toBe(11);
+      expect(colMap.correct).toBe(12);
+      expect(colMap.explanation).toBe(13);
+      expect(colMap.partMedia).toBe(14);
+      expect(colMap.groupMedia).toBe(15);
+      expect(colMap.qMedia).toBe(16);
+    });
+
+    it('does not confuse "Nội dung nhóm (Văn bản đọc/nghe)" with group name or instruction', () => {
+      const headers = [
+        'Phần (Part)',
+        'Hướng dẫn chung (Phần)',
+        'Nhóm (Group)',
+        'Loại câu hỏi (Type)',
+        'Hướng dẫn riêng (Nhóm)',
+        'Nội dung nhóm (Văn bản đọc/nghe)',
+        'Câu hỏi (Question Text)'
+      ];
+
+      const colMap = detectExcelColumns(headers);
+      // Group column must be col 3, NOT col 6
+      expect(colMap.group).toBe(3);
+      // Group instruction must be col 5
+      expect(colMap.groupInstruction).toBe(5);
+      // Passage must be col 6 (Nội dung nhóm), NOT col 5 or col 7
+      expect(colMap.passage).toBe(6);
+      // Question must be col 7
+      expect(colMap.question).toBe(7);
+    });
+
+    it('correctly maps legacy 15-column layout', () => {
+      const headers = [
+        'Phần (Part)',
+        'Nhóm (Group)',
+        'Loại câu hỏi (Type)',
+        'Hướng dẫn (Instruction)',
+        'Nội dung đoạn văn / Đề bài (Passage / Prompt)',
+        'Câu hỏi (Question Text)',
+        'Lựa chọn A (Option A)',
+        'Lựa chọn B (Option B)',
+        'Lựa chọn C (Option C)',
+        'Lựa chọn D (Option D)',
+        'Đáp án đúng (Key)',
+        'Giải thích chi tiết (Explanation)',
+        'Audio/File chung (Part)',
+        'Đính kèm chung (Nhóm)',
+        'Đính kèm riêng (Câu hỏi)'
+      ];
+
+      const colMap = detectExcelColumns(headers);
+      expect(colMap.part).toBe(1);
+      expect(colMap.group).toBe(2);
+      expect(colMap.type).toBe(3);
+      expect(colMap.legacyInstruction).toBe(4);
+      expect(colMap.passage).toBe(5);
+      expect(colMap.question).toBe(6);
+      expect(colMap.optA).toBe(7);
+      expect(colMap.optB).toBe(8);
+      expect(colMap.optC).toBe(9);
+      expect(colMap.optD).toBe(10);
+      expect(colMap.correct).toBe(11);
+      expect(colMap.explanation).toBe(12);
+      expect(colMap.partMedia).toBe(13);
+      expect(colMap.groupMedia).toBe(14);
+      expect(colMap.qMedia).toBe(15);
+    });
+
+    it('gracefully falls back when headers are missing or empty', () => {
+      const emptyHeaders: string[] = [];
+      const colMap = detectExcelColumns(emptyHeaders);
+      expect(colMap.part).toBe(1);
+      expect(colMap.group).toBe(2);
+      expect(colMap.type).toBe(3);
+      expect(colMap.passage).toBe(5);
+      expect(colMap.question).toBe(6);
+    });
+  });
 });
+
 

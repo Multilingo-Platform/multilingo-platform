@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Bold,
   Italic,
@@ -39,6 +39,31 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const adjustHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    const minH = parseInt(minHeight, 10) || 90;
+    const scrollH = textarea.scrollHeight;
+    textarea.style.height = `${Math.max(scrollH, minH)}px`;
+  }, [minHeight]);
+
+  useEffect(() => {
+    if (activeTab === 'edit') {
+      const raf = requestAnimationFrame(() => {
+        adjustHeight();
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [value, activeTab, adjustHeight]);
+
+  useEffect(() => {
+    if (activeTab !== 'edit') return;
+    const handleResize = () => adjustHeight();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeTab, adjustHeight]);
+
   const applyFormat = (tagOpen: string, tagClose: string, defaultPlaceholder: string = '') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -66,6 +91,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         const newEnd = newStart + defaultPlaceholder.length;
         textarea.setSelectionRange(newStart, newEnd);
       }
+      adjustHeight();
     }, 0);
   };
 
@@ -89,6 +115,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       textarea.focus();
       const newPos = start + imgHtml.length;
       textarea.setSelectionRange(newPos, newPos);
+      adjustHeight();
     }, 0);
   };
 
@@ -265,7 +292,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           rows={rows}
           style={{ minHeight }}
           value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            adjustHeight();
+          }}
+          onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
         />

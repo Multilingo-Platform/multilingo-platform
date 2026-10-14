@@ -127,8 +127,10 @@
   color: var(--text-primary, #0f172a);
   background: transparent;
   outline: none;
-  resize: vertical;
+  resize: none;
   min-height: 120px;
+  overflow-y: hidden;
+  box-sizing: border-box;
 }
 
 .rte-textarea::placeholder {
@@ -140,10 +142,11 @@
   padding: 1rem 1.25rem;
   min-height: 120px;
   background: #ffffff;
-  overflow-y: auto;
+  overflow: visible;
   line-height: 1.7;
   font-size: 0.9375rem;
   color: #1e293b;
+  box-sizing: border-box;
 }
 
 .rte-preview p {
