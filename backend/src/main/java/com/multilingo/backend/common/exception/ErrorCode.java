@@ -43,6 +43,9 @@ public enum ErrorCode {
     INVALID_PHONE_FORMAT(917, HttpStatus.BAD_REQUEST, "Định dạng số điện thoại không hợp lệ"),
     ACCOUNT_INACTIVE(918, HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa liên hệ admin để được hỗ trợ"),
     INVALID_EMAIL_OR_PASSWORD(919, HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không chính xác"),
+    INVALID_GOOGLE_TOKEN(920, HttpStatus.UNAUTHORIZED, "Mã xác thực Google không hợp lệ hoặc đã hết hạn"),
+    GOOGLE_EMAIL_NOT_VERIFIED(921, HttpStatus.BAD_REQUEST, "Email Google của bạn chưa được xác thực"),
+    ID_TOKEN_REQUIRED(922, HttpStatus.BAD_REQUEST, "ID Token Google không được để trống"),
 
     // Vocab & Flashcards module (12xx)
     DECK_NAME_REQUIRED(1201, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được để trống"),

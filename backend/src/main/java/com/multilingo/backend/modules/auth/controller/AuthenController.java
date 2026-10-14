@@ -12,6 +12,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,9 +48,37 @@ public class AuthenController {
                 .body(ApiResponse.success(response));
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> loginWithGoogle(
+            @Valid @RequestBody com.multilingo.backend.modules.auth.dto.request.GoogleLoginRequest request) {
+        AuthenticationResponse response = authenService.loginWithGoogle(request);
+
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", response.getRefreshToken())
+                .httpOnly(true)
+                .secure(false) // TODO: Set to true in production
+                .path("/api/auth")
+                .maxAge(refreshTokenExpirationMs / 1000)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(ApiResponse.success(response));
+    }
+
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody com.multilingo.backend.modules.auth.dto.request.LogoutRequest request) {
-        authenService.logout(request);
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestBody(required = false) com.multilingo.backend.modules.auth.dto.request.LogoutRequest request,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+        String token = null;
+        if (request != null && request.getToken() != null && !request.getToken().isBlank()) {
+            token = request.getToken();
+        } else if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        if (token != null) {
+            authenService.logout(new com.multilingo.backend.modules.auth.dto.request.LogoutRequest(token));
+        }
         
         ResponseCookie cookie = ResponseCookie.from("refresh_token", "")
                 .httpOnly(true)
