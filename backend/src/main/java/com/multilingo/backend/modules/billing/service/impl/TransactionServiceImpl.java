@@ -160,4 +160,16 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.multilingo.backend.common.dto.PageResponse<com.multilingo.backend.modules.billing.dto.response.TransactionResponse> getPurchaseHistory(Integer userId, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        org.springframework.data.domain.Page<Transaction> transactionPage = transactionRepository
+                .findByUserIdAndStatus(userId, com.multilingo.backend.modules.billing.entity.TransactionStatus.SUCCESS, pageable);
+        org.springframework.data.domain.Page<com.multilingo.backend.modules.billing.dto.response.TransactionResponse> responsePage =
+                transactionPage.map(transactionMapper::toResponse);
+        return com.multilingo.backend.common.dto.PageResponse.from(responsePage);
+    }
 }

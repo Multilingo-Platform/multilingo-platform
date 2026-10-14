@@ -4,8 +4,9 @@ export interface UserResponse {
   fullName: string;
   avatarUrl?: string;
   role: string;
-  phone?: string;
+  phone: string;
   subscriptionTier: string;
+  premiumExpiresAt: string;
 }
 
 export interface AuthResponse {
@@ -17,6 +18,10 @@ export interface AuthResponse {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface GoogleLoginRequest {
+  idToken: string;
 }
 
 export interface RegisterRequest {

@@ -27,9 +27,68 @@ public class AuthenServiceImpl implements AuthenService {
     private final JwtTokenProvider jwtTokenProvider;
     private final StringRedisTemplate stringRedisTemplate;
     private final com.multilingo.backend.modules.auth.repository.RefreshTokenRepository refreshTokenRepository;
+    private final com.multilingo.backend.modules.auth.repository.RoleRepository roleRepository;
+    private final com.multilingo.backend.modules.auth.service.GoogleTokenVerifierService googleTokenVerifierService;
 
     @org.springframework.beans.factory.annotation.Value("${app.jwt.refresh-expiration-ms:604800000}")
     private long refreshTokenExpirationMs;
+
+    @Override
+    public AuthenticationResponse loginWithGoogle(com.multilingo.backend.modules.auth.dto.request.GoogleLoginRequest request) {
+        com.multilingo.backend.modules.auth.dto.GoogleTokenPayload payload = googleTokenVerifierService.verify(request.getIdToken());
+
+        User user = userRepository.findByGoogleId(payload.getSub())
+                .orElseGet(() -> userRepository.findByEmail(payload.getEmail())
+                        .map(existingUser -> {
+                            existingUser.setGoogleId(payload.getSub());
+                            if (existingUser.getAvatarUrl() == null && payload.getAvatarUrl() != null) {
+                                existingUser.setAvatarUrl(payload.getAvatarUrl());
+                            }
+                            return existingUser;
+                        })
+                        .orElseGet(() -> {
+                            com.multilingo.backend.modules.auth.entity.Role userRole = roleRepository
+                                    .findByName(com.multilingo.backend.modules.auth.entity.enums.RoleName.USER.name())
+                                    .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
+
+                            return User.builder()
+                                    .email(payload.getEmail())
+                                    .fullName(payload.getFullName())
+                                    .avatarUrl(payload.getAvatarUrl())
+                                    .googleId(payload.getSub())
+                                    .role(userRole)
+                                    .nativeLanguage("vi")
+                                    .targetLanguage("en")
+                                    .subscriptionTier(com.multilingo.backend.modules.auth.entity.SubscriptionTier.FREE)
+                                    .isActive(true)
+                                    .passwordHash(null)
+                                    .build();
+                        }));
+
+        if (!user.getIsActive()) {
+            throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
+        }
+
+        user.setLastLoginAt(java.time.Instant.now());
+        userRepository.save(user);
+
+        String token = jwtTokenProvider.generateToken(user);
+
+        String refreshTokenString = java.util.UUID.randomUUID().toString();
+        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = com.multilingo.backend.modules.auth.entity.RefreshToken
+                .builder()
+                .user(user)
+                .token(refreshTokenString)
+                .expiresAt(java.time.Instant.now().plusMillis(refreshTokenExpirationMs))
+                .isRevoked(false)
+                .build();
+        refreshTokenRepository.save(refreshToken);
+
+        return AuthenticationResponse.builder()
+                .accessToken(token)
+                .refreshToken(refreshTokenString)
+                .build();
+    }
 
     @Override
     public AuthenticationResponse login(LoginRequest request) {
@@ -39,12 +98,19 @@ public class AuthenServiceImpl implements AuthenService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AppException(ErrorCode.WRONG_PASSWORD);
         }
+        if (!user.getIsActive()) {
+            throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
+        }
+
+         user.setLastLoginAt(java.time.Instant.now());
+        userRepository.save(user);
 
         String token = jwtTokenProvider.generateToken(user);
-        
+
         // Generate Refresh Token
         String refreshTokenString = java.util.UUID.randomUUID().toString();
-        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = com.multilingo.backend.modules.auth.entity.RefreshToken.builder()
+        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = com.multilingo.backend.modules.auth.entity.RefreshToken
+                .builder()
                 .user(user)
                 .token(refreshTokenString)
                 .expiresAt(java.time.Instant.now().plusMillis(refreshTokenExpirationMs))
@@ -69,7 +135,7 @@ public class AuthenServiceImpl implements AuthenService {
             if (ttl > 0) {
                 stringRedisTemplate.opsForValue().set("BLACKLIST_TOKEN:" + jti, "invalid", ttl, TimeUnit.MILLISECONDS);
             }
-            
+
             // Revoke all refresh tokens for this user
             String email = jwtTokenProvider.getEmailFromJWT(token);
             userRepository.findByEmail(email).ifPresent(user -> {
@@ -84,7 +150,8 @@ public class AuthenServiceImpl implements AuthenService {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenString)
+        com.multilingo.backend.modules.auth.entity.RefreshToken refreshToken = refreshTokenRepository
+                .findByToken(refreshTokenString)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
 
         if (refreshToken.getIsRevoked() || refreshToken.getExpiresAt().isBefore(java.time.Instant.now())) {

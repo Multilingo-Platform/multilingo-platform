@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { createBrowserRouter, Link, Navigate, Outlet } from "react-router-dom";
+import React from "react";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
-import axiosClient from "../core/api/axiosClient";
-
-import AudioUploader from "../components/common/AudioUploader";
 import StudentExamView from "../features/exams/components/StudentExamView";
 
 // --- CBT EXAM PAGES ---
@@ -23,6 +20,12 @@ import TestHistory from "../features/history/pages/student/TestHistory";
 import ExamManagement from "../features/exams/pages/admin/ExamManagement";
 import ExamBuilderPage from "../features/exams/pages/admin/ExamBuilderPage";
 import AdminPremiumPage from "../features/admin/premium/pages/AdminPremiumPage";
+import AdminDashboardPage from "../features/admin/dashboard/pages/AdminDashboardPage";
+import UserManagementPage from "../features/admin/users/pages/UserManagementPage";
+import TrackingAnalyticsPage from "../features/admin/tracking/pages/TrackingAnalyticsPage";
+import QuotaSettingsPage from "../features/admin/quotas/pages/QuotaSettingsPage";
+import AuditLogPage from "../features/admin/audit/pages/AuditLogPage";
+import TransactionReconciliationPage from "../features/admin/transactions/pages/TransactionReconciliationPage";
 
 import LandingPage from "../features/public/pages/LandingPage";
 import LoginPage from "../features/auth/pages/LoginPage";
@@ -32,6 +35,7 @@ import ProtectedRoute from "../features/auth/components/ProtectedRoute";
 import { FlashcardsPage } from "../features/vocab";
 import PremiumUpgradePage from "../features/premium/pages/PremiumUpgradePage";
 import PaymentResultPage from "../features/premium/pages/PaymentResultPage";
+import PurchaseHistoryPage from "../features/premium/pages/PurchaseHistoryPage";
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -123,6 +127,10 @@ export const router = createBrowserRouter([
         path: "payment/result",
         element: <PaymentResultPage />,
       },
+      {
+        path: "purchase-history",
+        element: <PurchaseHistoryPage />,
+      },
     ],
   },
 
@@ -133,7 +141,35 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/admin/exams" replace />,
+        element: <Navigate to="/admin/dashboard" replace />,
+      },
+      {
+        path: "dashboard",
+        element: <AdminDashboardPage />,
+      },
+      {
+        path: "users",
+        element: <UserManagementPage />,
+      },
+      {
+        path: "tracking",
+        element: <TrackingAnalyticsPage />,
+      },
+      {
+        path: "transactions",
+        element: <TransactionReconciliationPage />,
+      },
+      {
+        path: "quotas",
+        element: <QuotaSettingsPage />,
+      },
+      {
+        path: "settings",
+        element: <QuotaSettingsPage />,
+      },
+      {
+        path: "audit",
+        element: <AuditLogPage />,
       },
       {
         path: "exams",
@@ -146,46 +182,6 @@ export const router = createBrowserRouter([
       {
         path: "exams/edit/:id",
         element: <ExamBuilderPage />,
-      },
-      {
-        path: "dashboard",
-        element: (
-          <div className="container">
-            <h1 style={{ fontSize: "2rem", marginTop: "2rem" }}>
-              Tính năng Admin Dashboard
-            </h1>
-          </div>
-        ),
-      },
-      {
-        path: "users",
-        element: (
-          <div className="container">
-            <h1 style={{ fontSize: "2rem", marginTop: "2rem" }}>
-              Tính năng Quản lý Người dùng
-            </h1>
-          </div>
-        ),
-      },
-      {
-        path: "settings",
-        element: (
-          <div className="container">
-            <h1 style={{ fontSize: "2rem", marginTop: "2rem" }}>
-              Tính năng Cài đặt (Admin)
-            </h1>
-          </div>
-        ),
-      },
-      {
-        path: "audit",
-        element: (
-          <div className="container">
-            <h1 style={{ fontSize: "2rem", marginTop: "2rem" }}>
-              Tính năng Logs Hệ thống
-            </h1>
-          </div>
-        ),
       },
       {
         path: "premium",

@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @Builder
@@ -19,4 +21,5 @@ public class UserResponse {
     RoleName role;
     String phone;
     String subscriptionTier;
+    Instant premiumExpiresAt;
 }

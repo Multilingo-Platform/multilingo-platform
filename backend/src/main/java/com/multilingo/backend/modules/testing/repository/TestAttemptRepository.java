@@ -41,4 +41,21 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
      * Used by AttemptWatchdogService.
      */
     List<TestAttempt> findByStatusAndDeadlineBefore(AttemptStatus status, Instant deadline);
+
+    long countByUserId(Integer userId);
+
+    @Query("SELECT AVG(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.overallScore IS NOT NULL")
+    Double findAverageScoreByUserId(@Param("userId") Integer userId);
+
+    @Query("SELECT COUNT(a) FROM TestAttempt a WHERE a.examId = :examId")
+    long countByExamId(@Param("examId") Integer examId);
+
+    @Query("SELECT AVG(a.overallScore) FROM TestAttempt a WHERE a.examId = :examId AND a.overallScore IS NOT NULL")
+    Double findAverageScoreByExamId(@Param("examId") Integer examId);
+
+    @Query("SELECT COUNT(a) FROM TestAttempt a WHERE a.examId = :examId AND a.status = 'COMPLETED'")
+    long countCompletedByExamId(@Param("examId") Integer examId);
+
+    @Query("SELECT COUNT(DISTINCT a.userId) FROM TestAttempt a WHERE a.startTime >= :since")
+    long countDistinctActiveUsers(@Param("since") Instant since);
 }
