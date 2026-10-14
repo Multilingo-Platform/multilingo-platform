@@ -132,6 +132,14 @@ const ExamManagement = () => {
     }
   };
 
+  const formatDateTime = (dateStr?: string | Date) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  };
+
   const filteredExams = exams.filter(e => {
     const matchSearch = e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || e.code?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchType = typeFilter === '' || 
@@ -284,7 +292,9 @@ const ExamManagement = () => {
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{exam.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cập nhật: {new Date(exam.updatedAt).toLocaleDateString()} • {exam.parts} phần • {exam.questions} câu</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }} title={exam.updatedAt ? new Date(exam.updatedAt).toLocaleString('vi-VN') : ''}>
+                      Cập nhật: {formatDateTime(exam.updatedAt)} • {exam.parts} phần • {exam.questions} câu
+                    </div>
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-dark)', background: 'var(--primary-light)', padding: '0.35rem 0.75rem', borderRadius: '4px' }}>

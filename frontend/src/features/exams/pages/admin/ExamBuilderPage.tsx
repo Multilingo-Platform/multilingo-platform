@@ -116,6 +116,21 @@ const ExamBuilderPage = () => {
     }
   };
 
+  const handleBackToList = () => {
+    Swal.fire({
+      title: 'Xác nhận rời khỏi?',
+      text: 'Bạn có chắc chắn muốn trở về danh sách? Các nội dung chưa lưu có thể bị mất.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Ở lại tiếp tục'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigate('/admin/exams');
+      }
+    });
+  };
+
   const handleCancel = () => {
     navigate('/admin/exams');
   };
@@ -128,7 +143,7 @@ const ExamBuilderPage = () => {
     <div className="slide-up">
       <div className="flex-between" style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{id ? 'Chỉnh sửa Đề thi' : 'Tạo Đề thi Mới'}</h1>
-        <button className="btn btn-outline" onClick={handleCancel}>
+        <button className="btn btn-outline" onClick={handleBackToList}>
           Trở về Danh sách
         </button>
       </div>

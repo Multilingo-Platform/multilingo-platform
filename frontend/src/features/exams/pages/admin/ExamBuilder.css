@@ -564,3 +564,54 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Floating Scroll To Top Button */
+.eb-scroll-top-btn {
+  position: fixed;
+  bottom: 2.25rem;
+  right: 2.25rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary, #d97706);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4), 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.eb-scroll-top-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.eb-scroll-top-btn:hover {
+  background: var(--primary-hover, #b45309);
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.55), 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.eb-scroll-top-btn:active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.4);
+}
+
+@media (max-width: 768px) {
+  .eb-scroll-top-btn {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 44px;
+    height: 44px;
+  }
+}
+
