@@ -475,12 +475,12 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
             <button
               type="button"
               onClick={onMatchGameClick}
-              disabled={cards.length < 4}
-              title={cards.length < 4 ? t('vocab.requirements.min_cards_match') : t('vocab.deck_detail.mode_match_btn')}
+              disabled={cards.length < 6}
+              title={cards.length < 6 ? t('vocab.requirements.min_cards_match') : t('vocab.deck_detail.mode_match_btn')}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-xs transition-colors disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
             >
               <Gamepad2 className="w-4 h-4" />
-              <span>{cards.length < 4 ? t('vocab.deck_detail.mode_min_cards') : t('vocab.deck_detail.mode_match_btn')}</span>
+              <span>{cards.length < 6 ? t('vocab.deck_detail.mode_min_cards') : t('vocab.deck_detail.mode_match_btn')}</span>
             </button>
           </div>
         </div>

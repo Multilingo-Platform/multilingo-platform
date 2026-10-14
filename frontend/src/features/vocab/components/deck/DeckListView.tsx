@@ -8,9 +8,7 @@ import {
   Lock,
   Globe,
   Flame,
-  CheckCircle2,
   GraduationCap,
-  Sparkles,
   ArrowRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -51,7 +49,7 @@ export const DeckListView: React.FC<DeckListViewProps> = ({
   decks,
   loading,
   onSelectDeck,
-  onStudyDeck,
+  onStudyDeck: _onStudyDeck,
   onCreateClick,
   onEditDeck,
   onDeleteDeck,
