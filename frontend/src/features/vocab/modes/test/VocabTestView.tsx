@@ -30,7 +30,7 @@ type TestStage = 'INITIALIZING' | 'TESTING' | 'SUBMITTING' | 'REVIEW';
 
 export const VocabTestView: React.FC<VocabTestViewProps> = ({
   deck,
-  cards = [],
+  cards: _cards = [],
   onBack,
   initialTestToken,
 }) => {
@@ -143,7 +143,7 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
 
   // 2. Nộp bài thi
   const handleSubmitExam = useCallback(
-    async (isAutoTimeout = false) => {
+    async (_isAutoTimeout = false) => {
       if (!exam || stage === 'SUBMITTING' || stage === 'REVIEW') return;
 
       setStage('SUBMITTING');
