@@ -70,6 +70,14 @@ public enum ErrorCode {
     QUIZ_IDEMPOTENCY_CONFLICT(1218, HttpStatus.CONFLICT, "Khóa thao tác bị xung đột dữ liệu"),
     QUIZ_ALREADY_SUBMITTED(1219, HttpStatus.CONFLICT, "Phiên luyện tập đã được nộp trước đó"),
 
+    // Vocab Mock Test & Assessment (122x)
+    VOCAB_TEST_NOT_FOUND(1220, HttpStatus.NOT_FOUND, "Không tìm thấy bài thi thử"),
+    VOCAB_TEST_VERSION_CONFLICT(1221, HttpStatus.CONFLICT, "Phiên bản tiến độ bài thi bị xung đột"),
+    VOCAB_TEST_ALREADY_FINISHED(1222, HttpStatus.CONFLICT, "Bài thi thử đã kết thúc hoặc đã nộp"),
+    VOCAB_TEST_DEADLINE_PASSED(1223, HttpStatus.GONE, "Đã quá thời gian làm bài thi thử"),
+    VOCAB_TEST_STILL_IN_PROGRESS(1224, HttpStatus.BAD_REQUEST, "Bài thi đang diễn ra, chưa thể xem lại đáp án"),
+    VOCAB_TEST_INSUFFICIENT_CARDS(1225, HttpStatus.UNPROCESSABLE_ENTITY, "Bộ thẻ cần tối thiểu 4 từ vựng để tạo bài thi thử"),
+
     // Exam Builder Errors (14xx)
     EXAM_NOT_FOUND(1401, HttpStatus.NOT_FOUND, "Không tìm thấy đề thi yêu cầu"),
     INVALID_IMPORT_FILE(1402, HttpStatus.BAD_REQUEST, "Định dạng file không hợp lệ hoặc cấu trúc sai"),
