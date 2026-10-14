@@ -19,13 +19,13 @@ public enum ErrorCode {
     UNCATEGORIZED_EXCEPTION(500, HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi máy chủ nội bộ không xác định"),
     GRADING_DATA_ERROR(422, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu answer key lỗi hoặc không xác định loại câu"),
     CANNOT_LOCK_SELF(400, HttpStatus.BAD_REQUEST, "Không thể tự khóa tài khoản quản trị của chính mình"),
-    
+
     // Validation Errors cho Auth (900 - 999)
     EMAIL_REQUIRED(900, HttpStatus.BAD_REQUEST, "Email không được để trống"),
     INVALID_EMAIL_FORMAT(901, HttpStatus.BAD_REQUEST, "Định dạng email không hợp lệ"),
     PASSWORD_REQUIRED(902, HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống"),
     INVALID_PASSWORD(903, HttpStatus.BAD_REQUEST, "Mật khẩu phải từ 6 ký tự trở lên"),
-    
+
     // Logic Errors cho Auth
     USER_NOT_FOUND(904, HttpStatus.NOT_FOUND, "Tài khoản không tồn tại"),
     WRONG_PASSWORD(905, HttpStatus.UNAUTHORIZED, "Mật khẩu không chính xác"),
@@ -40,6 +40,12 @@ public enum ErrorCode {
     OTP_EXPIRED(914, HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn"),
     PASSWORD_NOT_MATCH(915, HttpStatus.BAD_REQUEST, "Mật khẩu cũ không chính xác"),
     NEW_PASSWORD_MISMATCH(916, HttpStatus.BAD_REQUEST, "Xác nhận mật khẩu không khớp"),
+    INVALID_PHONE_FORMAT(917, HttpStatus.BAD_REQUEST, "Định dạng số điện thoại không hợp lệ"),
+    ACCOUNT_INACTIVE(918, HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa liên hệ admin để được hỗ trợ"),
+    INVALID_EMAIL_OR_PASSWORD(919, HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không chính xác"),
+    INVALID_GOOGLE_TOKEN(920, HttpStatus.UNAUTHORIZED, "Mã xác thực Google không hợp lệ hoặc đã hết hạn"),
+    GOOGLE_EMAIL_NOT_VERIFIED(921, HttpStatus.BAD_REQUEST, "Email Google của bạn chưa được xác thực"),
+    ID_TOKEN_REQUIRED(922, HttpStatus.BAD_REQUEST, "ID Token Google không được để trống"),
 
     // Vocab & Flashcards module (12xx)
     DECK_NAME_REQUIRED(1201, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được để trống"),
@@ -54,9 +60,11 @@ public enum ErrorCode {
     FLASHCARD_WORD_DUPLICATE(1210, HttpStatus.CONFLICT, "Từ vựng này đã tồn tại trong bộ thẻ"),
     FLASHCARD_LANG_INVALID(1211, HttpStatus.UNPROCESSABLE_ENTITY, "Mã ngôn ngữ không hợp lệ"),
     DECK_EMPTY(1212, HttpStatus.BAD_REQUEST, "Bộ thẻ chưa có từ vựng nào để ôn tập"),
-    INVALID_SRS_RATING(1213, HttpStatus.BAD_REQUEST, "Mức độ đánh giá SRS không hợp lệ (chỉ chấp nhận REMEMBERED hoặc FORGOTTEN)"),
+    INVALID_SRS_RATING(1213, HttpStatus.BAD_REQUEST,
+            "Mức độ đánh giá SRS không hợp lệ (chỉ chấp nhận REMEMBERED hoặc FORGOTTEN)"),
     QUIZ_INVALID_REQUEST(1214, HttpStatus.BAD_REQUEST, "Yêu cầu luyện tập không hợp lệ"),
-    QUIZ_INSUFFICIENT_CONTENT(1215, HttpStatus.UNPROCESSABLE_ENTITY, "Không đủ từ vựng để tạo bài luyện tập (tối thiểu 4 từ vựng)"),
+    QUIZ_INSUFFICIENT_CONTENT(1215, HttpStatus.UNPROCESSABLE_ENTITY,
+            "Không đủ từ vựng để tạo bài luyện tập (tối thiểu 4 từ vựng)"),
     QUIZ_SESSION_NOT_FOUND(1216, HttpStatus.NOT_FOUND, "Không tìm thấy phiên luyện tập"),
     QUIZ_SESSION_EXPIRED(1217, HttpStatus.GONE, "Phiên luyện tập đã hết hạn"),
     QUIZ_IDEMPOTENCY_CONFLICT(1218, HttpStatus.CONFLICT, "Khóa thao tác bị xung đột dữ liệu"),

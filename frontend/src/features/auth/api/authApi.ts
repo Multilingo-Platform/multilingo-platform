@@ -1,5 +1,5 @@
 import axiosClient from '../../../core/api/axiosClient';
-import type { LoginRequest, RegisterRequest, AuthResponse, UserResponse, UpdateProfileRequest, ChangePasswordRequest } from '../types';
+import type { LoginRequest, GoogleLoginRequest, RegisterRequest, AuthResponse, UserResponse, UpdateProfileRequest, ChangePasswordRequest } from '../types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -12,12 +12,17 @@ export const authApi = {
     const res = await axiosClient.post<any, ApiResponse<AuthResponse>>('/auth/login', data);
     return res;
   },
+  loginWithGoogle: async (data: GoogleLoginRequest) => {
+    const res = await axiosClient.post<any, ApiResponse<AuthResponse>>('/auth/google', data);
+    return res;
+  },
   register: async (data: RegisterRequest) => {
     const res = await axiosClient.post<any, ApiResponse<null>>('/users', data);
     return res;
   },
   logout: async () => {
-    const res = await axiosClient.post<any, ApiResponse<null>>('/auth/logout');
+    const token = localStorage.getItem('token');
+    const res = await axiosClient.post<any, ApiResponse<null>>('/auth/logout', token ? { token } : {});
     return res;
   },
   getMyInfo: async () => {

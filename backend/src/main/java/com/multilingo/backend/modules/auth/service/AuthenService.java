@@ -7,6 +7,7 @@ import com.multilingo.backend.modules.auth.dto.request.LogoutRequest;
 
 public interface AuthenService {
     AuthenticationResponse login(LoginRequest request);
+    AuthenticationResponse loginWithGoogle(com.multilingo.backend.modules.auth.dto.request.GoogleLoginRequest request);
     void logout(LogoutRequest request);
     AuthenticationResponse refreshToken(String refreshToken);
 }
