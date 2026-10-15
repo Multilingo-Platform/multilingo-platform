@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ExamBuilder from './ExamBuilder';
 import axiosClient from '../../../../core/api/axiosClient';
 import Swal from 'sweetalert2';
+import { toToeicRequest } from '../../utils/examContentMapping';
 
 const ExamBuilderPage = () => {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ const ExamBuilderPage = () => {
           });
       });
 
-      const payload = {
+      const payload = data.exam_type === 'TOEIC_LR' ? toToeicRequest(data.exam_title, data.parts, data.is_published !== false) : {
         title: data.exam_title,
         type: data.exam_type,
         examLanguage: "ENGLISH", 
@@ -102,7 +103,6 @@ const ExamBuilderPage = () => {
         sections: Object.values(sectionsMap)
       };
 
-      console.log("Sending Payload:", payload);
       if (id) {
         await axiosClient.put(`/v1/admin/exams/${id}`, payload);
       } else {
@@ -110,9 +110,8 @@ const ExamBuilderPage = () => {
       }
       Swal.fire({ title: 'Thành công!', text: 'Đã lưu đề thi thành công', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/admin/exams');
-    } catch (error: any) {
-      console.error(error);
-      Swal.fire('Lỗi khi lưu đề thi', error.response?.data?.message || error.message, 'error');
+    } catch {
+      Swal.fire('Lỗi khi lưu đề thi', 'Không thể lưu đề. Hãy kiểm tra nội dung và thử lại.', 'error');
     }
   };
 

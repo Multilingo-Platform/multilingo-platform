@@ -5,6 +5,8 @@ import com.multilingo.backend.modules.exam.dto.request.ExamBuilderRequest;
 public interface AdminExamService {
 
     Integer createExam(ExamBuilderRequest request);
+    Integer createExamWithCode(ExamBuilderRequest request, String code);
+    com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle exportDataset(Integer id);
 
     void updateExam(Integer id, ExamBuilderRequest request);
 

@@ -18,6 +18,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import com.multilingo.backend.modules.exam.dto.response.ExamImportPreviewResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +28,20 @@ public class ExamParserService {
 
     private final ObjectMapper objectMapper;
 
+    public ExamImportPreviewResponse previewExamFile(MultipartFile file) {
+        if(file == null || file.isEmpty() || file.getSize()>10*1024*1024) throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            if(!new ExcelV2ExamParser().supports(workbook)) throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
+            String hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(file.getBytes()));
+            var parsed=new ExcelV2ExamParser().parse(workbook, hash);
+            var readiness=new ExamPublicationValidator().issues(parsed.request());
+            var issues=new java.util.ArrayList<>(parsed.issues());issues.addAll(readiness);
+            return new ExamImportPreviewResponse(parsed.request(),java.util.List.copyOf(issues),parsed.counts(),hash,issues.isEmpty());
+        } catch(Exception e) {throw new AppException(ErrorCode.INVALID_IMPORT_FILE);}
+    }
+
     public ExamBuilderRequest parseExamFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
+        if (file == null || file.isEmpty() || file.getSize() > 10 * 1024 * 1024) {
             throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
         }
 
@@ -50,6 +65,11 @@ public class ExamParserService {
 
     private ExamBuilderRequest parseExcel(MultipartFile file) {
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
+            if(new ExcelV2ExamParser().supports(workbook)) {
+                if(file.getSize()>10*1024*1024) throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
+                String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(file.getBytes()));
+                return new ExcelV2ExamParser().parse(workbook, hash).request();
+            }
             ExamBuilderRequest request = new ExamBuilderRequest();
 
             Sheet infoSheet = workbook.getSheet("ExamInfo");

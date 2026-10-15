@@ -20,6 +20,19 @@ public class AdminExamController {
     private final ExamParserService examParserService;
     private final jakarta.validation.Validator validator;
 
+    // Keep denials on these solution-bearing admin endpoints as 403, not a generic 500.
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> accessDenied() {
+        return ResponseEntity.status(403).body(ApiResponse.error(403, "Không có quyền thực hiện thao tác."));
+    }
+
+    @PostMapping("/import/preview")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTENT_CREATOR')")
+    public ResponseEntity<ApiResponse<com.multilingo.backend.modules.exam.dto.response.ExamImportPreviewResponse>> previewExam(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ResponseEntity.ok(ApiResponse.success(examParserService.previewExamFile(file)));
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTENT_CREATOR')")
     public ResponseEntity<ApiResponse<Integer>> createExam(@Valid @RequestBody ExamBuilderRequest request) {
@@ -67,6 +80,12 @@ public class AdminExamController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTENT_CREATOR')")
     public ResponseEntity<ApiResponse<ExamBuilderRequest>> getExamDetail(@PathVariable Integer id) {
         return ResponseEntity.ok(ApiResponse.success(examService.getExamDetail(id)));
+    }
+
+    @GetMapping("/{id}/dataset-export")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTENT_CREATOR')")
+    public ResponseEntity<ApiResponse<com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle>> exportDataset(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.success(examService.exportDataset(id)));
     }
 
     @PatchMapping("/{id}/status")

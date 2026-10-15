@@ -12,6 +12,8 @@ import com.multilingo.backend.modules.exam.repository.ExamPartRepository;
 import com.multilingo.backend.modules.exam.repository.ExamRepository;
 import com.multilingo.backend.modules.exam.repository.ExamSectionRepository;
 import com.multilingo.backend.modules.exam.service.AdminExamService;
+import com.multilingo.backend.modules.exam.service.ExamContentNormalizer;
+import com.multilingo.backend.modules.exam.service.ExamPublicationValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,17 +36,24 @@ public class AdminExamServiceImpl implements AdminExamService {
 
     @Override
     public Integer createExam(ExamBuilderRequest request) {
+        String prefix = request.getType().split("_")[0].toUpperCase();
+        String shortCode = java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        return createExamWithCode(request, prefix + "-" + shortCode);
+    }
+
+    @Override
+    public Integer createExamWithCode(ExamBuilderRequest request, String code) {
+        request = prepare(request);
         Exam exam = new Exam();
         
         // Generate a shorter, human-readable code: e.g. IELTS-A8B9C2
-        String prefix = request.getType().split("_")[0].toUpperCase();
-        String shortCode = java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        exam.setCode(prefix + "-" + shortCode);
+        exam.setCode(code);
         
         exam.setTitle(request.getTitle());
         exam.setType(request.getType());
         exam.setExamLanguage(request.getExamLanguage());
         exam.setIsPublished(request.isPublished());
+        setDuration(exam, request);
         exam = examRepository.save(exam);
 
         saveSectionsAndParts(exam, request.getSections());
@@ -56,6 +65,7 @@ public class AdminExamServiceImpl implements AdminExamService {
     public void updateExam(Integer id, ExamBuilderRequest request) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+        request = prepare(request);
 
         List<Integer> sectionIds = sectionRepository.findByExam_Id(id).stream().map(ExamSection::getId).toList();
         if (!sectionIds.isEmpty()) {
@@ -67,6 +77,7 @@ public class AdminExamServiceImpl implements AdminExamService {
         exam.setType(request.getType());
         exam.setExamLanguage(request.getExamLanguage());
         exam.setIsPublished(request.isPublished());
+        setDuration(exam, request);
         examRepository.save(exam);
 
         saveSectionsAndParts(exam, request.getSections());
@@ -98,6 +109,7 @@ public class AdminExamServiceImpl implements AdminExamService {
             section.setSkillType(sectionReq.getSkillType());
             section.setTitle(sectionReq.getSkillType() + " Section");
             section.setDurationMinutes(sectionReq.getDurationMinutes());
+            section.setOrderIndex(i + 1);
             section = sectionRepository.save(section);
 
             if (sectionReq.getParts() != null) {
@@ -192,8 +204,10 @@ public class AdminExamServiceImpl implements AdminExamService {
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
         List<SectionBuilderRequest> sectionRequests = sectionRepository.findByExam_Id(id).stream()
+                .sorted(java.util.Comparator.comparing(ExamSection::getOrderIndex).thenComparing(ExamSection::getId))
                 .map(section -> {
                     List<PartBuilderRequest> partRequests = partRepository.findBySection_Id(section.getId()).stream()
+                            .sorted(java.util.Comparator.comparing(ExamPart::getPartNumber))
                             .map(part -> PartBuilderRequest.builder()
                                     .partNumber(part.getPartNumber())
                                     .contentData(part.getContentData())
@@ -221,7 +235,29 @@ public class AdminExamServiceImpl implements AdminExamService {
     public void updateExamStatus(Integer id, boolean isPublished) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+        if (isPublished) {
+            var original = getExamDetail(id);
+            var canonical = new ExamContentNormalizer().normalize(original);
+            new ExamPublicationValidator().requirePublishable(canonical);
+            if ("TOEIC_LR".equals(original.getType()) && !original.equals(canonical))
+                throw new AppException(ErrorCode.VALIDATION_FAILED, "Hãy lưu lại đề theo định dạng chuẩn trước khi xuất bản.");
+        }
         exam.setIsPublished(isPublished);
         examRepository.save(exam);
+    }
+
+    private ExamBuilderRequest prepare(ExamBuilderRequest request) {
+        ExamBuilderRequest normalized=new ExamContentNormalizer().normalize(request);
+        new ExamPublicationValidator().requireStructure(normalized);
+        if(normalized.isPublished()) new ExamPublicationValidator().requirePublishable(normalized);
+        return normalized;
+    }
+    private void setDuration(Exam exam,ExamBuilderRequest request) {
+        if("TOEIC_LR".equals(request.getType())) exam.setDurationMinutes(request.getSections().stream().mapToInt(s->s.getDurationMinutes()).sum());
+    }
+
+    @Override
+    public com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle exportDataset(Integer id) {
+        return com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle.export(getExamDetail(id));
     }
 }

@@ -1,12 +1,22 @@
 import { Link, useParams } from 'react-router-dom';
-import { Clock, RefreshCw } from 'lucide-react';
+import { Clock, RefreshCw, BookOpen, History, Library } from 'lucide-react';
 import { parseResultAttemptId } from '../api/resultContract';
 import { useAttemptResult } from '../hooks/useAttemptResult';
 import { ObjectiveResultSummary } from '../components/result/ObjectiveResultSummary';
 import { WritingResultSummary } from '../components/result/WritingResultSummary';
 import { attemptStatusLabel, formatResultDuration, formatResultTimestamp, resultScopeLabel } from '../utils/resultPresentation';
 
-const actionClass = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600';
+const btnBase =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 active:scale-[0.98]';
+
+const btnPrimary =
+  `${btnBase} bg-amber-600 text-white shadow-sm shadow-amber-600/30 hover:bg-amber-700 hover:shadow-md border border-amber-600 hover:border-amber-700`;
+
+const btnLight =
+  `${btnBase} bg-amber-50 text-amber-900 border border-amber-300/80 shadow-2xs hover:bg-amber-100 hover:border-amber-400 hover:text-amber-950 disabled:cursor-wait disabled:opacity-60 disabled:hover:bg-amber-50`;
+
+const btnOutline =
+  `${btnBase} bg-white text-slate-700 border border-slate-300 shadow-2xs hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 hover:shadow-xs`;
 
 export const ExamResultPage = () => {
   const params = useParams<{ attemptId: string }>();
@@ -20,28 +30,35 @@ export const ExamResultPage = () => {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-5xl space-y-6 px-4 py-8 text-slate-800">
-      <header className="space-y-3">
+      <header className="space-y-4">
         <h1 className="break-words text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{heading}</h1>
         {data && <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="rounded bg-amber-100 px-3 py-1 font-semibold text-amber-900">{resultScopeLabel(data.testScope)}</span>
-          <span className="rounded bg-slate-100 px-3 py-1 text-slate-700">{attemptStatusLabel(data.status)}</span>
+          <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200/80 px-3 py-1 text-xs font-semibold text-amber-800">{resultScopeLabel(data.testScope)}</span>
+          <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700">{attemptStatusLabel(data.status)}</span>
         </div>}
-        <nav aria-label="Thao tác kết quả" className="flex flex-wrap gap-3">
+        <nav aria-label="Thao tác kết quả" className="flex flex-wrap items-center gap-3 pt-1">
           {data && data.reviewParts && data.reviewParts.length > 0 && (
             <Link
-              className={`${actionClass} bg-amber-600 text-white hover:bg-amber-700 border-amber-600 font-semibold`}
+              className={btnPrimary}
               to={`/attempts/${data.attemptId}/review?partId=${data.reviewParts[0].id}`}
             >
-              Xem bài làm và lời giải
+              <BookOpen size={18} aria-hidden="true" className="shrink-0" />
+              <span>Xem bài làm và lời giải</span>
             </Link>
           )}
-          {canUpdate && <button type="button" className={`${actionClass} disabled:cursor-wait disabled:opacity-60`}
+          {canUpdate && <button type="button" className={btnLight}
             disabled={busy} onClick={() => { void reload(); }}>
-            <RefreshCw size={16} aria-hidden="true" className={busy ? 'motion-safe:animate-spin' : ''} />
-            Cập nhật kết quả
+            <RefreshCw size={16} aria-hidden="true" className={busy ? 'motion-safe:animate-spin shrink-0 text-amber-700' : 'shrink-0 text-amber-700'} />
+            <span>Cập nhật kết quả</span>
           </button>}
-          <Link className={actionClass} to="/student/history">Lịch sử làm bài</Link>
-          <Link className={actionClass} to="/student/library">Tới trang đề thi</Link>
+          <Link className={btnOutline} to="/student/history">
+            <History size={16} aria-hidden="true" className="shrink-0 text-slate-500" />
+            <span>Lịch sử làm bài</span>
+          </Link>
+          <Link className={btnOutline} to="/student/library">
+            <Library size={16} aria-hidden="true" className="shrink-0 text-slate-500" />
+            <span>Tới trang đề thi</span>
+          </Link>
         </nav>
       </header>
 
