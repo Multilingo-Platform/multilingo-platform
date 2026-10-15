@@ -33,6 +33,18 @@ class DbExamAdapterSnapshotTest {
         adapter = new DbExamAdapter(examRepository, examSectionRepository, examPartRepository, objectMapper);
     }
 
+    @Test void snapshotSectionsFollowPersistedOrderNotRepositoryOrder() {
+        Exam exam = Exam.builder().title("TOEIC").isPublished(true).durationMinutes(120).build(); exam.setId(1);
+        ExamSection listening = ExamSection.builder().exam(exam).skillType("LISTENING").durationMinutes(45).orderIndex(1).build(); listening.setId(10);
+        ExamSection reading = ExamSection.builder().exam(exam).skillType("READING").durationMinutes(75).orderIndex(2).build(); reading.setId(11);
+        when(examRepository.findById(1)).thenReturn(Optional.of(exam));
+        when(examSectionRepository.findByExam_Id(1)).thenReturn(List.of(reading,listening));
+        when(examPartRepository.findBySection_Id(10)).thenReturn(List.of());
+        when(examPartRepository.findBySection_Id(11)).thenReturn(List.of());
+        assertThat(adapter.findPublishedSnapshotById(1).orElseThrow().getSections()).extracting(s -> s.getName())
+            .containsExactly("LISTENING", "READING");
+    }
+
     @Test
     void findSnapshotById_preservesCorrectAnswerAndExplanation_whileStrippingInternalAiSecrets() throws Exception {
         Exam exam = Exam.builder()
@@ -101,5 +113,28 @@ class DbExamAdapterSnapshotTest {
         assertThat(clientJson).doesNotContain("correct_answer");
         assertThat(clientJson).doesNotContain("explanation");
         assertThat(clientJson).doesNotContain("ai_prompt_context");
+    }
+
+    @Test
+    void findSnapshotById_mapsExamLanguageFromExamEntity() {
+        Exam exam = Exam.builder()
+                .title("IELTS Academic")
+                .examLanguage("en")
+                .isPublished(true)
+                .durationMinutes(60)
+                .build();
+        exam.setId(2);
+
+        when(examRepository.findById(2)).thenReturn(Optional.of(exam));
+        when(examSectionRepository.findByExam_Id(2)).thenReturn(List.of());
+
+        ExamFixture snapshot = adapter.findSnapshotById(2).orElseThrow();
+        assertThat(snapshot.getExamLanguage()).isEqualTo("en");
+
+        ExamFixture publishedSnapshot = adapter.findPublishedSnapshotById(2).orElseThrow();
+        assertThat(publishedSnapshot.getExamLanguage()).isEqualTo("en");
+
+        ExamFixture clientFixture = adapter.findById(2).orElseThrow();
+        assertThat(clientFixture.getExamLanguage()).isEqualTo("en");
     }
 }

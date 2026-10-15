@@ -17,5 +17,6 @@ public class ExamFixture {
     /** Total exam duration in minutes. Null means not configured — MOCK_TEST with null duration is rejected. */
     private Integer durationMinutes;
     private Instant updatedAt;
+    private String examLanguage;
     private List<SectionFixture> sections;
 }

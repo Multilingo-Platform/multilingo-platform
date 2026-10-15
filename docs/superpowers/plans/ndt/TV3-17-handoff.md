@@ -789,4 +789,323 @@
 
 - **Next required action:** Không cần sửa P0/P1 để đóng review gate TV3-17. Bổ sung regression P2-01 khi hoàn thiện test matrix; số test P2-02 đã được đính chính append tại entry này. Chuyển sang task tiếp theo theo approved plan, không tự nối client vào nghiệp vụ. Reviewer dừng sau khi báo cáo.
 
+## 2026-10-14 — Codex — R2 PLANNED / 17-06 IN_PROGRESS
+
+User yêu cầu triển khai approved R2 trong chat. Đã append Revision R2 vào plan, giữ lịch sử 17-01…05; HEAD `3dee084b34fd3d787de49b3ffe0258ff31b979ce`, feature/TV3-00-contract-audit. Dirty baseline gồm ETS production/tests/frontend/docs, application.properties, .codex và workbooks untracked; giữ nguyên.
+
+Planning baseline mới chạy trước execution: Gemini + Hints prompt/generator 182 tests PASS, diff check exit0. Đây không phải evidence implementation R2.
+
+| Task | Status | Dependency |
+|---|---|---|
+|17-06 Image contract|IN_PROGRESS|17-01…05|
+|17-07 Codec|PLANNED|17-06|
+|17-08 Media policies|PLANNED|17-07|
+|17-09 Fetcher/wiring|PLANNED|17-08|
+|17-10 Integration/docs|PLANNED|17-09|
+
+Pre-flight: immutable image request→codec; media policies/caps→HTTP subscriber; generic subscriber→Gemini wrapper; named HttpClients→combined Spring context; bridge test only, không nghiệp vụ.
+
+Ruling: triển khai inline trong checkout feature branch hiện tại, ledger là append handoff; không tạo worktree/commit/xóa ledger vì cần giữ uncommitted state. Approved per-task review gates được ưu tiên hơn mặc định một review cuối của executing-plans.
+
+Decisions locked: loại GenerateTemplateTest khỏi broad suite; IMAGE_SAFETY/IMAGE_PROHIBITED_CONTENT/IMAGE_RECITATION → BLOCKED. Tổng ảnh cap+1 không thể tạo nếu giữ 2 ảnh mỗi ảnh<=2MiB; test invariant/individual boundary, không nới caps. Allowlist mặc định rỗng, cloud demo không là production allowlist. README cũ về chưa nối nghiệp vụ sẽ được đính chính (Hints đã dùng text-only).
+
+Residuals: DNS-rebinding giữa precheck/connect; cancellation không chắc native DNS/provider dừng; sniff không full-decode. URL extraction/HTML scan/quota/prompt/feedback/grading thuộc TV3-20.
+
+### 2026-10-14 — 17-06 IMPLEMENTED / review pending
+
+Files: GeminiImagePart.java mới; GeminiGenerationRequest/GeminiProperties/GeminiContractTest sửa; GeminiImagePartTest mới. Behavioral RED: legacyRequestReportsZeroImagesWithoutRevealingText fail thiếu imageCount=0. Bootstrap test image types chưa tồn tại fail compile, không gọi đây là behavioral RED validation. GREEN command `./mvnw.cmd -Dtest=GeminiImagePartTest,GeminiContractTest,GeminiPropertiesTest test`: 80 tests (13/31/36), 0 failures/errors/skips. AC-R01 một phần/R02/R03: immutable list/bytes, cap/count/rawUTF8, 4-arg compatibility, safe toString.
+
+Đã viết tests 17-07 trước production, chưa chuyển implementation qua gate06. Review độc lập r2_gate_review đang đọc scope06.
+
+### 2026-10-14 — Gate 17-06 PASS / 17-07 IN_PROGRESS
+
+Reviewer r2_gate_review xác nhận không P0/P1/P2 in-scope, không tự chạy Maven. Executor GREEN80 là evidence task06; diff whitespace đã sửa dòng status. Task07 RED `GeminiPayloadCodecTest#r2*`: golden text-only PASS trên baseline codec; ảnh vẫn chỉ 1 text part thay vì3, ba image finish reasons INVALID_RESPONSE thay vìBLOCKED, multimodal cap vẫn dùng131072 (4 failures/1 error/6 cases). Tiếp tục codec.
+
+### 2026-10-14 — 17-07 IMPLEMENTED / Gate PASS / 17-08 IN_PROGRESS
+
+Codec bounded theo images, inlineData trước text, thêm3 IMAGE safety reasons, kiểm tra malformed promptFeedback. Behavioral RED bổ sung:4 malformed feedback cases fail (accepted/coerced), GREEN `GeminiImagePartTest,GeminiContractTest,GeminiPayloadCodecTest`:101 tests (13/31/57), 0 failures/errors/skips. Golden text-only chụp và PASS trước khi sửa codec; JSON6MiB/+1 fixture có rawUTF8 trong cap.
+
+Reviewer r2_gate_review PASS, không P0/P1, P2 thiếu fixtures response inlineData/fileData và IMAGE_OTHER/NO_IMAGE; bổ sung trong task10 trước final verification. Đây là test coverage, không xác nhận defect production. Declined media/transport/business/live-provider/ETS: đúng scope gate07, sẽ review R2 mới ở gate08/09/10; live/business/ETS vẫn ngoài phạm vi.
+
+Task08 viết6 test classes trước production. Bootstrap compile RED do chưa có media types sẽ được ghi riêng; không coi compiler missing symbol là proof validation behavior.
+
+### 2026-10-14 — 17-08 IMPLEMENTED / review pending
+
+Media types/policies/properties/sniffer và6classes tests. Sau bootstrap missing-symbol compile RED, API skeleton không validation cho behavioral RED thật:61 tests/55 failures (URL/IP/config/content accepted, copies sai); GREEN61/0 failures/errors/skips. Command `-Dtest=ImageUrlPolicyTest,ImageAddressPolicyTest,ImageSnifferTest,FetchedImageTest,ImageFetchPropertiesTest,ImageFetchExceptionTest test`. Main/test properties chỉ append namespace, giữ ETS flag. Raw timeout strings được parse an toàn trong validate/snapshot để rejected config không lọt qua binder message. Có nested encoded traversal rejection; không nới allowlist. AC-R03–05/R07 tầng pure, HTTP/DNS deadline chưa triển khai.
+
+### 2026-10-14 — Gate08 NEED_FIX → fixes VERIFIED
+
+Reviewer xác nhận P1 split/nested percent traversal và P2 JPEG SOS thiếu frame. Executor thêm5regressions và quan sát5failures trên production: `%25%32%65...` bypass prefix; SOI/SOSlength2/EOI được nhận. Sửa scan đầy đủ mỗi tầng percent encoding nhưng giữ rawURI/query; JPEG cần SOF dimensions/components/length và SOS hợp lệ trước scan, không pixel decode. GREEN66 tests pure media,0failures/errors/skips; re-review đang chạy. Task09 tests đã viết trước/compileRED thiếuHttpImageFetcher, tạm giữ `.java.pending` để chưa làm task09 trước gate08; sẽ khôi phục trước triển khai09. Không file người dùng nào bị di chuyển.
+
+Gate07 P2 đã thêm4fixtures inlineData/fileData và IMAGE_OTHER/NO_IMAGE; là regression characterization của guard có sẵn, không giả lập RED production.
+
+### 2026-10-14 — Gate08 PASS / 17-09 IN_PROGRESS
+
+Reviewer re-review đóng2findings, đọc66-test XML, không Maven. Task09 tests khôi phục `.java`; HTTP/config skeleton để quan sát behavioralRED trước implementation. Qualifiers, deadline/DNS/body/subscriber và networkloopback chỉ task09; không productionbusinesscaller.
+
+### 2026-10-14 — 17-09 IMPLEMENTED / review pending
+
+BehavioralRED HTTP/config skeleton:20tests18failures2errors, saiKind/missingbeans/noHTTP. Lỗi compile trước đó do AssertJ version không có hasStackTraceNotContaining được sửa thành captureStringWriter (không phải productionRED). Implement HttpImageFetcher DNSfuture→addresspolicy→GET→boundedbody→sniffer trongmonotonicbudget, cancel/interrupt, safe mapping vàrejectbody trướcđọc. Shared generic subscriber trongmedia, GeminiwrappergiữAPI/message, qualifiedHttpClients/Springdisabled/lifecycle. Khôngbusinesscaller.
+
+GREEN `-Dtest=HttpImageFetcherTest,ImageFetchConfigurationTest,ImageFetchHttpContractTest,ImageFetchSecurityTest,BoundedBodySubscriberTest,GeminiConfigurationTest,GeminiPayloadCodecTest test`:104tests (16+4+4+1+9+9+61),0failures/errors/skips. Bounded/GeminiConfig assertions cũ giữnguyên; Gate07P2 thêm4fixtures đãPASS. RealJDKloopback chứng minhno-follow, bodydeadline, overlapping success/failure. Testpolicybypass chỉởsrc/test; productionstrictpolicy testzeroHTTPdispatch. MixedSpring4combos vàshutdownPASS. InitialtestfixtureTRANSPORT do nestedMockito stubbing trongthenApply, khôngproductionbug; fixfixtureheaders snapshot không nớiassertion.
+
+AC-R04–08 evidence104; reviewer gate09 đangđọc, task10 bridge chưaimplement.
+
+### 2026-10-14 — Gate09 PASS / 17-10 IN_PROGRESS
+
+Reviewer P2 multi Content-Encoding được tái hiện behavioralRED (2tests chạy: encodingFAIL, HTTPstarted-interruptPASS). Sửa scan mọi header/token encoding, chỉidentity. GREEN45tests:HttpImage18,ImageConfig4,ImageHTTP4,ImageSecurity1,Bounded9,GeminiConfig9;0failures/errors/skips. Reviewer đóng2P2, đọc40tests subset unit/config/bounded (khôngrerun), main45 bao gồm thêmHTTP4/security1. Không P0/P1/P2 cònmở ởgate09.
+
+Task10 thêm bridge/concurrency/cancel/security test-only; README/config usage, finalfocused/regression/broad suite, fresh whole-feature reviewer. KhôngnốiURL từsnapshot hoặcgrading/Hints.
+
+### 2026-10-14 — 17-10 code/docs IMPLEMENTED / verification IN_PROGRESS
+
+Bridge test-only HttpServer fetch→FetchedImage→GeminiImagePart→HttpGeminiClient/server giả,1/2ảnh, headers/caps/logs; concurrent multimodal success+429; timeoutfuturecancel trênrequestcóảnh; productionerror→handler không leak imagebytes/base64. Tests này là integration/regression của06–09 đãRED/GREEN, không giả gọi là behavioralRED orchestrationmới vì khôngthêmproductioncaller. README cập nhật config/caps/model/timeout/privacy/DNSrisk, Hints đangtext-only, grading chưa nối.
+
+Finalfocused command đúng danh sách19classes ởRevisionR2:299tests,0failures/errors/skips,BUILD SUCCESS (2026-10-14 10:56:14 +07). Main chưachạyxong businessregression/broadsuite; khôngtuyênbốR2PASS. Broadsuite sẽloạiGenerateTemplateTest theoquyếtđịnhuser, giữworkbook/hash vàkhôngmạngthật.
+
+### 2026-10-14 — R2 IMPLEMENTED / READY FOR FINAL REVIEW — REGRESSION BLOCKED
+
+Đã triển khai tuần tự 17-06…17-10. Các gate 06…09 đã đóng; review độc lập toàn R2 kết luận **READY về mã**, không còn finding P0/P1/P2 trong phạm vi. Chưa tuyên bố hoàn tất Definition of Done vì regression ngoài R2 chưa xanh. Dừng để chủ dự án yêu cầu final review; không commit hoặc push.
+
+#### Phạm vi file R2
+
+Các đường dẫn sau tương đối với repository root; không bao gồm dirty ETS có sẵn:
+
+- `backend/src/main/java/com/multilingo/backend/modules/testing/ai/gemini/`: tạo `GeminiImagePart.java`; sửa `GeminiGenerationRequest.java`, `GeminiProperties.java`, `GeminiPayloadCodec.java`, `BoundedBodySubscriber.java`, `GeminiConfiguration.java`.
+- `backend/src/main/java/com/multilingo/backend/modules/testing/ai/media/`: tạo `ImageFetcher.java`, `FetchedImage.java`, `ImageFetchException.java`, `ImageFetchProperties.java`, `ImageUrlPolicy.java`, `ImageAddressPolicy.java`, `ImageSniffer.java`, `BoundedByteBodySubscriber.java`, `HttpImageFetcher.java`, `ImageFetchConfiguration.java`.
+- `backend/src/test/java/com/multilingo/backend/modules/testing/ai/gemini/`: tạo `GeminiImagePartTest.java`; sửa `GeminiContractTest.java`, `GeminiPayloadCodecTest.java`, `HttpGeminiClientTest.java`, `GeminiHttpContractTest.java`, `GeminiSecurityTest.java`.
+- `backend/src/test/java/com/multilingo/backend/modules/testing/ai/media/`: tạo `FetchedImageTest.java`, `ImageFetchExceptionTest.java`, `ImageFetchPropertiesTest.java`, `ImageUrlPolicyTest.java`, `ImageAddressPolicyTest.java`, `ImageSnifferTest.java`, `HttpImageFetcherTest.java`, `ImageFetchConfigurationTest.java`, `ImageFetchHttpContractTest.java`, `ImageFetchSecurityTest.java`; helpers test-only `ImageFixtures.java`, `ImageFetcherHarness.java`.
+- Chỉ append cấu hình image-fetch trong `backend/src/main/resources/application.properties` và `backend/src/test/resources/application-test.properties`; giữ cấu hình ETS có sẵn.
+- Cập nhật `backend/src/main/java/com/multilingo/backend/modules/testing/README.md`, `docs/superpowers/plans/ndt/TV3-17-plan.md` và handoff này. Không viết lại lịch sử 17-01…05.
+
+#### Các quyết định refactor và bảo toàn contract
+
+- Tách bounded subscriber generic sang media, exception factory theo caller; Gemini giữ public constructor, Kind/message và các assertions cũ. Media không import Gemini hoặc nghiệp vụ.
+- Hai HTTP client và shutdown dùng qualifier riêng. Disabled fetcher không tạo transport/executor hoặc gọi DNS; enabled settings được snapshot.
+- Request 4 tham số và golden bytes text-only được giữ nguyên. Request có ảnh dùng defensive copy, giới hạn raw UTF-8 riêng và bounded JSON thực tế; không trim nội dung.
+- Fetcher giữ monotonic budget từ DNS đến body, cancel khi timeout/interrupt/vượt cap; tất cả state thuộc từng call. Không retry, redirect, cache hoặc tích hợp production caller.
+- Đã đóng finding trong quá trình gate: traversal nhiều tầng/split percent encoding, JPEG không có frame hợp lệ, nhiều Content-Encoding headers. Các regression mới có behavioral RED trước sửa; các test characterization/integration được ghi riêng ở entry task, không giả định tất cả đều từng RED.
+- Review cũ P2-01 về failure isolation đã có concurrent success/failure trên cùng Gemini client, kể cả multimodal; HTTP timeout cancellation có regression riêng. Đính chính số liệu P2-02 giữ nguyên entry review lịch sử.
+
+#### Verification do executor chạy
+
+Ba commands thực thi đúng danh sách trong mục `Revision R2 / AC và verification` của plan, tại `backend`:
+
+| Nhóm | Tổng | PASS | Failure | Error | Skip | Kết quả |
+|---|---:|---:|---:|---:|---:|---|
+| Focused Gemini/media, 19 lớp | 299 | 299 | 0 | 0 | 0 | BUILD SUCCESS, exit 0; 10:56:14 +07 |
+| Business regression, 13 lớp | 107 | 106 | 0 | 1 | 0 | BUILD FAILURE, exit 1; 10:58:08 +07 |
+| Broad `-Dtest=*,!GenerateTemplateTest` | 1191 | 1173 | 1 | 3 | 14 | BUILD FAILURE, exit 1; 11:00:06 +07 |
+
+Broad run **không phải full suite nguyên bản**: chủ dự án yêu cầu loại `GenerateTemplateTest` vì ghi workbook. Không loại thêm test để tạo kết quả xanh. Surefire XML là evidence theo lớp; kết quả broad bao gồm focused R2 đều xanh.
+
+**Blocker ngoài phạm vi R2 đã xác nhận bằng source/diff:**
+
+- `TestAttemptWorkspaceResponseTest.createAttempt_returns_initial_version_and_empty_saved_answers`: 1 error `Exam not found: 1` ở test invocation dòng 83; stub `examAdapter.findById(1)` tại dòng 75.
+- `TestAttemptSinglePartDurationTest.tc_tv305_be_01_single_part_mock_uses_containing_section_duration`: error `Exam not found: 42`; stub cũ dòng 105.
+- `TestAttemptSinglePartDurationTest.tc_tv305_be_02_part_outside_exam_throws_resource_not_found_without_saving`: error `UnnecessaryStubbing`; stub cũ dòng 140 không được dùng.
+- `TestAttemptSinglePartDurationTest.tc_tv305_be_03_invalid_section_duration_throws_invalid_request_without_saving`: failure vì nhận `RESOURCE_NOT_FOUND` trước validation duration thay vì `INVALID_REQUEST`; stub cũ dòng 154.
+
+Hai test files trên không có diff R2. Dirty ETS đã đổi `TestAttemptServiceImpl.createAttempt` sang `findPublishedSnapshotById` (hiện tại dòng 151), trong khi fixtures vẫn mock `findById`. Đây là mismatch của baseline ETS, không phải failure từ Gemini/media. Không sửa test/ETS implementation ngoài phạm vi; cần chủ sở hữu ETS xử lý và chạy lại hai nhóm regression trước khi đóng AC-R09.
+
+**Skip/prerequisites:** 13 PostgreSQL tests chưa có `TV3_PG_TEST_URL`, `TV3_PG_TEST_USER`, `TV3_PG_TEST_PASSWORD` (ExamReviewPostgresIT 1, ResultScorePrecisionPostgresIT 1, WritingHintPostgresIT 3, WritingHintPostgresTransactionIT 8); ETSWorkbookAuditTest 1 chưa có system property `ets.source`. Không tự cấu hình database/provider hoặc dùng key thật để hết skip.
+
+**Bảo toàn workbook:** SHA-256 `backend/Exam_Template.xlsx` trước/sau broad giống nhau: `2A9045FE5FAB8562ED675D1EA9991CD476DB32910A5C6507636869FADD8781B8`. Giữ untracked workbook, không chạy generator hoặc nạp dataset vào DB.
+
+#### AC mapping và review độc lập
+
+| AC | Evidence | Trạng thái |
+|---|---|---|
+| R01 text-only compatibility | Golden bytes TEXT/JSON có/không system; constructor 4 tham số; Gemini/Hints focused và regression liên quan | VERIFIED trong phạm vi R2 |
+| R02 inline/count/caps | ImagePart/Contract/Codec: 1/2 ảnh trước text, base64 round-trip, raw UTF-8, JSON escape expansion cap/+1 | VERIFIED |
+| R03 copy/no leakage | Immutable list/bytes; media/Gemini security, captured logs và production handler/exception sentinels | VERIFIED |
+| R04 URL/address/redirect | URL nhiều tầng encoding, prefix boundary, IP mixed/rejected; zero dispatch; loopback redirect server nhận 0 request | VERIFIED |
+| R05 deadline/body/sniff | DNS/body hang, interrupt, actual-byte cap/chunks, length/encoding; PNG/JPEG/WebP minimum structure | VERIFIED |
+| R06 transport isolation | 4 mixed-enable Spring contexts, named clients/shutdown; bridge fetch không key/cookie/auth | VERIFIED |
+| R07 config/disabled | Safe parsing/startup sentinel, immutable settings, disabled không client/executor/DNS | VERIFIED |
+| R08 per-call isolation | Overlapping success/failure, timeout future cancel/late completion, một dispatch mỗi call | VERIFIED |
+| R09 scope/regression/evidence | Focused 299 PASS; broad/regression đã chạy và báo đúng; 4 baseline failures/errors cùng prerequisites còn thiếu | BLOCKED cho Definition of Done |
+
+Fresh reviewer `r2_final_review` đọc toàn bộ production/tests/docs R2, cả files untracked, và đối chiếu Surefire XML 19 lớp **299/0/0/0**; `git diff --check` exit 0. Reviewer **không chạy Maven, không sửa file**. Review Focus được kiểm tra đủ: qualified transports/key isolation; DNS/body budget; allowlist/traversal/mixed DNS; JSON escape cap; concurrent failure isolation/late completion. Verdict **READY về mã R2**, không có finding in-scope P0/P1/P2; không biến executor-reported broad failure thành PASS.
+
+Reviewer không audit ETS/frontend đang dirty, live Gemini/CDN/model/billing, pixel decoding hoặc orchestration TV3-20. Đây là phần ngoài phạm vi hoặc residual đã được duyệt, không phải omission được che bằng focused suite.
+
+#### Tài liệu, rủi ro và điểm dừng
+
+Skill `tv3-plan-executor`, `test-driven-development`, `requesting-code-review` định hướng gate theo task và review độc lập; `vietnamese-tech-writing` dùng cho phần tài liệu mới. Copy validator toàn bộ handoff báo 11 NUM001 ở lịch sử cũ (dấu phân cách số kiểu Anh); giữ nguyên theo yêu cầu không sửa lịch sử. Phần R2 mới được validate riêng sau khi append, kết quả ghi ở entry kiểm tra cuối.
+
+Allowlist production vẫn rỗng, disabled mặc định. Không gọi Google/CDN/DNS thật trong tests; HTTP chỉ dùng loopback và resolver/transport giả. Không thay dependency, frontend, DB/schema, endpoint, handler/ErrorCode, Hints prompt, quota hoặc grading worker.
+
+Residual giữ nguyên: DNS rebinding giữa precheck và JDK connect; cancel không bảo đảm native DNS/provider dừng; sniff không chứng minh decode pixel/nội dung biểu đồ đúng; dữ liệu và bản quyền ảnh gửi Google cần deployment/caller xem xét. TV3-20 chịu trách nhiệm URL extraction/HTML, quota ordering, prompt injection, grading và feedback persistence. Hạ tầng R2 hoàn tất không đồng nghĩa Writing grading đã đọc được ảnh.
+
+**Next action:** final review toàn R2 và xử lý blocker ETS trong task có thẩm quyền riêng. Executor dừng, không tự nối nghiệp vụ hoặc sửa các lỗi baseline nói trên; không commit/push.
+
+### 2026-10-14 — Final artifact checks
+
+- Copy validator trên phần tài liệu R2 mới (plan/handoff/README): exit 0, **0 errors, 0 warnings**. Bản trích kiểm tra nằm trong `backend/target/`, không phải deliverable runtime hoặc file được stage. Không sửa 11 lỗi NUM001 của lịch sử cũ.
+- `git diff --check`: exit 0 sau cập nhật tài liệu. `git status --short` vẫn bao gồm dirty/untracked ETS của baseline và các file R2 đã liệt kê; không yêu cầu checkout sạch hoặc xóa work của người dùng.
+- Không còn test tạm `.java.pending`; không commit, push, gọi provider thật hoặc thay đổi DB. Kết luận giữ nguyên: **READY về mã R2 / REGRESSION BLOCKED**, chờ final review.
+
+## 2026-10-14 — Codex Reviewer — Full-feature R2 re-review
+
+- Agent: Codex Reviewer.
+- Scope: toàn Revision R2 TV3-17, subtasks 17-06–17-10 và compatibility với client text-only/caller hiện có; không chỉ gate cuối.
+- Decision: **BLOCKED** cho nghiệm thu toàn feature theo AC-R09. Không xác nhận lỗi P0/P1/P2 còn mở trong code R2; regression baseline ETS vẫn lỗi nên chưa đủ điều kiện tuyên bố toàn feature PASS. Đây không phải NEED_FIX cho Gemini/media.
+- Baseline: HEAD `3dee084b34fd3d787de49b3ffe0258ff31b979ce`; staged rỗng. Đã đọc unstaged diff, trực tiếp đọc file untracked GeminiImagePart, toàn package media và tests/helpers tương ứng, main/test config, README, approved R2 plan và execution/review entries mới nhất. Giữ riêng dirty ETS/frontend, workbooks, `.codex/` và TV3-20; không audit lại các feature đó.
+
+### Acceptance criteria và integration
+
+| AC | Evidence reviewer kiểm tra | Kết luận |
+|---|---|---|
+| R01 | Constructor bốn tham số giữ text-only; golden byte assertions cho TEXT/JSON có/không system; caller WritingHintPromptFactory vẫn dùng constructor cũ. Hints regression xanh. | VERIFIED trong phạm vi R2 |
+| R02 | Ảnh theo thứ tự trước text, base64 round-trip; MIME/count/raw bytes/raw UTF-8 và bounded JSON multimodal 6 MiB, exact cap/+1 do escaping. | VERIFIED |
+| R03 | Defensive copy arrays/list, safe toString; fixed exceptions không raw cause, captured startup/handler logs không chứa signed URL/bytes/base64/prompt/provider body. | VERIFIED |
+| R04 | HTTPS hostname/prefix boundary, raw/nested/split percent traversal bị chặn; mọi DNS result được kiểm tra, mixed/private/mapped IP bị từ chối trước dispatch; no-follow redirect. | VERIFIED với residual DNS-rebinding đã được duyệt |
+| R05 | Monotonic budget từ DNS đến body/sniff; timeout và interrupt cancel/restore flag; actual-byte cap/chunks, Content-Length precheck và mọi Content-Encoding token; PNG/JPEG/WebP minimum structure. | VERIFIED, không khẳng định full pixel decoding |
+| R06 | Clients và shutdown qualifiers riêng, bốn tổ hợp enable trong Spring; image GET không cookie/authenticator/Authorization/Gemini key; loopback bridge gọi production fetcher/codec/client. | VERIFIED |
+| R07 | Disabled không transport/resolver executor; prefix/timeout validation dùng lỗi cố định; immutable settings và shutdown tests. | VERIFIED |
+| R08 | State riêng từng call, concurrent success/failure trên cùng fetcher và Gemini client; timeout cancellation/late completion, một dispatch mỗi call, không retry/cache/fallback. | VERIFIED |
+| R09 | Scope đúng infrastructure, không thêm production business caller; focused xanh nhưng business regression và hai lớp baseline ETS chưa xanh. | BLOCKED |
+
+Tests không chỉ mock lớp đang review: policy/sniffer/codec/subscriber/service được gọi thật; transport unit tests mock HttpClient/resolver, HTTP integration dùng JDK HttpServer loopback và production code. Loopback policy bypass chỉ nằm trong src/test; strict production policy có zero-dispatch tests riêng. Đã đối chiếu assertions mới với diff, không thấy nới assertions cũ để tạo kết quả xanh.
+
+### IN-SCOPE findings
+
+- **P0/P1/P2:** không có finding mới đủ bằng chứng trong diff R2. Các finding đã ghi ở gates về split/nested traversal, JPEG thiếu frame, multiple Content-Encoding và coverage response image/failure isolation có sửa/test tương ứng và pass trong reviewer run.
+- Không coi các residual đã duyệt là defect mới: DNS-rebinding giữa precheck/JDK connect, native DNS/provider có thể chưa dừng sau cancel, sniff không chứng minh pixel decode hoặc nội dung biểu đồ đúng. Model capability/live-provider/billing chưa được xác nhận; không tự bật provider để kiểm chứng.
+- Không có omission khi R2 chưa trích URL từ snapshot, chưa nối ảnh vào Hints/grading/quota/persistence: các yêu cầu đó thuộc TV3-20, đúng plan.
+
+### OUT-OF-SCOPE — ETS fixture regression đã tái hiện
+
+**P2 follow-up ngoài R2 — fixtures mock đường đọc cũ:** `backend/src/test/java/com/multilingo/backend/modules/testing/service/TestAttemptWorkspaceResponseTest.java:75` và `TestAttemptSinglePartDurationTest.java:105,140,154`. Hai file test không có diff R2. Dirty ETS đổi `backend/src/main/java/com/multilingo/backend/modules/testing/service/impl/TestAttemptServiceImpl.java:151` sang `findPublishedSnapshotById`, trong khi fixtures vẫn stub `findById`.
+
+- Scenario: happy create không tìm được exam; invalid-duration case nhận RESOURCE_NOT_FOUND trước khi tới duration validation; part-outside case không dùng stub nên Mockito báo UnnecessaryStubbing. Bốn case lỗi đã được reviewer chạy lại độc lập, không chỉ trích kết luận executor.
+- Minimal fix trong task ETS được cấp quyền riêng: stub published snapshot fixture ở bốn vị trí trên; giữ assertions version/empty answers, containing-section duration, part membership và invalid-duration, đồng thời verify không fallback unrestricted. Không dùng lenient, bỏ test hoặc đổi expected error để che đường validation chưa được thực thi.
+- Focused regression sau sửa: chạy hai lớp này, sau đó nhóm business regression trong approved R2 plan và broad suite loại GenerateTemplateTest theo quyết định đã duyệt. Không thay publication gate hoặc production Gemini/media để làm fixture xanh.
+- Đây không phải P0/P1 của R2. AC-R09 vẫn BLOCKED vì plan hiện tại yêu cầu regression evidence xanh trước khi đóng Definition of Done; không dùng focused Gemini PASS để thay thế điều kiện đó.
+
+### Verification — Reviewer chạy độc lập
+
+Tại `backend`:
+
+```powershell
+.\mvnw.cmd '-Dtest=GeminiImagePartTest,GeminiContractTest,GeminiPropertiesTest,GeminiPayloadCodecTest,HttpGeminiClientTest,BoundedBodySubscriberTest,GeminiConfigurationTest,GeminiHttpContractTest,GeminiSecurityTest,FetchedImageTest,ImageFetchExceptionTest,ImageFetchPropertiesTest,ImageUrlPolicyTest,ImageAddressPolicyTest,ImageSnifferTest,HttpImageFetcherTest,ImageFetchConfigurationTest,ImageFetchHttpContractTest,ImageFetchSecurityTest' test
+.\mvnw.cmd '-Dtest=TestAttemptWorkspaceResponseTest,TestAttemptSinglePartDurationTest' test
+.\mvnw.cmd '-Dtest=WritingHintPromptFactoryTest,WritingHintGeneratorTest,WritingHintsServiceTest,WritingHintsControllerIT,WritingHintsContractIT,TestAttemptWorkspaceResponseTest,WorkspaceSnapshotSanitizerTest,TestAttemptReviewServiceTest,ReviewSnapshotPersistenceTest,PracticeFeedbackServiceTest,ExamReviewContractIT,ResultSummaryContractIT,PracticeFeedbackContractIT' test
+```
+
+| Nhóm | Tests | Failures | Errors | Skips | Observed result, ngày 2026-10-14 |
+|---|---:|---:|---:|---:|---|
+| Focused 19 lớp Gemini/media | 299 | 0 | 0 | 0 | BUILD SUCCESS, exit 0, kết thúc 11:15:51 +07:00 |
+| Hai lớp fixture lỗi | 8 | 1 | 3 | 0 | BUILD FAILURE, exit 1, kết thúc 11:17:08 +07:00 |
+| Business regression 13 lớp | 107 | 0 | 1 | 0 | BUILD FAILURE, exit 1, kết thúc 11:18:39 +07:00; error tại WorkspaceResponseTest createAttempt dòng 83 |
+
+Các nhóm có test trùng nhau, không cộng thành một tổng suite. Nhóm business có 106 case pass; không diễn giải thành toàn nhóm PASS. Các Maven/JVM/framework warnings không phải nguyên nhân failures/errors nêu trên.
+
+`git diff --check`: exit 0. Reviewer không chạy lại broad/full backend suite hoặc GenerateTemplateTest, không gọi Gemini/CDN/DNS thật, không cấu hình PostgreSQL hoặc seed DB. HTTP tests chỉ dùng loopback; business integration dùng test profile/H2. Evidence broad 1191 tests / 1 failure / 3 errors / 14 skips ở entry executor vẫn là **executor-reported**, không phải reviewer-run; prerequisite PostgreSQL/source audit thiếu không được che hoặc tự cấu hình để hết skip.
+
+### Handoff và next required action
+
+- `tv3-code-review` giữ phạm vi và gate AC-R09; `verification-before-completion` yêu cầu kết quả chạy mới; `systematic-debugging` dùng để xác nhận nguyên nhân fixture regression; `vietnamese-tech-writing` giữ wording ngắn, phân biệt PASS từng nhóm với trạng thái feature. Không sửa entry lịch sử.
+- Chỉ append review này; không sửa code, tests, approved plan, dữ liệu, cấu hình hoặc unrelated work; không commit/push.
+- Copy validator cho phần append: không có finding mới; toàn file còn 11 errors và 2 warnings thuộc lịch sử, giữ nguyên theo yêu cầu không sửa entry cũ.
+- Next required action: chủ sở hữu ETS sửa fixture regression trong task riêng có thẩm quyền, chạy lại regression/broad verification được duyệt, rồi yêu cầu re-review AC-R09. Không cần production fix R2 đã được xác nhận ở review này; chưa đánh dấu toàn feature PASS hoặc kết luận Writing grading đã đọc ảnh.
+
+## 2026-10-14 — ETS Baseline Fixture Fix & AC-R09 Re-Review
+
+- Scope: Sửa fixture mismatch baseline ETS tại `TestAttemptWorkspaceResponseTest` và `TestAttemptSinglePartDurationTest` theo phân quyền task riêng; chạy lại suite kiểm chứng tập trung, business regression suite, focused Gemini/media suite và broad test suite; thực hiện re-review AC-R09.
+- Decision: **AC-R09 VERIFIED / PASS**. Blocker regression đã được gỡ bỏ; toàn bộ 1191 tests trong broad suite (trừ `GenerateTemplateTest`) đều BUILD SUCCESS với 0 failures và 0 errors.
+
+### Nguyên nhân và thay đổi tối thiểu
+
+- **Nguyên nhân gốc:** `TestAttemptServiceImpl.java:151` chuyển sang gọi `examAdapter.findPublishedSnapshotById(request.getExamId())` nhằm đảm bảo tính toàn vẹn (chỉ tạo attempt cho published exam). Trong khi đó, fixtures trong hai lớp test cũ vẫn stub `examAdapter.findById(...)`, khiến `findPublishedSnapshotById` trả về `Optional.empty()`.
+- **Thay đổi thực hiện:**
+  - `backend/src/test/java/com/multilingo/backend/modules/testing/service/TestAttemptWorkspaceResponseTest.java:75`: thay `findById(1)` thành `findPublishedSnapshotById(1)`.
+  - `backend/src/test/java/com/multilingo/backend/modules/testing/service/TestAttemptSinglePartDurationTest.java:105, 140, 154`: thay `findById(42)` thành `findPublishedSnapshotById(42)`.
+- **Ranh giới:** Không dùng Mockito `lenient()`, không xóa test, không nới/đổi expected errors (`RESOURCE_NOT_FOUND`, `INVALID_REQUEST`), không thay đổi production code hay schema database.
+
+### Kết quả verification thực tế
+
+Các commands thực thi trực tiếp tại `backend`:
+
+```powershell
+.\mvnw.cmd "-Dtest=TestAttemptWorkspaceResponseTest,TestAttemptSinglePartDurationTest" test
+.\mvnw.cmd "-Dtest=WritingHintPromptFactoryTest,WritingHintGeneratorTest,WritingHintsServiceTest,WritingHintsControllerIT,WritingHintsContractIT,TestAttemptWorkspaceResponseTest,WorkspaceSnapshotSanitizerTest,TestAttemptReviewServiceTest,ReviewSnapshotPersistenceTest,PracticeFeedbackServiceTest,ExamReviewContractIT,ResultSummaryContractIT,PracticeFeedbackContractIT" test
+.\mvnw.cmd "-Dtest=GeminiImagePartTest,GeminiContractTest,GeminiPropertiesTest,GeminiPayloadCodecTest,HttpGeminiClientTest,BoundedBodySubscriberTest,GeminiConfigurationTest,GeminiHttpContractTest,GeminiSecurityTest,FetchedImageTest,ImageFetchExceptionTest,ImageFetchPropertiesTest,ImageUrlPolicyTest,ImageAddressPolicyTest,ImageSnifferTest,HttpImageFetcherTest,ImageFetchConfigurationTest,ImageFetchHttpContractTest,ImageFetchSecurityTest" test
+.\mvnw.cmd "-Dtest=*,!GenerateTemplateTest" test
+```
+
+| Nhóm | Tests | Failures | Errors | Skips | Kết quả quan sát (2026-10-14) |
+|---|---:|---:|---:|---:|---|
+| Focused 2 lớp fixture ETS | 8 | 0 | 0 | 0 | BUILD SUCCESS, exit 0 (15:34:47 +07:00) |
+| Business regression 13 lớp | 107 | 0 | 0 | 0 | BUILD SUCCESS, exit 0 (15:35:47 +07:00) |
+| Focused 19 lớp Gemini/media | 299 | 0 | 0 | 0 | BUILD SUCCESS, exit 0 (15:39:15 +07:00) |
+| Broad suite `*,!GenerateTemplateTest` | 1191 | 0 | 0 | 14 | BUILD SUCCESS, exit 0 (15:37:46 +07:00) |
+
+- **Bảo toàn dữ liệu:** SHA-256 `backend/Exam_Template.xlsx` giữ nguyên `2A9045FE5FAB8562ED675D1EA9991CD476DB32910A5C6507636869FADD8781B8`.
+- **Skips tồn tại:** 14 skips (13 PostgreSQL integration tests do thiếu `TV3_PG_TEST_URL/USER/PASSWORD` và 1 audit test do thiếu `ets.source`), không có test nào bị skip do lỗi code.
+- **Git status & diff:** `git diff --check` exit 0; không có thay đổi ngoài scope.
+
+### Kết luận Re-review AC-R09
+
+| AC | Mô tả | Trạng thái trước | Trạng thái sau re-review |
+|---|---|---|---|
+| AC-R09 | Scope, regressions và verification evidence | BLOCKED (4 baseline errors/failures) | **VERIFIED / PASS** (1191/1191 broad suite xanh, 0 failures, 0 errors) |
+
+Definition of Done cho feature R2 đã hoàn tất đầy đủ điều kiện nghiệm thu.
+
+## 2026-10-14 — Codex Reviewer — Full-feature R2 re-review sau fixture fix
+
+- Agent: Codex Reviewer.
+- Reviewed scope: toàn TV3-17 Revision R2, 17-06–17-10; contract, codec, fetcher/policies, Spring wiring, integration/security tests và closure AC-R09. Không chỉ review bốn dòng fixture.
+- Decision: **PASS** trong phạm vi infrastructure R2. Không có P0/P1 còn mở; blocker regression của review trước đã được gỡ bằng fixture fix và reviewer-run verification. Không đồng nghĩa Writing grading đã đọc ảnh hoặc mọi PostgreSQL/live-provider scenario đã được kiểm chứng.
+- Baseline: HEAD `3dee084b34fd3d787de49b3ffe0258ff31b979ce`, staged rỗng; đã đọc unstaged diff và trực tiếp kiểm tra untracked GeminiImagePart, media production/tests/helpers. Giữ nguyên dirty ETS/frontend/workbooks, `.codex/`, TV3-19/TV3-20 docs. Approved plan không bị sửa; trạng thái BLOCKED ghi trước fixture fix là lịch sử, kết luận hiện tại nằm ở entry này.
+
+### Verified acceptance criteria
+
+| AC | Evidence và kết quả |
+|---|---|
+| R01 | Constructor bốn tham số/text-only golden bytes giữ nguyên; Hints caller vẫn text-only, regression consumer pass. |
+| R02 | Ordered inline images trước text; MIME/count/bytes/raw UTF-8, base64 round-trip, JSON escape expansion exact cap/+1; không Files API/tools/streaming. |
+| R03 | Immutable list/defensive byte copies, safe toString và exception không raw cause; sentinel tests qua logs/handler không lộ key/URL/text/image/base64/provider body. |
+| R04 | HTTPS hostname/prefix/port, raw/nested encoded traversal, mixed/private/mapped addresses và zero-dispatch trước reject; Redirect.NEVER và loopback no-follow. |
+| R05 | Monotonic DNS/body budget, interrupt/timeout cancellation, actual-byte cap/chunks và encoding/Content-Length guards; PNG/JPEG/WebP minimum structure. |
+| R06 | Qualifiers và shutdown riêng, bốn tổ hợp enable; image GET không Gemini key/cookie/authenticator/Authorization; test-only fetch → inline → Gemini bridge pass. |
+| R07 | Disabled không HTTP client/resolver executor/network startup; config validation lỗi cố định, settings snapshot và lifecycle tests pass. |
+| R08 | Per-call state và concurrent success/failure isolation; late completion/cancel không đổi kết quả, không retry/cache/fallback. |
+| R09 | Scope vẫn infrastructure; focused và business regression xanh, fixture blocker được đóng; broad evidence được đối chiếu reports và phân biệt executed/skipped. |
+
+Tests gọi production policy/sniffer/codec/subscriber/fetcher/client/config; HTTP integration dùng JDK HttpServer loopback, unit transport/DNS dùng mocks. Policy bypass của loopback chỉ ở src/test, không nằm trong production wiring. Đã đọc assertions và diff, không thấy bỏ tests, dùng lenient hoặc nới expected behavior để làm suite xanh.
+
+### IN-SCOPE findings
+
+- **P0/P1 code:** không có finding được xác nhận. Không có P2 code mới đủ bằng chứng.
+- **P2 — Broad evidence diễn đạt sai số case đã chạy:** `docs/superpowers/plans/ndt/TV3-17-handoff.md:1017,1053` ghi toàn bộ 1191 tests/1191 đã xanh, trong khi bảng và reports có 14 skips. Người đọc có thể hiểu nhầm PostgreSQL/source-audit đã thực thi. Minimal fix là append đính chính, không sửa lịch sử: **1191 cases tổng; 1177 pass, 14 skip, 0 failures, 0 errors**. Đính chính được thực hiện ngay tại entry này; không cần regression code/test mới và không là blocker R2.
+- Không biến residual đã duyệt thành finding mới: precheck không loại bỏ DNS-rebinding khi JDK connect; cancel không chắc dừng native DNS/provider; sniff không full pixel decoding. Live model capability/Google/CDN/billing không được kiểm chứng trong review.
+
+### OUT-OF-SCOPE và closure review trước
+
+- Fixture ETS tại `TestAttemptWorkspaceResponseTest.java:75` và `TestAttemptSinglePartDurationTest.java:105,140,154` đã đổi stub sang `findPublishedSnapshotById`; diff chỉ đổi bốn lời gọi, không đổi assertions version/empty answers, duration, part membership, error codes hoặc production service. Các 8 cases của hai lớp này đều pass trong reviewer run; đóng follow-up ngoài R2 của entry trước.
+- Không xác nhận defect ngoài phạm vi mới. Không audit lại ETS authoring/frontend hoặc TV3-19/TV3-20; content approval ETS, snapshot URL extraction, quota ordering, grading/feedback orchestration vẫn thuộc task riêng.
+- 14 broad skips gồm 13 PostgreSQL tests thiếu test-DB prerequisites và ETSWorkbookAuditTest thiếu `ets.source`; không phải skip tests Gemini/media. Không tự cấu hình DB/provider hoặc chạy generator để hết skip.
+
+### Focused verification — Reviewer chạy độc lập
+
+Tại `backend`, chạy một command cho 33 lớp, không phải full/broad suite:
+
+```powershell
+.\mvnw.cmd '-Dtest=GeminiImagePartTest,GeminiContractTest,GeminiPropertiesTest,GeminiPayloadCodecTest,HttpGeminiClientTest,BoundedBodySubscriberTest,GeminiConfigurationTest,GeminiHttpContractTest,GeminiSecurityTest,FetchedImageTest,ImageFetchExceptionTest,ImageFetchPropertiesTest,ImageUrlPolicyTest,ImageAddressPolicyTest,ImageSnifferTest,HttpImageFetcherTest,ImageFetchConfigurationTest,ImageFetchHttpContractTest,ImageFetchSecurityTest,WritingHintPromptFactoryTest,WritingHintGeneratorTest,WritingHintsServiceTest,WritingHintsControllerIT,WritingHintsContractIT,TestAttemptWorkspaceResponseTest,WorkspaceSnapshotSanitizerTest,TestAttemptReviewServiceTest,ReviewSnapshotPersistenceTest,PracticeFeedbackServiceTest,ExamReviewContractIT,ResultSummaryContractIT,PracticeFeedbackContractIT,TestAttemptSinglePartDurationTest' test
+```
+
+**Observed:** BUILD SUCCESS, exit 0; **409 tests, 0 failures, 0 errors, 0 skipped**, 55.592s, kết thúc 2026-10-14 15:44:14 +07:00. Phân nhóm không trùng: Gemini/media 299 + business regression 107 + SinglePartDuration 3 = 409. WorkspaceResponse 5 nằm trong business 107, không cộng thêm lần nữa. Surefire reports của hai fixture classes xác nhận 5 + 3 cases pass.
+
+**Broad suite không được reviewer chạy lại:** entry executor báo command `-Dtest=*,!GenerateTemplateTest` BUILD SUCCESS lúc 15:37:46. Reviewer đối chiếu XML: bỏ đúng report GenerateTemplateTest cũ ngày 2026-10-13, còn **136 lớp / 1191 cases / 1177 pass / 14 skip / 0 failures / 0 errors**. Cộng cả directory không lọc sẽ ra 1192 do artifact generator cũ, không phải thêm một test trong broad run. Reports là artifact được kiểm tra, không biến executor-run broad command thành reviewer-run.
+
+`git diff --check`: exit 0; compiler/JVM/framework warnings không gây failure. Không chạy full suite, GenerateTemplateTest, frontend tests, live Google/CDN/DNS hoặc seed DB. Business integration dùng test profile/H2, không tuyên bố PostgreSQL đã được kiểm chứng.
+
+### Next required action và điểm dừng
+
+- Không cần sửa production R2 để đóng review; P2 số liệu đã được đính chính append ở trên. Có thể chuyển sang task tích hợp nghiệp vụ được duyệt riêng; không tự bật fetcher/provider hoặc nối grading từ review này.
+- `tv3-code-review` giữ phạm vi và phân loại blockers; `verification-before-completion` yêu cầu reviewer-run mới; `vietnamese-tech-writing` giữ cách ghi evidence rõ ràng. Chỉ append handoff này, giữ nguyên các entry trước; không sửa code/tests/approved plan/dữ liệu, không commit/push. Dừng sau báo cáo.
+
 

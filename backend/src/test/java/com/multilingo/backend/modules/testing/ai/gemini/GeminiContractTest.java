@@ -21,6 +21,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class GeminiContractTest {
 
     @Test
+    void legacyRequestReportsZeroImagesWithoutRevealingText() {
+        var request = new GeminiGenerationRequest("SECRET_SYSTEM", "SECRET_USER", 32,
+                GeminiGenerationRequest.OutputFormat.TEXT);
+        assertThat(request.toString()).contains("imageCount=0")
+                .doesNotContain("SECRET_SYSTEM", "SECRET_USER");
+    }
+
+    @Test
     @DisplayName("GeminiProperties.validate() rejects rejected key without leaking sentinel in message or stack trace (P2)")
     void validateRejectedConfigNeverLeaksSentinel() {
         String sentinelApiKey = "REJECTED_SECRET_API_KEY_WITH_TRAILING_WHITESPACE ";

@@ -72,7 +72,49 @@ Hạ tầng Gemini Client sử dụng tiền tố `testing.gemini.*` trong `appl
 ### Trạng thái tích hợp nghiệp vụ
 
 > [!IMPORTANT]
-> Client Gemini tại TV3-17 là **hạ tầng transport độc lập** và **chưa được nối vào bất kỳ use case nghiệp vụ nào** (chưa inject vào Submit test, Practice feedback hay Writing Grading Worker). Việc hoàn thành hạ tầng HTTP client không đồng nghĩa tính năng AI Writing Hints hay Auto-grading đã hoạt động.
+> TV3-18 đã dùng Gemini client cho Writing Hints **text-only**. Revision R2 chỉ bổ sung khả năng gửi ảnh ở tầng hạ tầng; không thay prompt Hints hoặc tự trích ảnh từ snapshot. Submit, Practice feedback và Writing grading chưa được nối vào multimodal bởi R2. Có hạ tầng không đồng nghĩa bài Writing đã được chấm từ ảnh.
+
+### Revision R2 — Inline images và fetcher độc lập
+
+`GeminiGenerationRequest` giữ constructor bốn tham số, tương đương request không ảnh và có byte output như trước. Constructor năm tham số nhận danh sách `GeminiImagePart`; chỉ nhận `image/png`, `image/jpeg`, `image/webp`. Arrays được copy khi tạo/đọc, list bất biến. Client không nhận URL và không tự tải ảnh. Request có ảnh gửi ảnh theo thứ tự list rồi text cuối qua `inlineData`, không dùng Files API.
+
+| Giới hạn | Giá trị |
+|---|---:|
+| Text-only JSON | 131.072 bytes |
+| Số ảnh mỗi request | 2 |
+| Mỗi ảnh gốc | 2 MiB |
+| Tổng ảnh gốc | 4 MiB |
+| Tổng UTF-8 system instruction và user text khi có ảnh | 131.072 bytes |
+| JSON multimodal, gồm base64 và escaping | 6 MiB |
+| Response Gemini | 524.288 bytes |
+
+`GEMINI_MODEL` phải được người vận hành chọn là model hỗ trợ ảnh đầu vào; client không kiểm tra capability của model. `GEMINI_REQUEST_TIMEOUT` vẫn mặc định 30s, tối đa 120s; request ảnh có thể cần tăng trong giới hạn này. Client không tự retry/fallback hoặc chuyển sang model khác. Cancellation chỉ kết thúc việc chờ ở client, không bảo đảm provider chưa xử lý/tính phí.
+
+Fetcher nằm ở `com.multilingo.backend.modules.testing.ai.media`, không phụ thuộc Gemini, attempt, quota hoặc DB:
+
+```java
+FetchedImage image = imageFetcher.fetch(allowedImageUrl);
+GeminiImagePart part = new GeminiImagePart(image.mimeType(), image.data());
+// Caller tự tạo GeminiGenerationRequest với List.of(part); đây không phải wiring nghiệp vụ R2.
+```
+
+| Thuộc tính | Biến môi trường | Mặc định |
+|---|---|---|
+| `testing.image-fetch.enabled` | `IMAGE_FETCH_ENABLED` | `false` |
+| `testing.image-fetch.allowed-url-prefixes` | `IMAGE_FETCH_ALLOWED_URL_PREFIXES` | Rỗng |
+| `testing.image-fetch.connect-timeout` | `IMAGE_FETCH_CONNECT_TIMEOUT` | `5s` |
+| `testing.image-fetch.request-timeout` | `IMAGE_FETCH_REQUEST_TIMEOUT` | `10s` |
+
+- Disabled có đúng một fetcher ném `DISABLED`, không tạo HTTP client/executor, không DNS/network startup. Enabled với prefix thiếu/sai hoặc timeout không thỏa `0 < connect <= request <= 30s` thì fail startup bằng lỗi cố định. Cấu hình được chụp khi tạo bean; đổi cần restart.
+- Allowlist là danh sách prefix phân tách bằng dấu phẩy, ví dụ `https://res.cloudinary.com/<cloud-name>/`. Không có cloud name mặc định. Prefix phải HTTPS, hostname, port 443/default, path kết thúc `/`, không userinfo/query/fragment. URL trong snapshot hoặc Excel không tự cấp quyền tải.
+- URL tải tối đa 2.048 ký tự, có thể giữ signed query nhưng không userinfo/fragment/IP literal/localhost/path traversal hoặc encoded dot/slash/backslash. Kiểm tra mọi địa chỉ DNS; từ chối local/private/multicast/CGNAT/ULA và IPv4-mapped tương ứng, kể cả mixed public/private.
+- Chỉ GET, không theo redirect; không cookie/Authorization/Gemini key. Hai HTTP client độc lập được định danh bằng qualifiers. Monotonic deadline bao gồm DNS precheck, headers, body và kiểm tra nội dung. Vượt 2 MiB actual body sẽ cancel subscription; Content-Length không thay kiểm tra actual bytes. Không nhận Content-Encoding ngoài identity.
+- MIME phải khớp magic bytes và cấu trúc tối thiểu PNG/JPEG/WebP. Không nhận GIF/SVG, không dựa đuôi URL, không decode pixel; việc vượt qua sniff không bảo đảm ảnh decode được hoàn toàn hoặc nội dung biểu đồ đúng.
+- `ImageFetchException` chỉ có Kind/retryable/upstreamStatus và thông điệp an toàn. Retryable chỉ cho RATE_LIMITED/UPSTREAM/TIMEOUT/TRANSPORT; fetcher không tự retry/cache/backoff. Không log URL, bytes/base64 hoặc upstream body. Không bật wire logging trên môi trường có key/dữ liệu thật.
+
+**Rủi ro còn lại:** JDK HttpClient tự resolve DNS lúc kết nối, nên precheck không loại bỏ hoàn toàn DNS-rebinding. Allowlist CDN cố định là kiểm soát chính; không mở rộng prefix tùy tiện. Timeout cancel future nhưng native DNS có thể còn chạy. Chữ trong ảnh là dữ liệu không đáng tin; caller TV3-20 phải đặt system instruction chống prompt injection. Ảnh gửi Gemini được chuyển sang Google, cần xem xét dữ liệu và quyền sử dụng nội dung trước khi bật nghiệp vụ.
+
+**Bàn giao TV3-20:** URL extraction có thứ tự từ snapshot/HTML, giới hạn ảnh, fetch trước reserve quota, prompt grading, error nghiệp vụ, feedback/prompt/model/image identity persistence và orchestration do TV3-20 xử lý. R2 không gọi fetcher hoặc Gemini mới từ controller, submit, Hints, worker hoặc scheduler.
 
 ### Ranh giới trách nhiệm của Caller (Use Cases / Workers)
 

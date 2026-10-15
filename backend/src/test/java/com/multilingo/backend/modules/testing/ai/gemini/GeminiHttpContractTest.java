@@ -9,6 +9,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.boot.test.system.CapturedOutput;
+import com.multilingo.backend.modules.testing.ai.media.ImageFetcherHarness;
+import com.multilingo.backend.modules.testing.ai.media.ImageFixtures;
+import com.multilingo.backend.modules.testing.ai.media.ImageFetchProperties;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +36,94 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@ExtendWith(OutputCaptureExtension.class)
 class GeminiHttpContractTest {
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void r2FetchToGeminiBridgeOnlyInTests(int imageCount, CapturedOutput logs) throws Exception {
+        byte[] image = ImageFixtures.png();
+        var fetchCalls = new AtomicInteger();
+        var generateCalls = new AtomicInteger();
+        var assertionFailure = new AtomicReference<Throwable>();
+        server.createContext("/r2-image", exchange -> {
+            fetchCalls.incrementAndGet();
+            for (String header : java.util.List.of("x-goog-api-key", "Authorization", "Cookie")) {
+                if (exchange.getRequestHeaders().getFirst(header) != null) assertionFailure.set(new AssertionError("Fetcher carried credentials"));
+            }
+            exchange.getResponseHeaders().set("Content-Type", "image/png");
+            exchange.sendResponseHeaders(200, image.length);
+            try (var output = exchange.getResponseBody()) { output.write(image); }
+        });
+        server.createContext("/r2-generate", exchange -> {
+            generateCalls.incrementAndGet();
+            try {
+                assertThat(exchange.getRequestHeaders().getFirst("x-goog-api-key")).isEqualTo("test-loopback-api-key");
+                byte[] wire = exchange.getRequestBody().readAllBytes();
+                assertThat(wire.length).isLessThanOrEqualTo(GeminiProperties.MAX_MULTIMODAL_REQUEST_BYTES);
+                var root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(wire);
+                var parts = root.path("contents").get(0).path("parts");
+                assertThat(parts.size()).isEqualTo(imageCount + 1);
+                for (int i = 0; i < imageCount; i++) {
+                    assertThat(parts.get(i).path("inlineData").path("mimeType").asText()).isEqualTo("image/png");
+                    assertThat(java.util.Base64.getDecoder().decode(parts.get(i).path("inlineData").path("data").asText())).isEqualTo(image);
+                }
+                assertThat(parts.get(imageCount).path("text").asText()).isEqualTo("PRIVATE_BRIDGE_ESSAY");
+            } catch (Throwable failure) { assertionFailure.set(failure); }
+            byte[] response = "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"bridge-result\"}]}}]}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, response.length);
+            try (var output = exchange.getResponseBody()) { output.write(response); }
+        });
+        String sourceUrl = "http://127.0.0.1:" + port + "/r2-image?sig=PRIVATE_IMAGE_URL";
+        try (var harness = new ImageFetcherHarness(Duration.ofSeconds(2))) {
+            var images = new java.util.ArrayList<GeminiImagePart>();
+            for (int i = 0; i < imageCount; i++) {
+                var fetched = harness.fetcher().fetch(sourceUrl);
+                images.add(new GeminiImagePart(fetched.mimeType(), fetched.data()));
+            }
+            var generator = new HttpGeminiClient(httpClient, URI.create("http://127.0.0.1:" + port + "/r2-generate"), properties, codec);
+            var result = generator.generate(new GeminiGenerationRequest("PRIVATE_BRIDGE_SYSTEM", "PRIVATE_BRIDGE_ESSAY", 32,
+                    GeminiGenerationRequest.OutputFormat.JSON, images));
+            assertThat(result.text()).isEqualTo("bridge-result");
+        }
+        assertThat(assertionFailure.get()).isNull();
+        assertThat(fetchCalls.get()).isEqualTo(imageCount);
+        assertThat(generateCalls.get()).isEqualTo(1);
+        assertThat(ImageFetchProperties.MAX_IMAGE_BYTES).isEqualTo(GeminiProperties.MAX_IMAGE_BYTES);
+        assertThat(logs.getAll()).doesNotContain(sourceUrl, "PRIVATE_BRIDGE_ESSAY", "PRIVATE_BRIDGE_SYSTEM",
+                java.util.Base64.getEncoder().encodeToString(image));
+    }
+
+    @Test
+    void r2ConcurrentMultimodalFailureDoesNotAffectOtherCall() throws Exception {
+        var overlap = new java.util.concurrent.CountDownLatch(2);
+        server.createContext("/r2-parallel", exchange -> {
+            var root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(exchange.getRequestBody());
+            var parts = root.path("contents").get(0).path("parts");
+            boolean fail = parts.get(parts.size() - 1).path("text").asText().equals("fail");
+            overlap.countDown();
+            try {
+                if (!overlap.await(2, TimeUnit.SECONDS)) throw new AssertionError("Calls did not overlap");
+                byte[] response = (fail ? "PRIVATE_PROVIDER_BODY" : "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"success\"}]}}]}")
+                        .getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(fail ? 429 : 200, response.length);
+                try (var output = exchange.getResponseBody()) { output.write(response); }
+            } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); exchange.close(); }
+        });
+        var generator = new HttpGeminiClient(httpClient, URI.create("http://127.0.0.1:" + port + "/r2-parallel"), properties, codec);
+        var images = java.util.List.of(new GeminiImagePart("image/png", ImageFixtures.png()));
+        try (var callers = Executors.newVirtualThreadPerTaskExecutor()) {
+            var good = callers.submit(() -> generator.generate(new GeminiGenerationRequest(null, "ok", 32,
+                    GeminiGenerationRequest.OutputFormat.TEXT, images)).text());
+            var bad = callers.submit(() -> {
+                try { generator.generate(new GeminiGenerationRequest(null, "fail", 32,
+                        GeminiGenerationRequest.OutputFormat.TEXT, images)); throw new AssertionError("Expected failure"); }
+                catch (GeminiClientException error) { return error.getKind(); }
+            });
+            assertThat(good.get(3, TimeUnit.SECONDS)).isEqualTo("success");
+            assertThat(bad.get(3, TimeUnit.SECONDS)).isEqualTo(GeminiClientException.Kind.RATE_LIMITED);
+        }
+    }
 
     private HttpServer server;
     private int port;

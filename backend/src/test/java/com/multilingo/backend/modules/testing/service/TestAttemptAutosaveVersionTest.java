@@ -47,6 +47,7 @@ class TestAttemptAutosaveVersionTest {
     @Mock private ObjectiveGradingService gradingService;
     @Mock private PlatformTransactionManager transactionManager;
     @Mock private EntityManager entityManager;
+    @Mock private com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer writingGradingEnqueuer;
 
     private TestAttemptServiceImpl service;
 
@@ -64,7 +65,9 @@ class TestAttemptAutosaveVersionTest {
                 gradingAdapter,
                 gradingService,
                 transactionManager,
-                entityManager
+                entityManager,
+                writingGradingEnqueuer,
+                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver()
         );
         lenient().when(identityAdapter.getCurrentUserId()).thenReturn(CURRENT_USER_ID);
     }

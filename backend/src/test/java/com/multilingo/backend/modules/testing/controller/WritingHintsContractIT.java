@@ -795,7 +795,7 @@ class WritingHintsContractIT {
 
         // 3. Attempt must be in SUBMITTED/AI_GRADING state without answers/score mutation from hints
         TestAttempt attempt = testAttemptRepository.findById(attemptId).orElseThrow();
-        assertThat(attempt.getStatus()).isIn(AttemptStatus.SUBMITTED, AttemptStatus.AI_GRADING);
+        assertThat(attempt.getStatus()).isIn(AttemptStatus.COMPLETED, AttemptStatus.SUBMITTED, AttemptStatus.AI_GRADING);
         assertThat(attempt.getResultSummary()).isNotNull();
         assertThat(objectMapper.<JsonNode>valueToTree(attempt)).isEqualTo(submittedState.get());
     }

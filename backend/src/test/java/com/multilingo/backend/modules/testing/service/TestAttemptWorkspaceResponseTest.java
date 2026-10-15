@@ -34,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +62,9 @@ class TestAttemptWorkspaceResponseTest {
                 gradingAdapter,
                 gradingService,
                 transactionManager,
-                entityManager);
+                entityManager,
+                mock(com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer.class),
+                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver());
         when(identityAdapter.getCurrentUserId()).thenReturn(7);
     }
 
@@ -70,9 +73,10 @@ class TestAttemptWorkspaceResponseTest {
         ExamFixture exam = new ExamFixture();
         exam.setId(1);
         exam.setTitle("Public exam");
+        exam.setExamLanguage("en");
         exam.setDurationMinutes(60);
         exam.setSections(List.of());
-        when(examAdapter.findById(1)).thenReturn(Optional.of(exam));
+        when(examAdapter.findPublishedSnapshotById(1)).thenReturn(Optional.of(exam));
         when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(invocation -> {
             TestAttempt saved = invocation.getArgument(0);
             saved.setId(101);
@@ -84,6 +88,7 @@ class TestAttemptWorkspaceResponseTest {
 
         assertThat(response.getVersion()).isEqualTo(1);
         assertThat(response.getSavedAnswers()).isEmpty();
+        assertThat(response.getExamSnapshot()).containsEntry("examLanguage", "en");
     }
 
     @Test

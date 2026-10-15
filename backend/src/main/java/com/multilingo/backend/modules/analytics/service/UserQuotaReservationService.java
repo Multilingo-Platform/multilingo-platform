@@ -22,6 +22,7 @@ import java.util.List;
 public class UserQuotaReservationService {
 
     public static final String FEATURE_CODE = "AI_WRITING_HINTS";
+    public static final String GRADING_FEATURE_CODE = "AI_WRITING_GRADING";
 
     private final UserQuotaRepository userQuotaRepository;
     private final Clock clock;
@@ -59,19 +60,19 @@ public class UserQuotaReservationService {
     ) {}
 
     /**
-     * Khóa dòng quota của người dùng bằng SELECT FOR UPDATE và kiểm tra tính hợp lệ.
-     * Thất bại an toàn (QUOTA_EXCEEDED) nếu missing, expired, exhausted, invalid, hoặc duplicate.
+     * Khóa dòng quota của người dùng theo feature code và kiểm tra tính hợp lệ.
      */
     @Transactional
-    public QuotaAccount lockAccount(Integer userId) {
+    public QuotaAccount lockAccount(Integer userId, String featureCode) {
         if (userId == null) {
             throw new AppException(ErrorCode.QUOTA_EXCEEDED, "User ID is required for quota reservation");
         }
+        String effectiveFeatureCode = (featureCode != null && !featureCode.isBlank()) ? featureCode : FEATURE_CODE;
 
-        List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, FEATURE_CODE);
+        List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, effectiveFeatureCode);
 
         if (rows.isEmpty()) {
-            throw new AppException(ErrorCode.QUOTA_EXCEEDED, "No quota provisioned for feature: " + FEATURE_CODE);
+            throw new AppException(ErrorCode.QUOTA_EXCEEDED, "No quota provisioned for feature: " + effectiveFeatureCode);
         }
 
         if (rows.size() > 1) {
@@ -108,6 +109,11 @@ public class UserQuotaReservationService {
         );
     }
 
+    @Transactional
+    public QuotaAccount lockAccount(Integer userId) {
+        return lockAccount(userId, FEATURE_CODE);
+    }
+
     /**
      * Đặt trước quota bằng câu lệnh conditional update nguyên tử.
      */
@@ -127,13 +133,12 @@ public class UserQuotaReservationService {
 
     /**
      * Khóa dòng quota của người dùng để tuần tự hóa các thao tác.
-     * Không tự chặn khi quota hết hạn mức hoặc hết hạn period;
-     * việc kiểm tra hạn mức thuộc về reserve/tryReserve.
      */
     @Transactional
-    public void lockUserQuota(Integer userId) {
+    public void lockUserQuota(Integer userId, String featureCode) {
         if (userId != null) {
-            List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, FEATURE_CODE);
+            String effectiveFeatureCode = (featureCode != null && !featureCode.isBlank()) ? featureCode : FEATURE_CODE;
+            List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, effectiveFeatureCode);
             if (entityManager != null) {
                 for (UserQuota q : rows) {
                     if (entityManager.contains(q)) {
@@ -144,17 +149,21 @@ public class UserQuotaReservationService {
         }
     }
 
+    @Transactional
+    public void lockUserQuota(Integer userId) {
+        lockUserQuota(userId, FEATURE_CODE);
+    }
+
     /**
-     * Cố gắng đặt trước quota bằng conditional update.
-     * Trả về Optional rỗng nếu quota không hợp lệ, hết hạn, hoặc hết hạn mức,
-     * KHÔNG ném AppException để tránh đánh dấu rollback-only cho outer transaction.
+     * Cố gắng đặt trước quota bằng conditional update theo feature code.
      */
     @Transactional
-    public java.util.Optional<QuotaReservation> tryReserve(Integer userId) {
+    public java.util.Optional<QuotaReservation> tryReserve(Integer userId, String featureCode) {
         if (userId == null) {
             return java.util.Optional.empty();
         }
-        List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, FEATURE_CODE);
+        String effectiveFeatureCode = (featureCode != null && !featureCode.isBlank()) ? featureCode : FEATURE_CODE;
+        List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, effectiveFeatureCode);
         if (rows.size() != 1) {
             return java.util.Optional.empty();
         }
@@ -176,12 +185,19 @@ public class UserQuotaReservationService {
         return java.util.Optional.of(new QuotaReservation(quota.getId(), quota.getResetDate()));
     }
 
-    /**
-     * Tiện ích kết hợp lockAccount và reserve theo userId.
-     */
+    @Transactional
+    public java.util.Optional<QuotaReservation> tryReserve(Integer userId) {
+        return tryReserve(userId, FEATURE_CODE);
+    }
+
+    @Transactional
+    public QuotaReservation reserve(Integer userId, String featureCode) {
+        return tryReserve(userId, featureCode).orElseThrow(() -> new AppException(ErrorCode.QUOTA_EXCEEDED, "Quota limit reached or unavailable"));
+    }
+
     @Transactional
     public QuotaReservation reserve(Integer userId) {
-        return tryReserve(userId).orElseThrow(() -> new AppException(ErrorCode.QUOTA_EXCEEDED, "Quota limit reached or unavailable"));
+        return reserve(userId, FEATURE_CODE);
     }
 
     /**

@@ -947,3 +947,17 @@ git status --short
 ### Next required action
 
 - TV3-19 full feature **PASS**, không có required P0/P1 fix/re-review. Có thể tiếp tục task TV3 tiếp theo khi được giao; F19-06-01 là UI follow-up không chặn. Không tự sửa P2 hoặc thay đổi approved plan. Reviewer dừng sau append và báo cáo.
+
+## 2026-10-14 — Codex Fixer: TV3-17 Revision R2 — đối soát yêu cầu re-FIX
+
+- **Agent:** Codex Fixer.
+- **Scope:** TV3-17 Revision R2; nguồn review là entry mới nhất `2026-10-14 — Codex Reviewer — Full-feature R2 re-review` trong `TV3-17-handoff.md`. Ghi kết quả tại **TV3-19-handoff.md theo yêu cầu trực tiếp của người dùng**, không đổi handoff nguồn hoặc approved plan.
+- **Status:** **BLOCKED cho AC-R09; không có confirmed in-scope P0/P1/P2 cần sửa.** Không gán FIXED/PASS cho toàn R2.
+- **Baseline:** HEAD `3dee084`, staged rỗng; giữ toàn bộ dirty/untracked R2, ETS, frontend, workbooks và docs.
+- **Findings đối soát:** review mới nhất không có defect còn mở trong Gemini/media R2. Bốn failures/errors thuộc hai lớp fixture ETS được reviewer phân loại rõ ngoài R2, không phải NEED_FIX production R2. Approved plan cũng yêu cầu giữ dirty ETS và giới hạn thay đổi vào hạ tầng Gemini/media.
+- **Source verification thực hiện trong lượt này:** `TestAttemptServiceImpl.createAttempt` gọi `findPublishedSnapshotById`; `TestAttemptWorkspaceResponseTest` và ba cases của `TestAttemptSinglePartDurationTest` vẫn stub `findById`. Hai lớp test không có diff. Đối chiếu này khớp nguyên nhân baseline regression đã được reviewer tái hiện; không mở rộng sửa fixture ETS, publication gate hoặc assertions.
+- **Changes:** chỉ append entry này. Không sửa production/tests, không refactor và không thêm regression test không gắn với confirmed in-scope defect.
+- **Test evidence phân biệt:** không chạy lại Maven trong lượt đối soát không có code fix này. **Reviewer-reported**, không phải Fixer-run: focused Gemini/media 299 tests PASS; hai lớp ETS 8 tests / 1 failure / 3 errors; business regression 107 tests / 1 error. Không cộng các nhóm có tests trùng nhau hoặc diễn giải focused PASS thành AC-R09 PASS.
+- **Integrity verification:** `git diff --check` exit0 trước append; kiểm tra lại sau append, CRLF-aware whitespace phần append và nguyên prefix handoff. SHA256 baseline paths ngoài TV3-19-handoff giữ nguyên; staged vẫn rỗng. Không commit/push/rebase, không chạy workbook generator, provider, DB hoặc broad suite.
+- **Remaining blocker:** chủ sở hữu ETS cần xử lý fixture mismatch trong task riêng được cấp quyền, chạy lại regression/broad verification đã duyệt để mở gate AC-R09. Yêu cầu hiện tại chỉ cho phép sửa confirmed in-scope findings nên không cấp quyền sửa follow-up ETS ngoài R2.
+- **Next required action:** xử lý blocker ETS theo scope riêng, sau đó Codex Reviewer re-review AC-R09. Fixer dừng; không tự audit thêm hoặc mở rộng phạm vi.

@@ -63,7 +63,9 @@ class TestAttemptSinglePartDurationTest {
                 gradingAdapter,
                 gradingService,
                 transactionManager,
-                entityManager
+                entityManager,
+                mock(com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer.class),
+                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver()
         );
         lenient().when(identityAdapter.getCurrentUserId()).thenReturn(1);
     }
@@ -102,7 +104,7 @@ class TestAttemptSinglePartDurationTest {
     @Test
     void tc_tv305_be_01_single_part_mock_uses_containing_section_duration() {
         ExamFixture exam = createFixture(60);
-        when(examAdapter.findById(42)).thenReturn(Optional.of(exam));
+        when(examAdapter.findPublishedSnapshotById(42)).thenReturn(Optional.of(exam));
 
         ArgumentCaptor<TestAttempt> attemptCaptor = ArgumentCaptor.forClass(TestAttempt.class);
         when(testAttemptRepository.save(attemptCaptor.capture())).thenAnswer(invocation -> {
@@ -137,7 +139,7 @@ class TestAttemptSinglePartDurationTest {
     @Test
     void tc_tv305_be_02_part_outside_exam_throws_resource_not_found_without_saving() {
         ExamFixture exam = createFixture(60);
-        when(examAdapter.findById(42)).thenReturn(Optional.of(exam));
+        when(examAdapter.findPublishedSnapshotById(42)).thenReturn(Optional.of(exam));
 
         CreateAttemptRequest request = createRequest(70, 999); // Part does not exist in exam
 
@@ -151,7 +153,7 @@ class TestAttemptSinglePartDurationTest {
     @Test
     void tc_tv305_be_03_invalid_section_duration_throws_invalid_request_without_saving() {
         ExamFixture exam = createFixture(null); // Section has null duration
-        when(examAdapter.findById(42)).thenReturn(Optional.of(exam));
+        when(examAdapter.findPublishedSnapshotById(42)).thenReturn(Optional.of(exam));
 
         CreateAttemptRequest request = createRequest(70, 701);
 

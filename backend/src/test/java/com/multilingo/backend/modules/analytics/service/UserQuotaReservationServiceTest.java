@@ -268,4 +268,68 @@ class UserQuotaReservationServiceTest {
         assertThat(reservationService.refund(100, null)).isFalse();
         verifyNoInteractions(userQuotaRepository);
     }
+
+    @Test
+    @DisplayName("lockAccount theo feature code sử dụng đúng feature code được truyền vào")
+    void lockAccountWithFeatureCodeUsesProvidedFeatureCode() {
+        Instant futureReset = fixedNow.plusSeconds(3600);
+        UserQuota gradingQuota = UserQuota.builder()
+                .userId(10)
+                .featureCode("AI_WRITING_GRADING")
+                .usedCount(0)
+                .maxLimit(3)
+                .resetDate(futureReset)
+                .build();
+        gradingQuota.setId(200);
+
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(10, "AI_WRITING_GRADING"))
+                .thenReturn(List.of(gradingQuota));
+
+        UserQuotaReservationService.QuotaAccount account = reservationService.lockAccount(10, "AI_WRITING_GRADING");
+
+        assertThat(account.quotaId()).isEqualTo(200);
+        assertThat(account.featureCode()).isEqualTo("AI_WRITING_GRADING");
+        assertThat(account.usedCount()).isEqualTo(0);
+        assertThat(account.maxLimit()).isEqualTo(3);
+        verify(userQuotaRepository).findAllByUserIdAndFeatureCodeForUpdate(10, "AI_WRITING_GRADING");
+    }
+
+    @Test
+    @DisplayName("reserve theo featureCode AI_WRITING_GRADING tăng quota grading và không ảnh hưởng AI_WRITING_HINTS")
+    void reserveWithFeatureCodeIncrementsGradingQuotaWithoutTouchingHintsQuota() {
+        Instant futureReset = fixedNow.plusSeconds(3600);
+        UserQuota gradingQuota = UserQuota.builder()
+                .userId(10)
+                .featureCode("AI_WRITING_GRADING")
+                .usedCount(0)
+                .maxLimit(2)
+                .resetDate(futureReset)
+                .build();
+        gradingQuota.setId(200);
+
+        UserQuota hintsQuota = UserQuota.builder()
+                .userId(10)
+                .featureCode("AI_WRITING_HINTS")
+                .usedCount(0)
+                .maxLimit(5)
+                .resetDate(futureReset)
+                .build();
+        hintsQuota.setId(100);
+
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(10, "AI_WRITING_GRADING"))
+                .thenReturn(List.of(gradingQuota));
+        when(userQuotaRepository.conditionalIncrement(200, futureReset, fixedNow))
+                .thenAnswer(inv -> {
+                    gradingQuota.setUsedCount(gradingQuota.getUsedCount() + 1);
+                    return 1;
+                });
+
+        UserQuotaReservationService.QuotaReservation reservation =
+                reservationService.reserve(10, "AI_WRITING_GRADING");
+
+        assertThat(reservation.quotaId()).isEqualTo(200);
+        assertThat(reservation.resetDate()).isEqualTo(futureReset);
+        assertThat(gradingQuota.getUsedCount()).isEqualTo(1);
+        assertThat(hintsQuota.getUsedCount()).isZero();
+    }
 }

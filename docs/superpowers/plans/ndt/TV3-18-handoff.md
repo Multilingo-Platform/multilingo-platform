@@ -1560,3 +1560,127 @@ Chạy tại `backend/`; TV3_PG_TEST_URL/USER/PASSWORD chỉ trỏ PostgreSQL 17
 - Không audit unrelated deleted `Dac_ta_Usecase_UC08_UC10.docx`, `.codex/`, existing unpublished POST /attempts, autosave/version/frontend tasks, TV1 quota provisioning/reset/subscription policy hoặc các TV3 features khác. Không dùng chúng làm blockers của TV3-18; chỉ đọc direct dependencies cần kiểm tra integration.
 - Existing JWT/auth configuration được source-inspect, không live-auth deployment test. Mock/schema/fixture verification không chứng minh semantic quality của live model; staging multilingual validation vẫn cần trước rollout, như approved plan đã ghi. Text-only/media limitations và provider có thể tính phí khi application refund là documented risks, không confirmed implementation defect.
 - **Next recommended action:** Có thể bàn giao code TV3-18 với PASS này; nên sửa P2-01 bằng deterministic latch/finally regression riêng. Giữ feature disabled cho đến khi provision quota/Gemini config và hoàn tất staging multilingual validation. Reviewer dừng sau báo cáo; không tự sửa test/code, bật feature, commit hoặc push.
+
+## 2026-10-15 — Codex Reviewer — TV3-20 FULL FEATURE re-review
+
+- **Agent:** Codex Reviewer.
+- **Reviewed scope:** Toàn feature **TV3-20**, gồm20-01–08 và Revision R2 multimodal. Entry được append vào **TV3-18-handoff.md theo chỉ định trực tiếp của chủ dự án**; không thay verdict lịch sử TV3-18 và không phải review lại TV3-18.
+- **Decision: NEED_FIX** — hai P1 về API multimodal chưa đáp ứng brief R2 ưu tiên; còn P2 về rollback regression đã ghi ở gate20-04. Không xác nhận P0.
+- **Review basis:** Approved TV3-20-plan và lịch sử handoff20-01–08, cùng brief R2 `C:/Users/admin/.codex/attachments/6655a767-e53e-41ad-b9da-25c918fe415d/Pasted text.txt` mục3.6/20-07. Plan tuyên bố brief R2 có ưu tiên khi phần text-only chưa cập nhật; các trường API visual trong brief vì vậy vẫn là yêu cầu feature, không phải scope mới.
+- **Git/scope:** Staged rỗng. Đã kiểm tra unstaged diff và đọc trực tiếp untracked context/enqueue/grade/media loader/jobs/config/coordinator/worker/dispatcher/feedback API và tests liên quan. Exam-language snapshot, word-counter reuse, finalization/enqueue integration và feature-code quota adapter thuộc TV3-20. ETS/admin import/frontend và TV3-17 Gemini/media là baseline riêng, không đưa vào audit hoặc sửa đổi.
+
+### IN-SCOPE findings
+
+**TV3-20-F1 — P1: Feedback API thiếu contract multimodal của Revision R2.**
+
+- **Vị trí:** `backend/src/main/java/com/multilingo/backend/modules/testing/dto/response/WritingFeedbackResponse.java:28–44` (`TaskFeedback`); mapper DONE branches trong `WritingFeedbackMapper.java` không project thông tin visual đã lưu.
+- **Scenario:** Worker hoàn thành task có ảnh, parser đã validate và job/aiFeedback đã lưu visualObservations, nhưng GET chỉ trả các field text-only. Người học không thấy mô tả những gì model đọc từ ảnh và không biết task có visual context. Brief R2 mục3.6 yêu cầu rõ `hasVisualContext` boolean và `visualObservations` nullable; việc bỏ URL/SHA là đúng nhưng không cho phép bỏ hai public fields này.
+- **Independent proof:** Production mapper + Jackson serialization với visual SUCCEEDED grade hợp lệ trả `VISUAL_TASK_STATUS=DONE, HAS_VISUAL_FIELD=false, OBSERVATIONS_FIELD=false`. Không phải fixture grading malformed.
+- **Minimal fix:** Thêm hai public DTO fields theo R2; map visual flag từ historical/frozen task metadata, observations từ persisted validated grade. Không trả URL/SHA/internal imageCount hoặc gọi fetch/provider trong GET. Giữ các endpoints result/review/workspace không đổi.
+- **Focused regression:** Full submit→worker→HTTP feedback cho0/1/2 ảnh; assert visual task DONE trả đúng observations và flag, text-only không có observations; pending/failed/unavailable có flag nhất quán; sentinel URL/query/SHA/bytes không xuất hiện. Test lifecycle hiện chỉ assert observations trong job DB, chưa assert field này ở HTTP.
+
+**TV3-20-F2 — P1: API làm mất reason code của lỗi ảnh xảy ra sau claim.**
+
+- **Vị trí:** `backend/src/main/java/com/multilingo/backend/modules/testing/service/support/WritingFeedbackMapper.java:328–331` (`extractReasonFromJob`), cùng `resolveUnavailableMessage` ngay sau đó.
+- **Scenario:** ImageFetcher báo TOO_LARGE/invalid/404/host rejected; loader map thành IMAGE_TOO_LARGE/IMAGE_INVALID/IMAGE_UNAVAILABLE/IMAGE_SOURCE_NOT_ALLOWED. Coordinator fail lưu `lastErrorCode` và refund, không sửa frozen context. Mapper UNAVAILABLE chỉ đọc `contextJson.reasonCode` — field chỉ có cho enqueue-time unavailable, không có cho job visual vốn eligible — nên trả generic UNAVAILABLE và thông điệp không hỗ trợ, thay vì reason được phân loại theo R2. Các image-specific display messages cũng chưa được map.
+- **Independent proof:** Production mapper với job UNAVAILABLE, normal frozen image context và `lastErrorCode=IMAGE_TOO_LARGE` trả `JOB_LAST_ERROR=IMAGE_TOO_LARGE, API_REASON=UNAVAILABLE`.
+- **Minimal fix:** Projection ưu tiên safe/allowlisted terminal lastErrorCode, giữ fallback cho unavailable lúc enqueue/local và map thông điệp tiếng Việt cố định cho image reasons. Không sửa frozen context để phục vụ API, không trả raw provider/network message hoặc URL.
+- **Focused regression:** Production worker nhận từng permanent image failure sau reserve→UNAVAILABLE/refund đúng1 lần→HTTP reason/message đúng; không leak internal details. Giữ regression enqueue-time unsupported/missing-language và period/fencing hiện có.
+
+**TV3-20-F3 — P2: Rollback test enqueue chưa assert đầy đủ invariant ghi trong tên test (carry-forward20-04).**
+
+- **Vị trí:** `backend/src/test/java/com/multilingo/backend/modules/testing/service/WritingGradingSubmissionIT.java:467–526`.
+- Hai essays “...more than ten English words” thực tế chỉ8 từ, đi local short-result; submit request không có finalAnswers. Assertions kiểm tra status/endTime/objective/jobs, chưa so userAnswers/version/aiFeedback sau rollback dù test name hứa cả finalAnswers/version. Không chứng minh finalAnswers hoặc local feedback không bị partial commit.
+- **Minimal improvement:** Dùng submit có finalAnswers khác autosave, chụp trước/sau answers/version/aiFeedback cùng status/endTime/objective/jobs; inject lỗi job thứ2. Có thể giữ case short-result để bảo vệ local feedback, thêm case11+ từ cho READY jobs. Đây là coverage P2, không khẳng định production rollback hỏng; coordinator PostgreSQL commit-rollback tests đã PASS riêng.
+
+### Verified feature behavior / acceptance
+
+- AC-01/02: Finalization enqueue MANDATORY, sau objective grading thành công và ngoài broad catch; scoped real part/question identity, snapshot language/essay/text/URLs, idempotency và job unique constraint hiện diện. Source authoring changes không thay frozen prompt/refs trong integration tests.
+- AC-03/04: Context/code-point limits, <=10 local0 trước image processing, unsupported/no-language fail-closed; parser reject malformed output và corrections/diff không nhất quán, score server-side; feedback mapper kiểm tra persisted semantic integrity sau fixes20-07. R2 public visual projection còn F1.
+- AC-05/06/07: Quota per ESSAY, retry reuse, conditional period refund; attempt→quota→job locks, clock sau locks, fresh scalar lookup/refresh, four-run budget/backoff/lease gồm image budget, callback fencing và multi-essay merge. PostgreSQL production proxies/rollback/period/races xanh. Worker/image/provider ngoài transaction, dedicated bounded executor, recovery và scheduling property đã có regressions.
+- AC-08/09: Owner/submitted/part scope, read-only GET, over-limit original omitted không truncate DB, public DTO allowlist, objective/result/review/workspace invariance. API image errors còn F2; không có thay đổi API admin/authoring được yêu cầu bởi TV3-20.
+- AC-10 và R2 evidence: Lifecycle text/visual/unsupported, fresh worker, pending submit, quota unavailable, partial failure và frontend compatibility đã chạy. Không coi prior subtask PASS là bằng chứng rằng hai requirement R2 tích hợp API ở F1/F2 đã đạt.
+- Không gọi provider thật, không chứng minh semantic prompt-injection immunity hoặc model grading quality. URL lịch sử không bảo đảm bytes ảnh bất biến. Giữ feature/images/dispatcher disabled; staging human review10–20 charts/maps/processes trước rollout images theo brief.
+
+### Focused verification — Reviewer chạy độc lập lượt full feature
+
+- Backend tại `backend`, cấu hình TV3_PG_TEST_* test localhost, một Maven process duy nhất:
+  `.\mvnw.cmd '-Dtest=WritingGrading*,WritingFeedback*,WritingDiffBuilderTest,WritingWordCounterTest,DbWritingGradingQuotaAdapterTest,UserQuotaReservationService*,TestAttempt*,SubmitAttemptImmutableKeysTest,ReviewSnapshotPersistenceTest,AttemptResultSummaryMapperTest,DbExamAdapter*,FixtureExamAdapterTest,ResultSummaryContractIT,ExamReviewContractIT,WritingHint*,WritingHints*,GeminiContractTest' test`.
+- **Observed: BUILD FAILURE, exit1; 840 cases,1 failure,10 errors,0 skipped; 01:22 min; kết thúc2026-10-15 20:47:36 +07.** Cả11 failed/error cases thuộc hai lớp Hints PostgreSQL cũ, xem OUT-OF-SCOPE bên dưới. Không gọi run này là backend toàn bộ PASS;829 cases còn lại thành công theo summary.
+- Hai lớp PostgreSQL grading của TV3-20 nằm trong cùng run: **WritingGradingPostgresIT4 + WritingGradingPostgresTransactionIT8 =12 PASS, không skip**. Production migration/proxies/isolated schemas và specific lock-wait markers xác nhận. Không có Maven chạy chồng thư mục target trong lượt này.
+- Frontend: `npm test -- src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/resultPageContract.test.tsx src/features/exam/__tests__/reviewContract.test.ts src/features/exam/pages/__tests__/ExamResultPage.test.tsx --run` — **4 files/162 tests PASS, exit0,4.35s, start20:46:51**.
+- F1/F2 được tái hiện riêng bằng JShell/stdin dùng production mapper/DTO/ObjectMapper, không sửa source/test/DB, không gọi network. Các reported broad results trước đây trong TV3-20-handoff là historical evidence, không thay kết quả observed ở trên.
+- Không chạy full backend suite/GenerateTemplateTest; không commit/push hoặc bật feature.
+
+### OUT-OF-SCOPE follow-ups
+
+- `WritingHintPostgresIT`3 cases:1 failure/2 errors; `WritingHintPostgresTransactionIT`8 cases:8 errors. Root cause chung là fixture/baseline Hints thiếu table `daily_study_logs` khi Flyway chạy migration **V20261012100000__create_practice_completion_receipts.sql**, trước migration TV3-20. Files Hints PostgreSQL fixtures và migration đó không bị TV3-20 sửa; việc cấp TV3_PG_TEST_* kích hoạt các gates cũ vốn skipped trong báo cáo broad trước. Ghi follow-up cho TV3-18/Hints test harness, không biến thành P1 TV3-20 hoặc tự sửa unrelated migration/data.
+- Known Claim.toString in runId là follow-up non-blocking đã ghi trong20-08; không có log call mới, không suy ra leak thực tế nếu không có sink. ETS/admin import/frontend unrelated, quota provisioning/reset policy và semantic quality live model ngoài audit này.
+
+### Next required action / preservation
+
+- Sửa F1/F2 và thêm regression HTTP qua worker như nêu trên; nên hoàn thiện F3 riêng. Yêu cầu re-review **full feature TV3-20**; chưa nghiệm thu rollout. Tách việc sửa PostgreSQL Hints harness thành follow-up đúng phạm vi.
+- Chỉ append entry review này vào TV3-18-handoff theo yêu cầu; không sửa TV3-20-plan/handoff, production/tests, không commit/push/rebase. Giữ mọi dirty/untracked work; dừng sau báo cáo.
+
+## 2026-10-15 — Codex Reviewer — TV3-20 FULL FEATURE re-review sau F1/F2/F3
+
+- **Agent:** Codex Reviewer.
+- **Scope:** Toàn feature **TV3-20**, tám subtasks và Revision R2 multimodal; đối chiếu approved plan, brief R2 ưu tiên, lịch sử reviews và entry re-FIX F1/F2/F3 trong TV3-20-handoff dòng2562 trở đi.
+- **Decision: PASS** cho implementation TV3-20 trong phạm vi đã duyệt; không phải quyết định bật feature/rollout hoặc chứng nhận chất lượng model thật.
+- **Handoff target:** User lượt này viết chung “handoff.md”; tiếp tục file TV3-18-handoff theo chỉ định cụ thể gần nhất và đã thông báo giả định trong commentary. Entry này vẫn chỉ review TV3-20, không thay verdict lịch sử TV3-18. Không sửa hoặc sao chép entry cũ.
+- **Git/instructions:** Staged rỗng; đã kiểm tra status, unstaged diff và đọc trực tiếp các files untracked thuộc feature/direct call paths. Áp dụng GEMINI/root instructions và skill tv3-code-review; không có scoped AGENTS bổ sung trong backend/docs. ETS/admin import/frontend/TV3-17 R2 là baseline riêng, không mở audit ngoài phạm vi.
+
+### Findings / closures
+
+- **F1 (P1) CLOSED:** TaskFeedback có public hasVisualContext boolean và visualObservations nullable. Mapper lấy visual metadata đúng historical part/group/question hoặc frozen job image refs, không dựa runtime images-enabled hay tự suy từ model output. DONE canonical và job fallback trả observations đã validate; visual grade11+ từ thiếu/quá cap bị fail-closed, short-result không đòi observations. HTTP lifecycle0/1/2 ảnh kiểm tra PENDING/DONE và flag trong queued/failed/unavailable; không URL/query/token/SHA/imageCount/imageDigests/bytes/base64 trong payload.
+- **F2 (P1) CLOSED:** UNAVAILABLE projection ưu tiên lastErrorCode trong allowlist IMAGE_TOO_LARGE/IMAGE_INVALID/IMAGE_UNAVAILABLE/IMAGE_SOURCE_NOT_ALLOWED, giữ fallback enqueue-time context reason. Thông điệp tiếng Việt cố định; không sửa frozen context hoặc trả raw network/provider detail. Chín permanent ImageFetcher failure cases chạy production worker→refund→HTTP reason/message, quota7→8→7, terminal redelivery không fetch/refund lặp, Gemini không bị gọi.
+- **F3 (P2) CLOSED:** Submit DB-failure regression có cả local short và long11+ READY job. finalAnswers khác autosave và baseVersion thật; spy xác nhận finalAnswers/objective/job đầu và local feedback đã được ghi trong transaction trước lỗi job thứ2. Reload so toàn bộ answers/aiFeedback/flags/earnedScore/skillStats, version/status/endTime/resultSummary/timeSpent/objective/sectionScores và không còn jobs; không partial commit.
+- **Confirmed IN-SCOPE P0/P1/P2 còn mở:** Không có finding actionable mới hoặc finding F1–F3 còn mở. Không tái liệt kê các correction đã đóng ở gates20-01–08 thành lỗi mới.
+
+### Full-feature acceptance / integration verified
+
+- **AC-01/02:** Finalization→enqueue MANDATORY sau objective success, idempotent job identity attempt+part+question, DB errors propagate rollback; historical language/text/essay/URLs giữ scope, không JOIN live authoring. Lifecycle source edits và strengthened finalAnswers rollback tests xanh.
+- **AC-03/04:** English eligibility, missing/unsupported language/media, code-point limits; <=10 local zero trước ảnh, no provider/quota. Server rubric score half-step/mean, required text caps, exact corrections/diff reconstruction và persisted fail-closed projection đều có focused tests; zero AI grade không bị biến thành TOO_SHORT, không default legacy language=en.
+- **AC-05/06/07:** Quota per ESSAY, một reservation qua retries, conditional refund đúng ID/period; attempt→quota→job locks và fresh clock, scalar lookup/refresh, budget4/backoff/recovery, image lease budget, run/lease/input fencing, atomic merge/rollback và hai essays cùng part. Worker/images/provider ngoài transaction; dedicated bounded executor, capacity/rejection/dedup và scheduling config giữ nguyên các fixes trước.
+- **AC-08/09:** Identity owner/missing/non-owner/status/part guards; read-only HTTP feedback, public DTO allowlist và no-store success; không lazy-finalize/fetch/provider/enqueue trong GET. Objective score/verdict cùng result/review/workspace contracts giữ nguyên qua grading. API visual/error contract R2 nay được HTTP regression kiểm tra thay vì chỉ assert DB grade.
+- **AC-10 và brief R2 AC-11–14:** Text/visual0/1/2 ảnh, media-disabled/unsupported, quota unavailable/provider pending, durable fresh-worker recovery, partial failure, privacy và frontend compatibility có evidence; PostgreSQL production migration/proxy/lock-wait/refund-period/rollback thực chạy riêng không skip. Không dùng H2 hoặc test skipped để khẳng định PG gate đạt.
+- Không thêm broker/dependency, không đổi authoring/admin API, không tải ảnh khi submit hoặc giữ bytes trong DB; lấy URL lịch sử, audit SHA sau run, không tuyên bố URL snapshot đảm bảo bytes ảnh bất biến.
+
+### Verification — Reviewer chạy độc lập trong lượt này
+
+**1. Backend regression đúng focused command trong plan**, tại backend, không set TV3_PG_TEST_* cho run broad:
+
+```powershell
+.\mvnw.cmd '-Dtest=WritingGrading*,WritingFeedback*,WritingDiffBuilderTest,WritingWordCounterTest,DbWritingGradingQuotaAdapterTest,UserQuotaReservationService*,TestAttempt*,SubmitAttemptImmutableKeysTest,ReviewSnapshotPersistenceTest,AttemptResultSummaryMapperTest,DbExamAdapter*,FixtureExamAdapterTest,ResultSummaryContractIT,ExamReviewContractIT,WritingHint*,WritingHints*,GeminiContractTest' test
+```
+
+- **BUILD SUCCESS, exit0 — 853 cases:831 executed thành công,22 skipped,0 failures/errors; 01:11 min; kết thúc2026-10-15 22:23:40 +07.** Không gọi đây là853 executed PASS. Các cases F1/F2/F3 và compatibility nằm trong run này.
+
+**2. PostgreSQL grading gate chạy tuần tự sau broad**, TV3_PG_TEST_* chỉ trỏ test localhost/schema cô lập:
+
+```powershell
+.\mvnw.cmd '-Dtest=WritingGradingPostgresIT,WritingGradingPostgresTransactionIT' test
+```
+
+- **BUILD SUCCESS, exit0 — 12 tests,0 failures/errors/skips; 39.025s; kết thúc22:24:33 +07.** Gồm4 migration/schema +8 production transaction cases. Có specific waiter→holder lock-wait markers cho SQL khóa test_attempts. Không concurrent Maven cùng target trong lượt này.
+
+**3. Frontend compatibility**, tại frontend:
+
+```powershell
+npm test -- src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/resultPageContract.test.tsx src/features/exam/__tests__/reviewContract.test.ts src/features/exam/pages/__tests__/ExamResultPage.test.tsx --run
+```
+
+- **4 files/162 tests PASS, exit0;5.16s; start22:22:50.** Không sửa frontend.
+- Fixer báo cáo behavioral RED28 cases/16 failures và focused149 PASS là **reported evidence**, Reviewer không chạy lại RED hoặc thay implementation để mutation. Kết quả broad/PG/frontend ở trên là fresh Reviewer-run, không cộng các runs trùng thành tổng unique tests.
+- `git diff --check` sạch ngoài CRLF warnings có sẵn; workbook SHA256 độc lập vẫn `2A9045FE5FAB8562ED675D1EA9991CD476DB32910A5C6507636869FADD8781B8`. Không full backend/GenerateTemplateTest, live provider hoặc DB production.
+
+### OUT-OF-SCOPE follow-ups / operational limits
+
+- Hai Hints PostgreSQL harness cũ thiếu daily_study_logs khi chạy historical migration là follow-up đã xác định ở review trước. Lượt này không cấp DB env cho broad nên các PG classes skip, rồi chạy đúng grading PG gate riêng. Không tuyên bố Hints harness đã sửa/xanh và không biến defect test fixture ngoài TV3-20 thành blocker feature này.
+- Claim.toString chứa runId là known non-blocking diagnostic follow-up; không phát hiện production log sink mới, worker logs không in token. Không mở audit các feature khác, quota provisioning/reset policy hoặc unrelated worktree changes.
+- Unit/integration fixtures không chứng minh model grading quality hoặc semantic prompt-injection immunity. Giữ enabled/images-enabled/dispatcher-enabled mặc định false. Trước bật ảnh production cần human quality review trên staging với10–20 charts/maps/processes, gồm biểu đồ phức tạp, đúng brief R2; provider có thể bill request vật lý lặp sau crash dù quota application một reservation.
+
+### Next action / preservation
+
+- Không còn fix bắt buộc từ review full feature TV3-20 này. Chủ dự án quyết định quality review staging/rollout riêng; không tự bật feature hoặc tiến hành thay đổi tiếp.
+- Chỉ append entry này vào TV3-18-handoff, giữ toàn bộ lịch sử và dirty/untracked work; không sửa production/tests/approved plan/TV3-20-handoff, không commit/push/rebase. Dừng sau báo cáo.
