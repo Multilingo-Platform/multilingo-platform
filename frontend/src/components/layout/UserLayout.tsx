@@ -1,8 +1,9 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Flame, Crown, User, LogOut, Receipt, LayoutDashboard, BookOpen, History, Layers, Globe } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import Header from './Header';
+import { studentDashboardApi } from '../../features/student/dashboard/api/studentDashboardApi';
 import ProfileDropdown from '../common/ProfileDropdown';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import Footer from './Footer';
@@ -20,6 +21,17 @@ const UserLayout = () => {
 
   const { user: myInfo } = useSelector((state: any) => state.auth);
   const avatarLetter = myInfo?.fullName ? myInfo.fullName.charAt(0).toUpperCase() : 'U';
+
+  const { data: dashboardData } = useQuery({
+    queryKey: ['student-dashboard-streak'],
+    queryFn: () => studentDashboardApi.getDashboard('THIS_WEEK'),
+    staleTime: 60 * 1000,
+    enabled: !!myInfo,
+  });
+
+  const currentStreak = dashboardData?.streak?.currentStreak ?? 1;
+  const isStudiedToday = dashboardData?.streak?.isStudiedToday ?? false;
+
 
   const logoutMutation = useMutation({
     mutationFn: () => authApi.logout(),
@@ -99,9 +111,32 @@ const UserLayout = () => {
               <Crown size={16} fill="currentColor" />
               <span>{t('userLayout.upgrade_pro')}</span>
             </button>
-            <div className="badge badge-orange" style={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: '0.25rem', padding: '0.4rem 0.75rem', borderRadius: '50px', whiteSpace: 'nowrap', height: '38px', fontSize: '0.875rem' }}>
+            <div 
+              className={`badge ${isStudiedToday ? 'badge-orange' : 'badge-amber'}`} 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                flexDirection: 'row', 
+                gap: '0.35rem', 
+                padding: '0.4rem 0.85rem', 
+                borderRadius: '50px', 
+                whiteSpace: 'nowrap', 
+                height: '38px', 
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                backgroundColor: isStudiedToday ? '#fff7ed' : '#fef3c7',
+                border: isStudiedToday ? '1px solid #fed7aa' : '1px solid #fde68a',
+                color: isStudiedToday ? '#ea580c' : '#d97706',
+                cursor: 'pointer'
+              }}
+              title={isStudiedToday ? `Chuỗi học: ${currentStreak} ngày • Đã hoàn thành hôm nay!` : `Chuỗi học: ${currentStreak} ngày • Chưa học hôm nay!`}
+              onClick={() => navigate('/student/dashboard')}
+            >
               <Flame size={16} fill="currentColor" />
-              <span>{t('userLayout.streak_days', { count: 5 })}</span>
+              <span>{t('userLayout.streak_days', { count: currentStreak })}</span>
+              {!isStudiedToday && (
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+              )}
             </div>
             <LanguageSwitcher />
             <div className="desktop-only">
@@ -170,9 +205,23 @@ const UserLayout = () => {
                 <span>{t('userLayout.upgrade_pro')}</span>
               </button>
 
-              <div className="badge badge-orange" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.625rem 0.85rem', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 700 }}>
+              <div 
+                className="badge badge-orange" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.35rem', 
+                  padding: '0.625rem 0.85rem', 
+                  borderRadius: '12px', 
+                  fontSize: '0.875rem', 
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title={isStudiedToday ? `Chuỗi học: ${currentStreak} ngày • Đã hoàn thành hôm nay!` : `Chuỗi học: ${currentStreak} ngày • Chưa học hôm nay!`}
+                onClick={() => navigate('/student/dashboard')}
+              >
                 <Flame size={16} fill="currentColor" />
-                <span>{t('userLayout.streak_days', { count: 5 })}</span>
+                <span>{t('userLayout.streak_days', { count: currentStreak })}</span>
               </div>
             </div>
 
