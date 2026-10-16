@@ -79,7 +79,7 @@ export const ExamResultPage = () => {
         </section>
         {data.summaryAvailable && data.resultSummary ? <>
           <ObjectiveResultSummary objective={data.resultSummary.objective} />
-          <WritingResultSummary writing={data.resultSummary.writing} />
+          <WritingResultSummary key={data.attemptId} writing={data.resultSummary.writing} attemptId={data.attemptId} />
         </> : <p className="rounded-xl border border-slate-200 bg-white p-5 text-slate-700">
           Chưa có bản tổng hợp kết quả cho bài làm này. Có thể cập nhật lại để kiểm tra; dữ liệu cũ có thể không có bản tổng hợp.
         </p>}

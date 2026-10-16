@@ -288,3 +288,62 @@ export interface WritingHintsFailure {
   action: 'retry' | 'change-language' | 'reload' | 'none';
   retryAt: number | null;
 }
+
+export type WritingFeedbackTaskStatus =
+  | 'PENDING'
+  | 'QUEUED'
+  | 'DONE'
+  | 'FAILED'
+  | 'UNAVAILABLE';
+
+export type WritingCriterionCode = 'TR' | 'CC' | 'LR' | 'GRA';
+
+export type WritingDiffType = 'EQUAL' | 'DELETE' | 'INSERT';
+
+export interface WritingCriterion {
+  code: WritingCriterionCode;
+  score: number;
+  feedback: string;
+}
+
+export interface WritingCorrection {
+  start: number;
+  end: number;
+  replacement: string;
+  explanation: string;
+}
+
+export interface WritingDiffSegment {
+  type: WritingDiffType;
+  text: string;
+}
+
+export interface WritingFeedbackTask {
+  questionId: string;
+  label: string;
+  status: WritingFeedbackTaskStatus;
+  wordCount: number;
+  language: string | null;
+  source: 'AI' | 'SYSTEM';
+  scoreUnit: 'BAND_0_9';
+  overall: number | null;
+  maxScore: number | null;
+  criteria: WritingCriterion[];
+  originalText: string | null;
+  overallFeedback: string | null;
+  correctedEssay: string | null;
+  corrections: WritingCorrection[];
+  diff: WritingDiffSegment[];
+  reasonCode: string | null;
+  displayMessage: string;
+  hasVisualContext: boolean;
+  visualObservations: string | null;
+}
+
+export interface WritingFeedbackResponse {
+  attemptId: number;
+  partId: number;
+  attemptStatus: Exclude<AttemptStatus, 'IN_PROGRESS'>;
+  partStatus: WritingFeedbackTaskStatus;
+  tasks: WritingFeedbackTask[];
+}

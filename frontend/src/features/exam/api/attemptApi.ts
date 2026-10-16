@@ -14,6 +14,7 @@ import type {
   PracticeFeedbackResponse,
   WritingHintsRequest,
   WritingHintsResponse,
+  WritingFeedbackResponse,
 } from '../types/api.types';
 import type { AttemptStatus, PartAnswers, UserAnswer, AnswerValue } from '../types/answer.types';
 import { normalizeAttemptResult, ResultContractError } from './resultContract';
@@ -28,8 +29,17 @@ import {
   WritingHintsContractError,
   validateWritingHintsRequest,
 } from './writingHintsContract';
+import {
+  normalizeWritingFeedback,
+  WritingFeedbackContractError,
+} from './writingFeedbackContract';
 
-export { ReviewContractError, PracticeFeedbackContractError, WritingHintsContractError };
+export {
+  ReviewContractError,
+  PracticeFeedbackContractError,
+  WritingHintsContractError,
+  WritingFeedbackContractError,
+};
 
 export class WorkspaceContractError extends Error {
   constructor(message: string = 'Dữ liệu phiên thi không hợp lệ. Vui lòng thử tải lại.') {
@@ -531,4 +541,38 @@ export async function generateWritingHints(
     ...validatedReq,
     attemptId,
   });
+}
+
+/**
+ * GET /api/v1/attempts/:id/writing-feedback?partId=:partId
+ * Fetches Writing AI/system feedback for a specific part after submission.
+ * Bounded request with 10.000 ms timeout and AbortSignal support.
+ */
+export async function getWritingFeedback(
+  attemptId: number,
+  partId: number,
+  options?: { signal?: AbortSignal }
+): Promise<WritingFeedbackResponse> {
+  if (!isPositiveInt(attemptId) || !isPositiveInt(partId)) {
+    throw new WritingFeedbackContractError('ID phiên thi hoặc phần thi không hợp lệ');
+  }
+
+  const res = await boundedAttemptRequest(
+    signal =>
+      axiosClient.get<unknown, ApiResponse<unknown>>(
+        `/v1/attempts/${attemptId}/writing-feedback`,
+        {
+          params: { partId },
+          signal,
+          timeout: WRITE_TIMEOUT_MS,
+        }
+      ),
+    options?.signal
+  );
+
+  if (!isRecord(res) || res.success !== true || res.data == null) {
+    throw new WritingFeedbackContractError();
+  }
+
+  return normalizeWritingFeedback(res.data, attemptId, partId);
 }

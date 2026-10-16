@@ -12,6 +12,8 @@ import {
   generateWritingHints,
   HINTS_TIMEOUT_MS,
   WritingHintsContractError,
+  getWritingFeedback,
+  WritingFeedbackContractError,
 } from '../api/attemptApi';
 import { ReviewContractError } from '../api/reviewContract';
 import { PracticeFeedbackContractError } from '../api/practiceFeedbackContract';
@@ -25,6 +27,7 @@ import {
   VALID_REQUEST_ID,
   createWritingHintsEnvelope,
 } from './fixtures/writingHints';
+import { validAiDoneTextOnlyWire } from './fixtures/writingFeedback';
 
 vi.mock('../../../core/api/axiosClient', () => ({
   default: { put: vi.fn(), post: vi.fn(), get: vi.fn() },
@@ -1244,5 +1247,90 @@ describe('generateWritingHints', () => {
     const result = await generateWritingHints(42, mutableReq);
     expect(result.partId).toBe(30);
     expect(result.questionId).toBe('writing-task-1');
+  });
+});
+
+describe('TV3-21 writing feedback GET', () => {
+  beforeEach(() => vi.resetAllMocks());
+  afterEach(() => vi.useRealTimers());
+
+  it('uses exact endpoint with query partId, 10s timeout, AbortSignal and returns normalized projection', async () => {
+    mockAxios.get.mockResolvedValueOnce({
+      success: true,
+      data: validAiDoneTextOnlyWire,
+    });
+
+    const result = await getWritingFeedback(101, 202);
+
+    expect(mockAxios.get).toHaveBeenCalledWith(
+      '/v1/attempts/101/writing-feedback',
+      expect.objectContaining({
+        params: { partId: 202 },
+        timeout: 10000,
+        signal: expect.any(AbortSignal),
+      })
+    );
+    expect(result.attemptId).toBe(101);
+    expect(result.partId).toBe(202);
+    expect(result.tasks[0].criteria).toHaveLength(4);
+  });
+
+  it.each([
+    [0, 202],
+    [-1, 202],
+    [1.5, 202],
+    [2147483648, 202],
+    [NaN, 202],
+    [101, 0],
+    [101, -5],
+    [101, 3.14],
+    [101, 2147483648],
+    [101, NaN],
+  ] as const)('invalid ID (%s, %s) rejects without dispatching HTTP', async (attemptId, partId) => {
+    await expect(getWritingFeedback(attemptId as number, partId as number)).rejects.toThrow(
+      WritingFeedbackContractError
+    );
+    expect(mockAxios.get).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    null,
+    undefined,
+    'string_envelope',
+    { success: false, message: 'some error' },
+    { success: true, data: null },
+    { success: 'true', data: validAiDoneTextOnlyWire },
+  ])('rejects non-envelope response %j with WritingFeedbackContractError', async envelope => {
+    mockAxios.get.mockResolvedValueOnce(envelope);
+    await expect(getWritingFeedback(101, 202)).rejects.toThrow(WritingFeedbackContractError);
+  });
+
+  it('rejects identity mismatch in response with WritingFeedbackContractError', async () => {
+    const mismatched = {
+      ...validAiDoneTextOnlyWire,
+      attemptId: 999, // Expected 101
+    };
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: mismatched });
+    await expect(getWritingFeedback(101, 202)).rejects.toThrow(WritingFeedbackContractError);
+  });
+
+  it('aborts waiting when external signal is aborted', async () => {
+    mockAxios.get.mockReturnValueOnce(new Promise(() => {}));
+    const controller = new AbortController();
+    const pending = getWritingFeedback(101, 202, { signal: controller.signal });
+    const check = expect(pending).rejects.toThrow(/hủy/i);
+    controller.abort();
+    await check;
+  });
+
+  it('settles at 10 seconds timeout even if transport never responds', async () => {
+    vi.useFakeTimers();
+    mockAxios.get.mockReturnValueOnce(new Promise(() => {}));
+    const pending = getWritingFeedback(101, 202);
+    const check = expect(pending).rejects.toThrow(/quá thời gian/i);
+    await vi.advanceTimersByTimeAsync(10000);
+    await check;
+    expect(mockAxios.get.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
