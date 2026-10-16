@@ -201,62 +201,94 @@ export function detectExcelColumns(headers: (string | undefined)[]): ExcelColumn
     } else if (
       text.includes('lựa chọn a') ||
       text.includes('option a') ||
+      text.includes('choice a') ||
+      text.includes('đáp án a') ||
       text === 'a' ||
-      text === 'opta'
+      text === 'opta' ||
+      text === '(a)' ||
+      text === 'a.'
     ) {
       colMap.optA = colNumber;
     } else if (
       text.includes('lựa chọn b') ||
       text.includes('option b') ||
+      text.includes('choice b') ||
+      text.includes('đáp án b') ||
       text === 'b' ||
-      text === 'optb'
+      text === 'optb' ||
+      text === '(b)' ||
+      text === 'b.'
     ) {
       colMap.optB = colNumber;
     } else if (
       text.includes('lựa chọn c') ||
       text.includes('option c') ||
+      text.includes('choice c') ||
+      text.includes('đáp án c') ||
       text === 'c' ||
-      text === 'optc'
+      text === 'optc' ||
+      text === '(c)' ||
+      text === 'c.'
     ) {
       colMap.optC = colNumber;
     } else if (
       text.includes('lựa chọn d') ||
       text.includes('option d') ||
+      text.includes('choice d') ||
+      text.includes('đáp án d') ||
       text === 'd' ||
-      text === 'optd'
+      text === 'optd' ||
+      text === '(d)' ||
+      text === 'd.'
     ) {
       colMap.optD = colNumber;
     } else if (
       text.includes('lựa chọn e') ||
       text.includes('option e') ||
+      text.includes('choice e') ||
+      text.includes('đáp án e') ||
       text === 'e' ||
-      text === 'opte'
+      text === 'opte' ||
+      text === '(e)' ||
+      text === 'e.'
     ) {
       colMap.optE = colNumber;
     } else if (
       text.includes('lựa chọn f') ||
       text.includes('option f') ||
+      text.includes('choice f') ||
+      text.includes('đáp án f') ||
       text === 'f' ||
-      text === 'optf'
+      text === 'optf' ||
+      text === '(f)' ||
+      text === 'f.'
     ) {
       colMap.optF = colNumber;
     } else if (
       text.includes('lựa chọn g') ||
       text.includes('option g') ||
+      text.includes('choice g') ||
+      text.includes('đáp án g') ||
       text === 'g' ||
-      text === 'optg'
+      text === 'optg' ||
+      text === '(g)' ||
+      text === 'g.'
     ) {
       colMap.optG = colNumber;
     } else if (
       text.includes('lựa chọn h') ||
       text.includes('option h') ||
+      text.includes('choice h') ||
+      text.includes('đáp án h') ||
       text === 'h' ||
-      text === 'opth'
+      text === 'opth' ||
+      text === '(h)' ||
+      text === 'h.'
     ) {
       colMap.optH = colNumber;
     } else if (
       text.includes('đáp án đúng') ||
-      text.includes('đáp án') ||
+      (text.includes('đáp án') && !/đáp án\s*[a-h]/i.test(text)) ||
       text.includes('correct') ||
       text.includes('(key)') ||
       text === 'key'
@@ -1420,17 +1452,29 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           const qType = q.type;
           const qText = q.question_text || `Câu ${qIdx + 1}`;
           
-          let optA = '', optB = '', optC = '', optD = '', optE = '', optF = '', optG = '', optH = '';
-          if (q.metadata && q.metadata.options) {
-            optA = q.metadata.options[0] || '';
-            optB = q.metadata.options[1] || '';
-            optC = q.metadata.options[2] || '';
-            optD = q.metadata.options[3] || '';
-            optE = q.metadata.options[4] || '';
-            optF = q.metadata.options[5] || '';
-            optG = q.metadata.options[6] || '';
-            optH = q.metadata.options[7] || '';
-          }
+          const rawOpts: any[] =
+            (q.metadata && Array.isArray(q.metadata.options) && q.metadata.options.length > 0 ? q.metadata.options : null) ??
+            (Array.isArray((q as any).options) && (q as any).options.length > 0 ? (q as any).options : null) ??
+            (Array.isArray((group as any).options) && (group as any).options.length > 0 ? (group as any).options : null) ??
+            (Array.isArray((group as any).shared_options) && (group as any).shared_options.length > 0 ? (group as any).shared_options : null) ??
+            (Array.isArray((group as any).metadata?.options) && (group as any).metadata.options.length > 0 ? (group as any).metadata.options : null) ??
+            [];
+
+          const getOptText = (item: any): string => {
+            if (item == null) return '';
+            if (typeof item === 'string') return item.trim();
+            if (typeof item === 'object') return (item.text || item.label || item.content || item.value || '').trim();
+            return String(item).trim();
+          };
+
+          const optA = getOptText(rawOpts[0]);
+          const optB = getOptText(rawOpts[1]);
+          const optC = getOptText(rawOpts[2]);
+          const optD = getOptText(rawOpts[3]);
+          const optE = getOptText(rawOpts[4]);
+          const optF = getOptText(rawOpts[5]);
+          const optG = getOptText(rawOpts[6]);
+          const optH = getOptText(rawOpts[7]);
           
           let correct = '';
           if (q.metadata) {
@@ -1439,15 +1483,19 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             } else if (q.metadata.correct_option_indices !== undefined && Array.isArray(q.metadata.correct_option_indices) && q.metadata.correct_option_indices.length > 0) {
               correct = q.metadata.correct_option_indices.map((i: number) => String.fromCharCode(65 + i)).join(',');
             } else if (q.metadata.correct_answer) {
+              const resolveLetter = (ans: string): string => {
+                const trimmed = ans.trim();
+                if (/^[A-H]$/i.test(trimmed)) return trimmed.toUpperCase();
+                const idx = rawOpts.findIndex((item: any) => getOptText(item).toLowerCase() === trimmed.toLowerCase());
+                if (idx >= 0 && idx < 8) return String.fromCharCode(65 + idx);
+                return trimmed;
+              };
+
               if (Array.isArray(q.metadata.correct_answer)) {
                 const validAnswers = q.metadata.correct_answer.filter((ans: string) => typeof ans === 'string' && ans.trim() !== '');
                 if (validAnswers.length > 0) {
                   if (q.type && (q.type.includes('MULTIPLE_CHOICE') || q.type === 'MATCHING_SENTENCE_ENDINGS' || q.type === 'MATCHING_FEATURES' || q.type === 'MATCHING_INFORMATION')) {
-                    const mapped = validAnswers.map((ans: string) => {
-                      const idx = q.metadata.options?.indexOf(ans);
-                      return idx !== undefined && idx >= 0 ? String.fromCharCode(65 + idx) : ans;
-                    });
-                    correct = mapped.join(',');
+                    correct = validAnswers.map(resolveLetter).join(',');
                   } else {
                     correct = validAnswers.join(',');
                   }
@@ -1455,12 +1503,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               } else if (typeof q.metadata.correct_answer === 'string' && q.metadata.correct_answer.trim() !== '') {
                 const trimmedAns = q.metadata.correct_answer.trim();
                 if (q.type && (q.type.includes('MULTIPLE_CHOICE') || q.type === 'MATCHING_SENTENCE_ENDINGS' || q.type === 'MATCHING_FEATURES' || q.type === 'MATCHING_INFORMATION')) {
-                  const idx = q.metadata.options?.indexOf(trimmedAns);
-                  if (idx !== undefined && idx >= 0) {
-                    correct = String.fromCharCode(65 + idx);
-                  } else {
-                    correct = trimmedAns;
-                  }
+                  correct = resolveLetter(trimmedAns);
                 } else {
                   correct = trimmedAns;
                 }
@@ -1468,7 +1511,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             }
           }
 
-          sheet.addRow({
+          const addedRow = sheet.addRow({
             part: partName,
             partInstruction: part.instruction || '',
             group: groupName,
@@ -1485,6 +1528,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               : (group.shared_media?.url || group.shared_audio?.url || ''),
             qMedia: (q.metadata as any)?.media?.url || ''
           });
+
+          addedRow.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
 
           // Add Data Validation
           sheet.getCell(`D${rowIndex}`).dataValidation = {
@@ -1507,25 +1552,25 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         });
 
         if (rowIndex - 1 > groupStartRow) {
-          sheet.mergeCells(`C${groupStartRow}:C${rowIndex - 1}`);
-          sheet.mergeCells(`E${groupStartRow}:E${rowIndex - 1}`);
-          sheet.mergeCells(`F${groupStartRow}:F${rowIndex - 1}`);
-          sheet.mergeCells(`O${groupStartRow}:O${rowIndex - 1}`); // groupMedia
+          sheet.mergeCells(`C${groupStartRow}:C${rowIndex - 1}`); // Nhóm (Group)
+          sheet.mergeCells(`E${groupStartRow}:E${rowIndex - 1}`); // Hướng dẫn riêng (Nhóm)
+          sheet.mergeCells(`F${groupStartRow}:F${rowIndex - 1}`); // Nội dung nhóm (Văn bản đọc/nghe)
+          sheet.mergeCells(`S${groupStartRow}:S${rowIndex - 1}`); // Đính kèm chung (Nhóm) - Cột S (19)
           
           sheet.getCell(`C${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
           sheet.getCell(`E${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
           sheet.getCell(`F${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-          sheet.getCell(`O${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`S${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         }
       });
 
       if (rowIndex - 1 > partStartRow) {
-        sheet.mergeCells(`A${partStartRow}:A${rowIndex - 1}`);
-        sheet.mergeCells(`B${partStartRow}:B${rowIndex - 1}`);
-        sheet.mergeCells(`N${partStartRow}:N${rowIndex - 1}`); // partMedia
+        sheet.mergeCells(`A${partStartRow}:A${rowIndex - 1}`); // Phần (Part)
+        sheet.mergeCells(`B${partStartRow}:B${rowIndex - 1}`); // Hướng dẫn chung (Phần)
+        sheet.mergeCells(`R${partStartRow}:R${rowIndex - 1}`); // Audio/File chung (Phần) - Cột R (18)
         sheet.getCell(`A${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         sheet.getCell(`B${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-        sheet.getCell(`N${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        sheet.getCell(`R${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
       }
     });
 
@@ -1541,14 +1586,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     guideSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
 
     guideSheet.addRow({ item: '1. GOM NHÓM BÀI ĐỌC/NGHE', desc: 'Các dòng (câu hỏi) có CÙNG tên ở cột "Phần (Part)" và CÙNG tên ở cột "Nhóm (Group)" sẽ tự động được gộp chung vào 1 bài đọc/nghe duy nhất.\n-> Bạn chỉ cần dán đoạn văn/bài đọc vào cột "Nội dung nhóm" của 1 dòng bất kỳ trong nhóm (hoặc dán cho tất cả các dòng thuộc nhóm đó đều được, hệ thống sẽ không bị lặp).' });
-    guideSheet.addRow({ item: '2. CÂU TRẮC NGHIỆM (A, B, C, D)', desc: 'Áp dụng cho Loại câu hỏi: MULTIPLE_CHOICE.\n-> Điền nội dung vào cột Lựa chọn A, B, C, D (Nếu câu hỏi chỉ có 3 đáp án thì bỏ trống cột D).\n-> Cột "Đáp án đúng": Bấm chọn A, B, C hoặc D từ danh sách thả xuống.' });
-    guideSheet.addRow({ item: '3. CÂU ĐÚNG / SAI / NOT GIVEN', desc: 'Áp dụng cho: TRUE_FALSE_NOT_GIVEN hoặc YES_NO_NOT_GIVEN.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": Bấm chọn TRUE, FALSE, hoặc NOT GIVEN từ danh sách thả xuống.' });
-    guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple). Mặc dù cột này có icon danh sách thả xuống của Excel, nhưng bạn vẫn gõ được bình thường mà không bị báo lỗi.' });
+    guideSheet.addRow({ item: '2. CÂU TRẮC NGHIỆM & NỐI (CỘT H ĐẾN O)', desc: 'Áp dụng cho MULTIPLE_CHOICE, MULTIPLE_CHOICE_MULTI, MATCHING_SENTENCE_ENDINGS, MATCHING_FEATURES...\n-> Điền nội dung vào cột Lựa chọn A đến H (Cột H đến O tương ứng optA -> optH).\n-> Trắc nghiệm 4 lựa chọn: điền A-D (bỏ trống E-H).\n-> Trắc nghiệm 2 đáp án (A-E): điền A-E.\n-> Matching sentence endings: điền A-G hoặc A-H.\n-> Cột "Đáp án đúng" (Cột P): Bấm chọn A, B, C, D, E, F, G, H từ danh sách thả xuống (nhiều đáp án thì cách nhau bằng dấu phẩy, ví dụ: A,C).' });
+    guideSheet.addRow({ item: '3. CÂU ĐÚNG / SAI / NOT GIVEN', desc: 'Áp dụng cho: TRUE_FALSE_NOT_GIVEN hoặc YES_NO_NOT_GIVEN.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A đến H.\n-> Cột "Đáp án đúng" (Cột P): Bấm chọn TRUE, FALSE, hoặc NOT GIVEN từ danh sách thả xuống.' });
+    guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A đến H.\n-> Cột "Đáp án đúng" (Cột P): GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple). Mặc dù cột này có icon danh sách thả xuống của Excel, nhưng bạn vẫn gõ được bình thường mà không bị báo lỗi.' });
     guideSheet.addRow({ item: '5. HƯỚNG DẪN (INSTRUCTION)', desc: 'Cột "Hướng dẫn chung (Phần)": Điền hướng dẫn áp dụng cho toàn bộ Part (ví dụ: Listen and answer questions 1-10).\nCột "Hướng dẫn riêng (Nhóm)": Chỉ điền nếu nhóm câu hỏi đó có hướng dẫn đặc thù riêng (ví dụ: Questions 1-4: Choose the correct letter...). Nếu không có thì để trống, hệ thống sẽ tự động dùng hướng dẫn chung của phần.' });
+    guideSheet.addRow({ item: '6. CÁC CỘT MERGE (TRỘN DÒNG)', desc: 'Hệ thống tự động merge các cột chung của Phần (Cột A: Phần, B: Hướng dẫn chung, R: Audio chung) và Nhóm (Cột C: Nhóm, E: Hướng dẫn riêng, F: Đoạn văn, S: Đính kèm chung nhóm).\n-> Cột H đến O (Lựa chọn A-H), Cột G (Câu hỏi), Cột P (Đáp án đúng) là dữ liệu riêng từng câu, KHÔNG bị merge.' });
 
     guideSheet.getColumn('desc').alignment = { wrapText: true, vertical: 'middle' };
     guideSheet.getColumn('item').alignment = { vertical: 'middle', wrapText: true };
-    for (let i = 2; i <= 6; i++) {
+    for (let i = 2; i <= 7; i++) {
       guideSheet.getRow(i).height = 65;
     }
 
@@ -1803,12 +1849,32 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       let lastPartName = '';
       let lastGroupName = '';
       let fallbackQCounter = 1;
+      let lastGroupOptions: string[] = [];
 
-      const getCellValue = (cell: ExcelJS.Cell) => {
-        if (cell.type === ExcelJS.ValueType.Merge) {
-          return cell.master.text ? cell.master.text.trim() : '';
+      const extractTextFromValue = (val: any): string => {
+        if (val == null) return '';
+        if (typeof val === 'string') return val.trim();
+        if (typeof val === 'number' || typeof val === 'boolean') return String(val).trim();
+        if (typeof val === 'object') {
+          if (Array.isArray(val.richText)) {
+            return val.richText.map((t: any) => (t && t.text) || '').join('').trim();
+          }
+          if (typeof val.text === 'string') return val.text.trim();
+          if (val.result != null) return extractTextFromValue(val.result);
         }
-        return cell.text ? cell.text.trim() : '';
+        const s = String(val).trim();
+        return s === '[object Object]' ? '' : s;
+      };
+
+      const getCellValue = (cell: ExcelJS.Cell): string => {
+        if (!cell) return '';
+        const targetCell = (cell.type === ExcelJS.ValueType.Merge && cell.master) ? cell.master : cell;
+        const fromVal = extractTextFromValue(targetCell.value);
+        if (fromVal) return fromVal;
+        if (targetCell.text && typeof targetCell.text === 'string' && targetCell.text.trim() !== '[object Object]') {
+          return targetCell.text.trim();
+        }
+        return '';
       };
 
       // Detect column indices dynamically based on header row
@@ -1861,6 +1927,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push(currentPart);
           lastPartName = partName;
           lastGroupName = ''; // reset group
+          lastGroupOptions = [];
         } else if (currentPart && !currentPart.instruction) {
           if (rawPartInstruction) currentPart.instruction = rawPartInstruction;
           else if (rawLegacyInstruction) currentPart.instruction = rawLegacyInstruction;
@@ -1871,6 +1938,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         }
 
         if (groupName !== lastGroupName || !currentGroup) {
+          lastGroupOptions = [];
           let groupInstruction = '';
           if (colMap.groupInstruction > 0 && rawGroupInstruction) {
             groupInstruction = rawGroupInstruction;
@@ -1944,7 +2012,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         else if (hasC) options = [rawOptA, rawOptB, rawOptC];
         else if (hasB) options = [rawOptA, rawOptB];
         else if (hasA) options = [rawOptA];
-        else if (type.includes('MULTIPLE_CHOICE')) {
+
+        const isChoiceOrMatching = type.includes('MULTIPLE_CHOICE') || type === 'MATCHING_SENTENCE_ENDINGS' || type === 'MATCHING_FEATURES' || type === 'MATCHING_INFORMATION';
+
+        if (options.length > 0) {
+          lastGroupOptions = [...options];
+        } else if (lastGroupOptions.length > 0 && isChoiceOrMatching) {
+          // Kế thừa options từ dòng trước trong cùng nhóm nếu các dòng sau để trống
+          options = [...lastGroupOptions];
+        } else if (type.includes('MULTIPLE_CHOICE')) {
           const isPart2 = (partName || '').toLowerCase().includes('part 2') || (partName || '').toLowerCase().includes('phần 2');
           options = isPart2 ? ['', '', ''] : (type === 'MULTIPLE_CHOICE_MULTI' ? ['', '', '', '', ''] : ['', '', '', '']);
         } else if (type === 'MATCHING_SENTENCE_ENDINGS') {
@@ -1960,30 +2036,34 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         let correctOptionIndex: number | undefined = undefined;
         let correctOptionIndices: number[] | undefined = undefined;
         
-        const isChoiceOrMatching = type.includes('MULTIPLE_CHOICE') || type === 'MATCHING_SENTENCE_ENDINGS' || type === 'MATCHING_FEATURES' || type === 'MATCHING_INFORMATION';
         if (isChoiceOrMatching && cleanCorrect !== '') {
            if (type === 'MULTIPLE_CHOICE_MULTI') {
-               const parts = cleanCorrect.split(',').map(s => s.trim().toUpperCase());
+               const parts = cleanCorrect.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
                correctOptionIndices = [];
                parsedCorrectAnswer = [];
                parts.forEach(p => {
                   let idx = -1;
-                  if (p.length === 1 && p >= 'A' && p <= 'H') {
-                    idx = p.charCodeAt(0) - 65;
+                  const upperP = p.toUpperCase();
+                  if (upperP.length === 1 && upperP >= 'A' && upperP <= 'H') {
+                    idx = upperP.charCodeAt(0) - 65;
+                  } else if (options.length > 0) {
+                    idx = options.findIndex(opt => opt && opt.trim().toLowerCase() === p.toLowerCase());
                   }
                   if (idx >= 0 && idx < options.length) {
                       correctOptionIndices!.push(idx);
-                      parsedCorrectAnswer.push((options[idx] && options[idx].trim() !== '') ? options[idx] : p);
+                      parsedCorrectAnswer.push((options[idx] && options[idx].trim() !== '') ? options[idx] : upperP);
                   } else {
                       parsedCorrectAnswer.push(p); // fallback
                   }
                });
                if (correctOptionIndices.length === 0) correctOptionIndices = undefined;
            } else {
-               const p = cleanCorrect.toUpperCase();
+               const upperP = cleanCorrect.toUpperCase();
                let idx = -1;
-               if (p.length === 1 && p >= 'A' && p <= 'H') {
-                 idx = p.charCodeAt(0) - 65;
+               if (upperP.length === 1 && upperP >= 'A' && upperP <= 'H') {
+                 idx = upperP.charCodeAt(0) - 65;
+               } else if (options.length > 0) {
+                 idx = options.findIndex(opt => opt && opt.trim().toLowerCase() === cleanCorrect.toLowerCase());
                }
                if (idx >= 0 && idx < options.length) {
                    correctOptionIndex = idx;

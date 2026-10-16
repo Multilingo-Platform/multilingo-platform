@@ -9,28 +9,33 @@ interface Props {
 }
 
 const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, maxSelections }) => {
-  const toggle = (id: string) => {
-    if (value.includes(id)) {
-      onChange(value.filter(v => v !== id));
+  const safeValue: string[] = Array.isArray(value)
+    ? value
+    : (typeof value === 'string' && value ? [value] : []);
+
+  const toggle = (opt: ExamOption) => {
+    const isCurrentlyChecked = safeValue.includes(opt.id) || (Boolean(opt.text) && safeValue.includes(opt.text));
+    if (isCurrentlyChecked) {
+      onChange(safeValue.filter(v => v !== opt.id && v !== opt.text));
     } else {
-      if (maxSelections && value.length >= maxSelections) {
+      if (maxSelections && safeValue.length >= maxSelections) {
         return; // Prevent selecting more than allowed
       }
-      onChange([...value, id]);
+      onChange([...safeValue, opt.id]);
     }
   };
 
   return (
     <div className="space-y-2.5 my-2">
       {options.map((opt, idx) => {
-        const isChecked = value.includes(opt.id);
+        const isChecked = safeValue.includes(opt.id) || (Boolean(opt.text) && safeValue.includes(opt.text));
         const letter = opt.id || String.fromCharCode(65 + idx);
         return (
           <label
             key={opt.id || idx}
             onClick={(e) => {
               e.preventDefault();
-              toggle(opt.id);
+              toggle(opt);
             }}
             className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
               isChecked
@@ -55,7 +60,7 @@ const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, max
               {letter}
             </span>
             <span className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1">
-              {opt.text}
+              {opt.text ? opt.text : `Lựa chọn ${letter}`}
             </span>
           </label>
         );

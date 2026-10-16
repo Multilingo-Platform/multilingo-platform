@@ -33,7 +33,7 @@ import { selectRetryQuestionIds, filterRetryGroups } from '../utils/practiceRetr
 import { AlertCircle } from 'lucide-react';
 import { useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../app/store';
-import type { Question } from '../types/exam.types';
+import type { Question, ExamOption } from '../types/exam.types';
 
 interface DictTooltip {
   word: string;
@@ -283,7 +283,18 @@ const WorkspacePage: React.FC = () => {
       return backendGroups;
     }
     const nestedGroups = currentPart.content?.question_groups;
-    return Array.isArray(nestedGroups) ? nestedGroups : [];
+    if (Array.isArray(nestedGroups) && nestedGroups.length > 0) {
+      return nestedGroups;
+    }
+    const contentDataGroups = (currentPart as any).contentData?.question_groups;
+    if (Array.isArray(contentDataGroups) && contentDataGroups.length > 0) {
+      return contentDataGroups;
+    }
+    const directGroups = (currentPart as any).question_groups;
+    if (Array.isArray(directGroups) && directGroups.length > 0) {
+      return directGroups;
+    }
+    return [];
   }, [currentPart]);
 
   // Prefer grouped canonical data; PartFixture.questions is a flat compatibility view.
@@ -300,14 +311,61 @@ const WorkspacePage: React.FC = () => {
 
   const partId = (currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1;
 
-  const normalizeQuestion = (q: any, fallbackQuestionNumber: number): Question => ({
+  const normalizeOptionsList = (rawOptions: any): ExamOption[] | null => {
+    if (!rawOptions) return null;
+    if (!Array.isArray(rawOptions)) return null;
+    if (rawOptions.length === 0) return [];
+
+    return rawOptions.map((opt: any, idx: number) => {
+      const defaultLetter = String.fromCharCode(65 + idx);
+      if (typeof opt === 'string') {
+        const text = opt.trim();
+        const prefixRegex = new RegExp(`^${defaultLetter}[.)]\\s*`, 'i');
+        const cleanedText = text.replace(prefixRegex, '').trim();
+        return {
+          id: defaultLetter,
+          text: cleanedText || text,
+        };
+      }
+      if (typeof opt === 'object' && opt !== null) {
+        const id = String(opt.id ?? opt.value ?? opt.key ?? opt.label ?? defaultLetter);
+        const rawText = String(opt.text ?? opt.content ?? opt.label ?? opt.title ?? opt.name ?? '');
+        const prefixRegex = new RegExp(`^${id}[.)]\\s*`, 'i');
+        const cleanedText = rawText.replace(prefixRegex, '').trim();
+        return {
+          id,
+          text: cleanedText || rawText,
+        };
+      }
+      return { id: defaultLetter, text: String(opt) };
+    });
+  };
+
+  const normalizeQuestion = (q: any, fallbackQuestionNumber: number, group?: any): Question => {
+    const rawOptions =
+      q.options ??
+      q.metadata?.options ??
+      q.choices ??
+      group?.options ??
+      group?.shared_options ??
+      group?.metadata?.options ??
+      group?.metadata?.shared_options ??
+      (currentPart as any)?.options ??
+      (currentPart as any)?.shared_options ??
+      (currentPart as any)?.content?.shared_options ??
+      null;
+
+    const normalizedOptions = normalizeOptionsList(rawOptions);
+
+    return {
       ...q,
       question_id: q.question_id ?? q.questionId ?? String(q.id),
       question_number: q.question_number ?? q.questionNumber ?? q.id ?? fallbackQuestionNumber,
       type: q.type === 'MCQ' ? 'SINGLE_CHOICE' : q.type === 'FILL_IN' ? 'FILL_IN_THE_BLANK' : q.type,
-      question_text: q.question_text || q.prompt || '',
-      options: q.options ?? null,
-    });
+      question_text: q.question_text || q.prompt || q.text || q.content || '',
+      options: normalizedOptions,
+    };
+  };
 
   const partQuestionGroups = useMemo(() => {
     const groups = currentPartQuestionGroups.length > 0
@@ -318,10 +376,10 @@ const WorkspacePage: React.FC = () => {
     return groups.map((group: any) => ({
       ...group,
       questions: (group.questions ?? []).map((question: any) =>
-        normalizeQuestion(question, nextQuestionNumber++)
+        normalizeQuestion(question, nextQuestionNumber++, group)
       ),
     }));
-  }, [currentPartQuestionGroups, currentPartQuestions, partId]);
+  }, [currentPartQuestionGroups, currentPartQuestions, partId, currentPart]);
 
   const partQuestions: Question[] = useMemo(
     () => partQuestionGroups.flatMap((group: any) => group.questions),

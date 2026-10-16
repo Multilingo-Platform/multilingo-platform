@@ -408,6 +408,36 @@ describe('ExamBuilder utils', () => {
       expect(colMap20.qMedia).toBe(20);
     });
 
+    it('detectExcelColumns supports "Choice A-H" and "Đáp án A-H" without colliding with "Đáp án đúng"', () => {
+      const headersChoice = [
+        'Part', 'Part Instruction', 'Group', 'Type', 'Group Instruction', 'Passage', 'Question',
+        'Choice A', 'Choice B', 'Choice C', 'Choice D', 'Choice E', 'Choice F', 'Choice G', 'Choice H',
+        'Correct Answer', 'Explanation', 'Part Media', 'Group Media', 'Question Media'
+      ];
+      const colMapChoice = detectExcelColumns(headersChoice);
+      expect(colMapChoice.optA).toBe(8);
+      expect(colMapChoice.optB).toBe(9);
+      expect(colMapChoice.optC).toBe(10);
+      expect(colMapChoice.optD).toBe(11);
+      expect(colMapChoice.optE).toBe(12);
+      expect(colMapChoice.optF).toBe(13);
+      expect(colMapChoice.optG).toBe(14);
+      expect(colMapChoice.optH).toBe(15);
+      expect(colMapChoice.correct).toBe(16);
+
+      const headersDapAn = [
+        'Phần', 'Hướng dẫn chung', 'Nhóm', 'Loại', 'Hướng dẫn riêng', 'Nội dung', 'Câu hỏi',
+        'Đáp án A', 'Đáp án B', 'Đáp án C', 'Đáp án D',
+        'Đáp án đúng', 'Giải thích', 'Audio', 'Ảnh', 'Đính kèm'
+      ];
+      const colMapDapAn = detectExcelColumns(headersDapAn);
+      expect(colMapDapAn.optA).toBe(8);
+      expect(colMapDapAn.optB).toBe(9);
+      expect(colMapDapAn.optC).toBe(10);
+      expect(colMapDapAn.optD).toBe(11);
+      expect(colMapDapAn.correct).toBe(12);
+    });
+
     it('QUESTION_TYPES includes MATCHING_SENTENCE_ENDINGS and MATCHING_FEATURES', () => {
       const typeValues = QUESTION_TYPES.map(q => q.value);
       expect(typeValues).toContain('MATCHING_SENTENCE_ENDINGS');
