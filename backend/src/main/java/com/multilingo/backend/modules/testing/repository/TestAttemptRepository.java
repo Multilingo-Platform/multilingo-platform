@@ -44,6 +44,10 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
 
     long countByUserId(Integer userId);
 
+    long countByUserIdAndStatus(Integer userId, AttemptStatus status);
+
+    Optional<TestAttempt> findFirstByUserIdAndStatusOrderByEndTimeDesc(Integer userId, AttemptStatus status);
+
     @Query("SELECT AVG(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.overallScore IS NOT NULL")
     Double findAverageScoreByUserId(@Param("userId") Integer userId);
 
