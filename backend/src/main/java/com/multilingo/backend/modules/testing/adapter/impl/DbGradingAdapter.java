@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -96,9 +97,14 @@ public class DbGradingAdapter implements GradingAdapter {
                     }
                     validateCanonicalQuestion(question);
                     Map<String, Object> questionMap = (Map<String, Object>) question;
-                    if (!questionMap.containsKey("options") && group.containsKey("options")) {
-                        questionMap = new LinkedHashMap<>(questionMap);
-                        questionMap.put("options", group.get("options"));
+                    if (!questionMap.containsKey("options")) {
+                        if (group.containsKey("options")) {
+                            questionMap = new LinkedHashMap<>(questionMap);
+                            questionMap.put("options", group.get("options"));
+                        } else if (questionMap.get("metadata") instanceof Map<?, ?> mm && mm.containsKey("options")) {
+                            questionMap = new LinkedHashMap<>(questionMap);
+                            questionMap.put("options", mm.get("options"));
+                        }
                     }
                     questions.add(questionMap);
                 }
@@ -132,25 +138,132 @@ public class DbGradingAdapter implements GradingAdapter {
     @SuppressWarnings("unchecked")
     private void addGradingKey(Map<String, GradingKey> answers, Set<String> seenQuestionIds,
                                Map<String, Object> question) {
-        String questionId = (String) question.get("question_id");
-        String type = (String) question.get("type");
+        Object rawQuestionId = question.get("question_id");
+        if (rawQuestionId == null) rawQuestionId = question.get("questionId");
+        if (rawQuestionId == null) rawQuestionId = question.get("id");
+        String questionId = rawQuestionId != null ? rawQuestionId.toString().trim() : null;
+
+        Object rawType = question.get("type");
+        if (rawType == null) rawType = question.get("questionType");
+        if (rawType == null) rawType = question.get("question_type");
+        String type = rawType != null ? rawType.toString().trim() : null;
+
         if (questionId != null && !seenQuestionIds.add(questionId)) {
             throw new IllegalArgumentException("Duplicate question_id within part: " + questionId);
         }
-        if (questionId == null || !question.containsKey("correct_answer") || "ESSAY".equals(type)) {
+        if (questionId == null || type == null || "ESSAY".equalsIgnoreCase(type)) {
+            return;
+        }
+
+        Map<String, Object> metadata = question.get("metadata") instanceof Map<?, ?> mm
+                ? (Map<String, Object>) mm
+                : null;
+
+        Object correct = question.get("correct_answer");
+        if (correct == null) correct = question.get("correctAnswer");
+
+        List<String> alternates = new ArrayList<>();
+        if (question.get("alternates") instanceof List<?> alts) {
+            for (Object a : alts) {
+                if (a != null && !a.toString().isBlank()) alternates.add(a.toString().trim());
+            }
+        }
+
+        if ((correct == null || (correct instanceof String s && s.isBlank())) && metadata != null) {
+            Object metaCorrect = metadata.get("correct_answer");
+            if (metaCorrect == null) metaCorrect = metadata.get("correctAnswer");
+            if (metaCorrect != null && (!(metaCorrect instanceof String s) || !s.isBlank())) {
+                correct = metaCorrect;
+            }
+        }
+
+        Object rawOptions = question.get("options");
+        if (rawOptions == null && metadata != null) {
+            rawOptions = metadata.get("options");
+        }
+        List<?> optionList = rawOptions instanceof List<?> list ? list : Collections.emptyList();
+
+        if (metadata != null && metadata.containsKey("correct_option_index") && metadata.get("correct_option_index") instanceof Number num) {
+            int idx = num.intValue();
+            if (idx >= 0) {
+                String letter = String.valueOf((char) ('A' + idx));
+                String optionText = null;
+                if (idx < optionList.size() && optionList.get(idx) != null) {
+                    Object optItem = optionList.get(idx);
+                    if (optItem instanceof Map<?, ?> optMap) {
+                        Object textVal = optMap.get("text");
+                        if (textVal != null) optionText = textVal.toString().trim();
+                    } else if (!optItem.toString().isBlank()) {
+                        optionText = optItem.toString().trim();
+                    }
+                }
+
+                if (correct == null || (correct instanceof String s && s.isBlank())) {
+                    if (optionText != null && !optionText.isBlank()) {
+                        correct = optionText;
+                        alternates.add(letter);
+                    } else {
+                        correct = letter;
+                    }
+                } else {
+                    if (!letter.equalsIgnoreCase(correct.toString().trim())) {
+                        alternates.add(letter);
+                    }
+                    if (optionText != null && !optionText.isBlank() && !optionText.equalsIgnoreCase(correct.toString().trim())) {
+                        alternates.add(optionText);
+                    }
+                }
+            }
+        }
+
+        if (metadata != null && metadata.containsKey("correct_option_indices") && metadata.get("correct_option_indices") instanceof List<?> idxList) {
+            List<String> letters = new ArrayList<>();
+            List<String> texts = new ArrayList<>();
+            for (Object o : idxList) {
+                if (o instanceof Number num) {
+                    int idx = num.intValue();
+                    if (idx >= 0) {
+                        String letter = String.valueOf((char) ('A' + idx));
+                        letters.add(letter);
+                        if (idx < optionList.size() && optionList.get(idx) != null) {
+                            String t = optionList.get(idx).toString().trim();
+                            if (!t.isBlank()) texts.add(t);
+                        }
+                    }
+                }
+            }
+            if (!letters.isEmpty()) {
+                if (correct == null || (correct instanceof String s && s.isBlank()) || (correct instanceof Collection<?> c && c.isEmpty())) {
+                    correct = letters;
+                    if (!texts.isEmpty()) {
+                        alternates.addAll(texts);
+                    }
+                } else {
+                    alternates.addAll(letters);
+                    alternates.addAll(texts);
+                }
+            }
+        }
+
+        if (metadata != null && metadata.get("alternates") instanceof List<?> metaAlts) {
+            for (Object a : metaAlts) {
+                if (a != null && !a.toString().isBlank()) alternates.add(a.toString().trim());
+            }
+        }
+
+        if (correct == null || (correct instanceof String s && s.isBlank())) {
             return;
         }
 
         GradingKey key = new GradingKey();
         key.setQuestionId(questionId);
         key.setType(type);
-        key.setCorrect(question.get("correct_answer"));
-
-        if (question.containsKey("alternates")) {
-            key.setAlternates((List<String>) question.get("alternates"));
+        key.setCorrect(correct);
+        if (!alternates.isEmpty()) {
+            key.setAlternates(alternates);
         }
 
-        if ("MATCHING_HEADINGS".equals(type)) {
+        if ("MATCHING_HEADINGS".equalsIgnoreCase(type)) {
             resolveMatchingHeadingsOptions(key, question);
         }
 

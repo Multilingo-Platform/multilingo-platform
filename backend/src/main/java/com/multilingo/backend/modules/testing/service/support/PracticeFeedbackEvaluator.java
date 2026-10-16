@@ -24,10 +24,13 @@ import java.util.*;
  * Read-only: does not persist, mutate snapshot, or perform external lookups.
  */
 @Component
-@RequiredArgsConstructor
 public class PracticeFeedbackEvaluator {
 
     private final ObjectiveGradingService objectiveGradingService;
+
+    public PracticeFeedbackEvaluator(ObjectiveGradingService objectiveGradingService) {
+        this.objectiveGradingService = objectiveGradingService;
+    }
 
     private record RawQuestionResult(Map<String, Object> questionMap, Object inheritedGroupOptions) {}
 
@@ -241,7 +244,7 @@ public class PracticeFeedbackEvaluator {
             return Collections.unmodifiableMap(cleanMap);
         }
 
-        if ("MULTIPLE_CHOICE".equalsIgnoreCase(type)) {
+        if ("MULTIPLE_CHOICE".equalsIgnoreCase(type) || "MULTIPLE_CHOICE_MULTI".equalsIgnoreCase(type)) {
             if (correct instanceof Map || correct.getClass().isArray()) {
                 throw new AppException(ErrorCode.GRADING_DATA_ERROR,
                         "Invalid nested structure in MULTIPLE_CHOICE grading key for question: " + questionId);

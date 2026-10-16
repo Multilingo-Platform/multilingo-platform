@@ -1025,11 +1025,44 @@ const WorkspacePage: React.FC = () => {
                         className="prose prose-slate max-w-none"
                       />
                     )}
-                    {group.questions.map((q: Question) => {
+                    {group.questions.map((q: Question, qIdx: number) => {
+                      const isSecondaryMulti = qIdx > 0 &&
+                        q.type === 'MULTIPLE_CHOICE_MULTI' &&
+                        group.questions[qIdx - 1]?.type === 'MULTIPLE_CHOICE_MULTI';
+
+                      if (isSecondaryMulti) {
+                        return null; // Combined with primary question above
+                      }
+
+                      const isPrimaryMulti = q.type === 'MULTIPLE_CHOICE_MULTI' &&
+                        group.questions[qIdx + 1]?.type === 'MULTIPLE_CHOICE_MULTI';
+                      const nextQ = isPrimaryMulti ? group.questions[qIdx + 1] : null;
+                      const nextQId = nextQ?.question_id;
+
                       const qId = q.question_id;
-                      const currentVal = answersState.answers?.[partId]?.[qId] ?? null;
-                      const isQuestionAnswered = isAnswered(currentVal, q.type);
-                      const isFlagged = !!answersState.flags?.[partId]?.[qId];
+                      let currentVal = answersState.answers?.[partId]?.[qId] ?? null;
+
+                      if (isPrimaryMulti && nextQId) {
+                        const v1 = answersState.answers?.[partId]?.[qId];
+                        const v2 = answersState.answers?.[partId]?.[nextQId];
+                        const combined: string[] = [];
+                        if (Array.isArray(v1)) combined.push(...v1);
+                        else if (typeof v1 === 'string' && v1) combined.push(v1);
+                        if (Array.isArray(v2)) {
+                          v2.forEach((item: string) => { if (!combined.includes(item)) combined.push(item); });
+                        } else if (typeof v2 === 'string' && v2 && !combined.includes(v2)) {
+                          combined.push(v2);
+                        }
+                        currentVal = combined;
+                      }
+
+                      const isQuestionAnswered = isPrimaryMulti
+                        ? Array.isArray(currentVal) && currentVal.length === 2
+                        : isAnswered(currentVal, q.type);
+
+                      const isFlagged = isPrimaryMulti && nextQId
+                        ? !!answersState.flags?.[partId]?.[qId] || !!answersState.flags?.[partId]?.[nextQId]
+                        : !!answersState.flags?.[partId]?.[qId];
 
                       // Calculate dynamic minWords based on question text/metadata or skill standards
                       const minWords = extractMinWords(q, currentPart);
@@ -1042,12 +1075,13 @@ const WorkspacePage: React.FC = () => {
                             isQuestionAnswered ? 'border-amber-200/80 bg-white' : 'border-slate-200 bg-white'
                           }`}
                         >
+                          {nextQId && <div id={`q-${nextQId}`} style={{ position: 'relative', top: '-10px' }} />}
                           <div className="flex items-start justify-between gap-3 mb-3.5">
                             <div className="flex items-start gap-3 flex-1">
-                              <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
+                              <span className={`h-7 px-2.5 rounded-lg flex items-center justify-center font-heading font-bold text-xs shrink-0 mt-0.5 transition-colors ${
                                 isQuestionAnswered ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-800 border border-amber-200'
                               }`}>
-                                {q.question_number}
+                                {isPrimaryMulti && nextQ ? `${q.question_number} - ${nextQ.question_number}` : q.question_number}
                               </span>
                               <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'lg:hidden' : ''}`}>
                                 {q.question_text}
@@ -1062,6 +1096,9 @@ const WorkspacePage: React.FC = () => {
                               onClick={() => {
                                 if (!isCurrentSectionLocked && !submission.isLocked()) {
                                   dispatch(toggleFlag({ partId, questionId: qId }));
+                                  if (nextQId) {
+                                    dispatch(toggleFlag({ partId, questionId: nextQId }));
+                                  }
                                 }
                               }}
                               title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
@@ -1088,7 +1125,13 @@ const WorkspacePage: React.FC = () => {
                                 minWords={minWords}
                                 onChange={(val) => {
                                   if (!isCurrentSectionLocked && !submission.isLocked()) {
-                                    dispatch(setAnswer({ partId, questionId: qId, value: val }));
+                                    if (isPrimaryMulti && nextQId) {
+                                      const selected = Array.isArray(val) ? val : (val ? [String(val)] : []);
+                                      dispatch(setAnswer({ partId, questionId: qId, value: selected[0] ? [selected[0]] : [] }));
+                                      dispatch(setAnswer({ partId, questionId: nextQId, value: selected[1] ? [selected[1]] : [] }));
+                                    } else {
+                                      dispatch(setAnswer({ partId, questionId: qId, value: val }));
+                                    }
                                   }
                                 }}
                               />
