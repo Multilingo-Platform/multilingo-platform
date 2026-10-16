@@ -23,10 +23,10 @@ const QuizPracticeView = lazy(() =>
   import('../modes/quiz/QuizPracticeView').then((m) => ({ default: m.QuizPracticeView }))
 );
 const VocabTestView = lazy(() =>
-  import('../../../components/vocab/VocabTestView').then((m) => ({ default: m.VocabTestView }))
+  import('../modes/test/VocabTestView').then((m) => ({ default: m.VocabTestView }))
 );
 const MatchGameView = lazy(() =>
-  import('../../../components/vocab/MatchGameView').then((m) => ({ default: m.MatchGameView }))
+  import('../modes/match/MatchGameView').then((m) => ({ default: m.MatchGameView }))
 );
 
 type ViewMode = 'DECKS_LIST' | 'DECK_DETAIL' | 'STUDY_MODE' | 'PRACTICE_MODE' | 'TEST_MODE' | 'MATCH_MODE';
@@ -290,7 +290,7 @@ export const FlashcardsPage: React.FC = () => {
   );
 
   return (
-    <div className={['DECKS_LIST', 'DECK_DETAIL', 'TEST_MODE', 'MATCH_MODE'].includes(viewMode) ? "container py-6" : ""}>
+    <div className={['DECKS_LIST', 'DECK_DETAIL', 'TEST_MODE'].includes(viewMode) ? "container py-6" : ""}>
       {/* 1. Màn hình Danh sách Bộ thẻ */}
       {viewMode === 'DECKS_LIST' && (
         <DeckListView
@@ -384,9 +384,13 @@ export const FlashcardsPage: React.FC = () => {
         selectedDeck ? (
           <Suspense fallback={<div className="p-12 text-center text-slate-600 font-semibold">Đang tải phòng thi thử...</div>}>
             <VocabTestView
-              deck={selectedDeck as unknown as import('../../../types/vocab').DeckSummary}
-              cards={cards as unknown as import('../../../types/vocab').Flashcard[]}
-              onBack={() => setSearchParams({ deckId: String(selectedDeck.id) })}
+              deck={selectedDeck}
+              cards={cards}
+              initialTestToken={searchParams.get('testToken') || undefined}
+              onBack={() => {
+                fetchDecks();
+                setSearchParams({ deckId: String(selectedDeck.id) });
+              }}
             />
           </Suspense>
         ) : (
@@ -399,8 +403,8 @@ export const FlashcardsPage: React.FC = () => {
         selectedDeck ? (
           <Suspense fallback={<div className="p-12 text-center text-slate-600 font-semibold">Đang chuẩn bị trò chơi...</div>}>
             <MatchGameView
-              deck={selectedDeck as unknown as import('../../../types/vocab').DeckSummary}
-              cards={cards as unknown as import('../../../types/vocab').Flashcard[]}
+              deck={selectedDeck}
+              cards={cards}
               onBack={() => setSearchParams({ deckId: String(selectedDeck.id) })}
             />
           </Suspense>

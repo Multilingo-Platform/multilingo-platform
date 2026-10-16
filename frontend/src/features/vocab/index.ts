@@ -10,7 +10,6 @@ export * from './hooks/useKeyboardShortcuts';
 export * from './hooks/useSoundEffects';
 
 // Utils
-export * from './utils/distractorGenerator';
 export * from './utils/vocabFormatters';
 
 // Shared Components

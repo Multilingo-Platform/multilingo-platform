@@ -1,6 +1,7 @@
 package com.multilingo.backend.modules.vocab.repository;
 
 import com.multilingo.backend.modules.vocab.dto.response.DeckStatsProjection;
+import com.multilingo.backend.modules.vocab.dto.response.UserVocabStatsProjection;
 import com.multilingo.backend.modules.vocab.entity.UserFlashcard;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -60,6 +61,16 @@ public interface UserFlashcardRepository extends JpaRepository<UserFlashcard, In
         GROUP BY u.deck.id
     """)
     Optional<DeckStatsProjection> countStatsByDeckId(@Param("deckId") Integer deckId, @Param("now") Instant now);
+
+    @Query("""
+        SELECT COUNT(u.id) AS totalCards,
+               COALESCE(SUM(CASE WHEN u.status = 'MASTERED' THEN 1 ELSE 0 END), 0) AS masteredCards,
+               COALESCE(SUM(CASE WHEN u.status = 'LEARNING' THEN 1 ELSE 0 END), 0) AS learningCards,
+               COALESCE(SUM(CASE WHEN u.nextReviewDate <= :now THEN 1 ELSE 0 END), 0) AS dueReviewCards
+        FROM UserFlashcard u
+        WHERE u.userId = :userId
+    """)
+    UserVocabStatsProjection getUserVocabStats(@Param("userId") Integer userId, @Param("now") Instant now);
 
     @Query("""
         SELECT u FROM UserFlashcard u

@@ -36,6 +36,7 @@ import { FlashcardsPage } from "../features/vocab";
 import PremiumUpgradePage from "../features/premium/pages/PremiumUpgradePage";
 import PaymentResultPage from "../features/premium/pages/PaymentResultPage";
 import PurchaseHistoryPage from "../features/premium/pages/PurchaseHistoryPage";
+import StudentDashboardPage from "../features/student/dashboard/pages/StudentDashboardPage";
 
 // Component Wrapper cho trang chủ (Landing Page)
 const RootRoute = () => {
@@ -103,13 +104,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "dashboard",
-        element: (
-          <div className="container">
-            <h1 style={{ fontSize: "2rem", marginTop: "2rem" }}>
-              Tính năng của Thành viên (Dashboard)
-            </h1>
-          </div>
-        ),
+        element: <StudentDashboardPage />,
       },
       {
         path: "flashcards",
