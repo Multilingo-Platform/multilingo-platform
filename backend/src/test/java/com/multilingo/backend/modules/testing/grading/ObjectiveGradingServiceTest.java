@@ -405,6 +405,28 @@ class ObjectiveGradingServiceTest {
             .isEqualTo(GradingVerdict.CORRECT);
     }
 
+    @Test
+    void multipleChoiceMulti_single_match_is_correct() {
+        Map<Integer, PartGradingKey> keys = Map.of(
+            10, partKey(10, "q_mcm", "MULTIPLE_CHOICE_MULTI", List.of("A", "E"), List.of())
+        );
+        AttemptAnswer answer = answerForPart(10, "q_mcm", List.of("A"));
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getPartResults().get(10).get("q_mcm").getVerdict())
+            .isEqualTo(GradingVerdict.CORRECT);
+    }
+
+    @Test
+    void multipleChoiceMulti_wrong_choice_is_wrong() {
+        Map<Integer, PartGradingKey> keys = Map.of(
+            10, partKey(10, "q_mcm", "MULTIPLE_CHOICE_MULTI", List.of("A", "E"), List.of())
+        );
+        AttemptAnswer answer = answerForPart(10, "q_mcm", List.of("B"));
+        GradingResult result = service.gradeAttempt(List.of(answer), keys);
+        assertThat(result.getPartResults().get(10).get("q_mcm").getVerdict())
+            .isEqualTo(GradingVerdict.WRONG);
+    }
+
     // ─── TC_GRADE_MA: MATCHING ───────────────────────────────────────────────────
 
     @Test

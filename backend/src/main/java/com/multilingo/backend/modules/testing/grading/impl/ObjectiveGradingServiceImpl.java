@@ -118,7 +118,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
                 gradeFillIn(questionId, key, rawAnswer);
             case "TRUE_FALSE_NOT_GIVEN" -> gradeTFNG(questionId, key, rawAnswer);
             case "YES_NO_NOT_GIVEN" -> gradeYNNG(questionId, key, rawAnswer);
-            case "MULTIPLE_CHOICE", "MULTIPLE_CHOICE_MULTI" -> gradeMultipleChoice(questionId, key, rawAnswer);
+            case "MULTIPLE_CHOICE", "MULTIPLE_CHOICE_MULTI" -> gradeMultipleChoice(questionId, type, key, rawAnswer);
             case "MATCHING" -> gradeMatching(questionId, key, rawAnswer);
             default -> throw new AppException(ErrorCode.GRADING_DATA_ERROR,
                 "GRADING_DATA_ERROR: Unhandled type: " + type);
@@ -195,7 +195,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
     // ─── MULTIPLE_CHOICE ─────────────────────────────────────────────────────────
 
     private QuestionGradingResult gradeMultipleChoice(
-            String questionId, GradingKey key, Object rawAnswer) {
+            String questionId, String type, GradingKey key, Object rawAnswer) {
         if (rawAnswer == null) return QuestionGradingResult.blank(questionId);
 
         List<?> userList = rawAnswer instanceof List<?> list ? list : List.of(rawAnswer);
@@ -230,7 +230,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
             return QuestionGradingResult.correct(questionId);
         }
 
-        if (correctSet.size() > 1 && userSet.size() == 1) {
+        if ("MULTIPLE_CHOICE_MULTI".equalsIgnoreCase(type) && correctSet.size() > 1 && userSet.size() == 1) {
             String single = userSet.iterator().next();
             if (correctSet.contains(single)) {
                 return QuestionGradingResult.correct(questionId);
