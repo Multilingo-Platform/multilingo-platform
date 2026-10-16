@@ -34,7 +34,7 @@ describe('builder canonical persistence boundary', () => {
     await screen.findByDisplayValue('ETS fixture');
     fireEvent.change(await screen.findByDisplayValue('Second'), { target: { value: 'Second edited' } });
     fireEvent.click(screen.getAllByTitle('Chọn làm đáp án đúng')[2]);
-    fireEvent.change(screen.getByPlaceholderText('Nhập lời giải thích (Explanation)...'), { target: { value: 'Giải thích cập nhật' } });
+    fireEvent.change(screen.getByDisplayValue('Old explanation'), { target: { value: 'Giải thích cập nhật' } });
     const save = screen.getByRole('button', { name: /lưu nháp/i });
     fireEvent.click(save); fireEvent.click(save);
     await screen.findByRole('link', { name: 'Mở lại' });
