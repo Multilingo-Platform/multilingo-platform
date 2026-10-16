@@ -85,6 +85,10 @@ export interface ExcelColumnMap {
   optB: number;
   optC: number;
   optD: number;
+  optE?: number;
+  optF?: number;
+  optG?: number;
+  optH?: number;
   correct: number;
   explanation: number;
   partMedia: number;
@@ -106,6 +110,10 @@ export function detectExcelColumns(headers: (string | undefined)[]): ExcelColumn
     optB: -1,
     optC: -1,
     optD: -1,
+    optE: -1,
+    optF: -1,
+    optG: -1,
+    optH: -1,
     correct: -1,
     explanation: -1,
     partMedia: -1,
@@ -193,34 +201,94 @@ export function detectExcelColumns(headers: (string | undefined)[]): ExcelColumn
     } else if (
       text.includes('lựa chọn a') ||
       text.includes('option a') ||
+      text.includes('choice a') ||
+      text.includes('đáp án a') ||
       text === 'a' ||
-      text === 'opta'
+      text === 'opta' ||
+      text === '(a)' ||
+      text === 'a.'
     ) {
       colMap.optA = colNumber;
     } else if (
       text.includes('lựa chọn b') ||
       text.includes('option b') ||
+      text.includes('choice b') ||
+      text.includes('đáp án b') ||
       text === 'b' ||
-      text === 'optb'
+      text === 'optb' ||
+      text === '(b)' ||
+      text === 'b.'
     ) {
       colMap.optB = colNumber;
     } else if (
       text.includes('lựa chọn c') ||
       text.includes('option c') ||
+      text.includes('choice c') ||
+      text.includes('đáp án c') ||
       text === 'c' ||
-      text === 'optc'
+      text === 'optc' ||
+      text === '(c)' ||
+      text === 'c.'
     ) {
       colMap.optC = colNumber;
     } else if (
       text.includes('lựa chọn d') ||
       text.includes('option d') ||
+      text.includes('choice d') ||
+      text.includes('đáp án d') ||
       text === 'd' ||
-      text === 'optd'
+      text === 'optd' ||
+      text === '(d)' ||
+      text === 'd.'
     ) {
       colMap.optD = colNumber;
     } else if (
+      text.includes('lựa chọn e') ||
+      text.includes('option e') ||
+      text.includes('choice e') ||
+      text.includes('đáp án e') ||
+      text === 'e' ||
+      text === 'opte' ||
+      text === '(e)' ||
+      text === 'e.'
+    ) {
+      colMap.optE = colNumber;
+    } else if (
+      text.includes('lựa chọn f') ||
+      text.includes('option f') ||
+      text.includes('choice f') ||
+      text.includes('đáp án f') ||
+      text === 'f' ||
+      text === 'optf' ||
+      text === '(f)' ||
+      text === 'f.'
+    ) {
+      colMap.optF = colNumber;
+    } else if (
+      text.includes('lựa chọn g') ||
+      text.includes('option g') ||
+      text.includes('choice g') ||
+      text.includes('đáp án g') ||
+      text === 'g' ||
+      text === 'optg' ||
+      text === '(g)' ||
+      text === 'g.'
+    ) {
+      colMap.optG = colNumber;
+    } else if (
+      text.includes('lựa chọn h') ||
+      text.includes('option h') ||
+      text.includes('choice h') ||
+      text.includes('đáp án h') ||
+      text === 'h' ||
+      text === 'opth' ||
+      text === '(h)' ||
+      text === 'h.'
+    ) {
+      colMap.optH = colNumber;
+    } else if (
       text.includes('đáp án đúng') ||
-      text.includes('đáp án') ||
+      (text.includes('đáp án') && !/đáp án\s*[a-h]/i.test(text)) ||
       text.includes('correct') ||
       text.includes('(key)') ||
       text === 'key'
@@ -234,6 +302,10 @@ export function detectExcelColumns(headers: (string | undefined)[]): ExcelColumn
     }
   }
 
+  const hasOptH = colMap.optH !== -1 || headers.length >= 20;
+  const hasOptG = colMap.optG !== -1 || hasOptH || headers.length >= 19;
+  const hasOptF = colMap.optF !== -1 || hasOptG || headers.length >= 18;
+  const hasOptE = colMap.optE !== -1 || hasOptF || headers.length >= 17;
   const is16Col = colMap.partInstruction > 0 || colMap.groupInstruction > 0 || headers.length >= 16;
   if (is16Col) {
     if (colMap.part === -1) colMap.part = 1;
@@ -247,11 +319,33 @@ export function detectExcelColumns(headers: (string | undefined)[]): ExcelColumn
     if (colMap.optB === -1) colMap.optB = 9;
     if (colMap.optC === -1) colMap.optC = 10;
     if (colMap.optD === -1) colMap.optD = 11;
-    if (colMap.correct === -1) colMap.correct = 12;
-    if (colMap.explanation === -1) colMap.explanation = 13;
-    if (colMap.partMedia === -1) colMap.partMedia = 14;
-    if (colMap.groupMedia === -1) colMap.groupMedia = 15;
-    if (colMap.qMedia === -1) colMap.qMedia = 16;
+    
+    let nextCol = 12;
+    if (hasOptE) {
+      if (colMap.optE === -1) colMap.optE = nextCol;
+      nextCol++;
+    }
+    if (hasOptF) {
+      if (colMap.optF === -1) colMap.optF = nextCol;
+      nextCol++;
+    }
+    if (hasOptG) {
+      if (colMap.optG === -1) colMap.optG = nextCol;
+      nextCol++;
+    }
+    if (hasOptH) {
+      if (colMap.optH === -1) colMap.optH = nextCol;
+      nextCol++;
+    }
+    if (colMap.correct === -1) colMap.correct = nextCol;
+    nextCol++;
+    if (colMap.explanation === -1) colMap.explanation = nextCol;
+    nextCol++;
+    if (colMap.partMedia === -1) colMap.partMedia = nextCol;
+    nextCol++;
+    if (colMap.groupMedia === -1) colMap.groupMedia = nextCol;
+    nextCol++;
+    if (colMap.qMedia === -1) colMap.qMedia = nextCol;
   } else {
     if (colMap.part === -1) colMap.part = 1;
     if (colMap.group === -1) colMap.group = 2;
@@ -275,14 +369,16 @@ export function detectExcelColumns(headers: (string | undefined)[]): ExcelColumn
   return colMap;
 }
 
-const QUESTION_TYPES = [
+export const QUESTION_TYPES = [
   { value: 'MULTIPLE_CHOICE', label: 'Trắc nghiệm 1 Đáp án' },
-  { value: 'MULTIPLE_CHOICE_MULTI', label: 'Trắc nghiệm Nhiều Đáp án' },
-  { value: 'FILL_IN_THE_BLANKS', label: 'Điền vào chỗ trống' },
+  { value: 'MULTIPLE_CHOICE_MULTI', label: 'Trắc nghiệm Chọn 2 đáp án (Choose 2 / A-E)' },
+  { value: 'FILL_IN_THE_BLANK', label: 'Điền vào chỗ trống' },
   { value: 'TRUE_FALSE_NOT_GIVEN', label: 'True / False / Not Given' },
   { value: 'YES_NO_NOT_GIVEN', label: 'Yes / No / Not Given' },
   { value: 'MATCHING_HEADINGS', label: 'Matching Headings' },
-  { value: 'MATCHING_FEATURES', label: 'Matching Features' },
+  { value: 'MATCHING_FEATURES', label: 'Matching Features (Nối đối tượng / Danh sách người)' },
+  { value: 'MATCHING_SENTENCE_ENDINGS', label: 'Matching Sentence Endings (Nối đuôi câu A-G)' },
+  { value: 'MATCHING_INFORMATION', label: 'Matching Information (Thông tin trong đoạn văn nào? A-G)' },
   { value: 'MAP_LABELING', label: 'Map Labeling' },
   { value: 'DIAGRAM_LABELING', label: 'Diagram Labeling' },
   { value: 'ESSAY', label: 'Viết tự luận (Essay)' }
@@ -330,15 +426,16 @@ export const normalizeExamType = (raw: string): string => {
   return clean;
 };
 
-const getPartBounds = (partTitle: string, examType: string) => {
+export const getPartBounds = (partTitle: string, examType: string) => {
   if (examType.startsWith('IELTS')) {
-    if (partTitle.includes('Listening Part 1')) return { start: 1, end: 10 };
-    if (partTitle.includes('Listening Part 2')) return { start: 11, end: 20 };
-    if (partTitle.includes('Listening Part 3')) return { start: 21, end: 30 };
-    if (partTitle.includes('Listening Part 4')) return { start: 31, end: 40 };
-    if (partTitle.includes('Reading Passage 1')) return { start: 1, end: 13 };
-    if (partTitle.includes('Reading Passage 2')) return { start: 14, end: 26 };
-    if (partTitle.includes('Reading Passage 3')) return { start: 27, end: 40 };
+    const lower = (partTitle || '').toLowerCase();
+    if (lower.includes('listening part 1') || lower.includes('listening section 1') || lower === 'part 1') return { start: 1, end: 10 };
+    if (lower.includes('listening part 2') || lower.includes('listening section 2') || lower === 'part 2') return { start: 11, end: 20 };
+    if (lower.includes('listening part 3') || lower.includes('listening section 3') || lower === 'part 3') return { start: 21, end: 30 };
+    if (lower.includes('listening part 4') || lower.includes('listening section 4') || lower === 'part 4') return { start: 31, end: 40 };
+    if (lower.includes('reading passage 1') || lower.includes('passage 1')) return { start: 1, end: 13 };
+    if (lower.includes('reading passage 2') || lower.includes('passage 2')) return { start: 14, end: 26 };
+    if (lower.includes('reading passage 3') || lower.includes('passage 3')) return { start: 27, end: 40 };
   }
   if (examType.startsWith('TOEIC') && !examType.includes('WRITING')) {
     if (partTitle.includes('Part 1')) return { start: 1, end: 6 };
@@ -359,7 +456,273 @@ const getPartBounds = (partTitle: string, examType: string) => {
     if (partTitle.includes('Đọc - Phần 4')) return { start: 31, end: 40 };
   }
   return null;
-}
+};
+
+// Sườn đề IELTS chuẩn: Listening (4 Parts) và Reading (3 Passages) để trống question_groups
+// để người dùng tự tạo các nhóm câu hỏi (Điền từ, Trắc nghiệm, True/False/Not Given...) linh hoạt
+export const getIeltsTemplateParts = (generateIdFn: (prefix: string) => string = (prefix) => `${prefix}_${Math.random().toString(36).substr(2, 6)}`): ExamPart[] => {
+  return [
+    // Listening (4 Parts - sườn trống không cố định câu hỏi để người dùng tự tạo question groups)
+    { part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: [] },
+    { part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: [] },
+    { part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: [] },
+    { part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: [] },
+    
+    // Reading (3 Passages - sườn trống không cố định câu hỏi để người dùng tự tạo question groups)
+    { part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: [] },
+    { part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: [] },
+    { part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: [] },
+    
+    // Writing (2 Tasks)
+    { 
+      part_title: 'Writing Task 1', 
+      instruction: 'Write at least 150 words', 
+      question_groups: [
+        { group_id: generateIdFn('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_w_001', type: 'WRITING_ESSAY', question_text: 'Describe the chart below.', metadata: { correct_answer: '', explanation: '' } }] }
+      ] 
+    },
+    { 
+      part_title: 'Writing Task 2', 
+      instruction: 'Write at least 250 words', 
+      question_groups: [
+        { group_id: generateIdFn('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_w_002', type: 'WRITING_ESSAY', question_text: 'Discuss both views and give your opinion.', metadata: { correct_answer: '', explanation: '' } }] }
+      ] 
+    }
+  ];
+};
+
+// Dùng cho file mẫu Excel để minh họa đầy đủ các dạng câu hỏi IELTS thực tế (Điền từ, Trắc nghiệm, TFNG, Matching)
+export const getIeltsSampleExcelParts = (): ExamPart[] => {
+  return [
+    {
+      part_title: 'Listening Part 1',
+      instruction: 'Questions 1-10',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: 'g_ielts_l1_1',
+          instruction: 'Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 1).padStart(3, '0')}`,
+            type: 'FILL_IN_THE_BLANK',
+            question_text: `Question ${i + 1}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        },
+        {
+          group_id: 'g_ielts_l1_2',
+          instruction: 'Choose the correct letter, A, B or C.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 6).padStart(3, '0')}`,
+            type: 'MULTIPLE_CHOICE',
+            question_text: `Question ${i + 6}`,
+            metadata: { options: ['', '', ''], correct_answer: '', explanation: '' }
+          }))
+        }
+      ]
+    },
+    {
+      part_title: 'Listening Part 2',
+      instruction: 'Questions 11-20',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: 'g_ielts_l2_1',
+          instruction: 'Choose the correct letter, A, B or C.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 11).padStart(3, '0')}`,
+            type: 'MULTIPLE_CHOICE',
+            question_text: `Question ${i + 11}`,
+            metadata: { options: ['', '', ''], correct_answer: '', explanation: '' }
+          }))
+        },
+        {
+          group_id: 'g_ielts_l2_2',
+          instruction: 'Which feature is found at each location? Choose the correct letter, A-G.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 16).padStart(3, '0')}`,
+            type: 'MATCHING_FEATURES',
+            question_text: `Question ${i + 16}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        }
+      ]
+    },
+    {
+      part_title: 'Listening Part 3',
+      instruction: 'Questions 21-30',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: 'g_ielts_l3_1',
+          instruction: 'Choose the correct letter, A, B or C.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 21).padStart(3, '0')}`,
+            type: 'MULTIPLE_CHOICE',
+            question_text: `Question ${i + 21}`,
+            metadata: { options: ['', '', ''], correct_answer: '', explanation: '' }
+          }))
+        },
+        {
+          group_id: 'g_ielts_l3_2',
+          instruction: 'Complete the summary below. Write NO MORE THAN TWO WORDS for each answer.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 26).padStart(3, '0')}`,
+            type: 'FILL_IN_THE_BLANK',
+            question_text: `Question ${i + 26}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        }
+      ]
+    },
+    {
+      part_title: 'Listening Part 4',
+      instruction: 'Questions 31-40',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: 'g_ielts_l4_1',
+          instruction: 'Complete the notes below. Write ONE WORD ONLY for each answer.',
+          content_html: '',
+          questions: Array.from({ length: 10 }, (_, i) => ({
+            question_id: `q_${String(i + 31).padStart(3, '0')}`,
+            type: 'FILL_IN_THE_BLANK',
+            question_text: `Question ${i + 31}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        }
+      ]
+    },
+    {
+      part_title: 'Reading Passage 1',
+      instruction: 'Questions 1-13',
+      shared_content_html: '',
+      question_groups: [
+        {
+          group_id: 'g_ielts_r1_1',
+          instruction: 'Do the following statements agree with the information given in Reading Passage 1? Write TRUE, FALSE or NOT GIVEN.',
+          content_html: '',
+          questions: Array.from({ length: 7 }, (_, i) => ({
+            question_id: `q_${String(i + 1).padStart(3, '0')}`,
+            type: 'TRUE_FALSE_NOT_GIVEN',
+            question_text: `Question ${i + 1}`,
+            metadata: { options: ['TRUE', 'FALSE', 'NOT GIVEN'], correct_answer: '', explanation: '' }
+          }))
+        },
+        {
+          group_id: 'g_ielts_r1_2',
+          instruction: 'Complete the notes below. Write NO MORE THAN TWO WORDS for each answer.',
+          content_html: '',
+          questions: Array.from({ length: 6 }, (_, i) => ({
+            question_id: `q_${String(i + 8).padStart(3, '0')}`,
+            type: 'FILL_IN_THE_BLANK',
+            question_text: `Question ${i + 8}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        }
+      ]
+    },
+    {
+      part_title: 'Reading Passage 2',
+      instruction: 'Questions 14-26',
+      shared_content_html: '',
+      question_groups: [
+        {
+          group_id: 'g_ielts_r2_1',
+          instruction: 'Choose the correct heading for each section from the list of headings below.',
+          content_html: '',
+          questions: Array.from({ length: 6 }, (_, i) => ({
+            question_id: `q_${String(i + 14).padStart(3, '0')}`,
+            type: 'MATCHING_HEADINGS',
+            question_text: `Question ${i + 14}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        },
+        {
+          group_id: 'g_ielts_r2_2',
+          instruction: 'Complete the summary below. Write ONE WORD ONLY for each answer.',
+          content_html: '',
+          questions: Array.from({ length: 7 }, (_, i) => ({
+            question_id: `q_${String(i + 20).padStart(3, '0')}`,
+            type: 'FILL_IN_THE_BLANK',
+            question_text: `Question ${i + 20}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        }
+      ]
+    },
+    {
+      part_title: 'Reading Passage 3',
+      instruction: 'Questions 27-40',
+      shared_content_html: '',
+      question_groups: [
+        {
+          group_id: 'g_ielts_r3_1',
+          instruction: 'Do the following statements agree with the views of the writer? Write YES, NO or NOT GIVEN.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 27).padStart(3, '0')}`,
+            type: 'YES_NO_NOT_GIVEN',
+            question_text: `Question ${i + 27}`,
+            metadata: { options: ['YES', 'NO', 'NOT GIVEN'], correct_answer: '', explanation: '' }
+          }))
+        },
+        {
+          group_id: 'g_ielts_r3_2',
+          instruction: 'Choose the correct letter, A, B, C or D.',
+          content_html: '',
+          questions: Array.from({ length: 5 }, (_, i) => ({
+            question_id: `q_${String(i + 32).padStart(3, '0')}`,
+            type: 'MULTIPLE_CHOICE',
+            question_text: `Question ${i + 32}`,
+            metadata: { options: ['', '', '', ''], correct_answer: '', explanation: '' }
+          }))
+        },
+        {
+          group_id: 'g_ielts_r3_3',
+          instruction: 'Complete the sentences below. Write NO MORE THAN TWO WORDS for each answer.',
+          content_html: '',
+          questions: Array.from({ length: 4 }, (_, i) => ({
+            question_id: `q_${String(i + 37).padStart(3, '0')}`,
+            type: 'FILL_IN_THE_BLANK',
+            question_text: `Question ${i + 37}`,
+            metadata: { correct_answer: '', explanation: '' }
+          }))
+        }
+      ]
+    },
+    {
+      part_title: 'Writing Task 1',
+      instruction: 'Write at least 150 words',
+      question_groups: [
+        {
+          group_id: 'g_ielts_w1',
+          instruction: 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+          content_html: '',
+          questions: [{ question_id: 'q_w_001', type: 'WRITING_ESSAY', question_text: 'Describe the chart below.', metadata: { correct_answer: '', explanation: '' } }]
+        }
+      ]
+    },
+    {
+      part_title: 'Writing Task 2',
+      instruction: 'Write at least 250 words',
+      question_groups: [
+        {
+          group_id: 'g_ielts_w2',
+          instruction: 'Give reasons for your answer and include any relevant examples from your own knowledge or experience.',
+          content_html: '',
+          questions: [{ question_id: 'q_w_002', type: 'WRITING_ESSAY', question_text: 'Discuss both views and give your opinion.', metadata: { correct_answer: '', explanation: '' } }]
+        }
+      ]
+    }
+  ];
+};
 
 const getMaxGroupsForPart = (partTitle: string, examType: string) => {
   if (examType.startsWith('TOEIC') && !examType.includes('WRITING')) {
@@ -544,6 +907,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       case 'IELTS_L3': newPart = { part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: [] }; break;
       case 'IELTS_L4': newPart = { part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: [] }; break;
       case 'IELTS_R1': newPart = { part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: [] }; break;
+      case 'IELTS_R2': newPart = { part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: [] }; break;
+      case 'IELTS_R3': newPart = { part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: [] }; break;
       case 'IELTS_W1': newPart = { part_title: 'Writing Task 1', instruction: 'Write at least 150 words', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Describe the chart below.', metadata: { correct_answer: '', explanation: '' } }] }] }; break;
       case 'IELTS_W2': newPart = { part_title: 'Writing Task 2', instruction: 'Write at least 250 words', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Discuss both views and give your opinion.', metadata: { correct_answer: '', explanation: '' } }] }] }; break;
       case 'TOEIC_P1': newPart = { part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) }; break;
@@ -637,33 +1002,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     if (type === 'IELTS') {
       setExamType('IELTS_ACADEMIC');
       setExamTitle('IELTS Academic Mock Test');
-      
-      // Listening
-      newParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
-      newParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: createToeicGroups(11, 1, 10, 4) });
-      newParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 1, 10, 4) });
-      newParts.push({ part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: createToeicGroups(31, 1, 10, 4) });
-      
-      // Reading
-      newParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
-      newParts.push({ part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: createToeicGroups(14, 1, 13, 4) });
-      newParts.push({ part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: createToeicGroups(27, 1, 14, 4) });
-      
-      // Writing
-      newParts.push({ 
-        part_title: 'Writing Task 1', 
-        instruction: 'Write at least 150 words', 
-        question_groups: [
-          { group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_w_001', type: 'WRITING_ESSAY', question_text: 'Describe the chart below.', metadata: { correct_answer: '', explanation: '' } }] }
-        ] 
-      });
-      newParts.push({ 
-        part_title: 'Writing Task 2', 
-        instruction: 'Write at least 250 words', 
-        question_groups: [
-          { group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_w_002', type: 'WRITING_ESSAY', question_text: 'Discuss both views and give your opinion.', metadata: { correct_answer: '', explanation: '' } }] }
-        ] 
-      });
+      setParts(getIeltsTemplateParts(generateId));
+      setActivePartIndex(0);
+      return;
     } 
     else if (type === 'TOEIC') {
       setExamType('TOEIC_LR');
@@ -757,11 +1098,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   };
 
   const batchGenerateQuestions = (partIdx: number, groupIdx: number, groupId: string) => {
-    const settings = batchSettings[groupId];
-    if (!settings) return;
-    
     const bounds = getPartBounds(parts[partIdx].part_title, examType);
     const nextStart = getNextStartForPart(parts[partIdx], bounds);
+    const defaultEnd = bounds ? (nextStart + 4 > bounds.end ? bounds.end : nextStart + 4) : nextStart + 4;
+    const settings = batchSettings[groupId] || { type: 'MULTIPLE_CHOICE', start: nextStart, end: defaultEnd };
     
     if (bounds && nextStart > bounds.end) {
       alert("Đã đủ số câu hỏi cho Part này.");
@@ -783,12 +1123,26 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       let defaultOptions: string[] | undefined = undefined;
       if (settings.type === 'TRUE_FALSE_NOT_GIVEN') defaultOptions = ['TRUE', 'FALSE', 'NOT GIVEN'];
       else if (settings.type === 'YES_NO_NOT_GIVEN') defaultOptions = ['YES', 'NO', 'NOT GIVEN'];
+      else if (settings.type === 'MATCHING_SENTENCE_ENDINGS') defaultOptions = ['', '', '', '', '', '', ''];
+      else if (settings.type === 'MATCHING_FEATURES') defaultOptions = ['', '', '', ''];
+      else if (settings.type === 'MATCHING_INFORMATION') defaultOptions = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+      else if (settings.type === 'MULTIPLE_CHOICE_MULTI') defaultOptions = ['', '', '', '', ''];
       else if (settings.type.includes('MULTIPLE_CHOICE')) defaultOptions = ['', '', '', ''];
       
+      const qNum = nextStart + i;
+      let qText = `Câu ${qNum}`;
+      if (settings.type === 'MULTIPLE_CHOICE_MULTI') {
+        if (i % 2 === 0 && i + 1 < count) {
+          qText = `Câu ${qNum} - ${qNum + 1}`;
+        } else if (i % 2 === 1) {
+          qText = `Câu ${qNum - 1} - ${qNum}`;
+        }
+      }
+
       newQs.push({
-        question_id: `q_${String(nextStart + i).padStart(3, '0')}`,
+        question_id: `q_${String(qNum).padStart(3, '0')}`,
         type: settings.type,
-        question_text: `Câu ${nextStart + i}`,
+        question_text: qText,
         metadata: { correct_answer: settings.type === 'MULTIPLE_CHOICE_MULTI' ? [] : '', explanation: '', options: defaultOptions }
       });
     }
@@ -808,17 +1162,109 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
   const updateQuestion = (partIdx: number, groupIdx: number, qIdx: number, field: keyof Question, value: any) => {
     const newParts = [...parts];
-    newParts[partIdx].question_groups[groupIdx].questions[qIdx] = { 
-      ...newParts[partIdx].question_groups[groupIdx].questions[qIdx], 
-      [field]: value 
-    };
+    const questions = newParts[partIdx].question_groups[groupIdx].questions;
+    const q = questions[qIdx];
+    
+    if (field === 'type') {
+      const newType = value as string;
+      let newOptions = q.metadata?.options;
+      let newCorrect = q.metadata?.correct_answer;
+      
+      if (newType === 'TRUE_FALSE_NOT_GIVEN') {
+        newOptions = ['TRUE', 'FALSE', 'NOT GIVEN'];
+      } else if (newType === 'YES_NO_NOT_GIVEN') {
+        newOptions = ['YES', 'NO', 'NOT GIVEN'];
+      } else if (newType === 'MATCHING_SENTENCE_ENDINGS') {
+        if (!newOptions || newOptions.length === 0) {
+          newOptions = ['', '', '', '', '', '', ''];
+        } else if (newOptions.length < 7) {
+          newOptions = [...newOptions, ...Array(7 - newOptions.length).fill('')];
+        }
+        if (Array.isArray(newCorrect)) newCorrect = newCorrect[0] || '';
+      } else if (newType === 'MATCHING_FEATURES') {
+        if (!newOptions || newOptions.length === 0) {
+          newOptions = ['', '', '', ''];
+        }
+        if (Array.isArray(newCorrect)) newCorrect = newCorrect[0] || '';
+      } else if (newType === 'MATCHING_INFORMATION') {
+        if (!newOptions || newOptions.length === 0) {
+          newOptions = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+        }
+        if (Array.isArray(newCorrect)) newCorrect = newCorrect[0] || '';
+      } else if (newType.includes('MULTIPLE_CHOICE')) {
+        if (!newOptions || newOptions.length === 0) {
+          newOptions = newType === 'MULTIPLE_CHOICE_MULTI' ? ['', '', '', '', ''] : ['', '', '', ''];
+        } else if (newType === 'MULTIPLE_CHOICE_MULTI' && newOptions.length < 5) {
+          newOptions = [...newOptions, ...Array(5 - newOptions.length).fill('')];
+        }
+        if (newType === 'MULTIPLE_CHOICE_MULTI' && !Array.isArray(newCorrect)) {
+          newCorrect = newCorrect ? [String(newCorrect)] : [];
+        } else if (newType === 'MULTIPLE_CHOICE' && Array.isArray(newCorrect)) {
+          newCorrect = newCorrect[0] || '';
+        }
+      } else if (newType.startsWith('FILL_IN') || newType === 'SHORT_ANSWER' || newType === 'ESSAY' || newType === 'MATCHING_HEADINGS' || newType.includes('LABELING')) {
+        newOptions = undefined;
+        if (Array.isArray(newCorrect)) {
+          newCorrect = newCorrect.join(', ');
+        }
+      }
+      
+      questions[qIdx] = { 
+        ...q, 
+        type: newType,
+        metadata: {
+          ...q.metadata,
+          options: newOptions,
+          correct_answer: newCorrect
+        }
+      };
+
+      if (newType === 'MULTIPLE_CHOICE_MULTI') {
+        if (qIdx + 1 < questions.length) {
+          questions[qIdx + 1] = {
+            ...questions[qIdx + 1],
+            type: 'MULTIPLE_CHOICE_MULTI',
+            question_text: q.question_text,
+            metadata: {
+              ...questions[qIdx + 1].metadata,
+              options: newOptions ? [...newOptions] : undefined,
+              correct_answer: newCorrect ? (Array.isArray(newCorrect) ? [...newCorrect] : newCorrect) : [],
+              explanation: q.metadata?.explanation
+            }
+          };
+        }
+      }
+    } else {
+      questions[qIdx] = { 
+        ...q, 
+        [field]: value 
+      };
+
+      if (q.type === 'MULTIPLE_CHOICE_MULTI') {
+        if (qIdx + 1 < questions.length && questions[qIdx + 1]?.type === 'MULTIPLE_CHOICE_MULTI') {
+          questions[qIdx + 1] = { ...questions[qIdx + 1], [field]: value };
+        } else if (qIdx > 0 && questions[qIdx - 1]?.type === 'MULTIPLE_CHOICE_MULTI') {
+          questions[qIdx - 1] = { ...questions[qIdx - 1], [field]: value };
+        }
+      }
+    }
     setParts(newParts);
   };
 
   const updateQuestionMetadata = (partIdx: number, groupIdx: number, qIdx: number, field: keyof QuestionMetadata, value: any) => {
     const newParts = [...parts];
-    const q = newParts[partIdx].question_groups[groupIdx].questions[qIdx];
+    const questions = newParts[partIdx].question_groups[groupIdx].questions;
+    const q = questions[qIdx];
     q.metadata = { ...q.metadata, [field]: value };
+
+    if (q.type === 'MULTIPLE_CHOICE_MULTI') {
+      if (qIdx + 1 < questions.length && questions[qIdx + 1]?.type === 'MULTIPLE_CHOICE_MULTI') {
+        questions[qIdx + 1].metadata = { ...questions[qIdx + 1].metadata, [field]: value };
+      } else if (qIdx > 0 && questions[qIdx - 1]?.type === 'MULTIPLE_CHOICE_MULTI') {
+        questions[qIdx - 1].metadata = { ...questions[qIdx - 1].metadata, [field]: value };
+      }
+    }
+
     setParts(newParts);
   };
 
@@ -976,6 +1422,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       { header: 'Lựa chọn B', key: 'optB', width: 20 },
       { header: 'Lựa chọn C', key: 'optC', width: 20 },
       { header: 'Lựa chọn D', key: 'optD', width: 20 },
+      { header: 'Lựa chọn E', key: 'optE', width: 20 },
+      { header: 'Lựa chọn F', key: 'optF', width: 20 },
+      { header: 'Lựa chọn G', key: 'optG', width: 20 },
+      { header: 'Lựa chọn H', key: 'optH', width: 20 },
       { header: 'Đáp án đúng', key: 'correct', width: 15 },
       { header: 'Giải thích', key: 'explanation', width: 30 },
       { header: 'Audio/File chung (Phần)', key: 'partMedia', width: 25 },
@@ -1002,13 +1452,29 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           const qType = q.type;
           const qText = q.question_text || `Câu ${qIdx + 1}`;
           
-          let optA = '', optB = '', optC = '', optD = '';
-          if (q.metadata && q.metadata.options) {
-            optA = q.metadata.options[0] || '';
-            optB = q.metadata.options[1] || '';
-            optC = q.metadata.options[2] || '';
-            optD = q.metadata.options[3] || '';
-          }
+          const rawOpts: any[] =
+            (q.metadata && Array.isArray(q.metadata.options) && q.metadata.options.length > 0 ? q.metadata.options : null) ??
+            (Array.isArray((q as any).options) && (q as any).options.length > 0 ? (q as any).options : null) ??
+            (Array.isArray((group as any).options) && (group as any).options.length > 0 ? (group as any).options : null) ??
+            (Array.isArray((group as any).shared_options) && (group as any).shared_options.length > 0 ? (group as any).shared_options : null) ??
+            (Array.isArray((group as any).metadata?.options) && (group as any).metadata.options.length > 0 ? (group as any).metadata.options : null) ??
+            [];
+
+          const getOptText = (item: any): string => {
+            if (item == null) return '';
+            if (typeof item === 'string') return item.trim();
+            if (typeof item === 'object') return (item.text || item.label || item.content || item.value || '').trim();
+            return String(item).trim();
+          };
+
+          const optA = getOptText(rawOpts[0]);
+          const optB = getOptText(rawOpts[1]);
+          const optC = getOptText(rawOpts[2]);
+          const optD = getOptText(rawOpts[3]);
+          const optE = getOptText(rawOpts[4]);
+          const optF = getOptText(rawOpts[5]);
+          const optG = getOptText(rawOpts[6]);
+          const optH = getOptText(rawOpts[7]);
           
           let correct = '';
           if (q.metadata) {
@@ -1017,28 +1483,27 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             } else if (q.metadata.correct_option_indices !== undefined && Array.isArray(q.metadata.correct_option_indices) && q.metadata.correct_option_indices.length > 0) {
               correct = q.metadata.correct_option_indices.map((i: number) => String.fromCharCode(65 + i)).join(',');
             } else if (q.metadata.correct_answer) {
+              const resolveLetter = (ans: string): string => {
+                const trimmed = ans.trim();
+                if (/^[A-H]$/i.test(trimmed)) return trimmed.toUpperCase();
+                const idx = rawOpts.findIndex((item: any) => getOptText(item).toLowerCase() === trimmed.toLowerCase());
+                if (idx >= 0 && idx < 8) return String.fromCharCode(65 + idx);
+                return trimmed;
+              };
+
               if (Array.isArray(q.metadata.correct_answer)) {
                 const validAnswers = q.metadata.correct_answer.filter((ans: string) => typeof ans === 'string' && ans.trim() !== '');
                 if (validAnswers.length > 0) {
-                  if (q.type && q.type.includes('MULTIPLE_CHOICE')) {
-                    const mapped = validAnswers.map((ans: string) => {
-                      const idx = q.metadata.options?.indexOf(ans);
-                      return idx !== undefined && idx >= 0 ? String.fromCharCode(65 + idx) : ans;
-                    });
-                    correct = mapped.join(',');
+                  if (q.type && (q.type.includes('MULTIPLE_CHOICE') || q.type === 'MATCHING_SENTENCE_ENDINGS' || q.type === 'MATCHING_FEATURES' || q.type === 'MATCHING_INFORMATION')) {
+                    correct = validAnswers.map(resolveLetter).join(',');
                   } else {
                     correct = validAnswers.join(',');
                   }
                 }
               } else if (typeof q.metadata.correct_answer === 'string' && q.metadata.correct_answer.trim() !== '') {
                 const trimmedAns = q.metadata.correct_answer.trim();
-                if (q.type && q.type.includes('MULTIPLE_CHOICE')) {
-                  const idx = q.metadata.options?.indexOf(trimmedAns);
-                  if (idx !== undefined && idx >= 0) {
-                    correct = String.fromCharCode(65 + idx);
-                  } else {
-                    correct = trimmedAns;
-                  }
+                if (q.type && (q.type.includes('MULTIPLE_CHOICE') || q.type === 'MATCHING_SENTENCE_ENDINGS' || q.type === 'MATCHING_FEATURES' || q.type === 'MATCHING_INFORMATION')) {
+                  correct = resolveLetter(trimmedAns);
                 } else {
                   correct = trimmedAns;
                 }
@@ -1046,7 +1511,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             }
           }
 
-          sheet.addRow({
+          const addedRow = sheet.addRow({
             part: partName,
             partInstruction: part.instruction || '',
             group: groupName,
@@ -1054,7 +1519,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             groupInstruction: group.instruction || '',
             passage: groupText,
             question: qText,
-            optA: optA, optB: optB, optC: optC, optD: optD,
+            optA: optA, optB: optB, optC: optC, optD: optD, optE: optE, optF: optF, optG: optG, optH: optH,
             correct: correct,
             explanation: q.metadata?.explanation || '',
             partMedia: part.shared_audio?.url || '',
@@ -1064,46 +1529,48 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             qMedia: (q.metadata as any)?.media?.url || ''
           });
 
+          addedRow.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+
           // Add Data Validation
           sheet.getCell(`D${rowIndex}`).dataValidation = {
             type: 'list',
             allowBlank: true,
-            formulae: ['"MULTIPLE_CHOICE,MULTIPLE_CHOICE_MULTI,TRUE_FALSE_NOT_GIVEN,YES_NO_NOT_GIVEN,FILL_IN_THE_BLANK,MATCHING,SHORT_ANSWER"']
+            formulae: ['"MULTIPLE_CHOICE,MULTIPLE_CHOICE_MULTI,TRUE_FALSE_NOT_GIVEN,YES_NO_NOT_GIVEN,FILL_IN_THE_BLANK,MATCHING_HEADINGS,MATCHING_FEATURES,MATCHING_SENTENCE_ENDINGS,MATCHING_INFORMATION,SHORT_ANSWER"']
           };
           
-          sheet.getCell(`L${rowIndex}`).dataValidation = {
+          sheet.getCell(`P${rowIndex}`).dataValidation = {
             type: 'list',
             allowBlank: true,
             showErrorMessage: false, // Cho phép gõ chữ tự do đối với dạng Fill in the blank
             errorStyle: 'warning',
             errorTitle: 'Lưu ý',
             error: 'Nếu là trắc nghiệm, hãy chọn từ danh sách. Nếu là điền từ, bạn có thể gõ tự do.',
-            formulae: ['"A,B,C,D,TRUE,FALSE,NOT GIVEN,YES,NO"']
+            formulae: ['"A,B,C,D,E,F,G,H,TRUE,FALSE,NOT GIVEN,YES,NO"']
           };
 
           rowIndex++;
         });
 
         if (rowIndex - 1 > groupStartRow) {
-          sheet.mergeCells(`C${groupStartRow}:C${rowIndex - 1}`);
-          sheet.mergeCells(`E${groupStartRow}:E${rowIndex - 1}`);
-          sheet.mergeCells(`F${groupStartRow}:F${rowIndex - 1}`);
-          sheet.mergeCells(`O${groupStartRow}:O${rowIndex - 1}`); // groupMedia
+          sheet.mergeCells(`C${groupStartRow}:C${rowIndex - 1}`); // Nhóm (Group)
+          sheet.mergeCells(`E${groupStartRow}:E${rowIndex - 1}`); // Hướng dẫn riêng (Nhóm)
+          sheet.mergeCells(`F${groupStartRow}:F${rowIndex - 1}`); // Nội dung nhóm (Văn bản đọc/nghe)
+          sheet.mergeCells(`S${groupStartRow}:S${rowIndex - 1}`); // Đính kèm chung (Nhóm) - Cột S (19)
           
           sheet.getCell(`C${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
           sheet.getCell(`E${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
           sheet.getCell(`F${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-          sheet.getCell(`O${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          sheet.getCell(`S${groupStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         }
       });
 
       if (rowIndex - 1 > partStartRow) {
-        sheet.mergeCells(`A${partStartRow}:A${rowIndex - 1}`);
-        sheet.mergeCells(`B${partStartRow}:B${rowIndex - 1}`);
-        sheet.mergeCells(`N${partStartRow}:N${rowIndex - 1}`); // partMedia
+        sheet.mergeCells(`A${partStartRow}:A${rowIndex - 1}`); // Phần (Part)
+        sheet.mergeCells(`B${partStartRow}:B${rowIndex - 1}`); // Hướng dẫn chung (Phần)
+        sheet.mergeCells(`R${partStartRow}:R${rowIndex - 1}`); // Audio/File chung (Phần) - Cột R (18)
         sheet.getCell(`A${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         sheet.getCell(`B${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-        sheet.getCell(`N${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        sheet.getCell(`R${partStartRow}`).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
       }
     });
 
@@ -1119,14 +1586,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     guideSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
 
     guideSheet.addRow({ item: '1. GOM NHÓM BÀI ĐỌC/NGHE', desc: 'Các dòng (câu hỏi) có CÙNG tên ở cột "Phần (Part)" và CÙNG tên ở cột "Nhóm (Group)" sẽ tự động được gộp chung vào 1 bài đọc/nghe duy nhất.\n-> Bạn chỉ cần dán đoạn văn/bài đọc vào cột "Nội dung nhóm" của 1 dòng bất kỳ trong nhóm (hoặc dán cho tất cả các dòng thuộc nhóm đó đều được, hệ thống sẽ không bị lặp).' });
-    guideSheet.addRow({ item: '2. CÂU TRẮC NGHIỆM (A, B, C, D)', desc: 'Áp dụng cho Loại câu hỏi: MULTIPLE_CHOICE.\n-> Điền nội dung vào cột Lựa chọn A, B, C, D (Nếu câu hỏi chỉ có 3 đáp án thì bỏ trống cột D).\n-> Cột "Đáp án đúng": Bấm chọn A, B, C hoặc D từ danh sách thả xuống.' });
-    guideSheet.addRow({ item: '3. CÂU ĐÚNG / SAI / NOT GIVEN', desc: 'Áp dụng cho: TRUE_FALSE_NOT_GIVEN hoặc YES_NO_NOT_GIVEN.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": Bấm chọn TRUE, FALSE, hoặc NOT GIVEN từ danh sách thả xuống.' });
-    guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A, B, C, D.\n-> Cột "Đáp án đúng": GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple). Mặc dù cột này có icon danh sách thả xuống của Excel, nhưng bạn vẫn gõ được bình thường mà không bị báo lỗi.' });
+    guideSheet.addRow({ item: '2. CÂU TRẮC NGHIỆM & NỐI (CỘT H ĐẾN O)', desc: 'Áp dụng cho MULTIPLE_CHOICE, MULTIPLE_CHOICE_MULTI, MATCHING_SENTENCE_ENDINGS, MATCHING_FEATURES...\n-> Điền nội dung vào cột Lựa chọn A đến H (Cột H đến O tương ứng optA -> optH).\n-> Trắc nghiệm 4 lựa chọn: điền A-D (bỏ trống E-H).\n-> Trắc nghiệm 2 đáp án (A-E): điền A-E.\n-> Matching sentence endings: điền A-G hoặc A-H.\n-> Cột "Đáp án đúng" (Cột P): Bấm chọn A, B, C, D, E, F, G, H từ danh sách thả xuống (nhiều đáp án thì cách nhau bằng dấu phẩy, ví dụ: A,C).' });
+    guideSheet.addRow({ item: '3. CÂU ĐÚNG / SAI / NOT GIVEN', desc: 'Áp dụng cho: TRUE_FALSE_NOT_GIVEN hoặc YES_NO_NOT_GIVEN.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A đến H.\n-> Cột "Đáp án đúng" (Cột P): Bấm chọn TRUE, FALSE, hoặc NOT GIVEN từ danh sách thả xuống.' });
+    guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A đến H.\n-> Cột "Đáp án đúng" (Cột P): GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple). Mặc dù cột này có icon danh sách thả xuống của Excel, nhưng bạn vẫn gõ được bình thường mà không bị báo lỗi.' });
     guideSheet.addRow({ item: '5. HƯỚNG DẪN (INSTRUCTION)', desc: 'Cột "Hướng dẫn chung (Phần)": Điền hướng dẫn áp dụng cho toàn bộ Part (ví dụ: Listen and answer questions 1-10).\nCột "Hướng dẫn riêng (Nhóm)": Chỉ điền nếu nhóm câu hỏi đó có hướng dẫn đặc thù riêng (ví dụ: Questions 1-4: Choose the correct letter...). Nếu không có thì để trống, hệ thống sẽ tự động dùng hướng dẫn chung của phần.' });
+    guideSheet.addRow({ item: '6. CÁC CỘT MERGE (TRỘN DÒNG)', desc: 'Hệ thống tự động merge các cột chung của Phần (Cột A: Phần, B: Hướng dẫn chung, R: Audio chung) và Nhóm (Cột C: Nhóm, E: Hướng dẫn riêng, F: Đoạn văn, S: Đính kèm chung nhóm).\n-> Cột H đến O (Lựa chọn A-H), Cột G (Câu hỏi), Cột P (Đáp án đúng) là dữ liệu riêng từng câu, KHÔNG bị merge.' });
 
     guideSheet.getColumn('desc').alignment = { wrapText: true, vertical: 'middle' };
     guideSheet.getColumn('item').alignment = { vertical: 'middle', wrapText: true };
-    for (let i = 2; i <= 6; i++) {
+    for (let i = 2; i <= 7; i++) {
       guideSheet.getRow(i).height = 65;
     }
 
@@ -1188,15 +1656,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         if (type === 'CUSTOM_EMPTY') {
           tempParts.push({ part_title: 'Tên Part (Ví dụ: Part 1)', instruction: 'Nhập hướng dẫn làm bài', question_groups: [{ group_id: 'g1', instruction: 'Hướng dẫn cho nhóm', content_html: 'Nội dung bài đọc hoặc transcript', questions: [{ question_id: 'q1', type: 'MULTIPLE_CHOICE', question_text: 'Câu 1', metadata: { correct_answer: '' } }] }] });
         } else if (type === 'IELTS') {
-          tempParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
-          tempParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: createToeicGroups(11, 1, 10, 4) });
-          tempParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 1, 10, 4) });
-          tempParts.push({ part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: createToeicGroups(31, 1, 10, 4) });
-          tempParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
-          tempParts.push({ part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: createToeicGroups(14, 1, 13, 4) });
-          tempParts.push({ part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: createToeicGroups(27, 1, 14, 4) });
-          tempParts.push({ part_title: 'Writing Task 1', instruction: 'Write at least 150 words', question_groups: [{ group_id: 'g1', instruction: '', content_html: '', questions: [{ question_id: 'q_w_1', type: 'WRITING_ESSAY', question_text: 'Task 1', metadata: { correct_answer: '' } }] }] });
-          tempParts.push({ part_title: 'Writing Task 2', instruction: 'Write at least 250 words', question_groups: [{ group_id: 'g2', instruction: '', content_html: '', questions: [{ question_id: 'q_w_2', type: 'WRITING_ESSAY', question_text: 'Task 2', metadata: { correct_answer: '' } }] }] });
+          tempParts.push(...getIeltsSampleExcelParts());
         } else if (type === 'TOEIC') {
           tempParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) });
           tempParts.push({ part_title: 'Part 2: Question-Response', instruction: 'Questions 7-31', shared_audio: { url: '' }, question_groups: createToeicGroups(7, 1, 25, 3) });
@@ -1220,14 +1680,11 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push({ part_title: 'Part 2: Respond to a Written Request', instruction: 'Questions 6-7', question_groups: createToeicWritPart2Groups() });
           tempParts.push({ part_title: 'Part 3: Write an Opinion Essay', instruction: 'Question 8', question_groups: [{ group_id: 'g1', instruction: '', content_html: '', questions: [{ question_id: 'q8', type: 'WRITING_ESSAY', question_text: 'Write essay', metadata: { correct_answer: '' } }] }] });
         } else if (type === 'SKILL_IELTS_LISTENING') {
-          tempParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
-          tempParts.push({ part_title: 'Listening Part 2', instruction: 'Listen and answer questions 11-20', shared_audio: { url: '' }, question_groups: createToeicGroups(11, 1, 10, 4) });
-          tempParts.push({ part_title: 'Listening Part 3', instruction: 'Listen and answer questions 21-30', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 1, 10, 4) });
-          tempParts.push({ part_title: 'Listening Part 4', instruction: 'Listen and answer questions 31-40', shared_audio: { url: '' }, question_groups: createToeicGroups(31, 1, 10, 4) });
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(...sampleIelts.slice(0, 4));
         } else if (type === 'SKILL_IELTS_READING') {
-          tempParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
-          tempParts.push({ part_title: 'Reading Passage 2', instruction: 'Read the passage and answer questions 14-26', question_groups: createToeicGroups(14, 1, 13, 4) });
-          tempParts.push({ part_title: 'Reading Passage 3', instruction: 'Read the passage and answer questions 27-40', question_groups: createToeicGroups(27, 1, 14, 4) });
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(...sampleIelts.slice(4, 7));
         } else if (type === 'SKILL_TOEIC_LISTENING') {
           tempParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) });
           tempParts.push({ part_title: 'Part 2: Question-Response', instruction: 'Questions 7-31', shared_audio: { url: '' }, question_groups: createToeicGroups(7, 1, 25, 3) });
@@ -1247,9 +1704,11 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn', question_groups: createToeicGroups(21, 1, 10, 4) });
           tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn', question_groups: createToeicGroups(31, 1, 10, 4) });
         } else if (type === 'PART_IELTS_L1') {
-          tempParts.push({ part_title: 'Listening Part 1', instruction: 'Listen and answer questions 1-10', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 1, 10, 4) });
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[0]);
         } else if (type === 'PART_IELTS_R1') {
-          tempParts.push({ part_title: 'Reading Passage 1', instruction: 'Read the passage and answer questions 1-13', question_groups: createToeicGroups(1, 1, 13, 4) });
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[4]);
         } else if (type === 'PART_TOEIC_1') {
           tempParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) });
         } else if (type === 'PART_TOEIC_2') {
@@ -1390,12 +1849,32 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       let lastPartName = '';
       let lastGroupName = '';
       let fallbackQCounter = 1;
+      let lastGroupOptions: string[] = [];
 
-      const getCellValue = (cell: ExcelJS.Cell) => {
-        if (cell.type === ExcelJS.ValueType.Merge) {
-          return cell.master.text ? cell.master.text.trim() : '';
+      const extractTextFromValue = (val: any): string => {
+        if (val == null) return '';
+        if (typeof val === 'string') return val.trim();
+        if (typeof val === 'number' || typeof val === 'boolean') return String(val).trim();
+        if (typeof val === 'object') {
+          if (Array.isArray(val.richText)) {
+            return val.richText.map((t: any) => (t && t.text) || '').join('').trim();
+          }
+          if (typeof val.text === 'string') return val.text.trim();
+          if (val.result != null) return extractTextFromValue(val.result);
         }
-        return cell.text ? cell.text.trim() : '';
+        const s = String(val).trim();
+        return s === '[object Object]' ? '' : s;
+      };
+
+      const getCellValue = (cell: ExcelJS.Cell): string => {
+        if (!cell) return '';
+        const targetCell = (cell.type === ExcelJS.ValueType.Merge && cell.master) ? cell.master : cell;
+        const fromVal = extractTextFromValue(targetCell.value);
+        if (fromVal) return fromVal;
+        if (targetCell.text && typeof targetCell.text === 'string' && targetCell.text.trim() !== '[object Object]') {
+          return targetCell.text.trim();
+        }
+        return '';
       };
 
       // Detect column indices dynamically based on header row
@@ -1448,6 +1927,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push(currentPart);
           lastPartName = partName;
           lastGroupName = ''; // reset group
+          lastGroupOptions = [];
         } else if (currentPart && !currentPart.instruction) {
           if (rawPartInstruction) currentPart.instruction = rawPartInstruction;
           else if (rawLegacyInstruction) currentPart.instruction = rawLegacyInstruction;
@@ -1458,6 +1938,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         }
 
         if (groupName !== lastGroupName || !currentGroup) {
+          lastGroupOptions = [];
           let groupInstruction = '';
           if (colMap.groupInstruction > 0 && rawGroupInstruction) {
             groupInstruction = rawGroupInstruction;
@@ -1508,20 +1989,46 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         const rawOptB = getColVal(row, colMap.optB);
         const rawOptC = getColVal(row, colMap.optC);
         const rawOptD = getColVal(row, colMap.optD);
+        const rawOptE = colMap.optE && colMap.optE > 0 ? getColVal(row, colMap.optE) : '';
+        const rawOptF = colMap.optF && colMap.optF > 0 ? getColVal(row, colMap.optF) : '';
+        const rawOptG = colMap.optG && colMap.optG > 0 ? getColVal(row, colMap.optG) : '';
+        const rawOptH = colMap.optH && colMap.optH > 0 ? getColVal(row, colMap.optH) : '';
         
         const hasA = rawOptA !== '';
         const hasB = rawOptB !== '';
         const hasC = rawOptC !== '';
         const hasD = rawOptD !== '';
+        const hasE = rawOptE !== '';
+        const hasF = rawOptF !== '';
+        const hasG = rawOptG !== '';
+        const hasH = rawOptH !== '';
         
         let options: string[] = [];
-        if (hasD) options = [rawOptA, rawOptB, rawOptC, rawOptD];
+        if (hasH) options = [rawOptA, rawOptB, rawOptC, rawOptD, rawOptE, rawOptF, rawOptG, rawOptH];
+        else if (hasG) options = [rawOptA, rawOptB, rawOptC, rawOptD, rawOptE, rawOptF, rawOptG];
+        else if (hasF) options = [rawOptA, rawOptB, rawOptC, rawOptD, rawOptE, rawOptF];
+        else if (hasE) options = [rawOptA, rawOptB, rawOptC, rawOptD, rawOptE];
+        else if (hasD) options = [rawOptA, rawOptB, rawOptC, rawOptD];
         else if (hasC) options = [rawOptA, rawOptB, rawOptC];
         else if (hasB) options = [rawOptA, rawOptB];
         else if (hasA) options = [rawOptA];
-        else if (type.includes('MULTIPLE_CHOICE')) {
+
+        const isChoiceOrMatching = type.includes('MULTIPLE_CHOICE') || type === 'MATCHING_SENTENCE_ENDINGS' || type === 'MATCHING_FEATURES' || type === 'MATCHING_INFORMATION';
+
+        if (options.length > 0) {
+          lastGroupOptions = [...options];
+        } else if (lastGroupOptions.length > 0 && isChoiceOrMatching) {
+          // Kế thừa options từ dòng trước trong cùng nhóm nếu các dòng sau để trống
+          options = [...lastGroupOptions];
+        } else if (type.includes('MULTIPLE_CHOICE')) {
           const isPart2 = (partName || '').toLowerCase().includes('part 2') || (partName || '').toLowerCase().includes('phần 2');
-          options = isPart2 ? ['', '', ''] : ['', '', '', ''];
+          options = isPart2 ? ['', '', ''] : (type === 'MULTIPLE_CHOICE_MULTI' ? ['', '', '', '', ''] : ['', '', '', '']);
+        } else if (type === 'MATCHING_SENTENCE_ENDINGS') {
+          options = ['', '', '', '', '', '', ''];
+        } else if (type === 'MATCHING_FEATURES') {
+          options = ['', '', '', ''];
+        } else if (type === 'MATCHING_INFORMATION') {
+          options = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
         }
         
         const cleanCorrect = (correct || '').trim();
@@ -1529,60 +2036,105 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         let correctOptionIndex: number | undefined = undefined;
         let correctOptionIndices: number[] | undefined = undefined;
         
-        if (type.includes('MULTIPLE_CHOICE') && cleanCorrect !== '') {
+        if (isChoiceOrMatching && cleanCorrect !== '') {
            if (type === 'MULTIPLE_CHOICE_MULTI') {
-               const parts = cleanCorrect.split(',').map(s => s.trim().toUpperCase());
+               const parts = cleanCorrect.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
                correctOptionIndices = [];
                parsedCorrectAnswer = [];
                parts.forEach(p => {
                   let idx = -1;
-                  if (p === 'A') idx = 0;
-                  else if (p === 'B') idx = 1;
-                  else if (p === 'C') idx = 2;
-                  else if (p === 'D') idx = 3;
+                  const upperP = p.toUpperCase();
+                  if (upperP.length === 1 && upperP >= 'A' && upperP <= 'H') {
+                    idx = upperP.charCodeAt(0) - 65;
+                  } else if (options.length > 0) {
+                    idx = options.findIndex(opt => opt && opt.trim().toLowerCase() === p.toLowerCase());
+                  }
                   if (idx >= 0 && idx < options.length) {
                       correctOptionIndices!.push(idx);
-                      parsedCorrectAnswer.push(options[idx]);
+                      parsedCorrectAnswer.push((options[idx] && options[idx].trim() !== '') ? options[idx] : upperP);
                   } else {
                       parsedCorrectAnswer.push(p); // fallback
                   }
                });
                if (correctOptionIndices.length === 0) correctOptionIndices = undefined;
            } else {
-               const p = cleanCorrect.toUpperCase();
+               const upperP = cleanCorrect.toUpperCase();
                let idx = -1;
-               if (p === 'A') idx = 0;
-               else if (p === 'B') idx = 1;
-               else if (p === 'C') idx = 2;
-               else if (p === 'D') idx = 3;
+               if (upperP.length === 1 && upperP >= 'A' && upperP <= 'H') {
+                 idx = upperP.charCodeAt(0) - 65;
+               } else if (options.length > 0) {
+                 idx = options.findIndex(opt => opt && opt.trim().toLowerCase() === cleanCorrect.toLowerCase());
+               }
                if (idx >= 0 && idx < options.length) {
                    correctOptionIndex = idx;
-                   parsedCorrectAnswer = options[idx];
+                   parsedCorrectAnswer = (options[idx] && options[idx].trim() !== '') ? options[idx] : cleanCorrect;
                }
            }
         }
 
-        const numMatch = questionText.match(/\d+/);
-        const qNum = numMatch ? String(numMatch[0]).padStart(3, '0') : String(fallbackQCounter++).padStart(3, '0');
+        const rangeMatch = questionText.match(/(?:questions?|câu)?\s*(\d+)\s*(?:-|to|and|và|–)\s*(\d+)/i);
+        const isMultiPair = type === 'MULTIPLE_CHOICE_MULTI' && rangeMatch && (parseInt(rangeMatch[2], 10) === parseInt(rangeMatch[1], 10) + 1);
 
-        const newQuestion: Question = {
-          question_id: `q_${qNum}`,
-          type: type,
-          question_text: questionText,
-          metadata: {
-            options: options.length > 0 ? options : undefined,
-            correct_answer: parsedCorrectAnswer,
-            correct_option_index: correctOptionIndex,
-            correct_option_indices: correctOptionIndices,
-            explanation: explanation
+        if (isMultiPair && rangeMatch) {
+          const startNum = parseInt(rangeMatch[1], 10);
+          const endNum = parseInt(rangeMatch[2], 10);
+
+          const q1: Question = {
+            question_id: `q_${String(startNum).padStart(3, '0')}`,
+            type: type,
+            question_text: questionText,
+            metadata: {
+              options: options.length > 0 ? [...options] : undefined,
+              correct_answer: Array.isArray(parsedCorrectAnswer) ? [...parsedCorrectAnswer] : parsedCorrectAnswer,
+              correct_option_index: correctOptionIndex,
+              correct_option_indices: correctOptionIndices ? [...correctOptionIndices] : undefined,
+              explanation: explanation
+            }
+          };
+          const q2: Question = {
+            question_id: `q_${String(endNum).padStart(3, '0')}`,
+            type: type,
+            question_text: questionText,
+            metadata: {
+              options: options.length > 0 ? [...options] : undefined,
+              correct_answer: Array.isArray(parsedCorrectAnswer) ? [...parsedCorrectAnswer] : parsedCorrectAnswer,
+              correct_option_index: correctOptionIndex,
+              correct_option_indices: correctOptionIndices ? [...correctOptionIndices] : undefined,
+              explanation: explanation
+            }
+          };
+
+          if (qMedia) {
+            (q1.metadata as any).media = { type: 'image', url: qMedia };
+            (q2.metadata as any).media = { type: 'image', url: qMedia };
           }
-        };
 
-        if (qMedia) {
-          (newQuestion.metadata as any).media = { type: 'image', url: qMedia };
+          currentGroup.questions.push(q1);
+          currentGroup.questions.push(q2);
+          fallbackQCounter = Math.max(fallbackQCounter, endNum + 1);
+        } else {
+          const numMatch = questionText.match(/\d+/);
+          const qNum = numMatch ? String(numMatch[0]).padStart(3, '0') : String(fallbackQCounter++).padStart(3, '0');
+
+          const newQuestion: Question = {
+            question_id: `q_${qNum}`,
+            type: type,
+            question_text: questionText,
+            metadata: {
+              options: options.length > 0 ? options : undefined,
+              correct_answer: parsedCorrectAnswer,
+              correct_option_index: correctOptionIndex,
+              correct_option_indices: correctOptionIndices,
+              explanation: explanation
+            }
+          };
+
+          if (qMedia) {
+            (newQuestion.metadata as any).media = { type: 'image', url: qMedia };
+          }
+
+          currentGroup.questions.push(newQuestion);
         }
-
-        currentGroup.questions.push(newQuestion);
       });
 
       let detectedType = importedType ? normalizeExamType(importedType) : '';
@@ -1793,7 +2345,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               <option value="IELTS_L2">IELTS Listening Part 2</option>
               <option value="IELTS_L3">IELTS Listening Part 3</option>
               <option value="IELTS_L4">IELTS Listening Part 4</option>
-              <option value="IELTS_R1">IELTS Reading Passage</option>
+              <option value="IELTS_R1">IELTS Reading Passage 1</option>
+              <option value="IELTS_R2">IELTS Reading Passage 2</option>
+              <option value="IELTS_R3">IELTS Reading Passage 3</option>
               <option value="IELTS_W1">IELTS Writing Task 1</option>
               <option value="IELTS_W2">IELTS Writing Task 2</option>
             </optgroup>
@@ -2076,6 +2630,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                   </div>
                 )}
 
+                {/* Gợi ý khi Part chưa có nhóm câu hỏi nào */}
+                {part.question_groups.length === 0 && !part.part_title.toLowerCase().includes('writing task') && !part.part_title.toLowerCase().includes('kỹ năng viết') && (
+                  <div style={{ textAlign: 'center', padding: '2rem 1.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-medium, #cbd5e1)', marginBottom: '1.5rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                      Phần thi này chưa có nhóm câu hỏi nào. Bấm <strong>"+ Thêm Nhóm câu hỏi / Đoạn văn mới"</strong> ở bên dưới để tạo các nhóm câu hỏi (Điền từ, Trắc nghiệm, True/False/Not Given, Matching...) theo đề thi thực tế.
+                    </p>
+                  </div>
+                )}
+
                   {/* Question Groups */}
                   {part.question_groups.map((group, gIndex) => {
                     const isWriting = part.part_title.toLowerCase().includes('writ') || part.part_title.toLowerCase().includes('viết') || part.part_title.toLowerCase().includes('write');
@@ -2203,18 +2766,53 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
                         {/* Questions List */}
                         <div>
-                          {group.questions.map((q, qIndex) => (
-                            <div key={qIndex} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', background: 'white', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginBottom: '0.75rem' }}>
+                          {group.questions.map((q, qIndex) => {
+                            const isSecondaryMulti = qIndex > 0 &&
+                              q.type === 'MULTIPLE_CHOICE_MULTI' &&
+                              group.questions[qIndex - 1]?.type === 'MULTIPLE_CHOICE_MULTI';
+
+                            if (isSecondaryMulti) {
+                              return null;
+                            }
+
+                            const isPrimaryMulti = q.type === 'MULTIPLE_CHOICE_MULTI' &&
+                              group.questions[qIndex + 1]?.type === 'MULTIPLE_CHOICE_MULTI';
+                            const nextQ = isPrimaryMulti ? group.questions[qIndex + 1] : null;
+
+                            return (
+                            <div key={qIndex} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', background: 'white', padding: '1rem', borderRadius: 'var(--radius-sm)', border: isPrimaryMulti ? '1px solid #f59e0b' : '1px solid var(--border-light)', marginBottom: '0.75rem' }}>
                               {!isWriting && (
-                                <div style={{ background: 'var(--primary)', color: 'white', width: '32px', height: '24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>
-                                  {q.question_id.split('_')[1] || (qIndex + 1)}
+                                <div style={{
+                                  background: isPrimaryMulti ? '#d97706' : 'var(--primary)',
+                                  color: 'white',
+                                  minWidth: isPrimaryMulti ? '56px' : '32px',
+                                  height: '24px',
+                                  padding: isPrimaryMulti ? '0 8px' : '0',
+                                  borderRadius: '12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  flexShrink: 0
+                                }}>
+                                  {isPrimaryMulti && nextQ
+                                    ? `${q.question_id.split('_')[1] || (qIndex + 1)} - ${nextQ.question_id.split('_')[1] || (qIndex + 2)}`
+                                    : (q.question_id.split('_')[1] || (qIndex + 1))}
                                 </div>
                               )}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 {!isWriting && (
-                                  <select className="input-field" style={{ padding: '0.2rem', fontSize: '0.75rem', marginBottom: '0.25rem', width: '200px' }} value={q.type} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'type', e.target.value)}>
-                                    {QUESTION_TYPES.map(qt => <option key={qt.value} value={qt.value}>{qt.label}</option>)}
-                                  </select>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
+                                    <select className="input-field" style={{ padding: '0.2rem', fontSize: '0.75rem', width: '220px' }} value={q.type} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'type', e.target.value)}>
+                                      {QUESTION_TYPES.map(qt => <option key={qt.value} value={qt.value}>{qt.label}</option>)}
+                                    </select>
+                                    {isPrimaryMulti && (
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: '4px', border: '1px solid #fde68a' }}>
+                                        Cặp 2 câu hỏi (Dùng chung 1 đề và 1 danh sách lựa chọn A-E)
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                                 {!isWriting ? (
                                   <input type="text" className="input-field" value={q.question_text} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'question_text', e.target.value)} placeholder="Nội dung câu hỏi..." style={{ marginBottom: '0.5rem', padding: '0.4rem 0.75rem' }} />
@@ -2266,9 +2864,16 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                                 onChange={(e) => {
                                                   if (isMulti) {
                                                     let currentIndices = Array.isArray(q.metadata.correct_option_indices) ? [...q.metadata.correct_option_indices] : [];
-                                                    if (e.target.checked) currentIndices.push(oIdx);
-                                                    else currentIndices = currentIndices.filter(item => item !== oIdx);
-                                                    
+                                                    if (e.target.checked) {
+                                                      if (currentIndices.length >= 2) {
+                                                        alert("Dạng câu hỏi chọn 2 đáp án chỉ cho phép chọn tối đa 2 đáp án đúng.");
+                                                        return;
+                                                      }
+                                                      currentIndices.push(oIdx);
+                                                    } else {
+                                                      currentIndices = currentIndices.filter(item => item !== oIdx);
+                                                    }
+                                                    currentIndices.sort((a: number, b: number) => a - b);
                                                     updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_option_indices', currentIndices);
                                                     const newCorrectAnswers = currentIndices.map((i: number) => q.metadata.options?.[i] ?? '');
                                                     updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', newCorrectAnswers);
@@ -2361,17 +2966,76 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                 )}
                               </div>
                               {!isFixedStructure && (
-                                <button className="btn" style={{ padding: '0.25rem', color: 'var(--danger)', background: 'transparent', border: 'none' }} onClick={() => {
-                                  const newGroups = [...parts][pIndex].question_groups;
-                                  newGroups[gIndex].questions.splice(qIndex, 1);
-                                  setParts([...parts]);
+                                <button className="btn" style={{ padding: '0.25rem', color: 'var(--danger)', background: 'transparent', border: 'none' }} title={isPrimaryMulti ? "Xóa cặp câu hỏi này" : "Xóa câu hỏi"} onClick={() => {
+                                  const newParts = [...parts];
+                                  const newQuestions = newParts[pIndex].question_groups[gIndex].questions;
+                                  if (isPrimaryMulti) {
+                                    newQuestions.splice(qIndex, 2);
+                                  } else {
+                                    newQuestions.splice(qIndex, 1);
+                                  }
+                                  setParts(newParts);
                                 }}>
                                   <Trash2 size={16} />
                                 </button>
                               )}
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
+
+                        {(!isWriting && !isFixedStructure) && (
+                          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{
+                                fontSize: '0.8125rem',
+                                padding: '0.35rem 0.75rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                background: 'white',
+                                border: '1px dashed var(--border-medium, #cbd5e1)',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => {
+                                const bounds = getPartBounds(part.part_title, examType);
+                                const nextStart = getNextStartForPart(part, bounds);
+                                if (bounds && nextStart > bounds.end) {
+                                  alert("Đã đủ số câu hỏi cho Part này.");
+                                  return;
+                                }
+                                const lastQ = group.questions[group.questions.length - 1];
+                                const defaultType = lastQ ? lastQ.type : (batchSettings[group.group_id]?.type || 'MULTIPLE_CHOICE');
+                                let defaultOptions: string[] | undefined = undefined;
+                                if (defaultType === 'TRUE_FALSE_NOT_GIVEN') defaultOptions = ['TRUE', 'FALSE', 'NOT GIVEN'];
+                                else if (defaultType === 'YES_NO_NOT_GIVEN') defaultOptions = ['YES', 'NO', 'NOT GIVEN'];
+                                else if (defaultType === 'MATCHING_SENTENCE_ENDINGS') defaultOptions = ['', '', '', '', '', '', ''];
+                                else if (defaultType === 'MATCHING_FEATURES') defaultOptions = ['', '', '', ''];
+                                else if (defaultType === 'MATCHING_INFORMATION') defaultOptions = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+                                else if (defaultType === 'MULTIPLE_CHOICE_MULTI') defaultOptions = ['', '', '', '', ''];
+                                else if (defaultType.includes('MULTIPLE_CHOICE')) defaultOptions = ['', '', '', ''];
+
+                                const newQ: Question = {
+                                  question_id: `q_${String(nextStart).padStart(3, '0')}`,
+                                  type: defaultType,
+                                  question_text: `Câu ${nextStart}`,
+                                  metadata: {
+                                    correct_answer: defaultType === 'MULTIPLE_CHOICE_MULTI' ? [] : '',
+                                    explanation: '',
+                                    options: defaultOptions
+                                  }
+                                };
+                                const newParts = [...parts];
+                                newParts[pIndex].question_groups[gIndex].questions.push(newQ);
+                                setParts(newParts);
+                              }}
+                            >
+                              <Plus size={14} /> Thêm 1 câu hỏi vào Group này
+                            </button>
+                          </div>
+                        )}
                       </div>
                       
                       {!isFixedStructure && (
