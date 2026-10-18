@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Builder
@@ -15,6 +16,15 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class PracticeFeedbackResponse {
+    public record GroupAnswer(String questionId, Object userAnswer, GradingVerdict verdict,
+            BigDecimal score, Object correctAnswer, String explanation,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Object listeningDetail) {
+        public GroupAnswer(String questionId, Object userAnswer, GradingVerdict verdict,
+                BigDecimal score, Object correctAnswer, String explanation) {
+            this(questionId, userAnswer, verdict, score, correctAnswer, explanation, null);
+        }
+    }
+
     private Integer attemptId;
     private Integer partId;
     private String questionId;
@@ -24,4 +34,10 @@ public class PracticeFeedbackResponse {
     private BigDecimal score;
     private Object correctAnswer;
     private String explanation;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Object listeningDetail;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<GroupAnswer> groupResults;
 }

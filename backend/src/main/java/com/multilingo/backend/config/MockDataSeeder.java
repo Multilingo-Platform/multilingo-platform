@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @Profile("dev")
+@ConditionalOnExpression("'${exam.mock-data.enabled:false}' == 'true' and '${exam.default-dataset.enabled:false}' != 'true'")
 @RequiredArgsConstructor
 public class MockDataSeeder implements CommandLineRunner {
 

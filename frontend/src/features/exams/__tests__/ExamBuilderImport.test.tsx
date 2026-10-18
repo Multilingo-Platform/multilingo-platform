@@ -9,14 +9,20 @@ vi.mock('sweetalert2', () => ({ default: { fire: vi.fn() } }));
 
 describe('server-backed Excel import', () => {
   beforeEach(() => vi.clearAllMocks());
-  it('preserves the existing non-TOEIC Excel path without bypassing TOEIC preview', async () => {
+  it('uses the backend preview for IELTS instead of the legacy client parser', async () => {
     const workbook = new ExcelJS.Workbook();
     const info = workbook.addWorksheet('Thông Tin Đề Thi');
     info.addRow(['Tên đề thi', 'IELTS legacy']);
     info.addRow(['Mã loại chứng chỉ', 'IELTS_ACADEMIC']);
-    const sheet = workbook.addWorksheet('Exam Template');
-    sheet.addRow(['Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)', 'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)', 'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Đáp án đúng', 'Giải thích', 'Audio/File chung (Phần)', 'Đính kèm chung (Nhóm)', 'Đính kèm riêng (Câu hỏi)']);
-    sheet.addRow(['Part 1: Reading Passage 1', 'Read', 'Group 1', 'MULTIPLE_CHOICE', '', '<p>Passage</p>', 'Question 1 Choose', 'First', 'Second', 'Third', 'Fourth', 'B', 'Explanation']);
+    vi.mocked(axiosClient.post).mockResolvedValue({ success: true, data: {
+      request: { title: 'IELTS canonical', type: 'IELTS_ACADEMIC', examLanguage: 'en', published: false,
+        sections: [{ skillType: 'READING', durationMinutes: 60, parts: [{ partNumber: 5, contentData: {
+          part_title: 'Reading Passage 1', instruction: 'Read', question_groups: [{ group_id: 'g1', instruction: '', content_html: '<p>Passage</p>',
+            questions: [{ question_id: 'r_001', type: 'TRUE_FALSE_NOT_GIVEN', question_number: 1, question_text: 'Statement',
+              options: null, correct_answer: 'TRUE', explanation: null }] }],
+        } }] }] },
+      issues: [], counts: { parts: 1, groups: 1, questions: 1 }, sourceSha256: 'b'.repeat(64), canPublish: false,
+    } } as any);
     const bytes = await workbook.xlsx.writeBuffer();
     const file = new File([bytes], 'IELTS.xlsx');
     Object.defineProperty(file, 'arrayBuffer', { value: async () => bytes });
@@ -26,7 +32,8 @@ describe('server-backed Excel import', () => {
     fireEvent.click(await screen.findByRole('button', { name: /lưu nháp/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(JSON.parse(onSave.mock.calls[0][0]).exam_type).toBe('IELTS_ACADEMIC');
-    expect(axiosClient.post).not.toHaveBeenCalled();
+    expect(axiosClient.post).toHaveBeenCalledWith('/v1/admin/exams/import/preview', expect.any(FormData), expect.any(Object));
+    expect(JSON.parse(onSave.mock.calls[0][0]).parts[0].question_groups[0].questions[0].question_id).toBe('r_001');
   });
   it('shows located content issues and saves the imported exam as a draft', async () => {
     vi.mocked(axiosClient.post).mockResolvedValue({ success: true, data: {

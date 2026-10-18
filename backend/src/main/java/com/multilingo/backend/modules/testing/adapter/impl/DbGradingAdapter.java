@@ -145,6 +145,7 @@ public class DbGradingAdapter implements GradingAdapter {
         key.setQuestionId(questionId);
         key.setType(type);
         key.setCorrect(question.get("correct_answer"));
+        key.setAnswerGroup(GradingKey.AnswerGroup.parse(question.get("answer_group"), questionId));
 
         if (question.containsKey("alternates")) {
             key.setAlternates((List<String>) question.get("alternates"));

@@ -173,7 +173,7 @@ describe('PracticeQuestionFeedback (AC-03, AC-07, AC-08)', () => {
       );
 
       expect(screen.getByText('Chưa chính xác')).toBeInTheDocument();
-      expect(screen.getByText('Chưa có giải thích chi tiết cho câu hỏi này.')).toBeInTheDocument();
+      expect(screen.getByText('Chưa có giải thích')).toBeInTheDocument();
     });
 
     it('renders partial and blank verdicts appropriately', () => {

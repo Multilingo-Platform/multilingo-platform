@@ -54,6 +54,34 @@ class DefaultExamDatasetServiceTest {
         verify(admin, never()).createExamWithCode(any(), any());
     }
 
+    @Test void publishesOnlyWhenExplicitlyRequestedAfterSuccessfulCreate() throws Exception {
+        var bundle = bundle();
+        when(repository.findByCode(bundle.examCode())).thenReturn(Optional.empty());
+        when(admin.createExamWithCode(any(), eq(bundle.examCode()))).thenReturn(27);
+
+        assertThat(service.seed(List.of(bundle), false)).isEqualTo(1);
+        verify(admin, never()).updateExamStatus(anyInt(), anyBoolean());
+
+        reset(repository, admin);
+        when(repository.findByCode(bundle.examCode())).thenReturn(Optional.empty());
+        when(admin.createExamWithCode(any(), eq(bundle.examCode()))).thenReturn(28);
+        assertThat(service.seed(List.of(bundle), true)).isEqualTo(1);
+        verify(admin).updateExamStatus(28, true);
+        assertThat(bundle.request().isPublished()).isFalse();
+    }
+
+    @Test void explicitPublishAlsoAppliesToAnExistingIdenticalDraft() throws Exception {
+        var bundle = bundle();
+        Exam existing = new Exam(); existing.setId(29);
+        when(repository.findByCode(bundle.examCode())).thenReturn(Optional.of(existing));
+        when(admin.getExamDetail(29)).thenReturn(ExamDatasetBundle.canonical(bundle.request()));
+
+        assertThat(service.seed(List.of(bundle), true)).isZero();
+
+        verify(admin).updateExamStatus(29, true);
+        verify(admin, never()).createExamWithCode(any(), any());
+    }
+
     @Test void validatesAllBundlesBeforeCreatingAndExportRejectsIncompleteContent() throws Exception {
         var bundle = bundle();
         assertThatThrownBy(() -> service.seed(List.of(bundle, bundle))).isInstanceOf(com.multilingo.backend.common.exception.AppException.class);

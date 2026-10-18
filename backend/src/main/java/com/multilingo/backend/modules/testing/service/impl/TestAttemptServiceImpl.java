@@ -36,6 +36,7 @@ import com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse;
 import com.multilingo.backend.modules.testing.service.support.AttemptGradingInputFactory;
 import com.multilingo.backend.modules.testing.service.support.AttemptResultSummaryMapper;
 import com.multilingo.backend.modules.testing.service.support.AttemptReviewMapper;
+import com.multilingo.backend.modules.testing.service.support.ToeicWorkspaceProjection;
 import com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver;
 import com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer;
 import com.multilingo.backend.modules.testing.util.AttemptDuration;
@@ -77,6 +78,13 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final AttemptReviewMapper reviewMapper;
     private final WritingGradingEnqueuer writingGradingEnqueuer;
     private final WritingGradingAttemptStateResolver stateResolver;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService;
+
+    public void setListeningPlaybackService(com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService) {
+        this.listeningPlaybackService = listeningPlaybackService;
+    }
 
     public TestAttemptServiceImpl(
             TestAttemptRepository testAttemptRepository,
@@ -723,7 +731,12 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private WorkspaceResponse toWorkspaceResponse(TestAttempt attempt) {
         List<AutosaveAnswersRequest.PartAnswerDto> savedAnswers = loadSavedAnswers(attempt.getId());
         Map<String, Object> sanitizedSnapshot = WorkspaceSnapshotSanitizer.sanitize(attempt.getExamSnapshot());
+        Map<String, Object> projectedSnapshot = ToeicWorkspaceProjection.project(sanitizedSnapshot, attempt.getTestMode());
         Instant serverTime = Instant.now();
+        WorkspaceResponse.ListeningPlaybackSummary playbackSummary = null;
+        if (listeningPlaybackService != null) {
+            playbackSummary = listeningPlaybackService.getPlaybackSummary(attempt);
+        }
 
         return WorkspaceResponse.builder()
                 .attemptId(attempt.getId())
@@ -736,8 +749,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .gracePeriodSeconds(15)
                 .version(attempt.getVersion())
                 .savedAnswers(savedAnswers)
-                .examSnapshot(sanitizedSnapshot)
+                .examSnapshot(projectedSnapshot)
                 .lockedSections(attempt.getLockedSections() != null ? attempt.getLockedSections() : new java.util.ArrayList<>())
+                .listeningPlayback(playbackSummary)
                 .build();
     }
 

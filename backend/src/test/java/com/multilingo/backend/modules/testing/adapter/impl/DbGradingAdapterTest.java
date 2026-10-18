@@ -91,6 +91,25 @@ class DbGradingAdapterTest {
     }
 
     @Test
+    void loadPartKeysPreservesCanonicalIeltsAnswerGroup() {
+        Map<String, Object> pair = Map.of("id", "listening-17-18", "mode", "DISTINCT_UNORDERED",
+                "question_ids", List.of("l_017", "l_018"));
+        Map<String, Object> first = question("l_017", "SINGLE_CHOICE", List.of("A", "E"));
+        first.put("answer_group", pair);
+        Map<String, Object> second = question("l_018", "SINGLE_CHOICE", List.of("A", "E"));
+        second.put("answer_group", pair);
+        Exam exam = mockExam();
+        ExamSection listening = mockSection(10, "LISTENING");
+        ExamPart part = mockPart(101, canonicalGroups(first, second));
+        stubExam(exam, List.of(listening), Map.of(10, List.of(part)));
+
+        var answers = adapter.loadPartKeys(1).get(101).getAnswers();
+
+        assertThat(answers.get("l_017").getAnswerGroup()).isEqualTo(answers.get("l_018").getAnswerGroup());
+        assertThat(answers.get("l_017").getAnswerGroup().questionIds()).containsExactly("l_017", "l_018");
+    }
+
+    @Test
     void loadPartKeys_rejectsDuplicateQuestionIdsWithinSamePart() {
         Exam exam = mockExam();
         ExamSection reading = mockSection(10, "READING");

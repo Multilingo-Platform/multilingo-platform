@@ -144,6 +144,7 @@ public final class SnapshotGradingKeyExtractor {
         key.setQuestionId(questionId);
         key.setType(type);
         key.setCorrect(correct);
+        key.setAnswerGroup(GradingKey.AnswerGroup.parse(question.get("answer_group"), questionId));
 
         if (question.containsKey("alternates") && question.get("alternates") instanceof List<?> altList) {
             List<String> alternates = new ArrayList<>();

@@ -89,6 +89,55 @@ class ObjectiveGradingServiceTest {
         assertThat(qResult.getScore()).isEqualByComparingTo(expectedScore);
     }
 
+    @Test
+    void pairedIeltsSlotsAreGradedTogetherForUnorderedDistinctAnswers() {
+        GradingKey.AnswerGroup group = new GradingKey.AnswerGroup("listening-17-18",
+                "DISTINCT_UNORDERED", List.of("l_017", "l_018"));
+        GradingKey first = new GradingKey();
+        first.setQuestionId("l_017"); first.setType("SINGLE_CHOICE"); first.setCorrect(List.of("A", "E"));
+        first.setAnswerGroup(group);
+        GradingKey second = new GradingKey();
+        second.setQuestionId("l_018"); second.setType("SINGLE_CHOICE"); second.setCorrect(List.of("A", "E"));
+        second.setAnswerGroup(group);
+        PartGradingKey part = new PartGradingKey();
+        part.setPartId(21); part.setAnswers(new LinkedHashMap<>(Map.of("l_018", second, "l_017", first)));
+        AttemptAnswer answer = new AttemptAnswer();
+        answer.setPartId(21);
+        answer.setUserAnswers(new LinkedHashMap<>(Map.of("l_018", "A", "l_017", "E")));
+
+        GradingResult result = service.gradeAttempt(List.of(answer), Map.of(21, part));
+
+        assertThat(result.getPartResults().get(21).get("l_017").getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+        assertThat(result.getPartResults().get(21).get("l_018").getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+        assertThat(result.getTotalScore()).isEqualByComparingTo("2");
+        assertThat(result.getCorrectCount()).isEqualTo(2);
+        assertThat(result.getTotalObjectiveCount()).isEqualTo(2);
+    }
+
+    @Test
+    void rejectsReusedAnswerGroupIdWithDifferentMembersInsteadOfSilentlySkippingQuestions() {
+        GradingKey.AnswerGroup firstGroup = new GradingKey.AnswerGroup("reused", "DISTINCT_UNORDERED",
+                List.of("q1", "q2"));
+        GradingKey.AnswerGroup secondGroup = new GradingKey.AnswerGroup("reused", "DISTINCT_UNORDERED",
+                List.of("q3", "q4"));
+        Map<String, GradingKey> keys = new LinkedHashMap<>();
+        for (var entry : List.of(Map.entry("q1", firstGroup), Map.entry("q2", firstGroup),
+                Map.entry("q3", secondGroup), Map.entry("q4", secondGroup))) {
+            GradingKey key = new GradingKey();
+            key.setQuestionId(entry.getKey()); key.setType("SINGLE_CHOICE");
+            key.setCorrect(List.of("A", "B")); key.setAnswerGroup(entry.getValue());
+            keys.put(entry.getKey(), key);
+        }
+        PartGradingKey part = new PartGradingKey();
+        part.setPartId(22); part.setAnswers(keys);
+        AttemptAnswer answer = new AttemptAnswer();
+        answer.setPartId(22); answer.setUserAnswers(Map.of("q1", "A", "q2", "B", "q3", "A", "q4", "B"));
+
+        assertThatThrownBy(() -> service.gradeAttempt(List.of(answer), Map.of(22, part)))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("answer group ID is reused");
+    }
+
     // ─── TC_GRADE_FI: FILL_IN_THE_BLANK ─────────────────────────────────────────
 
     record FillInCase(String userAnswer, GradingVerdict expected) {}

@@ -13,7 +13,9 @@ import java.util.List;
 @Data
 public class ExamFixture {
     private Integer id;
+    private String code;
     private String title;
+    private String type;
     /** Total exam duration in minutes. Null means not configured — MOCK_TEST with null duration is rejected. */
     private Integer durationMinutes;
     private Instant updatedAt;

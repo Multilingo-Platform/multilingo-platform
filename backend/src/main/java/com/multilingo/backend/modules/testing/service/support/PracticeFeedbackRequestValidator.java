@@ -14,8 +14,18 @@ public class PracticeFeedbackRequestValidator {
     public record ValidatedFeedbackInput(
         Integer partId,
         String questionId,
-        Object answer
-    ) {}
+        Object answer,
+        Map<String, Object> groupAnswers
+    ) {
+        public ValidatedFeedbackInput(Integer partId, String questionId, Object answer) {
+            this(partId, questionId, answer, null);
+        }
+
+        public ValidatedFeedbackInput {
+            groupAnswers = groupAnswers == null ? null
+                    : Collections.unmodifiableMap(new LinkedHashMap<>(groupAnswers));
+        }
+    }
 
     private static final Set<String> STRING_ANSWER_TYPES = Set.of(
         "SINGLE_CHOICE",
@@ -91,7 +101,29 @@ public class PracticeFeedbackRequestValidator {
             throw new AppException(ErrorCode.VALIDATION_FAILED);
         }
 
-        return new ValidatedFeedbackInput(partId, questionId, answer);
+        Map<String, Object> groupAnswers = parseGroupAnswers(request.getGroupAnswers());
+
+        if (groupAnswers != null && !groupAnswers.containsKey(questionId))
+            throw new AppException(ErrorCode.VALIDATION_FAILED);
+        if (groupAnswers != null && !Objects.equals(answer, groupAnswers.get(questionId)))
+            throw new AppException(ErrorCode.VALIDATION_FAILED);
+        return new ValidatedFeedbackInput(partId, questionId, answer, groupAnswers);
+    }
+
+    private static Map<String, Object> parseGroupAnswers(JsonNode node) {
+        if (node == null) return null;
+        if (!node.isObject() || node.size() != 2) throw new AppException(ErrorCode.VALIDATION_FAILED);
+        Map<String, Object> result = new LinkedHashMap<>();
+        Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            JsonNode value = entry.getValue();
+            if (entry.getKey().isBlank() || result.containsKey(entry.getKey())
+                    || !(value.isNull() || value.isTextual()))
+                throw new AppException(ErrorCode.VALIDATION_FAILED);
+            result.put(entry.getKey(), value.isNull() ? null : value.textValue());
+        }
+        return result;
     }
 
     public static void validateAnswerForType(String type, Object answer) {

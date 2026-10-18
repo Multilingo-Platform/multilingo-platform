@@ -97,6 +97,35 @@ class SnapshotGradingKeyExtractorTest {
     }
 
     @Test
+    void extractFromSnapshotPreservesPairedAnswerMetadataForBothMembers() {
+        Map<String, Object> pair = Map.of("id", "listening-17-18", "mode", "DISTINCT_UNORDERED",
+                "question_ids", List.of("l_017", "l_018"));
+        Map<String, Object> first = new LinkedHashMap<>(Map.of("question_id", "l_017", "type", "SINGLE_CHOICE",
+                "correct_answer", List.of("A", "E"), "answer_group", pair));
+        Map<String, Object> second = new LinkedHashMap<>(Map.of("question_id", "l_018", "type", "SINGLE_CHOICE",
+                "correct_answer", List.of("A", "E"), "answer_group", pair));
+        Map<String, Object> part = Map.of("id", 501, "questions", List.of(first, second));
+        Map<String, Object> snapshot = Map.of("sections", List.of(Map.of("name", "LISTENING", "parts", List.of(part))));
+
+        var keys = SnapshotGradingKeyExtractor.extractFromSnapshot(snapshot).get(501).getAnswers();
+
+        assertThat(keys.get("l_017").getAnswerGroup()).isEqualTo(keys.get("l_018").getAnswerGroup());
+        assertThat(keys.get("l_017").getAnswerGroup().questionIds()).containsExactly("l_017", "l_018");
+    }
+
+    @Test
+    void extractFromSnapshotRejectsMalformedPairedAnswerMetadata() {
+        Map<String, Object> question = Map.of("question_id", "l_017", "type", "SINGLE_CHOICE",
+                "correct_answer", List.of("A", "E"), "answer_group", Map.of("id", "pair", "mode", "DISTINCT_UNORDERED",
+                        "question_ids", List.of("l_017", "l_018", "l_019")));
+        Map<String, Object> part = Map.of("id", 502, "questions", List.of(question));
+        Map<String, Object> snapshot = Map.of("sections", List.of(Map.of("parts", List.of(part))));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> SnapshotGradingKeyExtractor.extractFromSnapshot(snapshot))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void extractFromSnapshot_returnsEmptyMapWhenSnapshotHasNoKeys() {
         // Legacy snapshot without correct_answer
         Map<String, Object> q = Map.of("question_id", "q_1", "type", "SINGLE_CHOICE");

@@ -6,6 +6,7 @@ import type {
   CreateAttemptRequest,
   SubmitResult,
   WorkspaceResponse,
+  WorkspaceListeningPlaybackSummary,
   ExamResultResponse,
   ExamReviewResponse,
   TestScope,
@@ -71,6 +72,69 @@ function pickField(
   return undefined;
 }
 
+const SNAPSHOT_CANONICAL_ALIASES: ReadonlyArray<readonly [canonical: string, alias: string]> = [
+  ['section_id', 'sectionId'],
+  ['part_id', 'partId'],
+  ['part_number', 'partNumber'],
+  ['question_groups', 'questionGroups'],
+  ['group_id', 'groupId'],
+  ['question_id', 'questionId'],
+  ['question_number', 'questionNumber'],
+];
+
+/**
+ * Fills missing canonical snake_case keys from their camelCase wire aliases. Only missing keys
+ * are added and no identity is invented.
+ */
+function fillCanonicalAliases(node: Record<string, unknown>): Record<string, unknown> {
+  let result = node;
+  for (const [canonical, alias] of SNAPSHOT_CANONICAL_ALIASES) {
+    if (!(canonical in node) && node[alias] !== undefined) {
+      if (result === node) result = { ...node };
+      result[canonical] = node[alias];
+    }
+  }
+  return result;
+}
+
+/**
+ * Normalizes the exam snapshot at the API boundary: parts, groups and questions may arrive with
+ * camelCase or snake_case aliases, and the workspace model reads canonical keys. Untouched fields
+ * are preserved and the DB `id` is never promoted to an identity.
+ */
+function normalizeSnapshotAliases(snapshot: unknown): unknown {
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.sections)) return snapshot;
+
+  const sections = snapshot.sections.map(sectionRaw => {
+    if (!isRecord(sectionRaw)) return sectionRaw;
+    const section = fillCanonicalAliases(sectionRaw);
+    if (!Array.isArray(sectionRaw.parts)) return section;
+
+    const parts = sectionRaw.parts.map(partRaw => {
+      if (!isRecord(partRaw)) return partRaw;
+      const part = fillCanonicalAliases(partRaw);
+      const groupsRaw = part.question_groups ?? part.questionGroups;
+      if (!Array.isArray(groupsRaw)) return part;
+
+      const groups = groupsRaw.map(groupRaw => {
+        if (!isRecord(groupRaw)) return groupRaw;
+        const group = fillCanonicalAliases(groupRaw);
+        if (!Array.isArray(groupRaw.questions)) return group;
+        const questions = groupRaw.questions.map(questionRaw =>
+          isRecord(questionRaw) ? fillCanonicalAliases(questionRaw) : questionRaw
+        );
+        return { ...group, questions };
+      });
+
+      return { ...part, question_groups: groups };
+    });
+
+    return { ...section, parts };
+  });
+
+  return { ...snapshot, sections };
+}
+
 function isValidIsoInstant(val: unknown): val is string {
   if (typeof val !== 'string') return false;
   const match = val.match(
@@ -111,6 +175,35 @@ const VALID_STATUSES: Set<AttemptStatus> = new Set([
   'COMPLETED',
   'EXPIRED',
 ]);
+
+const PLAYBACK_SUMMARY_STATUSES: ReadonlySet<string> = new Set([
+  'NOT_STARTED',
+  'RUNNING',
+  'FINISHED',
+  'LOCKED',
+  'CLOSED',
+  'UNAVAILABLE',
+]);
+
+function normalizeListeningPlaybackSummary(
+  raw: unknown
+): WorkspaceListeningPlaybackSummary | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isRecord(raw)) throw new WorkspaceContractError();
+
+  const status = raw.status;
+  if (typeof status !== 'string' || !PLAYBACK_SUMMARY_STATUSES.has(status)) {
+    throw new WorkspaceContractError();
+  }
+  const available = raw.available;
+  if (typeof available !== 'boolean') {
+    throw new WorkspaceContractError();
+  }
+  return {
+    status: status as WorkspaceListeningPlaybackSummary['status'],
+    available,
+  };
+}
 
 function normalizeWorkspace(
   raw: unknown,
@@ -252,6 +345,9 @@ function normalizeWorkspace(
       ? serverNowMs - clientMidpoint
       : 0;
 
+  const playbackRaw = pickField(raw, 'listeningPlayback', 'listening_playback');
+  const listeningPlayback = normalizeListeningPlaybackSummary(playbackRaw);
+
   return {
     attempt_id: attemptId,
     status,
@@ -262,10 +358,11 @@ function normalizeWorkspace(
     serverTime,
     gracePeriodSeconds: gracePeriod,
     lockedSections,
-    exam_snapshot: snapshotRaw as any,
+    exam_snapshot: normalizeSnapshotAliases(snapshotRaw) as WorkspaceResponse['exam_snapshot'],
     version,
     saved_answers,
     serverTimeOffset: Number.isFinite(safeOffset) ? safeOffset : 0,
+    ...(listeningPlayback ? { listeningPlayback } : {}),
   };
 }
 
@@ -481,6 +578,14 @@ export async function checkPracticeAnswer(
         : Array.isArray(req.answer)
           ? [...req.answer]
           : { ...req.answer },
+    ...(req.groupAnswers !== undefined
+      ? { groupAnswers: Object.fromEntries(Object.entries(req.groupAnswers).map(([id, answer]) => [
+          id,
+          answer === null || typeof answer === 'string'
+            ? answer
+            : Array.isArray(answer) ? [...answer] : { ...answer },
+        ])) }
+      : {}),
   };
   const res = await boundedAttemptRequest(
     signal =>
@@ -499,7 +604,8 @@ export async function checkPracticeAnswer(
     attemptId,
     payload.partId,
     payload.questionId,
-    payload.answer
+    payload.answer,
+    payload.groupAnswers
   );
 }
 

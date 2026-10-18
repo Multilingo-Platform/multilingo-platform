@@ -1,5 +1,5 @@
 import type { AttemptStatus, PartAnswers, AnswerValue } from './answer.types';
-import type { ExamSnapshot, QuestionType } from './exam.types';
+import type { ExamSnapshot, ListeningDetail, QuestionType } from './exam.types';
 
 export type PracticeObjectiveType = Exclude<QuestionType, 'ESSAY'> | 'MATCHING';
 export type PracticeVerdict = 'CORRECT' | 'WRONG' | 'BLANK';
@@ -9,6 +9,17 @@ export interface PracticeFeedbackRequest {
   partId: number;
   questionId: string;
   answer: AnswerValue;
+  groupAnswers?: Record<string, AnswerValue>;
+}
+
+export interface PracticeFeedbackGroupResult {
+  questionId: string;
+  userAnswer: AnswerValue;
+  verdict: PracticeVerdict;
+  score: number;
+  correctAnswer: ReviewScalar | ReviewScalar[] | Record<string, ReviewScalar>;
+  explanation: string | null;
+  listeningDetail?: ListeningDetail | null;
 }
 
 export interface PracticeFeedbackResponse {
@@ -21,6 +32,8 @@ export interface PracticeFeedbackResponse {
   score: number;
   correctAnswer: ReviewScalar | ReviewScalar[] | Record<string, ReviewScalar>;
   explanation: string | null;
+  listeningDetail?: ListeningDetail | null;
+  groupResults?: PracticeFeedbackGroupResult[];
 }
 
 export type TestScope = 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART';
@@ -34,6 +47,15 @@ export interface CreateAttemptRequest {
   part_id: number | null;
 }
 
+/**
+ * Read-only playback summary attached to the workspace for TOEIC Mock attempts.
+ * Practice/IELTS attempts omit the field entirely (server-side NON_NULL).
+ */
+export interface WorkspaceListeningPlaybackSummary {
+  status: 'NOT_STARTED' | 'RUNNING' | 'FINISHED' | 'LOCKED' | 'CLOSED' | 'UNAVAILABLE';
+  available: boolean;
+}
+
 export interface WorkspaceResponse {
   attempt_id: number;
   status: AttemptStatus;
@@ -44,11 +66,17 @@ export interface WorkspaceResponse {
   serverTime: string;           // ISO-8601 UTC Instant timestamp from server
   gracePeriodSeconds: number;   // e.g. 15
   lockedSections: number[];     // array of locked section IDs
-  exam_snapshot: ExamSnapshot;  // Snapshot does NOT contain correct_answer
+  /**
+   * Snapshot WITHOUT correct_answer. Part/group/question identity and numbering aliases are
+   * normalized to canonical keys by `normalizeWorkspace` before the response is returned.
+   */
+  exam_snapshot: ExamSnapshot;
   version: number;
   saved_answers: PartAnswers[];
   /** ms: serverClock - clientClock at workspace fetch time. */
   serverTimeOffset: number;
+  /** TOEIC Mock playback summary; absent for Practice/IELTS. */
+  listeningPlayback?: WorkspaceListeningPlaybackSummary;
 }
 
 export interface ApiResponse<T> {

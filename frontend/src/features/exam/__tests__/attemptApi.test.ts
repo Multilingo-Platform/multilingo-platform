@@ -309,6 +309,56 @@ describe('getWorkspace and createAttempt contracts', () => {
     expect(res.saved_answers[0].answers[0].question_id).toBe('q_1');
   });
 
+  it('normalizes camelCase snapshot aliases to canonical keys without fabricating identity', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(2000);
+    mockAxios.get.mockResolvedValueOnce({
+      success: true,
+      data: {
+        ...validWorkspaceData,
+        examSnapshot: {
+          id: 1,
+          code: 'TOEIC-ETS-2024-T1-V2',
+          type: 'TOEIC',
+          title: 'ETS 2024 Test 1',
+          sections: [
+            {
+              id: 11,
+              sectionId: 11,
+              skill_type: 'LISTENING',
+              parts: [
+                {
+                  id: 101,
+                  partId: 101,
+                  partNumber: 1,
+                  questionGroups: [
+                    {
+                      groupId: 'g1',
+                      questions: [{ id: 555, questionId: 'q_001', questionNumber: 1 }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const res = await getWorkspace(42);
+    const section = res.exam_snapshot.sections[0] as any;
+    const part = section.parts[0] as any;
+    const question = part.question_groups[0].questions[0] as any;
+
+    expect(section.section_id).toBe(11);
+    expect(part.part_id).toBe(101);
+    expect(part.part_number).toBe(1);
+    expect(part.questionGroups[0].groupId).toBe('g1');
+    expect(question.question_id).toBe('q_001');
+    expect(question.question_number).toBe(1);
+    // DB id is preserved but never promoted to a question identity.
+    expect(question.id).toBe(555);
+  });
+
   it('validates MOCK_TEST deadline must not be before startTime', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1000);
     // Invalid mock: deadline before startTime
@@ -860,6 +910,26 @@ describe('TV3-16-01 checkPracticeAnswer', () => {
       correctAnswer: 'A',
       explanation: 'Giải thích chi tiết cho câu q1.',
     });
+  });
+
+  it('sends both paired answers and validates both echoed results', async () => {
+    const groupAnswers = { l_017: 'A', l_018: 'E' };
+    mockAxios.post.mockResolvedValueOnce(practiceFeedbackEnvelope({
+      ...practiceFeedbackFixture({ questionId: 'l_017', userAnswer: 'A', correctAnswer: ['A', 'E'], explanation: null }),
+      groupResults: [
+        { questionId: 'l_017', userAnswer: 'A', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'E'], explanation: null },
+        { questionId: 'l_018', userAnswer: 'E', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'E'], explanation: null },
+      ],
+    }));
+
+    const result = await checkPracticeAnswer(42, {
+      partId: 10, questionId: 'l_017', answer: 'A', groupAnswers,
+    });
+
+    expect(mockAxios.post).toHaveBeenCalledWith('/v1/attempts/42/practice-feedback', {
+      partId: 10, questionId: 'l_017', answer: 'A', groupAnswers,
+    }, expect.objectContaining({ timeout: 10000, signal: expect.any(AbortSignal) }));
+    expect(result.groupResults?.map(item => item.questionId)).toEqual(['l_017', 'l_018']);
   });
 
   it('sends null answer correctly without extraneous fields', async () => {

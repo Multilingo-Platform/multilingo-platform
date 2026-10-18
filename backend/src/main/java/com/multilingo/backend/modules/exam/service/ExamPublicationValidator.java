@@ -8,16 +8,18 @@ import java.util.*;
 /** Structural/content readiness only. Human correctness and media availability are separate gates. */
 public final class ExamPublicationValidator {
     public void requireStructure(ExamBuilderRequest request) {
-        if ("TOEIC_LR".equals(request.getType()) && issues(request).stream().anyMatch(issue ->
-                Set.of("STRUCTURE_INVALID", "ID_INVALID", "SKILL_INVALID", "DURATION_INVALID").contains(issue.code())))
+        if (isManagedCertificate(request) && issues(request).stream().anyMatch(issue ->
+                Set.of("STRUCTURE_INVALID", "ID_INVALID", "SKILL_INVALID", "DURATION_INVALID", "QUESTION_COUNT_INVALID")
+                        .contains(issue.code())))
             throw new AppException(ErrorCode.VALIDATION_FAILED, "Cấu trúc đề không hợp lệ; kiểm tra Part, nhóm, ID và thời lượng.");
     }
     public void requirePublishable(ExamBuilderRequest request) {
-        if("TOEIC_LR".equals(request.getType()) && !issues(request).isEmpty())
+        if(isManagedCertificate(request) && !issues(request).isEmpty())
             throw new AppException(ErrorCode.VALIDATION_FAILED,"Đề chưa đủ dữ liệu hợp lệ để xuất bản hoặc đóng gói.");
     }
 
     public List<Issue> issues(ExamBuilderRequest request) {
+        if (request == null || !"TOEIC_LR".equals(request.getType())) return List.of();
         List<Issue> issues=new ArrayList<>(); Set<Integer> partNumbers=new HashSet<>();Set<String> questionIds=new HashSet<>(),groupIds=new HashSet<>();
         if(request.getSections()==null || request.getSections().isEmpty()) {add(issues,"STRUCTURE_INVALID",null,"Thiếu section.");return issues;}
         for(var section:request.getSections()) {
@@ -68,6 +70,9 @@ public final class ExamPublicationValidator {
             }
         }
         return List.copyOf(issues);
+    }
+    private static boolean isManagedCertificate(ExamBuilderRequest request) {
+        return request != null && "TOEIC_LR".equals(request.getType());
     }
     private static boolean blank(Object value) {return !(value instanceof String s) || s.isBlank();}
     private static boolean marker(Object value) {return value instanceof String s && s.trim().equals("44");}

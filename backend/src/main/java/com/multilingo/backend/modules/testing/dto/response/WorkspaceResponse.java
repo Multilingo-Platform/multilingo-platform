@@ -40,4 +40,22 @@ public class WorkspaceResponse {
      */
     private Map<String, Object> examSnapshot;
     private List<Integer> lockedSections;
+
+    /**
+     * Optional listening playback summary for TOEIC Mock tests.
+     * Exposes only safe status/endpoint metadata, never transcripts or clues.
+     * Omitted entirely for Practice/IELTS attempts so clients cannot observe a null field.
+     */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private ListeningPlaybackSummary listeningPlayback;
+
+    @Data
+    @Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public static class ListeningPlaybackSummary {
+        private String status;
+        private Boolean available;
+    }
 }

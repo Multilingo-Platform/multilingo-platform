@@ -77,6 +77,8 @@ public class DbExamAdapter implements ExamAdapter {
     private ExamFixture mapToFixture(Exam exam, boolean forSnapshot) {
         ExamFixture fixture = new ExamFixture();
         fixture.setId(exam.getId());
+        fixture.setCode(exam.getCode());
+        fixture.setType(exam.getType());
         fixture.setTitle(exam.getTitle());
         fixture.setDurationMinutes(exam.getDurationMinutes());
         fixture.setUpdatedAt(exam.getUpdatedAt());

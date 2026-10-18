@@ -24,6 +24,7 @@ interface Question {
   type: string;
   question_text: string;
   metadata: QuestionMetadata;
+  answer_group?: { id: string; mode: string; question_ids: string[] };
   media?: { type: string; url: string; [key: string]: unknown };
 }
 
@@ -446,7 +447,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       
       const publishedState = initialData.published !== undefined ? initialData.published : initialData.isPublished;
       setIsPublished(publishedState !== false);
-      if (normalizedType === 'TOEIC_LR') {
+      if (normalizedType === 'TOEIC_LR' || normalizedType === 'IELTS_ACADEMIC') {
         const mapped = toEditorParts(initialData);
         setParts(mapped);
         if (mapped.length) setWizardMode('BUILDER');
@@ -1705,7 +1706,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         });
       } catch { /* Malformed files remain the backend preview's responsibility. */ }
       if (controller.signal.aborted) return;
-      if (['IELTS_ACADEMIC', 'IELTS_GENERAL', 'TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)) {
+      if (['IELTS_GENERAL', 'TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)) {
         await handleImportOtherExcel(file);
         setIsPublished(false);
         return;
@@ -2309,7 +2310,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                     {q.metadata.options.length > 0 ? (
                                       <div className="eb-options-grid">
                                         {q.metadata.options.map((opt, oIdx) => {
-                                          const isMulti = q.type === 'MULTIPLE_CHOICE_MULTI';
+                                          const isMulti = q.type === 'MULTIPLE_CHOICE_MULTI' || Boolean(q.answer_group);
                                           const hasValidAnswer = isMulti
                                             ? (q.metadata.correct_option_indices !== undefined 
                                                 ? q.metadata.correct_option_indices.length > 0 

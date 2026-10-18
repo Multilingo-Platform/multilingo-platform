@@ -45,7 +45,7 @@ class ExamDatasetIntegrationTest {
         try (var workbook = ExcelV2Fixture.workbook()) {
             var export = ExamDatasetBundle.export(parser.parseExamFile(ExcelV2Fixture.file(workbook)));
             return new ExamDatasetBundle(1, export.datasetKey(), version, "TOEIC-ETS-2024-T1-V" + version,
-                new ExamDatasetBundle.Source("synthetic.xlsx", export.source().sha256(), "TEST ONLY"),
+                new ExamDatasetBundle.Source("synthetic.xlsx", "a".repeat(64), "TEST ONLY"),
                 export.checksum(), export.request());
         }
     }
@@ -71,6 +71,20 @@ class ExamDatasetIntegrationTest {
         assertThatThrownBy(() -> datasets.seed(List.of(first, second))).isInstanceOf(com.multilingo.backend.common.exception.AppException.class);
         assertThat(exams.findByCode(first.examCode())).isEmpty();
         assertThat(exams.findByCode(second.examCode()).orElseThrow().getTitle()).isEqualTo("Changed by editor");
+    }
+
+    @Test void publishingRequiresExplicitFlagAndCanPublishAnIdenticalSeededDraft() throws Exception {
+        var optInLater = bundle(5);
+        assertThat(datasets.seed(List.of(optInLater), false)).isEqualTo(1);
+        var firstExam = exams.findByCode(optInLater.examCode()).orElseThrow();
+        assertThat(firstExam.getIsPublished()).isFalse();
+
+        assertThat(datasets.seed(List.of(optInLater), true)).isZero();
+        assertThat(exams.findByCode(optInLater.examCode()).orElseThrow().getIsPublished()).isTrue();
+
+        var publishOnCreate = bundle(6);
+        assertThat(datasets.seed(List.of(publishOnCreate), true)).isEqualTo(1);
+        assertThat(exams.findByCode(publishOnCreate.examCode()).orElseThrow().getIsPublished()).isTrue();
     }
 
     @Test void concurrentSeedNeverCreatesDuplicateOrPartiallyWrittenExam() throws Exception {

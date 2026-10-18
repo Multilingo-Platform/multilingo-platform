@@ -75,24 +75,36 @@ export function getPartHeaderInfo(
 
   const totalCount = partsInCurrentSection.length || 1;
 
-  // 1. Trích xuất số từ title nếu có (ví dụ: "Writing Task 1" -> 1, "Reading Part 2" -> 2)
+  // 1. Trích xuất số từ title nếu có (ví dụ: "Writing Task 1" -> 1, "Reading Passage 2" -> 2,
+  //    "Part 5" -> 5). Title ưu tiên trước part_number vì IELTS đánh số cục bộ theo kỹ năng
+  //    ("Reading Passage 1", "Writing Task 2") trong khi part_number là số toàn đề 1..9.
   const partTitle = currentPart?.title || currentPart?.content?.part_title || '';
   const titleNumberMatch = partTitle.match(/(?:Task|Passage|Part|Section)\s*(\d+)/i);
+
+  // 2. Số Part tường minh (part_number/partNumber) là nguồn chính xác khi title không chứa số
+  //    (ví dụ TOEIC title "Photographs"/"Text Completion").
+  const declaredRaw = currentPart?.part_number ?? currentPart?.partNumber;
+  const declaredPartNumber =
+    typeof declaredRaw === 'number' && Number.isSafeInteger(declaredRaw) && declaredRaw > 0 ? declaredRaw : null;
+
+  const currentId = currentPart?.id ?? currentPart?.part_id ?? currentPart?.partId;
 
   let currentNumber = 1;
   if (titleNumberMatch?.[1]) {
     currentNumber = parseInt(titleNumberMatch[1], 10);
+  } else if (declaredPartNumber !== null) {
+    currentNumber = declaredPartNumber;
   } else {
-    // 2. Tìm vị trí index trong section hiện tại
-    const currentId = currentPart?.id ?? currentPart?.part_id;
-    const indexInSection = partsInCurrentSection.findIndex(p => (p?.id ?? p?.part_id) === currentId);
-    if (indexInSection >= 0) {
-      currentNumber = indexInSection + 1;
-    } else if (typeof currentPart?.part_number === 'number' && currentPart.part_number > 0) {
-      currentNumber = currentPart.part_number;
+    // 3. Tìm vị trí trong toàn đề; không dùng số thứ tự trong section làm số Part.
+    const indexInAll = allParts.findIndex(p => (p?.id ?? p?.part_id ?? p?.partId) === currentId);
+    if (indexInAll >= 0) {
+      currentNumber = indexInAll + 1;
     } else {
-      const indexInAll = allParts.findIndex(p => (p?.id ?? p?.part_id) === currentId);
-      currentNumber = indexInAll >= 0 ? indexInAll + 1 : 1;
+      // 4. Fallback cuối cùng: vị trí trong section hiện tại.
+      const indexInSection = partsInCurrentSection.findIndex(
+        p => (p?.id ?? p?.part_id ?? p?.partId) === currentId
+      );
+      currentNumber = indexInSection >= 0 ? indexInSection + 1 : 1;
     }
   }
 

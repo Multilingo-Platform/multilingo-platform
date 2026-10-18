@@ -1,11 +1,13 @@
 import type {
   PracticeFeedbackRequest,
   PracticeFeedbackResponse,
+  PracticeFeedbackGroupResult,
   PracticeObjectiveType,
   PracticeVerdict,
   ReviewScalar,
 } from '../types/api.types';
 import type { AnswerValue } from '../types/answer.types';
+import type { ListeningDetail, ListeningDetailOption } from '../types/exam.types';
 
 export class PracticeFeedbackContractError extends Error {
   constructor(message: string = 'Dữ liệu phản hồi luyện tập không hợp lệ. Vui lòng thử lại.') {
@@ -92,6 +94,75 @@ function validateAndCloneCorrectAnswer(
   throw new PracticeFeedbackContractError();
 }
 
+function normalizeListeningDetail(raw: unknown): ListeningDetail | null {
+  if (raw === undefined || raw === null) return null;
+  if (!isRecord(raw)) throw new PracticeFeedbackContractError();
+
+  let transcript: string | null = null;
+  if (raw.transcript === undefined || raw.transcript === null) {
+    transcript = null;
+  } else if (typeof raw.transcript === 'string') {
+    transcript = raw.transcript.trim().length > 0 ? raw.transcript : null;
+  } else {
+    throw new PracticeFeedbackContractError();
+  }
+
+  let options: ListeningDetailOption[] | null = null;
+  if (raw.options === undefined || raw.options === null) {
+    options = null;
+  } else if (Array.isArray(raw.options)) {
+    options = raw.options.map(opt => {
+      if (!isRecord(opt) || typeof opt.label !== 'string' || typeof opt.text !== 'string') {
+        throw new PracticeFeedbackContractError();
+      }
+      return { label: opt.label, text: opt.text };
+    });
+  } else {
+    throw new PracticeFeedbackContractError();
+  }
+
+  if (transcript === null && (options === null || options.length === 0)) {
+    return null;
+  }
+  return {
+    ...(transcript !== null ? { transcript } : {}),
+    ...(options !== null && options.length > 0 ? { options } : {}),
+  };
+}
+
+function normalizeGroupResult(
+  raw: unknown,
+  expectedQuestionId: string,
+  expectedAnswer: AnswerValue
+): PracticeFeedbackGroupResult {
+  if (!isRecord(raw) || raw.questionId !== expectedQuestionId || !isAnswerValue(raw.userAnswer)
+    || !areAnswerValuesEqual(raw.userAnswer, expectedAnswer)) {
+    throw new PracticeFeedbackContractError();
+  }
+  const verdict = raw.verdict as PracticeVerdict;
+  if (!VALID_PRACTICE_VERDICTS.has(verdict)) throw new PracticeFeedbackContractError();
+  if (typeof raw.score !== 'number' || !Number.isFinite(raw.score) || raw.score < 0) {
+    throw new PracticeFeedbackContractError();
+  }
+  let explanation: string | null = null;
+  if (raw.explanation === undefined || raw.explanation === null) explanation = null;
+  else if (typeof raw.explanation === 'string') explanation = raw.explanation;
+  else throw new PracticeFeedbackContractError();
+
+  const rawDetail = raw.listeningDetail !== undefined ? raw.listeningDetail : raw.listening_detail;
+  const listeningDetail = normalizeListeningDetail(rawDetail);
+
+  return {
+    questionId: expectedQuestionId,
+    userAnswer: deepCloneAnswer(raw.userAnswer),
+    verdict,
+    score: raw.score,
+    correctAnswer: validateAndCloneCorrectAnswer(raw.correctAnswer),
+    explanation,
+    ...(listeningDetail ? { listeningDetail } : {}),
+  };
+}
+
 /**
  * Validates request arguments before sending over HTTP.
  * Throws PracticeFeedbackContractError if any field fails invariant checks.
@@ -114,6 +185,17 @@ export function validatePracticeFeedbackRequest(
   }
   if (!isAnswerValue(req.answer)) {
     throw new PracticeFeedbackContractError('Dữ liệu đáp án kiểm tra không hợp lệ');
+  }
+  if (req.groupAnswers !== undefined) {
+    const entries = isRecord(req.groupAnswers) ? Object.entries(req.groupAnswers) : [];
+    if (
+      entries.length !== 2 ||
+      !entries.some(([id]) => id === req.questionId) ||
+      entries.some(([id, answer]) => !isNonEmptyString(id) || !isAnswerValue(answer)) ||
+      !areAnswerValuesEqual(req.groupAnswers[req.questionId], req.answer)
+    ) {
+      throw new PracticeFeedbackContractError('Cần gửi đủ hai đáp án hiện tại của cặp câu hỏi');
+    }
   }
 }
 
@@ -162,7 +244,8 @@ export function normalizePracticeFeedback(
   expectedAttemptId: number,
   expectedPartId: number,
   expectedQuestionId: string,
-  expectedUserAnswer?: AnswerValue
+  expectedUserAnswer?: AnswerValue,
+  expectedGroupAnswers?: Record<string, AnswerValue>
 ): PracticeFeedbackResponse {
   if (!isRecord(raw)) {
     throw new PracticeFeedbackContractError();
@@ -217,6 +300,29 @@ export function normalizePracticeFeedback(
     throw new PracticeFeedbackContractError();
   }
 
+  let groupResults: PracticeFeedbackGroupResult[] | undefined;
+  if (expectedGroupAnswers !== undefined) {
+    const expectedIds = Object.keys(expectedGroupAnswers);
+    if (expectedIds.length !== 2 || !Array.isArray(raw.groupResults) || raw.groupResults.length !== 2) {
+      throw new PracticeFeedbackContractError();
+    }
+    groupResults = raw.groupResults.map((item, index) =>
+      normalizeGroupResult(item, expectedIds[index], expectedGroupAnswers[expectedIds[index]])
+    );
+    const anchorIndex = expectedIds.indexOf(expectedQuestionId);
+    const anchorResult = groupResults[anchorIndex];
+    if (anchorIndex < 0 || !anchorResult || anchorResult.verdict !== verdict || anchorResult.score !== score
+      || !areAnswerValuesEqual(anchorResult.correctAnswer as AnswerValue, correctAnswer as AnswerValue)
+      || anchorResult.explanation !== explanation) {
+      throw new PracticeFeedbackContractError();
+    }
+  } else if (raw.groupResults != null) {
+    throw new PracticeFeedbackContractError();
+  }
+
+  const rawDetail = raw.listeningDetail !== undefined ? raw.listeningDetail : raw.listening_detail;
+  const listeningDetail = normalizeListeningDetail(rawDetail);
+
   return {
     attemptId,
     partId,
@@ -227,5 +333,7 @@ export function normalizePracticeFeedback(
     score,
     correctAnswer,
     explanation,
+    ...(listeningDetail ? { listeningDetail } : {}),
+    ...(groupResults ? { groupResults } : {}),
   };
 }

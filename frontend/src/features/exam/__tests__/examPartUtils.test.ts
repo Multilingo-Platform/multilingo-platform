@@ -131,4 +131,66 @@ describe('getPartHeaderInfo', () => {
       displayText: 'Task 1 / 2',
     });
   });
+
+  it('prefers the authoritative part_number over the section ordinal (TOEIC Parts 5-7)', () => {
+    const toeicParts = [
+      { id: 101, part_number: 1, title: 'Photographs' },
+      { id: 102, part_number: 2, title: 'Question-Response' },
+      { id: 103, part_number: 3, title: 'Conversations' },
+      { id: 104, part_number: 4, title: 'Talks' },
+      { id: 105, part_number: 5, title: 'Incomplete Sentences' },
+      { id: 106, partNumber: 6, title: 'Text Completion' },
+      { id: 107, partNumber: 7, title: 'Reading Comprehension' },
+    ];
+    const readingSectionParts = toeicParts.slice(4);
+
+    const result = getPartHeaderInfo('READING', readingSectionParts[1], readingSectionParts, toeicParts);
+    expect(result.unitLabel).toBe('Passage');
+    expect(result.currentNumber).toBe(6);
+    expect(result.displayText).toBe('Passage 6 / 3');
+  });
+
+  it('keeps IELTS Passage/Task numbering when the exam declares global Part numbers', () => {
+    // IELTS stores a global part_number (1..9) while the header must show the skill-local ordinal
+    // carried by the title ("Reading Passage 1", "Writing Task 2").
+    const allParts = [
+      { id: 101, part_number: 1, title: 'Listening Part 1' },
+      { id: 102, part_number: 2, title: 'Listening Part 2' },
+      { id: 103, part_number: 3, title: 'Listening Part 3' },
+      { id: 104, part_number: 4, title: 'Listening Part 4' },
+      { id: 105, part_number: 5, title: 'Reading Passage 1: The History of the Bicycle' },
+      { id: 106, part_number: 6, title: 'Reading Passage 2: The Ocean Floor' },
+      { id: 107, part_number: 7, title: 'Reading Passage 3: How stress affects our judgement' },
+      // Writing is stored Task 2 before Task 1, so the section ordinal cannot be trusted.
+      { id: 108, part_number: 8, title: 'Writing Task 2: Academic Essay' },
+      { id: 109, part_number: 9, title: 'Writing Task 1: Report' },
+    ];
+
+    const readingParts = allParts.slice(4, 7);
+    const reading = getPartHeaderInfo('READING', readingParts[1], readingParts, allParts);
+    expect(reading.displayText).toBe('Passage 2 / 3');
+
+    const writingParts = [allParts[7], allParts[8]];
+    const writing = getPartHeaderInfo('WRITING', writingParts[0], writingParts, allParts);
+    expect(writing.displayText).toBe('Task 2 / 2');
+  });
+
+  it('uses the exam-wide Part order instead of the section ordinal when no part number is declared', () => {
+    const allParts = [
+      { id: 1, title: 'First' },
+      { id: 2, title: 'Second' },
+      { id: 3, title: 'Third' },
+      { id: 4, title: 'Fourth' },
+    ];
+    const sectionParts = [allParts[2], allParts[3]];
+
+    const result = getPartHeaderInfo('LISTENING', sectionParts[1], sectionParts, allParts);
+    expect(result.currentNumber).toBe(4);
+  });
+
+  it('ignores an invalid explicit part number', () => {
+    const invalidPart = { id: 10, part_number: 0, title: 'Essay Analysis' };
+    const result = getPartHeaderInfo('WRITING', invalidPart, [invalidPart], [invalidPart]);
+    expect(result.currentNumber).toBe(1);
+  });
 });
