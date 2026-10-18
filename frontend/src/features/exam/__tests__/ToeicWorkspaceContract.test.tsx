@@ -318,7 +318,7 @@ describe('TW-09 — Mock page through the real normalizer + WorkspacePage', () =
     const { store } = renderWorkspacePage(buildFullSnapshot());
 
     await screen.findByTestId('listening-question-q_001');
-    expect(screen.getByTestId('listening-photo')).toBeInTheDocument();
+    expect(screen.getByTestId('listening-photo-p1-g1')).toBeInTheDocument();
     expect(screen.getByTestId('option-label-q_001-A').textContent).toContain('(A)');
     expect(screen.getByTestId('option-label-q_001-D').textContent).toContain('(D)');
 

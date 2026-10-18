@@ -74,6 +74,61 @@ describe('QuestionReviewCard', () => {
     expect(screen.getByText('Chưa trả lời')).toBeInTheDocument();
   });
 
+  it.each([
+    ['', 'chuỗi rỗng'],
+    [null, 'null'],
+    [[], 'mảng rỗng'],
+  ])('renders option IDs and never selects empty-text options for user answer %s', (userAnswer, _description) => {
+    const audioOnlyQuestion: ReviewQuestionDto = {
+      ...baseQuestion,
+      questionId: 'p1_audio_only',
+      userAnswer,
+      correctAnswer: null,
+      verdict: 'BLANK',
+      options: [
+        { id: 'A', text: '' },
+        { id: 'B', text: '' },
+        { id: 'C', text: '' },
+        { id: 'D', text: '' },
+      ],
+    };
+
+    render(<QuestionReviewCard question={audioOnlyQuestion} index={0} />);
+
+    for (const optionId of ['A', 'B', 'C', 'D']) {
+      expect(screen.getByTestId(`review-option-id-p1_audio_only-${optionId}`)).toHaveTextContent(optionId);
+    }
+    expect(screen.getByText('Chưa có lời thoại cho các lựa chọn. Vui lòng nghe audio để đối chiếu.')).toBeInTheDocument();
+    for (const radio of screen.getAllByRole('radio')) {
+      expect(radio).not.toBeChecked();
+    }
+    expect(screen.queryByText('Đáp án đúng')).not.toBeInTheDocument();
+  });
+
+  it('matches a selected and correct empty-text option by ID, not by its empty text', () => {
+    const audioOnlyQuestion: ReviewQuestionDto = {
+      ...baseQuestion,
+      questionId: 'p2_audio_only',
+      userAnswer: 'B',
+      correctAnswer: 'C',
+      verdict: 'WRONG',
+      options: [
+        { id: 'A', text: '' },
+        { id: 'B', text: '' },
+        { id: 'C', text: '' },
+      ],
+    };
+
+    render(<QuestionReviewCard question={audioOnlyQuestion} index={0} />);
+
+    const radios = screen.getAllByRole('radio');
+    expect(radios[0]).not.toBeChecked();
+    expect(radios[1]).toBeChecked();
+    expect(radios[2]).not.toBeChecked();
+    expect(screen.getByText('Đáp án đúng')).toBeInTheDocument();
+    expect(screen.getByText('Lựa chọn của bạn')).toBeInTheDocument();
+  });
+
   it('renders non-choice / text question with pre-wrapped text answer safely', () => {
     const textQuestion: ReviewQuestionDto = {
       questionId: 'essay_01',

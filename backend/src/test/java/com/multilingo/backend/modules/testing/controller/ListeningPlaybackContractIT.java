@@ -79,10 +79,39 @@ class ListeningPlaybackContractIT {
             testAttemptRepository.deleteById(id);
         }
         createdAttemptIds.clear();
-        mediaProfile.close();
+        if (mediaProfile != null) {
+            mediaProfile.close();
+        }
     }
 
     private static final String TOEIC_CODE = "TOEIC-ETS-2024-T1-V2";
+
+    @Test
+    @DisplayName("profile ETS đã xác minh bật summary, GET NOT_STARTED và POST RUNNING với snapshot khớp")
+    void verifiedProductionProfileEnablesMockPlaybackForMatchingSnapshot() throws Exception {
+        mediaProfile.close();
+        mediaProfile = null;
+        var profile = com.multilingo.backend.modules.testing.service.support.ToeicListeningMediaProfile.loadDefault();
+        TestAttempt attempt = createToeicAttempt(
+                TestMode.MOCK_TEST,
+                AttemptStatus.IN_PROGRESS,
+                Instant.now().plusSeconds(3600),
+                1,
+                TOEIC_CODE,
+                part -> profile.getTrack(part).audioUrl()
+        );
+
+        mockMvc.perform(get("/api/v1/attempts/" + attempt.getId() + "/workspace"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.listeningPlayback.status").value("NOT_STARTED"))
+                .andExpect(jsonPath("$.data.listeningPlayback.available").value(true));
+        mockMvc.perform(get("/api/v1/attempts/" + attempt.getId() + "/listening-playback"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("NOT_STARTED"));
+        mockMvc.perform(post("/api/v1/attempts/" + attempt.getId() + "/listening-playback/start"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("RUNNING"));
+    }
 
     private TestAttempt createToeicAttempt(TestMode mode, AttemptStatus status, Instant deadline, Integer userId) {
         return createToeicAttempt(mode, status, deadline, userId, TOEIC_CODE,

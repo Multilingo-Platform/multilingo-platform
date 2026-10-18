@@ -36,3 +36,9 @@ Profile `backend/src/main/resources/testing/toeic-listening-media-profile.json` 
 Loader chỉ chấp nhận profile có version xác minh, trạng thái VERIFIED, approval reference, nguồn bằng chứng duration, SHA-256 từng asset và checksum SHA-256 toàn metadata khớp. Checksum metadata bao gồm URL, duration, offset, ETag, content length, asset hash, nguồn và approval; đây là kiểm tra toàn vẹn, không thay thế việc đo asset hoặc phê duyệt quyền sử dụng. Khi thiếu bằng chứng/profile hợp lệ hoặc snapshot không ánh xạ đủ Part IDs thật, playback trả UNAVAILABLE và không tạo timeline mới.
 
 Fixture VERIFIED dưới `src/test/resources/testing/` dùng URL `media.test`, hash và approval synthetic chỉ dành cho kiểm thử; không cấp quyền phát các URL ETS production. Automated tests không tải media. Các gate media/content/rights và quyết định BLOCKED ở trên vẫn giữ nguyên.
+
+## TWF-02 — ETS TOEIC Listening playback (2026-10-18)
+
+Quyết định BLOCKED phía trên được thay thế **riêng cho bốn audio TOEIC Part 1–4**. Chủ dự án xác nhận quyền sử dụng qua `OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-17`. Bốn asset đã được tải độc lập ngoài repository: HTTP 200, `audio/mpeg`, ETag/content-length khớp, SHA-256 được ghi vào profile, Chromium tải metadata/seek/phát muted và CORS anonymous `fetch` đều PASS. URL profile khớp chính xác `shared_audio` của Part 1–4 trong bundle `TOEIC-ETS-2024-T1-V2`; offset/tổng thời lượng được tính lại từ duration browser.
+
+Chi tiết timestamp, hash, duration và giới hạn xác minh nằm tại [toeic-listening-playback-verification.md](toeic-listening-playback-verification.md). `toeic-listening-media-profile.json` hiện chỉ `VERIFIED` khi toàn bộ evidence/hash/checksum hợp lệ; snapshot sai hoặc profile tampered vẫn `UNAVAILABLE`. IELTS và 11 ảnh ETS vẫn giữ trạng thái audit cũ, ngoài phạm vi TWF-02.

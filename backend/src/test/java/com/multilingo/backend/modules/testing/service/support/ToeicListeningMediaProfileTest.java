@@ -179,8 +179,20 @@ class ToeicListeningMediaProfileTest {
     }
 
     @Test
-    void defaultProfileIsBlockedUntilRealVerificationEvidenceExists() {
-        assertThatThrownBy(ToeicListeningMediaProfile::loadDefault).isInstanceOf(IllegalStateException.class);
+    void defaultProfileLoadsOnlyTheVerifiedEtsAssets() {
+        ToeicListeningMediaProfile profile = ToeicListeningMediaProfile.loadDefault();
+
+        assertThat(profile.getApprovalReference()).isEqualTo("OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-17");
+        assertThat(profile.getVerification().status()).isEqualTo("VERIFIED");
+        assertThat(profile.getVerification().durationEvidenceReference())
+                .isEqualTo("docs/datasets/toeic-listening-playback-verification.md");
+        assertThat(profile.getTracks()).extracting(ToeicListeningMediaProfile.TrackProfile::sha256)
+                .containsExactly(
+                        "00fbaecc34e0087130e7b30e99971da86a06ab97557b829d4fc468b10799a86c",
+                        "3afbb86bf3d755342f3a7af896e03119d2723a73247c5220b44120dc957dbd36",
+                        "85263e93fb28c08c1a7fed26eb3ee9175d3d28957d5f4d539f9fc9c59ffd532e",
+                        "f3489941917da4850ec140fc9ad3bcb0a637c7c30034306fad09b18a44f7e171"
+                );
     }
 
     @org.junit.jupiter.params.ParameterizedTest

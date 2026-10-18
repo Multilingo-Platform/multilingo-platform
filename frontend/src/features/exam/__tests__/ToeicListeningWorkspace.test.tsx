@@ -221,41 +221,35 @@ function renderWorkspace(input: BuildPropsInput = {}) {
 const MOCK_AVAILABLE: WorkspaceListeningPlaybackSummary = { status: 'NOT_STARTED', available: true };
 
 describe('ToeicListeningWorkspace', () => {
-  it('TC_TW_LS_01: Part 1 renders one large photo with labels-only options and no spoken prompt', () => {
+  it('TC_TWF_01: Part 1 renders every photograph and question in server order without exposing spoken text', () => {
     const { container } = renderWorkspace({
       partNumber: 1,
-      groups: [
-        {
-          groupId: 'p1-g1',
-          questions: ['q_001'],
-          mediaUrl: PHOTO_ONE,
-          questionText: 'Spoken statement one',
-          optionText: ['', '', '', ''],
-        },
-      ],
+      groups: Array.from({ length: 6 }, (_, index) => ({
+        groupId: `p1-g${index + 1}`,
+        questions: [`q_00${index + 1}`],
+        mediaUrl: `https://cdn.example.test/part1-photo-${index + 1}.png`,
+        questionText: `Spoken statement ${index + 1}`,
+        optionText: ['', '', '', ''],
+      })),
       testMode: 'MOCK_TEST',
     });
 
-    expect(container.querySelector(`img[src="${PHOTO_ONE}"]`)).not.toBeNull();
-    const radios = screen.getAllByRole('radio');
-    expect(radios).toHaveLength(4);
-    expect(radios.map(radio => radio.getAttribute('aria-label'))).toEqual([
-      'Lựa chọn A',
-      'Lựa chọn B',
-      'Lựa chọn C',
-      'Lựa chọn D',
-    ]);
-    expect(screen.queryByText('Spoken statement one')).toBeNull();
+    expect(screen.getAllByTestId(/^listening-question-/)).toHaveLength(6);
+    expect(screen.getAllByTestId(/^listening-photo-/)).toHaveLength(6);
+    expect(container.querySelectorAll('img')).toHaveLength(6);
+    expect(screen.getAllByRole('radio')).toHaveLength(24);
+    expect(screen.queryByText('Spoken statement 1')).toBeNull();
     expect(container.textContent).not.toMatch(/spoken/i);
   });
 
-  it('TC_TW_LS_02: Part 2 shows only the selected question with labels A–C, separate from the playing Part', async () => {
+  it('TC_TWF_02: Part 2 renders all 25 questions without previous/next controls', async () => {
+    const questionIds = Array.from({ length: 25 }, (_, index) => `q_${String(index + 7).padStart(3, '0')}`);
     renderWorkspace({
       partNumber: 2,
       groups: [
         {
           groupId: 'p2-g1',
-          questions: ['q_007', 'q_008', 'q_009'],
+          questions: questionIds,
           optionText: ['', '', ''],
           questionText: 'Where is the meeting?',
         },
@@ -265,9 +259,11 @@ describe('ToeicListeningWorkspace', () => {
     });
 
     const cards = await screen.findAllByTestId(/^listening-question-/);
-    expect(cards).toHaveLength(1);
-    expect(cards[0].getAttribute('data-question-id')).toBe('q_007');
-    expect(within(cards[0]).getAllByRole('radio')).toHaveLength(3);
+    expect(cards).toHaveLength(25);
+    expect(cards.map(card => card.getAttribute('data-question-id'))).toEqual(questionIds);
+    expect(screen.getAllByRole('radio')).toHaveLength(75);
+    expect(screen.queryByRole('button', { name: /câu trước/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /câu sau/i })).toBeNull();
     expect(screen.queryByText('Where is the meeting?')).toBeNull();
 
     await waitFor(() => {
@@ -493,18 +489,19 @@ describe('ToeicListeningWorkspace', () => {
     expect(screen.getByTestId('flag-btn-q_001')).toBeDisabled();
   });
 
-  it('TC_TW_LS_12: Part 2 previous/next moves the displayed question', async () => {
-    renderWorkspace({
+  it('TC_TWF_03: selecting another active Part 2 question keeps every rendered card in the DOM', async () => {
+    const { props, rerender } = renderWorkspace({
       partNumber: 2,
       groups: [{ groupId: 'p2-g1', questions: ['q_007', 'q_008', 'q_009'], optionText: ['', '', ''] }],
     });
 
     expect(screen.getByTestId('listening-question-q_007')).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: /câu sau/i }));
-    expect(await screen.findByTestId('listening-question-q_008')).toBeDefined();
-    expect(screen.queryByTestId('listening-question-q_007')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /câu trước/i }));
-    expect(await screen.findByTestId('listening-question-q_007')).toBeDefined();
+    expect(screen.getAllByTestId(/^listening-question-/)).toHaveLength(3);
+    rerender(<ToeicWorkspace {...props} requestedQuestionId="q_008" />);
+    await waitFor(() => expect(screen.getAllByTestId(/^listening-question-/)).toHaveLength(3));
+    expect(screen.getByTestId('listening-question-q_007')).toBeDefined();
+    expect(screen.getByTestId('listening-question-q_008')).toBeDefined();
+    expect(screen.getByTestId('listening-question-q_009')).toBeDefined();
   });
 
   it('TC_TW_LS_13: audio unavailable is stated without inventing a player', () => {
@@ -649,7 +646,13 @@ describe('WorkspacePage TOEIC listening branch', () => {
     expect(screen.queryByTestId('toeic-workspace-frame')).toBeNull();
   });
 
-  it('TC_TW_LS_16: Part 2 navigation updates onActiveQuestionChange and reflects on palette cell aria-current', async () => {
+  it('TC_TWF_04: palette navigation keeps every Part 2 question rendered and updates aria-current', async () => {
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
     const part = {
       id: 12,
       part_number: 2,
@@ -673,17 +676,30 @@ describe('WorkspacePage TOEIC listening branch', () => {
       sections: [{ id: 902, skill_type: 'LISTENING', title: 'Listening', parts: [part] }],
     };
 
-    renderWorkspacePage(toeicWorkspaceResponse(snapshot));
+    try {
+      renderWorkspacePage(toeicWorkspaceResponse(snapshot));
 
-    expect(await screen.findByTestId('toeic-workspace-frame')).toBeDefined();
-    expect(screen.getByTestId('palette-q_007')).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByTestId('palette-q_008')).not.toHaveAttribute('aria-current');
+      expect(await screen.findByTestId('toeic-workspace-frame')).toBeDefined();
+      expect(screen.getAllByTestId(/^listening-question-/)).toHaveLength(2);
+      expect(screen.getByTestId('palette-q_007')).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByTestId('palette-q_008')).not.toHaveAttribute('aria-current');
 
-    const nextBtn = screen.getByRole('button', { name: /Câu sau/i });
-    fireEvent.click(nextBtn);
+      fireEvent.click(screen.getByTestId('palette-q_008'));
 
-    expect(screen.getByTestId('palette-q_008')).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByTestId('palette-q_007')).not.toHaveAttribute('aria-current');
+      await waitFor(() => expect(screen.getByTestId('palette-q_008')).toHaveAttribute('aria-current', 'true'));
+      expect(screen.getByTestId('palette-q_007')).not.toHaveAttribute('aria-current', 'true');
+      expect(screen.getAllByTestId(/^listening-question-/)).toHaveLength(2);
+      expect(scrollIntoView).toHaveBeenCalled();
+    } finally {
+      if (originalScrollIntoView) {
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+          configurable: true,
+          value: originalScrollIntoView,
+        });
+      } else {
+        delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+      }
+    }
   });
 
   it('TWR-F6: real workspace keeps its media binding after timeline renders, pauses offline and resumes on the new track', async () => {

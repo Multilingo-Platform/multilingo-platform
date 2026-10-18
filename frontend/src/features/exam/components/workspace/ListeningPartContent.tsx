@@ -27,7 +27,6 @@ export interface ListeningPartContentProps {
   partNumber: number;
   partId: number;
   groups: ListeningGroupView[];
-  activeQuestionId: string | null;
   disabled: boolean;
   practice: boolean;
   feedbackBusy: boolean;
@@ -35,9 +34,6 @@ export interface ListeningPartContentProps {
   onCheck: (questionId: string) => void;
   onAnswer: (questionId: string, value: AnswerValue) => void;
   onToggleFlag: (questionId: string) => void;
-  onStepQuestion: (delta: number) => void;
-  canStepBack: boolean;
-  canStepForward: boolean;
   /** Mock only: the Part the server timeline is currently playing. */
   playingPartNumber?: number | null;
 }
@@ -98,15 +94,14 @@ function asSharedMedia(url: string | null, alt: string): SharedMedia | null {
 }
 
 /**
- * Listening Part 1–4 content. Part 1 shows one photograph and labels-only options; Part 2 shows the
- * selected question next to the Part the server is playing; Parts 3/4 render each group with its own
- * reference image, one shared player for the whole Part.
+ * Listening Part 1–4 content. All questions belonging to the selected Part stay mounted so the
+ * question palette can scroll to a card without removing the learner's other in-progress answers.
+ * Part 1 keeps each photograph adjacent to its group; Parts 1/2 retain labels-only options.
  */
 const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
   partNumber,
   partId,
   groups,
-  activeQuestionId,
   disabled,
   practice,
   feedbackBusy,
@@ -114,9 +109,6 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
   onCheck,
   onAnswer,
   onToggleFlag,
-  onStepQuestion,
-  canStepBack,
-  canStepForward,
   playingPartNumber = null,
 }) => {
   const labelsOnlyOptions = partNumber === 1 || partNumber === 2;
@@ -175,33 +167,35 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
   };
 
   if (partNumber === 1) {
-    const activeGroup =
-      groups.find(group => group.questions.some(view => view.question.question_id === activeQuestionId)) ??
-      groups[0] ??
-      null;
-    if (!activeGroup) return null;
     return (
-      <div className="space-y-4">
-        {activeGroup.mediaUrl && (
-          <div data-testid="listening-photo" className="rounded-xl border border-slate-200 bg-white p-3">
-            <MediaDisplay media={asSharedMedia(activeGroup.mediaUrl, 'Ảnh Part 1')} alt="Ảnh mô tả Part 1" />
-          </div>
-        )}
-        {activeGroup.instruction && (
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
-            {activeGroup.instruction}
-          </div>
-        )}
-        {activeGroup.questions.map(renderCard)}
+      <div className="space-y-6">
+        {groups.map(group => {
+          const firstQuestionNumber = group.questions[0]?.number;
+          const photoAlt = firstQuestionNumber === null || firstQuestionNumber === undefined
+            ? `Ảnh Part 1, nhóm ${group.groupId}`
+            : `Ảnh Part 1, câu ${firstQuestionNumber}`;
+
+          return (
+            <section key={group.groupId} data-testid={`listening-group-${group.groupId}`} className="space-y-3">
+              {group.mediaUrl && (
+                <div data-testid={`listening-photo-${group.groupId}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <MediaDisplay media={asSharedMedia(group.mediaUrl, photoAlt)} alt={photoAlt} />
+                </div>
+              )}
+              {group.instruction && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
+                  {group.instruction}
+                </div>
+              )}
+              {group.questions.map(renderCard)}
+            </section>
+          );
+        })}
       </div>
     );
   }
 
   if (partNumber === 2) {
-    const activeView =
-      groups.flatMap(group => group.questions).find(view => view.question.question_id === activeQuestionId) ??
-      groups[0]?.questions[0] ??
-      null;
     return (
       <div className="space-y-3">
         {playingPartNumber !== null && (
@@ -216,25 +210,7 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
         <p data-testid="toeic-cue-note" className="text-xs text-slate-500">
           Audio phát liên tục theo Part; câu đang xem không có mốc thời gian riêng.
         </p>
-        {activeView && renderCard(activeView)}
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => onStepQuestion(-1)}
-            disabled={!canStepBack}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
-          >
-            ← Câu trước
-          </button>
-          <button
-            type="button"
-            onClick={() => onStepQuestion(1)}
-            disabled={!canStepForward}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
-          >
-            Câu sau →
-          </button>
-        </div>
+        {groups.flatMap(group => group.questions).map(renderCard)}
       </div>
     );
   }

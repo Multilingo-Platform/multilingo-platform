@@ -112,7 +112,7 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
   );
 
   const navigation = useToeicWorkspaceNavigation({ attemptId, model: partModel });
-  const { activeQuestionId, navigateToQuestion, nextQuestion, previousQuestion } = navigation;
+  const { activeQuestionId, navigateToQuestion } = navigation;
 
   useEffect(() => {
     if (requestedQuestionId) navigateToQuestion(requestedQuestionId);
@@ -125,13 +125,6 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
   }, [activeQuestionId, onActiveQuestionChange]);
 
   useEffect(() => () => onActiveQuestionChange?.(null), [onActiveQuestionChange]);
-
-  const activeIndex = useMemo(
-    () => partModel.questions.findIndex(question => question.questionId === activeQuestionId),
-    [partModel, activeQuestionId]
-  );
-  const canStepBack = activeIndex > 0;
-  const canStepForward = activeIndex >= 0 && activeIndex < partModel.questions.length - 1;
 
   const groupViews = useMemo<ListeningGroupView[]>(
     () =>
@@ -271,7 +264,6 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
         partNumber={partNumber}
         partId={partId}
         groups={groupViews}
-        activeQuestionId={activeQuestionId}
         disabled={disabled}
         practice={practice}
         feedbackBusy={practiceFeedback.busy}
@@ -279,12 +271,6 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
         onCheck={practiceFeedback.check}
         onAnswer={onAnswer}
         onToggleFlag={onToggleFlag}
-        onStepQuestion={delta => {
-          if (delta > 0) nextQuestion();
-          else previousQuestion();
-        }}
-        canStepBack={canStepBack}
-        canStepForward={canStepForward}
         playingPartNumber={testMode === 'MOCK_TEST' ? playback.activePartNumber : null}
       />
     </WorkspaceFrame>

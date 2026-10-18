@@ -1,7 +1,7 @@
 {
   "examCode": "TOEIC-ETS-2024-T1-V2",
   "source": "ETS 2024 Test 1",
-  "approvalReference": null,
+  "approvalReference": "OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-17",
   "totalDurationMs": 2652239,
   "tracks": [
     {
@@ -11,7 +11,7 @@
       "startOffsetMs": 0,
       "etag": "\"f495717bad8dd57e6b9f67ffa901eaac\"",
       "contentLength": 2836938,
-      "sha256": null
+      "sha256": "00fbaecc34e0087130e7b30e99971da86a06ab97557b829d4fc468b10799a86c"
     },
     {
       "partNumber": 2,
@@ -20,7 +20,7 @@
       "startOffsetMs": 173505,
       "etag": "\"a21e2beac383ae0408ec35dc359d5848\"",
       "contentLength": 8634489,
-      "sha256": null
+      "sha256": "3afbb86bf3d755342f3a7af896e03119d2723a73247c5220b44120dc957dbd36"
     },
     {
       "partNumber": 3,
@@ -29,7 +29,7 @@
       "startOffsetMs": 710191,
       "etag": "\"3d5dc379bec1f79fa9e850a5de44288b\"",
       "contentLength": 17720085,
-      "sha256": null
+      "sha256": "85263e93fb28c08c1a7fed26eb3ee9175d3d28957d5f4d539f9fc9c59ffd532e"
     },
     {
       "partNumber": 4,
@@ -38,13 +38,13 @@
       "startOffsetMs": 1816033,
       "etag": "\"3ef3232fb11f652f41a286927ca47d0a\"",
       "contentLength": 13415811,
-      "sha256": null
+      "sha256": "f3489941917da4850ec140fc9ad3bcb0a637c7c30034306fad09b18a44f7e171"
     }
   ],
   "verification": {
     "version": 1,
-    "status": "BLOCKED",
-    "durationEvidenceReference": null,
-    "metadataSha256": null
+    "status": "VERIFIED",
+    "durationEvidenceReference": "docs/datasets/toeic-listening-playback-verification.md",
+    "metadataSha256": "b8858d8ef53ffd2c9033c8b15bf9fef906f7e2e0cfd5acdd08d95ad14cd5a64a"
   }
 }
