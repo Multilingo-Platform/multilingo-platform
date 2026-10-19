@@ -23,7 +23,7 @@ class DefaultExamDatasetRunnerTest {
         var captor = org.mockito.ArgumentCaptor.forClass(Resource[].class);
         verify(service).seedClasspath(captor.capture(), eq(true));
         assertThat(captor.getValue()).extracting(Resource::getFilename)
-                .containsExactly("cambridge-ielts-20-test-1.v1.json", "ets-2024-test-1.v2.json");
+                .containsExactly("cambridge-ielts-20-test-1.v2.json", "ets-2024-test-1.v2.json");
         assertThat(captor.getValue()).allMatch(resource -> resource instanceof ClassPathResource);
     }
 

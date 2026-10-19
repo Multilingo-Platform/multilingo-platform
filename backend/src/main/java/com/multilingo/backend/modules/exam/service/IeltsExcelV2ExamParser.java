@@ -41,6 +41,8 @@ public final class IeltsExcelV2ExamParser {
             "Đính kèm chung (Nhóm)", "Đính kèm riêng (Câu hỏi)"
     };
     private static final Pattern PART = Pattern.compile("^Part\\s+(\\d+)\\s*:", Pattern.CASE_INSENSITIVE);
+    private static final Pattern READING_PASSAGE =
+            Pattern.compile("\\bReading\\s+Passage\\s+(\\d+)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern IMAGE = Pattern.compile("(?is)<img\\b[^>]*?src\\s*=\\s*['\"]([^'\"]+)['\"][^>]*>");
     private static final Pattern EMPTY_PARAGRAPH = Pattern.compile("(?is)<p\\b[^>]*>\\s*</p>");
     private static final DataFormatter FORMATTER = new DataFormatter(Locale.ROOT);
@@ -66,7 +68,8 @@ public final class IeltsExcelV2ExamParser {
         Map<String, Map<String, Object>> groups = new LinkedHashMap<>();
         Map<String, List<SourceQuestion>> groupQuestions = new LinkedHashMap<>();
         List<Issue> issues = new ArrayList<>();
-        Map<Integer, Integer> questionsInSourcePart = new HashMap<>();
+        Map<Integer, Integer> questionsInCanonicalPart = new HashMap<>();
+        Set<Integer> mappedCanonicalParts = new HashSet<>();
         Set<String> questionIds = new HashSet<>();
         int currentSourcePart = 0;
         int currentCanonicalPart = 0;
@@ -84,14 +87,15 @@ public final class IeltsExcelV2ExamParser {
                 if (parsedPart < 1 || parsedPart > 9 || parsedPart < currentSourcePart) invalid();
                 if (parsedPart != currentSourcePart) {
                     currentSourcePart = parsedPart;
-                    currentCanonicalPart = canonicalPart(parsedPart);
+                    currentCanonicalPart = canonicalPart(parsedPart, partName);
+                    if (!mappedCanonicalParts.add(currentCanonicalPart)) invalid();
                     currentGroup = "";
                 }
             }
             if (currentSourcePart == 0) invalid();
             PartBuilderRequest part = parts.get(currentCanonicalPart);
             if (part == null) {
-                part = createPart(sheet, rowIndex, columns, currentSourcePart, issues);
+                part = createPart(sheet, rowIndex, columns, currentSourcePart, currentCanonicalPart, issues);
                 parts.put(currentCanonicalPart, part);
             }
 
@@ -103,8 +107,8 @@ public final class IeltsExcelV2ExamParser {
                 continue;
             }
 
-            int ordinalInSourcePart = questionsInSourcePart.merge(currentSourcePart, 1, Integer::sum);
-            String questionId = questionId(currentSourcePart, ordinalInSourcePart);
+            int ordinalInCanonicalPart = questionsInCanonicalPart.merge(currentCanonicalPart, 1, Integer::sum);
+            String questionId = questionId(currentCanonicalPart, ordinalInCanonicalPart);
             if (!questionIds.add(questionId)) {
                 addIssue(issues, "ID_INVALID", rowIndex, columns.get(HEADERS[6]), questionId,
                         "Question ID bị trùng.");
@@ -142,6 +146,7 @@ public final class IeltsExcelV2ExamParser {
             groupQuestions.get(groupKey).add(new SourceQuestion(question, sourceType, rowIndex));
         }
 
+        validateCanonicalIds(parts, issues);
         applyPairedAnswerGroups(groupQuestions, issues, columns);
         moveReadingPassagesToPartLevel(parts);
         sourceProfile.verifiedCambridgeElmsPassage().ifPresent(passage -> {
@@ -164,7 +169,7 @@ public final class IeltsExcelV2ExamParser {
 
     private static void reportKnownCambridgeSourceNotes(Sheet sheet, OfficialExamSourceProfile sourceProfile,
             List<Issue> issues) {
-        if (!sourceProfile.isCambridgeIelts20()) return;
+        if (!sourceProfile.isCambridgeIelts20V1()) return;
         for (Row row : sheet) {
             if (row == null) continue;
             for (Cell cell : row) {
@@ -180,8 +185,7 @@ public final class IeltsExcelV2ExamParser {
     }
 
     private static PartBuilderRequest createPart(Sheet sheet, int rowIndex, Map<String, Integer> columns,
-            int sourcePart, List<Issue> issues) {
-        int canonicalPart = canonicalPart(sourcePart);
+            int sourcePart, int canonicalPart, List<Issue> issues) {
         Map<String, Object> content = new LinkedHashMap<>();
         content.put("part_title", partTitle(value(sheet, rowIndex, columns, 0)));
         content.put("instruction", value(sheet, rowIndex, columns, 1));
@@ -220,10 +224,9 @@ public final class IeltsExcelV2ExamParser {
 
         List<Map<String, Object>> options = options(sheet, row, columns);
         if (!options.isEmpty()) question.put("options", options);
-        if ("ESSAY".equals(canonicalType)) {
-            question.put("explanation", "");
-            return question;
-        }
+        String explanation = value(sheet, row, columns, 16);
+        question.put("explanation", explanation);
+        if ("ESSAY".equals(canonicalType)) return question;
 
         String rawAnswer = value(sheet, row, columns, 15);
         if (rawAnswer.isBlank()) {
@@ -234,8 +237,6 @@ public final class IeltsExcelV2ExamParser {
         } else {
             question.put("correct_answer", rawAnswer.trim());
         }
-        String explanation = value(sheet, row, columns, 16);
-        question.put("explanation", explanation);
         if (("SINGLE_CHOICE".equals(canonicalType) || "MATCHING_FEATURES".equals(canonicalType))
                 && options.isEmpty()) {
             addIssue(issues, "OPTIONS_REQUIRED", row, columns.get(HEADERS[7]), questionId,
@@ -321,21 +322,60 @@ public final class IeltsExcelV2ExamParser {
                     "Số câu hỏi trong metadata không khớp dữ liệu.");
     }
 
-    private static int canonicalPart(int sourcePart) {
-        return switch (sourcePart) {
-            case 5 -> 7; // Passage 3 moves after passages 1 and 2.
-            case 6 -> 5;
-            case 7 -> 6;
-            default -> sourcePart;
-        };
+    private static void validateCanonicalIds(Map<Integer, PartBuilderRequest> parts, List<Issue> issues) {
+        int[] expectedCounts = {10, 10, 10, 10, 13, 13, 14, 1, 1};
+        for (int partNumber = 1; partNumber <= 9; partNumber++) {
+            PartBuilderRequest part = parts.get(partNumber);
+            if (part == null) {
+                addIssue(issues, "ID_INVALID", 0, 0, null, "Thiếu Part canonical " + partNumber + ".");
+                continue;
+            }
+            List<Map<String, Object>> questions = questionsInPart(part);
+            if (questions.size() != expectedCounts[partNumber - 1]) {
+                addIssue(issues, "ID_INVALID", 0, 0, null,
+                        "Số câu của Part " + partNumber + " không khớp thứ tự canonical.");
+                continue;
+            }
+            for (int ordinal = 1; ordinal <= questions.size(); ordinal++) {
+                String expected = questionId(partNumber, ordinal);
+                if (!expected.equals(questions.get(ordinal - 1).get("question_id"))) {
+                    addIssue(issues, "ID_INVALID", 0, 0, expected,
+                            "Question ID không theo thứ tự canonical của Part " + partNumber + ".");
+                    break;
+                }
+            }
+        }
     }
 
-    private static String questionId(int sourcePart, int ordinal) {
-        if (sourcePart <= 4) return "l_%03d".formatted((sourcePart - 1) * 10 + ordinal);
-        if (sourcePart == 5) return "r_%03d".formatted(26 + ordinal);
-        if (sourcePart == 6) return "r_%03d".formatted(ordinal);
-        if (sourcePart == 7) return "r_%03d".formatted(13 + ordinal);
-        return "w_%03d".formatted(sourcePart - 7 + ordinal - 1);
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> questionsInPart(PartBuilderRequest part) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Object rawGroups = part.getContentData().get("question_groups");
+        if (!(rawGroups instanceof List<?> groups)) return result;
+        for (Object rawGroup : groups) {
+            if (!(rawGroup instanceof Map<?, ?> group) || !(group.get("questions") instanceof List<?> questions)) continue;
+            for (Object rawQuestion : questions) {
+                if (rawQuestion instanceof Map<?, ?> question) result.add((Map<String, Object>) question);
+            }
+        }
+        return result;
+    }
+
+    private static int canonicalPart(int sourcePart, String partName) {
+        if (sourcePart <= 4 || sourcePart >= 8) return sourcePart;
+        Matcher matcher = READING_PASSAGE.matcher(partName);
+        if (!matcher.find()) invalid();
+        int passage = Integer.parseInt(matcher.group(1));
+        if (passage < 1 || passage > 3) invalid();
+        return 4 + passage;
+    }
+
+    private static String questionId(int canonicalPart, int ordinal) {
+        if (canonicalPart <= 4) return "l_%03d".formatted((canonicalPart - 1) * 10 + ordinal);
+        if (canonicalPart == 5) return "r_%03d".formatted(ordinal);
+        if (canonicalPart == 6) return "r_%03d".formatted(13 + ordinal);
+        if (canonicalPart == 7) return "r_%03d".formatted(26 + ordinal);
+        return "w_%03d".formatted(canonicalPart - 7 + ordinal - 1);
     }
 
     private static String canonicalType(String sourceType) {
@@ -446,9 +486,11 @@ public final class IeltsExcelV2ExamParser {
             return;
         }
         Object existing = target.get(field);
+        if (existing instanceof Map<?, ?> media && url.equals(String.valueOf(media.get("url")))) return;
         if (existing != null) {
-            addIssue(issues, "MEDIA_DUPLICATE", row, column, questionId,
-                    "Mỗi câu hỏi hoặc nhóm chỉ hỗ trợ một ảnh đính kèm trong định dạng này.");
+            String scope = "shared_media".equals(field) ? "Nhóm" : "Câu hỏi";
+            addIssue(issues, "MEDIA_CONFLICT", row, column, questionId,
+                    scope + " có nhiều media khác nhau trong cùng một scope.");
             return;
         }
         target.put(field, Map.of("type", "image", "url", url));

@@ -106,6 +106,23 @@ class ExamPublicationFlowTest {
         verify(exams, never()).save(any());
     }
 
+    @Test void publishedIeltsV2RequiresEveryExplanationBeforeAnyWrite() throws Exception {
+        try (InputStream input = getClass().getResourceAsStream(
+                "/datasets/official-source/cambridge-ielts-20-test-1-full.v2.xlsx")) {
+            assertThat(input).isNotNull();
+            var request = parser.parseExamFile(new MockMultipartFile("file", "Cambridge-full.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", input.readAllBytes()));
+            request.setPublished(true);
+            OfficialExamTestData.questions(request).stream()
+                    .filter(question -> "w_002".equals(question.get("question_id")))
+                    .findFirst().orElseThrow().put("explanation", " ");
+
+            assertThatThrownBy(() -> service.createExamWithCode(request, "IELTS-CAMBRIDGE-20-T1-V2"))
+                    .isInstanceOf(AppException.class);
+            verifyNoInteractions(exams, sections, parts);
+        }
+    }
+
     @Test void registeredToeicCodeCannotBeSavedOrPublishedWithAnIeltsIdentity() {
         var wrongIdentity = com.multilingo.backend.modules.exam.dto.request.ExamBuilderRequest.builder()
                 .title("ETS 2024 Test 1").type("IELTS_ACADEMIC").examLanguage("en")
@@ -197,4 +214,79 @@ class ExamPublicationFlowTest {
         }
     }
 
+    @Test
+    void adminExportRejectsRegisteredV2WithoutApprovalReferenceAndExportsValidBundleWithReference() throws Exception {
+        try (InputStream input = getClass().getResourceAsStream(
+                "/datasets/official-source/cambridge-ielts-20-test-1-full.v2.xlsx")) {
+            assertThat(input).isNotNull();
+            var parsed = parser.parseExamFile(new MockMultipartFile("file", "Cambridge-full.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", input.readAllBytes()));
+
+            Exam exam = Exam.builder().code("IELTS-CAMBRIDGE-20-T1-V2").title("Cambridge Ielts 20 Test 1")
+                    .type("IELTS_ACADEMIC").examLanguage("en").isPublished(false).build();
+            exam.setId(88);
+            when(exams.findById(88)).thenReturn(Optional.of(exam));
+
+            List<ExamSection> sectionEntities = new ArrayList<>();
+            int sectionIdSeq = 100;
+            int partIdSeq = 200;
+            for (var sectionReq : parsed.getSections()) {
+                int secId = sectionIdSeq++;
+                ExamSection sec = new ExamSection();
+                sec.setId(secId);
+                sec.setExam(exam);
+                sec.setSkillType(sectionReq.getSkillType());
+                sec.setDurationMinutes(sectionReq.getDurationMinutes());
+                sec.setOrderIndex(secId - 99);
+                sectionEntities.add(sec);
+
+                List<ExamPart> partEntities = new ArrayList<>();
+                for (var partReq : sectionReq.getParts()) {
+                    ExamPart part = new ExamPart();
+                    part.setId(partIdSeq++);
+                    part.setSection(sec);
+                    part.setPartNumber(partReq.getPartNumber());
+                    part.setContentData(partReq.getContentData());
+                    partEntities.add(part);
+                }
+                when(parts.findBySection_Id(secId)).thenReturn(partEntities);
+            }
+            when(sections.findByExam_Id(88)).thenReturn(sectionEntities);
+
+            // 1. Calling exportDataset on registered V2 uses server-side certified reference without caller self-declaration
+            ExamDatasetBundle bundle = service.exportDataset(88);
+            assertThat(bundle.schemaVersion()).isEqualTo(2);
+            assertThat(bundle.version()).isEqualTo(2);
+            assertThat(bundle.examCode()).isEqualTo("IELTS-CAMBRIDGE-20-T1-V2");
+            assertThat(bundle.explanationStatus()).isEqualTo("COMPLETE");
+            assertThat(bundle.source().approvalReference()).isEqualTo("OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-19");
+            bundle.validate();
+
+            // 2. Caller attempting to provide an arbitrary forged reference is rejected
+            assertThatThrownBy(() -> service.exportDataset(88, "FORGED-CALLER-REF"))
+                    .isInstanceOf(AppException.class)
+                    .hasMessageContaining("Caller không thể tự khai approval reference");
+
+            // 3. Passing exact matching server reference is also accepted
+            ExamDatasetBundle bundleWithRef = service.exportDataset(88, "OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-19");
+            assertThat(bundleWithRef.source().approvalReference()).isEqualTo("OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-19");
+            bundleWithRef.validate();
+
+            // 4. Round-trip Jackson succeeds and validates
+            var mapper = new ObjectMapper();
+            ExamDatasetBundle roundTripped = mapper.readValue(mapper.writeValueAsBytes(bundle), ExamDatasetBundle.class);
+            roundTripped.validate();
+            assertThat(roundTripped.checksum()).isEqualTo(bundle.checksum());
+
+            // 5. Calling exportDataset on an unapproved exam code (V1) fails closed
+            Exam unapprovedExam = Exam.builder().code("IELTS-CAMBRIDGE-20-T1-V1").title("Cambridge Ielts 20 Test 1")
+                    .type("IELTS_ACADEMIC").examLanguage("en").isPublished(false).build();
+            unapprovedExam.setId(89);
+            when(exams.findById(89)).thenReturn(Optional.of(unapprovedExam));
+            when(sections.findByExam_Id(89)).thenReturn(sectionEntities);
+            assertThatThrownBy(() -> service.exportDataset(89))
+                    .isInstanceOf(AppException.class)
+                    .hasMessageContaining("approval reference");
+        }
+    }
 }

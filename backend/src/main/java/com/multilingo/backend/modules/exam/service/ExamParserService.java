@@ -37,11 +37,13 @@ public class ExamParserService {
             try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
                 ExamImportPreviewResponse parsed = parseWorkbook(workbook, hash);
                 var issues = new java.util.ArrayList<>(parsed.issues());
+                OfficialExamSourceProfile sourceProfile = OfficialExamSourceProfile.forSha256(hash);
                 if ("TOEIC_LR".equals(parsed.request().getType()))
                     issues.addAll(new ExamPublicationValidator().issues(parsed.request()));
                 else if ("IELTS_ACADEMIC".equals(parsed.request().getType())
-                        && OfficialExamSourceProfile.CAMBRIDGE_IELTS_20_SHA256.equals(hash)) {
-                    issues.addAll(new IeltsAcademicPublicationValidator().issues(parsed.request()).stream()
+                        && sourceProfile.isCambridgeIelts20()) {
+                    issues.addAll(new IeltsAcademicPublicationValidator()
+                            .issues(parsed.request(), sourceProfile.isCambridgeIelts20V2()).stream()
                             .filter(issue -> !"SOURCE_CONTENT_UNVERIFIED".equals(issue.code())).toList());
                 }
                 return new ExamImportPreviewResponse(parsed.request(),java.util.List.copyOf(issues),parsed.counts(),hash,issues.isEmpty());

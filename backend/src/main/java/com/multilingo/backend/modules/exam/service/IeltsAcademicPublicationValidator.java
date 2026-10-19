@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Validates the Cambridge IELTS 20 Academic canonical request without requiring explanations. */
+/** Validates the Cambridge IELTS 20 Academic canonical request; V2 additionally requires complete explanations. */
 public final class IeltsAcademicPublicationValidator {
     private static final int[] QUESTION_COUNTS = {10, 10, 10, 10, 13, 13, 14, 1, 1};
     private static final int[] GROUP_COUNTS = {1, 3, 4, 1, 2, 3, 3, 1, 1};
@@ -27,18 +27,26 @@ public final class IeltsAcademicPublicationValidator {
     public void requireStructure(ExamBuilderRequest request) {
         Set<String> structuralCodes = Set.of("STRUCTURE_INVALID", "ID_INVALID", "SKILL_INVALID",
                 "DURATION_INVALID", "QUESTION_COUNT_INVALID", "GROUP_COUNT_INVALID");
-        if (issues(request).stream().anyMatch(issue -> structuralCodes.contains(issue.code())))
+        if (issues(request, false).stream().anyMatch(issue -> structuralCodes.contains(issue.code())))
             throw new AppException(ErrorCode.VALIDATION_FAILED,
                     "Cấu trúc bộ Cambridge IELTS 20 Test 1 không hợp lệ; kiểm tra Part, nhóm và ID.");
     }
 
     public void requirePublishable(ExamBuilderRequest request) {
-        if (!issues(request).isEmpty())
+        requirePublishable(request, false);
+    }
+
+    public void requirePublishable(ExamBuilderRequest request, boolean requireExplanations) {
+        if (!issues(request, requireExplanations).isEmpty())
             throw new AppException(ErrorCode.VALIDATION_FAILED,
-                    "IELTS chưa đạt điều kiện xuất bản; kiểm tra cấu trúc, đáp án, cặp câu và nội dung nguồn.");
+                    "IELTS chưa đạt điều kiện xuất bản; kiểm tra cấu trúc, đáp án, cặp câu, giải thích và nội dung nguồn.");
     }
 
     public List<Issue> issues(ExamBuilderRequest request) {
+        return issues(request, false);
+    }
+
+    public List<Issue> issues(ExamBuilderRequest request, boolean requireExplanations) {
         List<Issue> issues = new ArrayList<>();
         if (request == null || !"IELTS_ACADEMIC".equals(request.getType())
                 || !"Cambridge Ielts 20 Test 1".equals(request.getTitle())
@@ -108,7 +116,7 @@ public final class IeltsAcademicPublicationValidator {
                         add(issues, "STRUCTURE_INVALID", null, "Nhóm không có câu hỏi.");
                         continue;
                     }
-                    if (partNumber == 1 && !validMedia(group.get("shared_media")))
+                    if (partNumber == 1 && !validImageMedia(group.get("shared_media")))
                         add(issues, "IMAGE_REQUIRED", null, "Listening Part 1 cần ảnh cho mỗi nhóm.");
                     for (Object rawQuestion : questions) {
                         if (!(rawQuestion instanceof Map<?, ?> question)) {
@@ -122,13 +130,16 @@ public final class IeltsAcademicPublicationValidator {
                             add(issues, "ID_INVALID", id, "Question ID thiếu, trùng hoặc sai thứ tự.");
                         if (blank(question.get("question_text")))
                             add(issues, "PROMPT_REQUIRED", id, "Thiếu nội dung câu hỏi.");
+                        if (requireExplanations && !(question.get("explanation") instanceof String explanation
+                                && !explanation.isBlank()))
+                            add(issues, "EXPLANATION_REQUIRED", id, "Giải thích chưa được hoàn thiện.");
                         if (containsUnverifiedText(question))
                             add(issues, "SOURCE_CONTENT_UNVERIFIED", id, "Câu hỏi có ghi chú chưa được xác minh.");
                         String type = question.get("type") instanceof String value ? value : "";
                         if (partNumber >= 8) {
                             if (!"ESSAY".equals(type)) add(issues, "QUESTION_TYPE_INVALID", id, "Writing chỉ chấp nhận dạng Essay.");
-                            if (partNumber == 8 && !validMedia(question.get("media"))
-                                    && !validMedia(group.get("shared_media")))
+                            if (partNumber == 8 && !validImageMedia(question.get("media"))
+                                    && !validImageMedia(group.get("shared_media")))
                                 add(issues, "IMAGE_REQUIRED", id, "Writing Task 1 cần bảng hoặc biểu đồ dạng media.");
                         } else if (!OBJECTIVE_TYPES.contains(type)) {
                             add(issues, "QUESTION_TYPE_INVALID", id, "Dạng câu hỏi khách quan không được hỗ trợ.");
@@ -249,6 +260,11 @@ public final class IeltsAcademicPublicationValidator {
 
     private static boolean validMedia(Object value) {
         return value instanceof Map<?, ?> media && ExcelV2ExamParser.safeUrl(media.get("url"));
+    }
+
+    private static boolean validImageMedia(Object value) {
+        return value instanceof Map<?, ?> media && "image".equalsIgnoreCase(String.valueOf(media.get("type")))
+                && ExcelV2ExamParser.safeUrl(media.get("url"));
     }
 
     private static boolean hasImageTag(Object value) {

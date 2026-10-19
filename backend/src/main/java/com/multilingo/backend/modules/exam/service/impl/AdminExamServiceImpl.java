@@ -264,7 +264,8 @@ public class AdminExamServiceImpl implements AdminExamService {
         var definition = OfficialExamDatasetRegistry.findByExamCode(examCode);
         if (definition.isPresent()) {
             if (OfficialExamDatasetRegistry.CAMBRIDGE_IELTS_KEY.equals(definition.get().datasetKey()))
-                new IeltsAcademicPublicationValidator().requirePublishable(request);
+                new IeltsAcademicPublicationValidator().requirePublishable(request,
+                        "COMPLETE".equals(definition.get().explanationStatus()));
             else new ExamPublicationValidator().requirePublishable(request);
             com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle.requireRegisteredShape(
                     definition.get(), request);
@@ -295,8 +296,13 @@ public class AdminExamServiceImpl implements AdminExamService {
 
     @Override
     public com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle exportDataset(Integer id) {
+        return exportDataset(id, null);
+    }
+
+    @Override
+    public com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle exportDataset(Integer id, String approvalReference) {
         Exam exam = examRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
         return com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle
-                .exportForCode(getExamDetail(id), exam.getCode());
+                .exportForCode(getExamDetail(id), exam.getCode(), approvalReference);
     }
 }

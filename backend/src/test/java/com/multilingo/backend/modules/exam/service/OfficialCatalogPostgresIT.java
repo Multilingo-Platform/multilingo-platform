@@ -51,6 +51,9 @@ class OfficialCatalogPostgresIT {
         registry.add("spring.datasource.username", () -> System.getenv("OFFICIAL_EXAM_POSTGRES_TEST_USERNAME"));
         registry.add("spring.datasource.password", () -> System.getenv("OFFICIAL_EXAM_POSTGRES_TEST_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+        registry.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.PostgreSQLDialect");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
+        registry.add("spring.flyway.enabled", () -> "false");
     }
 
     @Test
@@ -78,8 +81,7 @@ class OfficialCatalogPostgresIT {
             try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(input.readAllBytes()))) {
                 var preview = new ExcelV2ExamParser().parse(workbook,
                         OfficialExamSourceProfile.ETS_2024_COMPLETED_SHA256);
-                return ExamDatasetBundle.exportOfficial(preview.request(), OfficialExamDatasetRegistry.ETS_TOEIC_KEY,
-                        "TEST-ONLY; no release approval");
+                return ExamDatasetBundle.exportOfficial(preview.request(), OfficialExamDatasetRegistry.ETS_TOEIC_KEY);
             }
         }
     }

@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class IeltsExcelV2ExamParserTest {
     private static final String IELTS_RESOURCE = "/datasets/official-source/cambridge-ielts-20-test-1.xlsx";
+    private static final String FULL_IELTS_RESOURCE =
+            "/datasets/official-source/cambridge-ielts-20-test-1-full.v2.xlsx";
     private static final String TOEIC_RESOURCE = "/datasets/official-source/ets-2024-test-1-completed.xlsx";
     private final ExamParserService parser = new ExamParserService(new ObjectMapper());
 
@@ -82,6 +84,32 @@ class IeltsExcelV2ExamParserTest {
         Map<String, Object> writingGroup = group(request, "w_001");
         assertThat(writingGroup.get("shared_media")).isInstanceOf(Map.class);
         assertThat(String.valueOf(writingGroup.get("content_html"))).doesNotContain("<img");
+    }
+
+    @Test
+    void mapsReadingByDeclaredPassageLabelsRatherThanTheLegacySourceIndex() throws Exception {
+        try (InputStream input = getClass().getResourceAsStream(FULL_IELTS_RESOURCE)) {
+            assertThat(input).isNotNull();
+            try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(input.readAllBytes()))) {
+                var parsed = new IeltsExcelV2ExamParser().parse(workbook, OfficialExamSourceProfile.CAMBRIDGE_IELTS_20_V2_SHA256);
+
+                assertThat(parsed.issues()).isEmpty();
+                assertThat(parsed.counts()).isEqualTo(
+                        new com.multilingo.backend.modules.exam.dto.response.ExamImportPreviewResponse.Counts(9, 19, 82));
+                assertThat(part(parsed.request(), "READING", 5).getContentData())
+                        .containsEntry("part_title", "Reading Passage 1");
+                assertThat(part(parsed.request(), "READING", 6).getContentData())
+                        .containsEntry("part_title", "Reading Passage 2");
+                assertThat(part(parsed.request(), "READING", 7).getContentData())
+                        .containsEntry("part_title", "Reading Passage 3");
+                assertThat(part(parsed.request(), "READING", 5).getContentData().get("content_html").toString())
+                        .contains("The kākāpō");
+                assertThat(part(parsed.request(), "READING", 6).getContentData().get("content_html").toString())
+                        .contains("Bring elms to Britain");
+                assertThat(part(parsed.request(), "READING", 7).getContentData().get("content_html").toString())
+                        .contains("How stress affects our judgement");
+            }
+        }
     }
 
     @Test

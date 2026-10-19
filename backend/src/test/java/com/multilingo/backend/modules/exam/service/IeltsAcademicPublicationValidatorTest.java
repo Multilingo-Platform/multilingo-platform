@@ -1,9 +1,12 @@
 package com.multilingo.backend.modules.exam.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.modules.exam.dto.request.ExamBuilderRequest;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.InputStream;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -11,7 +14,10 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class IeltsAcademicPublicationValidatorTest {
+    private static final String FULL_V2_RESOURCE =
+            "/datasets/official-source/cambridge-ielts-20-test-1-full.v2.xlsx";
     private final IeltsAcademicPublicationValidator validator = new IeltsAcademicPublicationValidator();
+    private final ExamParserService parser = new ExamParserService(new ObjectMapper());
 
     @Test
     void ordinaryIeltsAcademicExamDoesNotUseTheCambridgeOfficialDatasetProfile() {
@@ -118,5 +124,64 @@ class IeltsAcademicPublicationValidatorTest {
             assertThat(issue.code()).isEqualTo("ANSWER_INVALID");
             assertThat(issue.questionId()).isEqualTo("r_001");
         });
+    }
+
+    @Test
+    void v2RequiresAll82NonBlankExplanationsWhileV1KeepsThePartialPolicy() throws Exception {
+        ExamBuilderRequest request = fullV2Request();
+        var questions = OfficialExamTestData.questions(request);
+
+        assertThat(questions).hasSize(82);
+        assertThat(questions).allSatisfy(question -> {
+            assertThat(question.get("explanation")).isInstanceOf(String.class);
+            assertThat(question.get("explanation").toString())
+                    .as("explanation of %s", question.get("question_id")).isNotBlank();
+        });
+        assertThat(validator.issues(request, true)).isEmpty();
+        validator.requirePublishable(request, true);
+
+        var writingTaskOne = request.getSections().get(2).getParts().getFirst();
+        @SuppressWarnings("unchecked")
+        var writingGroups = (java.util.List<java.util.Map<String, Object>>) (java.util.List<?>) writingTaskOne
+                .getContentData().get("question_groups");
+        @SuppressWarnings("unchecked")
+        var originalWritingMedia = (Map<String, Object>) writingGroups.getFirst().get("shared_media");
+        var writingMedia = new java.util.LinkedHashMap<String, Object>(originalWritingMedia);
+        writingGroups.getFirst().put("shared_media", writingMedia);
+        Object originalMediaType = writingMedia.put("type", "audio");
+        assertThat(validator.issues(request, true)).extracting(issue -> issue.code()).contains("IMAGE_REQUIRED");
+        writingMedia.put("type", originalMediaType);
+        writingGroups.getFirst().put("shared_media", originalWritingMedia);
+
+        questions.stream().filter(question -> "w_002".equals(question.get("question_id")))
+                .findFirst().orElseThrow().put("explanation", Map.of("text", "not a string"));
+
+        assertThat(validator.issues(request)).as("V1 policy remains partial").isEmpty();
+        assertThat(validator.issues(request, true)).anySatisfy(issue -> {
+            assertThat(issue.code()).isEqualTo("EXPLANATION_REQUIRED");
+            assertThat(issue.questionId()).isEqualTo("w_002");
+        });
+        assertThatThrownBy(() -> validator.requirePublishable(request, true)).isInstanceOf(AppException.class);
+    }
+
+    @Test
+    void rejectsDuplicateQuestionIdsEvenWhenCountsStayUnchanged() {
+        ExamBuilderRequest request = OfficialExamTestData.ieltsRequest();
+        OfficialExamTestData.questions(request).stream()
+                .filter(question -> "r_002".equals(question.get("question_id")))
+                .findFirst().orElseThrow().put("question_id", "r_001");
+
+        assertThat(validator.issues(request)).anySatisfy(issue -> {
+            assertThat(issue.code()).isEqualTo("ID_INVALID");
+            assertThat(issue.questionId()).isEqualTo("r_001");
+        });
+    }
+
+    private ExamBuilderRequest fullV2Request() throws Exception {
+        try (InputStream input = getClass().getResourceAsStream(FULL_V2_RESOURCE)) {
+            assertThat(input).as("source fixture %s", FULL_V2_RESOURCE).isNotNull();
+            return parser.parseExamFile(new MockMultipartFile("file", "Cambridge-v2.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", input.readAllBytes()));
+        }
     }
 }

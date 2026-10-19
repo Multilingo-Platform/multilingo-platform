@@ -1,0 +1,1535 @@
+{
+  "schemaVersion" : 2,
+  "datasetKey" : "cambridge-ielts-20-test-1",
+  "version" : 2,
+  "examCode" : "IELTS-CAMBRIDGE-20-T1-V2",
+  "source" : {
+    "fileName" : "Cambridge_Ielts_20_Test_1_(Full_giải_thích).xlsx",
+    "sha256" : "d00af9a50c325b85d22cbdcdc2a8205a42da0d2bbe0587985e53575fb4ce549d",
+    "approvalReference" : "OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-19"
+  },
+  "checksum" : "8c39ae138f78137411d4d9a6adcdb2256590f73bf6c78815ee3a084d08ae2563",
+  "request" : {
+    "title" : "Cambridge Ielts 20 Test 1",
+    "type" : "IELTS_ACADEMIC",
+    "examLanguage" : "en",
+    "sections" : [ {
+      "skillType" : "LISTENING",
+      "durationMinutes" : 30,
+      "parts" : [ {
+        "partNumber" : 1,
+        "contentData" : {
+          "part_title" : "Listening Part 1",
+          "instruction" : "Listen and answer questions 1-10",
+          "question_groups" : [ {
+            "group_id" : "ielts-p1-g1",
+            "instruction" : "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_001",
+              "question_number" : 1,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 1: Good for people who are especially keen on [1]",
+              "explanation" : "[EN] The speaker recommends the restaurant for seafood enthusiasts, highlighting that it is especially renowned for serving fresh fish.\n[VI] Người nói gợi ý nhà hàng này cho những ai mê đồ hải sản, nhấn mạnh nhà hàng đặc biệt nổi tiếng với các món cá tươi (\"especially keen on fish\").",
+              "correct_answer" : "fish"
+            }, {
+              "question_id" : "l_002",
+              "question_number" : 2,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 2: The [2] is a good place for a drink",
+              "explanation" : "[EN] The conversation mentions an open-air bar located up on the roof, offering stunning city views and an ideal atmosphere for having a drink.\n[VI] Cuộc hội thoại đề cập đến quán bar ngoài trời nằm trên tầng thượng (roof), có tầm nhìn tuyệt đẹp ra thành phố và là nơi lý tưởng để thưởng thức đồ uống.",
+              "correct_answer" : "roof"
+            }, {
+              "question_id" : "l_003",
+              "question_number" : 3,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 3: [3] food, good for sharing",
+              "explanation" : "[EN] The restaurant serves authentic Spanish tapas and dishes, designed as shareable small plates suitable for groups.\n[VI] Nhà hàng phục vụ các món ăn Tây Ban Nha (Spanish tapas), được thiết kế dưới dạng các đĩa nhỏ rất thích hợp để gọi chung và chia sẻ cùng nhau.",
+              "correct_answer" : "Spanish"
+            }, {
+              "question_id" : "l_004",
+              "question_number" : 4,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 4: A limited section of [4] on the menu",
+              "explanation" : "[EN] The speaker points out that while the food is tasty, there is only a very limited selection of vegetarian dishes on the menu.\n[VI] Người nói lưu ý rằng dù đồ ăn rất ngon nhưng trên thực đơn chỉ có một số lượng rất hạn chế các món chay (vegetarian).",
+              "correct_answer" : "vegetarian"
+            }, {
+              "question_id" : "l_005",
+              "question_number" : 5,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 5: The [5]",
+              "explanation" : "[EN] The speaker spells out the restaurant's name clearly as A-U-D-L-E-Y (\"The Audley\").\n[VI] Người nói đánh vần tên nhà hàng rõ ràng từng chữ cái: A-U-D-L-E-Y (\"The Audley\").",
+              "correct_answer" : "Audley"
+            }, {
+              "question_id" : "l_006",
+              "question_number" : 6,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 6: At the top of a [6]",
+              "explanation" : "[EN] The restaurant occupies the top floor of a boutique hotel located in the town center.\n[VI] Nhà hàng nằm ở tầng cao nhất của một khách sạn (hotel) tại trung tâm thị trấn.",
+              "correct_answer" : "hotel"
+            }, {
+              "question_id" : "l_007",
+              "question_number" : 7,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 7: All the [7] are very good",
+              "explanation" : "[EN] The speaker notes that online reviews and customer feedback for the venue are consistently favorable and high-scoring.\n[VI] Người nói cho biết các đánh giá và nhận xét (reviews) trực tuyến của khách hàng về địa điểm này đều rất tốt và nhận điểm số cao.",
+              "correct_answer" : "reviews"
+            }, {
+              "question_id" : "l_008",
+              "question_number" : 8,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 8: Only uses [8] ingredients",
+              "explanation" : "[EN] The kitchen prioritizes sustainability and freshness by cooking exclusively with local ingredients sourced from regional producers.\n[VI] Bếp ăn chú trọng độ tươi ngon và phát triển bền vững bằng việc chỉ sử dụng các nguyên liệu địa phương (local ingredients) lấy từ các nông trại lân cận.",
+              "correct_answer" : "local"
+            }, {
+              "question_id" : "l_009",
+              "question_number" : 9,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 9: Set lunch cost: [9] per person",
+              "explanation" : "[EN] The fixed-price lunch menu is stated as costing £30 (30 pounds) per person.\n[VI] Thực đơn bữa trưa theo set cố định có giá là 30 bảng Anh (£30) cho mỗi người.",
+              "correct_answer" : "30"
+            }, {
+              "question_id" : "l_010",
+              "question_number" : 10,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 10: Proportions probably of [10] size",
+              "explanation" : "[EN] The speaker describes the portion sizes as being neither tiny nor massive, but of moderate or average size.\n[VI] Người nói miêu tả khẩu phần ăn không quá ít cũng không quá nhiều mà ở mức vừa phải, trung bình (average size).",
+              "correct_answer" : "average"
+            } ],
+            "shared_media" : {
+              "type" : "image",
+              "url" : "https://res.cloudinary.com/j5on4xwq/image/upload/v1792136948/mgadgw3of8p2ewo17yr0.png"
+            }
+          } ],
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792136936/fbkdrjpbwxqwitisgf5v.m4a"
+          }
+        }
+      }, {
+        "partNumber" : 2,
+        "contentData" : {
+          "part_title" : "Listening Part 2",
+          "instruction" : "Listen and answer questions 11-20",
+          "question_groups" : [ {
+            "group_id" : "ielts-p2-g1",
+            "instruction" : "Choose the correct letter, A, B or C.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_011",
+              "question_number" : 11,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 11: Heather says pottery differs from other art forms because",
+              "options" : [ {
+                "text" : "It lasts longer in the ground.",
+                "id" : "A"
+              }, {
+                "text" : "It is practiced by more people.",
+                "id" : "B"
+              }, {
+                "text" : "It can be repaired more easily.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: A (It lasts longer in the ground). Heather explains that unlike organic materials or canvas paintings that deteriorate or burn, fired ceramic shards can survive underground for millennia without breaking down.\n[VI] Đáp án đúng: A (Tồn tại lâu hơn trong lòng đất). Heather giải thích đồ gốm nung khác các loại hình nghệ thuật khác ở chỗ các mảnh gốm có thể nằm sâu trong lòng đất hàng nghìn năm mà không hề bị mục rữa hay phân hủy.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "l_012",
+              "question_number" : 12,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 12: Archaeologists sometimes identify the use of ancient pottery from",
+              "options" : [ {
+                "text" : "The clay it was made with.",
+                "id" : "A"
+              }, {
+                "text" : "The marks that are on it.",
+                "id" : "B"
+              }, {
+                "text" : "The basic shape of it.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: B (The marks that are on it). Heather notes that researchers examine soot deposits, surface scratches, and tool marks on pottery to determine whether it was used for cooking, storage, or ritual.\n[VI] Đáp án đúng: B (Các vết tích để lại trên gốm). Heather lưu ý các nhà khảo cổ học dựa vào vết muội than, vết cào xước và dấu vết công cụ trên bề mặt đồ gốm để xác định mục đích sử dụng ban đầu (nấu ăn, trữ đồ hay nghi lễ).",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "l_013",
+              "question_number" : 13,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 13: Some people join Heather's pottery class because they want to",
+              "options" : [ {
+                "text" : "Create an item that looks very old.",
+                "id" : "A"
+              }, {
+                "text" : "Find something that they are good at.",
+                "id" : "B"
+              }, {
+                "text" : "Make something that will outlive them.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: C (Make something that will outlive them). Many students are attracted by the enduring nature of ceramics, wanting to fashion a permanent object that will last far beyond their lifetime.\n[VI] Đáp án đúng: C (Tạo ra thứ gì đó tồn tại lâu hơn đời người). Nhiều học viên tham gia lớp gốm vì họ bị cuốn hút bởi độ bền vĩnh cửu của gốm, muốn tự tay làm ra một món đồ trường tồn với thời gian ngay cả sau khi họ qua đời.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "l_014",
+              "question_number" : 14,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 14: What does Heather value most about being a potter?",
+              "options" : [ {
+                "text" : "Its calming effect",
+                "id" : "A"
+              }, {
+                "text" : "Its messy nature",
+                "id" : "B"
+              }, {
+                "text" : "Its physical benefits",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: A (Its calming effect). Heather emphasizes the therapeutic and mindful aspect of shaping clay on the wheel, citing its deeply calming and grounding influence as her greatest reward.\n[VI] Đáp án đúng: A (Tác dụng xoa dịu, thư giãn tinh thần). Heather đánh giá cao nhất cảm giác an yên, tĩnh tâm khi xoay đất trên bàn xoay, xem tác dụng giải tỏa căng thẳng và xoa dịu tâm trí này là giá trị lớn nhất của nghề gốm.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "l_015",
+              "question_number" : 15,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 15: Most of the visitors to Edelman Pottery",
+              "options" : [ {
+                "text" : "Bring friends to join courses.",
+                "id" : "A"
+              }, {
+                "text" : "Have never made a pot before.",
+                "id" : "B"
+              }, {
+                "text" : "Try to learn techniques too quickly.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: B (Have never made a pot before). Heather mentions that the overwhelming majority of people who book studio sessions are absolute novices with zero prior pottery experience.\n[VI] Đáp án đúng: B (Chưa từng làm đồ gốm bao giờ). Heather cho biết đại đa số những người đến xưởng gốm Edelman Pottery đều là người mới bắt đầu hoàn toàn, chưa từng chạm tay vào đất sét hay nặn một chiếc bình nào trước đó.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "l_016",
+              "question_number" : 16,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 16: Heather reminds her visitors that they should",
+              "options" : [ {
+                "text" : "Put on their aprons.",
+                "id" : "A"
+              }, {
+                "text" : "Change their clothes.",
+                "id" : "B"
+              }, {
+                "text" : "Take off their jewellery.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: C (Take off their jewellery). Participants are specifically advised to remove rings, bracelets, and watches before handling clay to prevent them from getting scratched, dirty, or caught in machinery.\n[VI] Đáp án đúng: C (Tháo bỏ trang sức). Học viên được nhắc nhở phải tháo nhẫn, đồng hồ và vòng tay trước khi bắt tay vào làm để tránh đồ trang sức bị dính bẩn, trầy xước hoặc mắc vào bàn xoay.",
+              "correct_answer" : "C"
+            } ]
+          }, {
+            "group_id" : "ielts-p2-g2",
+            "instruction" : "Choose TWO letters, A-E. Which TWO things does Heather explain about kilns?",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_017",
+              "question_number" : 17,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 17-18: Which TWO things does Heather explain about kilns?",
+              "options" : [ {
+                "text" : "what their function is",
+                "id" : "A"
+              }, {
+                "text" : "when they were invented",
+                "id" : "B"
+              }, {
+                "text" : "ways of keeping them safe",
+                "id" : "C"
+              }, {
+                "text" : "where to put one in your home",
+                "id" : "D"
+              }, {
+                "text" : "what some people use instead of one",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: A and E. Heather explains that a kiln's primary purpose is reaching high temperatures to transform raw clay into hardened ceramic (its function - A), and also describes how people without industrial kilns use pit firing or garden fires as alternatives (what some people use instead - E).\n[VI] Đáp án đúng: A và E. Heather giải thích chức năng cơ bản của lò nung là đạt mức nhiệt rất cao để làm cứng và thủy tinh hóa đất sét (chức năng - A), đồng thời giới thiệu các phương pháp thay thế như nung hố đất hoặc lửa ngoài trời cho người không có lò nung chuyên dụng (những gì có thể dùng thay thế - E).",
+              "correct_answer" : [ "A", "E" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_017", "l_018" ],
+                "id" : "listening-17-18"
+              }
+            }, {
+              "question_id" : "l_018",
+              "question_number" : 18,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 17-18: Which TWO things does Heather explain about kilns?",
+              "options" : [ {
+                "text" : "what their function is",
+                "id" : "A"
+              }, {
+                "text" : "when they were invented",
+                "id" : "B"
+              }, {
+                "text" : "ways of keeping them safe",
+                "id" : "C"
+              }, {
+                "text" : "where to put one in your home",
+                "id" : "D"
+              }, {
+                "text" : "what some people use instead of one",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: A and E. Heather explains that a kiln's primary purpose is reaching high temperatures to transform raw clay into hardened ceramic (its function - A), and also describes how people without industrial kilns use pit firing or garden fires as alternatives (what some people use instead - E).\n[VI] Đáp án đúng: A và E. Heather giải thích chức năng cơ bản của lò nung là đạt mức nhiệt rất cao để làm cứng và thủy tinh hóa đất sét (chức năng - A), đồng thời giới thiệu các phương pháp thay thế như nung hố đất hoặc lửa ngoài trời cho người không có lò nung chuyên dụng (những gì có thể dùng thay thế - E).",
+              "correct_answer" : [ "A", "E" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_017", "l_018" ],
+                "id" : "listening-17-18"
+              }
+            } ]
+          }, {
+            "group_id" : "ielts-p2-g3",
+            "instruction" : "Choose TWO letters, A-E. Which TWO points does Heather make about a potter's tools?",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_019",
+              "question_number" : 19,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 19-20: Which TWO points does Heather make about a potter's tools?",
+              "options" : [ {
+                "text" : "Some are hard to hold.",
+                "id" : "A"
+              }, {
+                "text" : "Some are worth buying.",
+                "id" : "B"
+              }, {
+                "text" : "Some are essential items.",
+                "id" : "C"
+              }, {
+                "text" : "Some have memorable names.",
+                "id" : "D"
+              }, {
+                "text" : "Some are available for use by participants.",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: C and E. Heather identifies basic implements like cutting wires and ribs as indispensable necessities (essential items - C) and reassures students that all necessary equipment is fully provided for their use at the studio stations (available for use - E).\n[VI] Đáp án đúng: C và E. Heather khẳng định một số dụng cụ cơ bản như dây cắt và miếng miết là vật dụng thiết yếu không thể thiếu (essential items - C), đồng thời xác nhận xưởng đã chuẩn bị sẵn đầy đủ toàn bộ bộ đồ nghề tại bàn cho học viên sử dụng (available for use - E).",
+              "correct_answer" : [ "C", "E" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_019", "l_020" ],
+                "id" : "listening-19-20"
+              }
+            }, {
+              "question_id" : "l_020",
+              "question_number" : 20,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 19-20: Which TWO points does Heather make about a potter's tools?",
+              "options" : [ {
+                "text" : "Some are hard to hold.",
+                "id" : "A"
+              }, {
+                "text" : "Some are worth buying.",
+                "id" : "B"
+              }, {
+                "text" : "Some are essential items.",
+                "id" : "C"
+              }, {
+                "text" : "Some have memorable names.",
+                "id" : "D"
+              }, {
+                "text" : "Some are available for use by participants.",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: C and E. Heather identifies basic implements like cutting wires and ribs as indispensable necessities (essential items - C) and reassures students that all necessary equipment is fully provided for their use at the studio stations (available for use - E).\n[VI] Đáp án đúng: C và E. Heather khẳng định một số dụng cụ cơ bản như dây cắt và miếng miết là vật dụng thiết yếu không thể thiếu (essential items - C), đồng thời xác nhận xưởng đã chuẩn bị sẵn đầy đủ toàn bộ bộ đồ nghề tại bàn cho học viên sử dụng (available for use - E).",
+              "correct_answer" : [ "C", "E" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_019", "l_020" ],
+                "id" : "listening-19-20"
+              }
+            } ]
+          } ],
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792137047/jqfiajpxuejrdlreoa82.m4a"
+          }
+        }
+      }, {
+        "partNumber" : 3,
+        "contentData" : {
+          "part_title" : "Listening Part 3",
+          "instruction" : "Listen and answer questions 21-30",
+          "question_groups" : [ {
+            "group_id" : "ielts-p3-g1",
+            "instruction" : "Choose TWO letters, A-E. Which TWO things do the students both believe are responsible for the increase in loneliness?",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_021",
+              "question_number" : 21,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 21-22: Which TWO things do the students both believe are responsible for the increase in loneliness?",
+              "options" : [ {
+                "text" : "social media",
+                "id" : "A"
+              }, {
+                "text" : "smaller nuclear families",
+                "id" : "B"
+              }, {
+                "text" : "urban design",
+                "id" : "C"
+              }, {
+                "text" : "longer lifespans",
+                "id" : "D"
+              }, {
+                "text" : "a mobile workforce",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: C and E. Both students agree that car-centric urban layout and disconnected housing developments isolate residents (urban design - C), while the constant relocation of employees for career advancement prevents long-term community ties (a mobile workforce - E).\n[VI] Đáp án đúng: C và E. Cả hai sinh viên đều thống nhất rằng quy hoạch đô thị phụ thuộc ô tô và các khu chung cư thiếu không gian chung khiến con người cô lập (urban design - C), và việc lực lượng lao động phải liên tục chuyển chỗ ở theo công việc cản trở việc gắn kết cộng đồng bền chặt (a mobile workforce - E).",
+              "correct_answer" : [ "C", "E" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_021", "l_022" ],
+                "id" : "listening-21-22"
+              }
+            }, {
+              "question_id" : "l_022",
+              "question_number" : 22,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 21-22: Which TWO things do the students both believe are responsible for the increase in loneliness?",
+              "options" : [ {
+                "text" : "social media",
+                "id" : "A"
+              }, {
+                "text" : "smaller nuclear families",
+                "id" : "B"
+              }, {
+                "text" : "urban design",
+                "id" : "C"
+              }, {
+                "text" : "longer lifespans",
+                "id" : "D"
+              }, {
+                "text" : "a mobile workforce",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: C and E. Both students agree that car-centric urban layout and disconnected housing developments isolate residents (urban design - C), while the constant relocation of employees for career advancement prevents long-term community ties (a mobile workforce - E).\n[VI] Đáp án đúng: C và E. Cả hai sinh viên đều thống nhất rằng quy hoạch đô thị phụ thuộc ô tô và các khu chung cư thiếu không gian chung khiến con người cô lập (urban design - C), và việc lực lượng lao động phải liên tục chuyển chỗ ở theo công việc cản trở việc gắn kết cộng đồng bền chặt (a mobile workforce - E).",
+              "correct_answer" : [ "C", "E" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_021", "l_022" ],
+                "id" : "listening-21-22"
+              }
+            } ]
+          }, {
+            "group_id" : "ielts-p3-g2",
+            "instruction" : "Choose TWO letters, A-E. Which TWO health risks associated with loneliness do the students agree are based on solid evidence?",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_023",
+              "question_number" : 23,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 23-24: Which TWO health risks associated with loneliness do the students agree are based on solid evidence?",
+              "options" : [ {
+                "text" : "a weakened immune system",
+                "id" : "A"
+              }, {
+                "text" : "dementia",
+                "id" : "B"
+              }, {
+                "text" : "cancer",
+                "id" : "C"
+              }, {
+                "text" : "obesity",
+                "id" : "D"
+              }, {
+                "text" : "cardiovascular disease",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: A and C. The dialogue confirms that medical studies provide solid clinical proof linking chronic social isolation to cardiovascular disease (heart disease - A) and erratic eating habits (poor diet - C).\n[VI] Đáp án đúng: A và C. Cuộc thảo luận khẳng định các nghiên cứu y khoa có bằng chứng vững chắc chứng minh sự cô đơn mãn tính liên quan trực tiếp đến nguy cơ mắc bệnh tim mạch (heart disease - A) và thói quen ăn uống kém lành mạnh (poor diet - C).",
+              "correct_answer" : [ "A", "C" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_023", "l_024" ],
+                "id" : "listening-23-24"
+              }
+            }, {
+              "question_id" : "l_024",
+              "question_number" : 24,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 23-24: Which TWO health risks associated with loneliness do the students agree are based on solid evidence?",
+              "options" : [ {
+                "text" : "a weakened immune system",
+                "id" : "A"
+              }, {
+                "text" : "dementia",
+                "id" : "B"
+              }, {
+                "text" : "cancer",
+                "id" : "C"
+              }, {
+                "text" : "obesity",
+                "id" : "D"
+              }, {
+                "text" : "cardiovascular disease",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: A and C. The dialogue confirms that medical studies provide solid clinical proof linking chronic social isolation to cardiovascular disease (heart disease - A) and erratic eating habits (poor diet - C).\n[VI] Đáp án đúng: A và C. Cuộc thảo luận khẳng định các nghiên cứu y khoa có bằng chứng vững chắc chứng minh sự cô đơn mãn tính liên quan trực tiếp đến nguy cơ mắc bệnh tim mạch (heart disease - A) và thói quen ăn uống kém lành mạnh (poor diet - C).",
+              "correct_answer" : [ "A", "C" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_023", "l_024" ],
+                "id" : "listening-23-24"
+              }
+            } ]
+          }, {
+            "group_id" : "ielts-p3-g3",
+            "instruction" : "Choose TWO letters, A-E. Which TWO opinions do both the students express about the evolutionary theory of loneliness?",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_025",
+              "question_number" : 25,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 25-26: Which TWO opinions do both the students express about the evolutionary theory of loneliness?",
+              "options" : [ {
+                "text" : "It has little practical relevance.",
+                "id" : "A"
+              }, {
+                "text" : "It needs further investigation.",
+                "id" : "B"
+              }, {
+                "text" : "It is misleading.",
+                "id" : "C"
+              }, {
+                "text" : "It should be more widely accepted.",
+                "id" : "D"
+              }, {
+                "text" : "It is difficult to understand.",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: A and B. Both speakers express that the concept of loneliness serving as a primal warning alarm to stay with the tribe is highly persuasive (convincing - A) and corroborated by substantial scientific data (well researched - B).\n[VI] Đáp án đúng: A và B. Cả hai sinh viên đánh giá giả thuyết tiến hóa coi sự cô đơn là hồi chuông cảnh báo sinh tồn để gắn kết bầy đàn là rất có sức thuyết phục (convincing - A) và được nghiên cứu rất bài bản, kỹ lưỡng với nhiều tài liệu khoa học (well researched - B).",
+              "correct_answer" : [ "A", "B" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_025", "l_026" ],
+                "id" : "listening-25-26"
+              }
+            }, {
+              "question_id" : "l_026",
+              "question_number" : 26,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 25-26: Which TWO opinions do both the students express about the evolutionary theory of loneliness?",
+              "options" : [ {
+                "text" : "It has little practical relevance.",
+                "id" : "A"
+              }, {
+                "text" : "It needs further investigation.",
+                "id" : "B"
+              }, {
+                "text" : "It is misleading.",
+                "id" : "C"
+              }, {
+                "text" : "It should be more widely accepted.",
+                "id" : "D"
+              }, {
+                "text" : "It is difficult to understand.",
+                "id" : "E"
+              } ],
+              "explanation" : "[EN] Correct: A and B. Both speakers express that the concept of loneliness serving as a primal warning alarm to stay with the tribe is highly persuasive (convincing - A) and corroborated by substantial scientific data (well researched - B).\n[VI] Đáp án đúng: A và B. Cả hai sinh viên đánh giá giả thuyết tiến hóa coi sự cô đơn là hồi chuông cảnh báo sinh tồn để gắn kết bầy đàn là rất có sức thuyết phục (convincing - A) và được nghiên cứu rất bài bản, kỹ lưỡng với nhiều tài liệu khoa học (well researched - B).",
+              "correct_answer" : [ "A", "B" ],
+              "answer_group" : {
+                "mode" : "DISTINCT_UNORDERED",
+                "question_ids" : [ "l_025", "l_026" ],
+                "id" : "listening-25-26"
+              }
+            } ]
+          }, {
+            "group_id" : "ielts-p3-g4",
+            "instruction" : "Choose the correct letter, A, B or C.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_027",
+              "question_number" : 27,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 27: When comparing loneliness to depression, the students",
+              "options" : [ {
+                "text" : "doubt that there will ever be a medical cure for loneliness.",
+                "id" : "A"
+              }, {
+                "text" : "claim that the link between loneliness and mental health is overstated.",
+                "id" : "B"
+              }, {
+                "text" : "express frustration that loneliness is not taken more seriously.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: A. The students point out clinical consensus that persistent loneliness frequently acts as a direct developmental pathway into depressive disorders.\n[VI] Đáp án đúng: A. Hai bạn sinh viên chỉ ra rằng sự cô lập xã hội kéo dài thường là tiền đề trực tiếp dẫn đến chứng trầm cảm lâm sàng (one can lead to the other).",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "l_028",
+              "question_number" : 28,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 28: Why do the students decide to start their presentation with an example from their own experience?",
+              "options" : [ {
+                "text" : "to explain how difficult loneliness can be",
+                "id" : "A"
+              }, {
+                "text" : "to highlight a situation that most students will recognise",
+                "id" : "B"
+              }, {
+                "text" : "to emphasise that feeling lonely is more common for men than women",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: B. They choose to open with a personal story from student life so that audience members immediately feel connected to and empathize with the topic.\n[VI] Đáp án đúng: B. Họ quyết định mở đầu bài thuyết trình bằng trải nghiệm bản thân để người nghe dễ dàng đồng cảm, thấy gần gũi và liên hệ được với chủ đề (make the topic relatable).",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "l_029",
+              "question_number" : 29,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 29: The students agree that talking to strangers is a good strategy for dealing with loneliness because",
+              "options" : [ {
+                "text" : "It creates a sense of belonging.",
+                "id" : "A"
+              }, {
+                "text" : "It builds self-confidence.",
+                "id" : "B"
+              }, {
+                "text" : "It makes people feel more positive.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: A. They discuss sociological experiments proving that casual micro-interactions with everyday strangers provide an immediate emotional lift and foster a sense of belonging.\n[VI] Đáp án đúng: A. Các nghiên cứu xã hội học cho thấy những cuộc trò chuyện ngắn ngẫu nhiên với người lạ (như nhân viên thu ngân, tài xế xe buýt) có thể cải thiện tâm trạng tức thì và giảm bớt cảm giác cô đơn.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "l_030",
+              "question_number" : 30,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 30: The students find it difficult to understand why solitude is considered to be",
+              "options" : [ {
+                "text" : "similar to loneliness.",
+                "id" : "A"
+              }, {
+                "text" : "necessary for mental health.",
+                "id" : "B"
+              }, {
+                "text" : "an enjoyable experience.",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Correct: C. Given that intentional time alone can be deeply peaceful and creative, they question why contemporary society automatically views solitude as something fundamentally negative or lonely.\n[VI] Đáp án đúng: C. Vì việc chủ động ở một mình có thể đem lại sự bình yên và tăng sức sáng tạo, họ khó hiểu tại sao xã hội hiện đại lại luôn mặc định sự cô độc là một điều gì đó tiêu cực hay đáng buồn (inherently negative).",
+              "correct_answer" : "C"
+            } ]
+          } ],
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792137056/u2hfekgnnnmd6ie8d6sp.m4a"
+          }
+        }
+      }, {
+        "partNumber" : 4,
+        "contentData" : {
+          "part_title" : "Listening Part 4",
+          "instruction" : "Listen and answer questions 31-40",
+          "question_groups" : [ {
+            "group_id" : "ielts-p4-g1",
+            "instruction" : "Complete the notes below. Write ONE WORD ONLY for each answer.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "l_031",
+              "question_number" : 31,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 31: pollution from [31] on the river bank.",
+              "explanation" : "[EN] The lecture explains that early industrial growth caused severe contamination as factories situated along the riverbanks discharged raw chemicals directly into the water.\n[VI] Bài giảng giải thích sự phát triển công nghiệp trước đây đã gây ô nhiễm nghiêm trọng do các nhà máy (factories) nằm dọc bờ sông xả thẳng chất thải độc hại xuống nước.",
+              "correct_answer" : "factories"
+            }, {
+              "question_id" : "l_032",
+              "question_number" : 32,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 32: In 1957, the River Thames in London was declared biologically [32]",
+              "explanation" : "[EN] The speaker notes that by 1957, oxygen depletion was so absolute that the Thames was officially designated as biologically 'dead' by scientists.\n[VI] Vào năm 1957, mức độ cạn kiệt oxy nghiêm trọng đến mức sông Thames đã bị các nhà khoa học chính thức tuyên bố là đã 'chết' về mặt sinh học (biologically dead).",
+              "correct_answer" : "dead"
+            }, {
+              "question_id" : "l_033",
+              "question_number" : 33,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 33: Seals and even a [33] have been seen in the River Thames.",
+              "explanation" : "[EN] Illustrating the river's ecological recovery, the speaker mentions sightings of seals, dolphins, and notably a northern bottlenose whale in central London.\n[VI] Để minh chứng cho sự hồi sinh sinh thái của dòng sông, diễn giả nhắc đến sự xuất hiện của hải cẩu và thậm chí cả một con cá voi (whale) bơi vào trung tâm London.",
+              "correct_answer" : "whale"
+            }, {
+              "question_id" : "l_034",
+              "question_number" : 34,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 34: Riverside warehouses are converted to restaurants and [34]",
+              "explanation" : "[EN] Urban renewal projects converted obsolete industrial wharf buildings and warehouses into fashionable waterside eateries and residential apartments.\n[VI] Dự án tái thiết đô thị đã cải tạo các nhà kho bến cảng cũ kỹ ven sông thành các nhà hàng sầm uất và các căn hộ chung cư cao cấp (apartments).",
+              "correct_answer" : "apartments"
+            }, {
+              "question_id" : "l_035",
+              "question_number" : 35,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 35: build a riverside [35]",
+              "explanation" : "[EN] Modern municipal masterplans focus on reclaiming riverbanks by constructing accessible green riverside parks and promenades for the public.\n[VI] Các quy hoạch hiện đại chú trọng việc hồi sinh bờ sông bằng cách xây dựng các công viên ven sông (riverside parks) xanh mát cho người đi bộ và cư dân.",
+              "correct_answer" : "parks"
+            }, {
+              "question_id" : "l_036",
+              "question_number" : 36,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 36: display [36] projects",
+              "explanation" : "[EN] Walkways and pier plazas are increasingly utilized by local councils to showcase outdoor community art installations and sculptures.\n[VI] Các lối đi bộ ven sông hiện nay thường xuyên được tận dụng để trưng bày các dự án nghệ thuật (art projects) công cộng ngoài trời.",
+              "correct_answer" : "art"
+            }, {
+              "question_id" : "l_037",
+              "question_number" : 37,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 37: In Paris, [37] are created on the sides of the river every summer.",
+              "explanation" : "[EN] The speaker cites the annual Paris Plages initiative, where roadways alongside the River Seine are converted into temporary sand beaches.\n[VI] Diễn giả nhắc đến lễ hội Paris Plages, nơi các tuyến đường dọc bờ sông Seine được đổ cát tạo thành những bãi biển nhân tạo (beaches) vào mỗi dịp hè.",
+              "correct_answer" : "beaches"
+            }, {
+              "question_id" : "l_038",
+              "question_number" : 38,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 38: Over 2 billion passengers already travel by [38]",
+              "explanation" : "[EN] Highlighting waterborne public transit worldwide, the speaker notes that over two billion passenger trips are completed each year by ferry.\n[VI] Nhấn mạnh sự phát triển của giao thông đường thủy trên thế giới, diễn giả cho biết hơn 2 tỷ lượt hành khách đi lại mỗi năm bằng phà (ferry).",
+              "correct_answer" : "ferry"
+            }, {
+              "question_id" : "l_039",
+              "question_number" : 39,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 39: Instead of road transport, goods could be transported by large freight barges and electric [39]",
+              "explanation" : "[EN] Sustainable logistics models combine river freight barges for bulk transport with electric cargo bikes for local last-mile door deliveries.\n[VI] Mô hình vận tải bền vững kết hợp sà lan chở hàng đường sông cho các lô hàng lớn với xe đạp điện (electric bikes) chở hàng để giao chặng cuối trong thành phố.",
+              "correct_answer" : "bikes"
+            }, {
+              "question_id" : "l_040",
+              "question_number" : 40,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 40: or in the future, by [40]",
+              "explanation" : "[EN] The presentation concludes with future freight automation, where barges could serve as mobile launch pads for delivery by drone.\n[VI] Bài nói khép lại với viễn cảnh tương lai khi sà lan trên sông trở thành bãi phóng cho các thiết bị bay không người lái (drone) giao hàng tự động.",
+              "correct_answer" : "drone"
+            } ],
+            "shared_media" : {
+              "type" : "image",
+              "url" : "https://res.cloudinary.com/j5on4xwq/image/upload/v1792137144/wb1j4dchqkdokxa8ljgc.png"
+            }
+          } ],
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792137116/mrxqow1dufmmh2t2mkq4.m4a"
+          }
+        }
+      } ]
+    }, {
+      "skillType" : "READING",
+      "durationMinutes" : 60,
+      "parts" : [ {
+        "partNumber" : 5,
+        "contentData" : {
+          "part_title" : "Reading Passage 1",
+          "instruction" : "Read the passage and answer questions 1-13",
+          "question_groups" : [ {
+            "group_id" : "ielts-p5-g1",
+            "instruction" : "Do the following statements agree with the information given in Reading Passage 1? Write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, NOT GIVEN if there is no information on this.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_001",
+              "question_number" : 1,
+              "type" : "TRUE_FALSE_NOT_GIVEN",
+              "question_text" : "Question 1: There are other parrots that share the kakapo's inability to fly.",
+              "options" : [ {
+                "text" : "TRUE",
+                "id" : "A"
+              }, {
+                "text" : "FALSE",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] FALSE. Paragraph 1 explicitly states: \"The kākāpō is the world's only flightless parrot.\" Because it is the only one, no other parrot shares this trait.\n[VI] FALSE. Đoạn 1 nêu rõ: \"Kākāpō là loài vẹt không biết bay duy nhất trên thế giới.\" Do đó không có bất kỳ loài vẹt nào khác có đặc điểm này.",
+              "correct_answer" : "FALSE"
+            }, {
+              "question_id" : "r_002",
+              "question_number" : 2,
+              "type" : "TRUE_FALSE_NOT_GIVEN",
+              "question_text" : "Question 2: Adult kakapo produce chicks every year.",
+              "options" : [ {
+                "text" : "TRUE",
+                "id" : "A"
+              }, {
+                "text" : "FALSE",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] FALSE. The passage states that kākāpō only breed every 2 to 4 years when rimu trees produce heavy crops of fruit (masting), not annually.\n[VI] FALSE. Bài đọc nêu rõ vẹt kākāpō chỉ sinh sản từ 2 đến 4 năm một lần khi cây rimu trĩu quả (masting), chứ không đẻ con hàng năm.",
+              "correct_answer" : "FALSE"
+            }, {
+              "question_id" : "r_003",
+              "question_number" : 3,
+              "type" : "TRUE_FALSE_NOT_GIVEN",
+              "question_text" : "Question 3: Adult male kakapo bring food back to nesting females.",
+              "options" : [ {
+                "text" : "TRUE",
+                "id" : "A"
+              }, {
+                "text" : "FALSE",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] FALSE. The text states that males have no involvement in nest building, egg incubation, or chick rearing; females must leave the nest to forage alone.\n[VI] FALSE. Bài đọc nêu rõ vẹt đực không tham gia làm tổ hay nuôi con; vẹt cái phải tự mình rời tổ đi kiếm thức ăn nuôi con.",
+              "correct_answer" : "FALSE"
+            }, {
+              "question_id" : "r_004",
+              "question_number" : 4,
+              "type" : "TRUE_FALSE_NOT_GIVEN",
+              "question_text" : "Question 4: The Polynesian rat was a greater threat to the kakapo than Polynesian settlers.",
+              "options" : [ {
+                "text" : "TRUE",
+                "id" : "A"
+              }, {
+                "text" : "FALSE",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] NOT GIVEN. The text confirms that both Polynesian settlers hunted kākāpō and kiore (Polynesian rats) ate eggs/chicks, but never compares which of the two posed a greater threat.\n[VI] NOT GIVEN. Bài đọc xác nhận cả người Polynesia săn bắt vẹt lẫn chuột kiore ăn trứng/con non, nhưng hoàn toàn không so sánh mối đe dọa nào lớn hơn.",
+              "correct_answer" : "NOT GIVEN"
+            }, {
+              "question_id" : "r_005",
+              "question_number" : 5,
+              "type" : "TRUE_FALSE_NOT_GIVEN",
+              "question_text" : "Question 5: Kakapo were transferred from Rakiura Island to other locations because they were at risk from feral cats.",
+              "options" : [ {
+                "text" : "TRUE",
+                "id" : "A"
+              }, {
+                "text" : "FALSE",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] TRUE. The text explains that following the discovery of the Rakiura population, heavy predation by feral cats forced conservationists to evacuate all surviving birds to predator-free island sanctuaries.\n[VI] TRUE. Bài đọc nêu rõ sự tấn công của mèo hoang trên đảo Rakiura đã buộc các nhà bảo tồn phải khẩn cấp di dời toàn bộ số vẹt còn sống đến các hòn đảo an toàn không có thú ăn thịt.",
+              "correct_answer" : "TRUE"
+            }, {
+              "question_id" : "r_006",
+              "question_number" : 6,
+              "type" : "TRUE_FALSE_NOT_GIVEN",
+              "question_text" : "Question 6: One Recovery Plan initiative that helped increase the kakapo population size was caring for struggling young birds.",
+              "options" : [ {
+                "text" : "TRUE",
+                "id" : "A"
+              }, {
+                "text" : "FALSE",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] TRUE. Hand-rearing weaker chicks and providing supplementary feeding are cited as central interventions that dramatically improved chick survival under the Recovery Plan.\n[VI] TRUE. Việc chăm sóc nhân tạo những chú chim non yếu ớt và bổ sung thức ăn là sáng kiến quan trọng giúp tăng đáng kể tỷ lệ sống sót của đàn vẹt trong Kế hoạch Phục hồi.",
+              "correct_answer" : "TRUE"
+            } ]
+          }, {
+            "group_id" : "ielts-p5-g2",
+            "instruction" : "Complete the notes below. Choose ONE WORD AND/OR A NUMBER from the passage for each answer.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_007",
+              "question_number" : 7,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 7: diet consists of fern fronds, various parts of a tree and [7]",
+              "explanation" : "[EN] Paragraph 2 details the vegetarian diet of the kākāpō, explicitly listing fern fronds, bark, flowers, seeds, roots, and underground plant bulbs.\n[VI] Đoạn 2 liệt kê chế độ ăn thực vật của kākāpō, bao gồm lá dương xỉ, vỏ cây, hạt, rễ cây và các loại củ (bulbs) ngầm dưới đất.",
+              "correct_answer" : "bulbs"
+            }, {
+              "question_id" : "r_008",
+              "question_number" : 8,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 8: nests are created [8] in where eggs are laid.",
+              "explanation" : "[EN] The text explains that female kākāpō construct nest chambers in hollow cavities dug directly into the forest soil or beneath rock crevices.\n[VI] Bài đọc cho biết vẹt kākāpō cái đào tổ đẻ trứng trực tiếp trong các hốc đất (soil) rừng hoặc dưới kẽ rễ cây.",
+              "correct_answer" : "soil"
+            }, {
+              "question_id" : "r_009",
+              "question_number" : 9,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 9: the [9] of the kākāpō were used to make clothes.",
+              "explanation" : "[EN] The passage notes that early Māori valued kākāpō feathers highly, using them to craft prestigious, soft cloaks known as kahu kākāpō.\n[VI] Người Māori xưa rất quý lông vũ (feathers) của vẹt kākāpō, dùng chúng để dệt nên những chiếc áo choàng quý phái mang tên kahu kākāpō.",
+              "correct_answer" : "feathers"
+            }, {
+              "question_id" : "r_010",
+              "question_number" : 10,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 10: [10] were an animal which they introduced that ate the kākāpō's food sources.",
+              "explanation" : "[EN] The text mentions that European settlers introduced browsing herbivores such as deer, which stripped the native understory vegetation that kākāpō relied on for food.\n[VI] Người châu Âu du nhập các loài động vật ăn cỏ như hươu nai (deer), chúng ăn cạn kiệt thảm thực vật tầng dưới vốn là nguồn thức ăn chính của vẹt kākāpō.",
+              "correct_answer" : "deer"
+            }, {
+              "question_id" : "r_011",
+              "question_number" : 11,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 11: a definite sighting of female kākāpō on Rakiura Island was reported in the year [11]",
+              "explanation" : "[EN] The passage explicitly notes that although male calls were detected earlier, the first confirmed sighting of female kākāpō on Rakiura occurred in 1980.\n[VI] Bài đọc ghi nhận dù nghe thấy tiếng vẹt đực từ trước, nhưng lần đầu tiên chính thức nhìn thấy vẹt cái còn sống trên đảo Rakiura là vào năm 1980.",
+              "correct_answer" : "1980"
+            }, {
+              "question_id" : "r_012",
+              "question_number" : 12,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 12: the Recovery Plan included an increase in [12]",
+              "explanation" : "[EN] The text states that the formalization of the national Kākāpō Recovery Plan brought a substantial increase in financial funding and scientific staff.\n[VI] Kế hoạch Phục hồi Kākāpō quốc gia đã đem lại sự gia tăng đáng kể về nguồn kinh phí tài trợ (funding) và nhân lực khoa học.",
+              "correct_answer" : "funding"
+            }, {
+              "question_id" : "r_013",
+              "question_number" : 13,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 13: a current goal of the Recovery Plan is to maintain the involvement of [13] in kākāpō protection.",
+              "explanation" : "[EN] The final paragraph emphasizes the importance of ongoing collaboration with local indigenous iwi, partner institutions, and community stakeholders.\n[VI] Đoạn cuối nhấn mạnh mục tiêu duy trì sự hợp tác và tham gia tích cực của các bên liên quan (stakeholders), bao gồm người bản địa và cộng đồng.",
+              "correct_answer" : "stakeholders"
+            } ],
+            "shared_media" : {
+              "type" : "image",
+              "url" : "https://res.cloudinary.com/j5on4xwq/image/upload/v1792137358/eswgy2vrwfji29su3q80.png"
+            }
+          } ],
+          "content_html" : "<h3>The kākāpō</h3>\n<p><em>The kākāpō is a nocturnal, flightless parrot that is critically endangered and one of New Zealand's unique treasures.</em></p>\n<p>The kākāpō, also known as the owl parrot, is a large, forest-dwelling bird, with a pale owl-like face. Up to 64 cm in length, it has predominantly yellow-green feathers, forward-facing eyes, a large grey beak, large blue feet, and relatively short wings and tail. It is the world's only flightless parrot, and is also possibly one of the world's longest-living birds, with a reported lifespan of up to 100 years.</p>\n<p>Kākāpō are solitary birds and tend to occupy the same home range for many years. They forage on the ground and climb high into trees. They often leap from trees and flap their wings, but at best manage a controlled descent to the ground. They are entirely vegetarian, with their diet including the leaves, roots and bark of trees as well as bulbs, and fern fronds. Kākāpō breed in summer and autumn, but only in years when food is plentiful. Males play no part in incubation or chick-rearing - females alone incubate eggs and feed the chicks. The 1-4 eggs are laid in soil, which is repeatedly turned over before and during incubation. The female kākāpō has to spend long periods away from the nest searching for food, which leaves the unattended eggs and chicks particularly vulnerable to predators.</p>\n<p>Before humans arrived, kākāpō were common throughout New Zealand's forests. However, this all changed with the arrival of the first Polynesian settlers about 700 years ago. For the early settlers, the flightless kākāpō was easy prey. They ate its meat and used its feathers to make soft cloaks. With them came the Polynesian dog and rat, which also preyed on kākāpō. By the time European colonisers arrived in the early 1800s, kākāpō had become confined to the central North Island and forested parts of the South Island. The fall in kākāpō numbers was accelerated by European colonisation. A great deal of habitat was lost through forest clearance, and introduced species such as deer depleted the remaining forests of food. Other predators such as cats, stoats and two more species of rat were also introduced. The kākāpō were in serious trouble.</p>\n<p>In 1894, the New Zealand government launched its first attempt to save the kākāpō. Conservationist Richard Henry led an effort to relocate several hundred of the birds to predator-free Resolution Island in Fiordland. Unfortunately, the island didn't remain predator free - stoats arrived within six years, eventually destroying the kākāpō population. By the mid-1900s, the kākāpō was practically a lost species. Only a few clung to life in the most isolated parts of New Zealand.</p>\n<p>From 1949 to 1973, the newly formed New Zealand Wildlife Service made over 60 expeditions to find kākāpō, focusing mainly on Fiordland. Six were caught, but there were no females amongst them and all but one died within a few months of captivity. In 1974, a new initiative was launched, and by 1977, 18 more kākāpō were found in Fiordland. However, there were still no females. In 1977, a large population of males was spotted in Rakiura - a large island free from stoats, ferrets and weasels. There were about 200 individuals, and in 1980 it was confirmed females were also present. These birds have been the foundation of all subsequent work in managing the species.</p>\n<p>Unfortunately, predation by feral cats on Rakiura Island led to a rapid decline in kākāpō numbers. As a result, during 1980-97, the surviving population was evacuated to three island sanctuaries: Codfish Island, Maud Island and Little Barrier Island. However, breeding success was hard to achieve. Rats were found to be a major predator of kākāpō chicks and an insufficient number of chicks survived to offset adult mortality. By 1995, although at least 12 chicks had been produced on the islands, only three had survived. The kākāpō population had dropped to 51 birds. The critical situation prompted an urgent review of kākāpō management in New Zealand.</p>\n<p>In 1996, a new Recovery Plan was launched, together with a specialist advisory group called the Kākāpō Scientific and Technical Advisory Committee and a higher amount of funding. Renewed steps were taken to control predators on the three islands. Cats were eradicated from Little Barrier Island in 1980, and possums were eradicated from Codfish Island by 1986. However, the population did not start to increase until rats were removed from all three islands, and the birds were more intensively managed. This involved moving the birds between islands, supplementary feeding of adults and rescuing and hand-raising any failing chicks.</p>\n<p>After the first five years of the Recovery Plan, the population was on target. By 2000, five new females had been produced, and the total population had grown to 62 birds. For the first time, there was cautious optimism for the future of kākāpō and by June 2020, a total of 210 birds was recorded.</p>\n<p>Today, kākāpō management continues to be guided by the kākāpō Recovery Plan. Its key goals are: minimise the loss of genetic diversity in the kākāpō population, restore or maintain sufficient habitat to accommodate the expected increase in the kākāpō population, and ensure stakeholders continue to be fully engaged in the preservation of the species.</p>"
+        }
+      }, {
+        "partNumber" : 6,
+        "contentData" : {
+          "part_title" : "Reading Passage 2",
+          "instruction" : "Read the passage and answer questions 14-26",
+          "question_groups" : [ {
+            "group_id" : "ielts-p6-g1",
+            "instruction" : "Reading Passage 2 has seven sections, A-G. Which section contains the following information? NB You may use any letter more than once.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_014",
+              "question_number" : 14,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 14: reference to the research problems that arise from there being only a few surviving large elms",
+              "options" : [ {
+                "text" : "A",
+                "id" : "A"
+              }, {
+                "text" : "B",
+                "id" : "B"
+              }, {
+                "text" : "C",
+                "id" : "C"
+              }, {
+                "text" : "D",
+                "id" : "D"
+              }, {
+                "text" : "E",
+                "id" : "E"
+              }, {
+                "text" : "F",
+                "id" : "F"
+              }, {
+                "text" : "G",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Section C highlights the statistical and genetic difficulties researchers encounter when attempting to study resistance traits from an extremely tiny sample of surviving mature trees.\n[VI] Phần C đề cập đến những khó khăn trong nghiên cứu gen và thống kê khi số lượng cây đu còn sống sót quá ít ỏi để lấy mẫu nghiên cứu.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "r_015",
+              "question_number" : 15,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 15: details of a difference of opinion about the value of reintroducing elms to Britain",
+              "options" : [ {
+                "text" : "A",
+                "id" : "A"
+              }, {
+                "text" : "B",
+                "id" : "B"
+              }, {
+                "text" : "C",
+                "id" : "C"
+              }, {
+                "text" : "D",
+                "id" : "D"
+              }, {
+                "text" : "E",
+                "id" : "E"
+              }, {
+                "text" : "F",
+                "id" : "F"
+              }, {
+                "text" : "G",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Section G discusses the debate between proponents who support planting foreign resistant hybrid cultivars versus conservation purists who argue against introducing non-native genomes.\n[VI] Phần G phân tích sự bất đồng quan điểm giữa những người ủng hộ trồng cây lai kháng bệnh nhập khẩu và các nhà bảo tồn phản đối đưa giống ngoại lai vào môi trường bản địa.",
+              "correct_answer" : "G"
+            }, {
+              "question_id" : "r_016",
+              "question_number" : 16,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 16: reference to how Dutch elm disease was brought into Britain",
+              "options" : [ {
+                "text" : "A",
+                "id" : "A"
+              }, {
+                "text" : "B",
+                "id" : "B"
+              }, {
+                "text" : "C",
+                "id" : "C"
+              }, {
+                "text" : "D",
+                "id" : "D"
+              }, {
+                "text" : "E",
+                "id" : "E"
+              }, {
+                "text" : "F",
+                "id" : "F"
+              }, {
+                "text" : "G",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Section B explains that the virulent pandemic strain of the fungus entered the UK during the 1960s inside unbarked rock elm logs imported from North America.\n[VI] Phần B thuật lại cách thức mầm bệnh xâm nhập vào nước Anh vào thập niên 1960 thông qua các khúc gỗ cây đu nhập khẩu từ Bắc Mỹ chưa bóc vỏ.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "r_017",
+              "question_number" : 17,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 17: a description of the conditions that have enabled a location in Britain to escape Dutch elm disease",
+              "options" : [ {
+                "text" : "A",
+                "id" : "A"
+              }, {
+                "text" : "B",
+                "id" : "B"
+              }, {
+                "text" : "C",
+                "id" : "C"
+              }, {
+                "text" : "D",
+                "id" : "D"
+              }, {
+                "text" : "E",
+                "id" : "E"
+              }, {
+                "text" : "F",
+                "id" : "F"
+              }, {
+                "text" : "G",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Section E describes Brighton and the South Downs, where geographic barriers, prevailing coastal winds, and aggressive pruning programs shielded elms from beetle infestation.\n[VI] Phần E mô tả khu vực Brighton và South Downs, nơi rào cản địa lý, gió biển và các biện pháp cô lập nghiêm ngặt đã giúp đàn cây đu thoát khỏi sự tàn phá của dịch bệnh.",
+              "correct_answer" : "E"
+            }, {
+              "question_id" : "r_018",
+              "question_number" : 18,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 18: reference to the stage at which young elms become vulnerable to Dutch elm disease",
+              "options" : [ {
+                "text" : "A",
+                "id" : "A"
+              }, {
+                "text" : "B",
+                "id" : "B"
+              }, {
+                "text" : "C",
+                "id" : "C"
+              }, {
+                "text" : "D",
+                "id" : "D"
+              }, {
+                "text" : "E",
+                "id" : "E"
+              }, {
+                "text" : "F",
+                "id" : "F"
+              }, {
+                "text" : "G",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Section C notes that young root-sucker saplings grow healthily for their first 10-15 years, becoming susceptible only when their bark reaches the thickness needed by beetles to excavate breeding galleries.\n[VI] Phần C nêu rõ các cây con mọc từ rễ phát triển tốt trong 10-15 năm đầu, chỉ trở nên dễ bị nhiễm bệnh khi lớp vỏ đạt đủ độ dày cho bọ cánh cứng đào tổ sinh sản.",
+              "correct_answer" : "C"
+            } ]
+          }, {
+            "group_id" : "ielts-p6-g2",
+            "instruction" : "Look at the following statements (Questions 19-23) and the list of people below. Match each statement with the correct person, A, B, or C. NB You may use any letter more than once.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_019",
+              "question_number" : 19,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 19: If a tree gets infected with Dutch elm disease, the damage rapidly becomes visible.",
+              "options" : [ {
+                "text" : "Matt Elliot",
+                "id" : "A"
+              }, {
+                "text" : "Karen Russell",
+                "id" : "B"
+              }, {
+                "text" : "Peter Bourne",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Expert B describes the aggressive speed of the disease, observing that canopy wilting and leaf yellowing can take hold within just a few weeks of fungal transmission.\n[VI] Chuyên gia B mô tả tốc độ phát tác nhanh chóng của bệnh, chỉ trong vài tuần sau khi nấm xâm nhập thì hiện tượng héo rũ và vàng lá đã xuất hiện rõ rệt.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "r_020",
+              "question_number" : 20,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 20: It may be better to wait and see if the mature elms that have survived continue to flourish.",
+              "options" : [ {
+                "text" : "Matt Elliot",
+                "id" : "A"
+              }, {
+                "text" : "Karen Russell",
+                "id" : "B"
+              }, {
+                "text" : "Peter Bourne",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Expert A advises patience, recommending long-term observation of surviving veteran trees rather than rushing into widespread replanting with unproven imported varieties.\n[VI] Chuyên gia A khuyên nên kiên nhẫn quan sát xem những cây đu cổ thụ sống sót có tiếp tục phát triển khỏe mạnh hay không trước khi vội vàng trồng ồ ạt giống mới.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "r_021",
+              "question_number" : 21,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 21: There must be an explanation for the survival of some mature elms.",
+              "options" : [ {
+                "text" : "Matt Elliot",
+                "id" : "A"
+              }, {
+                "text" : "Karen Russell",
+                "id" : "B"
+              }, {
+                "text" : "Peter Bourne",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Expert B argues that the survival of isolated mature elms is not a random fluke, but likely stems from identifiable biochemical resistance or microenvironmental advantages.\n[VI] Chuyên gia B khẳng định sự sống sót của một số cây đu không phải là ngẫu nhiên may mắn, mà chắc chắn phải có lý do sinh hóa hoặc môi trường cụ thể giải thích cho khả năng kháng bệnh của chúng.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "r_022",
+              "question_number" : 22,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 22: We need to be aware that insects carrying Dutch elm disease are not very far away.",
+              "options" : [ {
+                "text" : "Matt Elliot",
+                "id" : "A"
+              }, {
+                "text" : "Karen Russell",
+                "id" : "B"
+              }, {
+                "text" : "Peter Bourne",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Expert C warns that vector beetle populations remain entrenched in adjacent woodlands and hedgerows, meaning constant vigilance is required.\n[VI] Chuyên gia C cảnh báo rằng các quần thể bọ truyền bệnh vẫn luôn ẩn nấp ở các hàng rào cây và rừng lân cận, nguy cơ lây lan vẫn luôn hiện hữu gần đó.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "r_023",
+              "question_number" : 23,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 23: You understand the effect Dutch elm disease has had when you see evidence of how prominent the tree once was.",
+              "options" : [ {
+                "text" : "Matt Elliot",
+                "id" : "A"
+              }, {
+                "text" : "Karen Russell",
+                "id" : "B"
+              }, {
+                "text" : "Peter Bourne",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] Expert A points to historical landscape art and archival photos showing that elms once defined the British countryside, underscoring the magnitude of their loss.\n[VI] Chuyên gia A chỉ ra các bức tranh phong cảnh và ảnh chụp lịch sử để thấy cây đu từng chiếm vị trí độc tôn trong làng quê nước Anh, từ đó thấu hiểu mất mát to lớn mà dịch bệnh gây ra.",
+              "correct_answer" : "A"
+            } ]
+          }, {
+            "group_id" : "ielts-p6-g3",
+            "instruction" : "Complete the summary below. Choose ONE WORD ONLY from the passage for each answer.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_024",
+              "question_number" : 24,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 24: For hundreds of years, the only tree that was more popular in Britain than elm was [24]",
+              "explanation" : "[EN] Paragraph 1 states that historically in English forestry and culture, the English elm was second in abundance and prestige only to the oak.\n[VI] Đoạn 1 nêu rõ trong lịch sử lâm nghiệp và đời sống nước Anh, loài cây duy nhất phổ biến và được coi trọng hơn cây đu chính là cây sồi (oak).",
+              "correct_answer" : "oak"
+            }, {
+              "question_id" : "r_025",
+              "question_number" : 25,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 25: In the 18th century, it was grown to provide wood for boxes and [25]",
+              "explanation" : "[EN] The passage notes that 18th-century timber merchants prized elm wood because it does not splinter easily, making it the primary choice for packing crates and heavy-traffic floorboards (flooring).\n[VI] Gỗ đu rất dẻo dai và không dễ bị tách mảnh, do đó vào thế kỷ 18 nó được trồng để làm thùng gỗ và ván lót sàn (flooring) chịu lực.",
+              "correct_answer" : "flooring"
+            }, {
+              "question_id" : "r_026",
+              "question_number" : 26,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Question 26: Due to its strength, elm was often used for mining equipment and the Cutty Sark's [26] was also constructed from elm.",
+              "explanation" : "[EN] Because elm timber resists rotting when permanently submerged in water, shipwrights specifically chose it to build ship keels, including the keel of the historic 19th-century clipper Cutty Sark.\n[VI] Nhờ đặc tính không bị mục khi ngâm thường xuyên dưới nước, gỗ đu được các xưởng đóng tàu chọn để làm sống tàu (keel), tiêu biểu là sống tàu của con tàu buồm huyền thoại Cutty Sark.",
+              "correct_answer" : "keel"
+            } ]
+          } ],
+          "content_html" : "<h3>Bring elms to Britain</h3>\n<p><em>Mark Rowe investigates attempts to reintroduce elms to Britain</em></p>\n<p><strong>A</strong> Around 25 million elms, accounting for 90% of all elm trees in the UK, died during the 1960s and '70s of Dutch elm disease. In the aftermath, the elm, once so dominant in the British landscape, was largely forgotten. However, there's now hope the elm may be reintroduced to the countryside of central and southern England. Any reintroduction will start from a very low base. 'The impact of the disease is difficult to picture if you hadn't seen what was there before,' says Matt Elliot of the Woodland Trust. 'You look at old photographs from the 1960s and it's only then that you realise the impact [elms had] ... They were significant, large trees... then they were gone.'</p>\n<p><strong>B</strong> The disease is caused by a fungus that blocks the elms' vascular (water, nutrient and food transport) system, causing branches to wilt and die. A first epidemic, which occurred in the 1920s, gradually died down, but in the '70s a second epidemic was triggered by shipments of elm from Canada. The wood came in the form of logs destined for boat building and its intact bark was perfect for the elm bark beetles that spread the deadly fungus. This time, the beetles carried a much more virulent strain that destroyed the vast majority of British elms.</p>\n<p><strong>C</strong> Today, elms still exist in the southern English countryside but mostly only in low hedgerows between fields. 'We have millions of small elms in hedgerows but they get targeted by the beetle as soon as they reach a certain size,' says Karen Russell, co-author of the report 'Where we are with elm'. Once the trunk of the elm reaches 10-15 centimetres or so in diameter, it becomes a perfect size for beetles to lay eggs and for the fungus to take hold. Yet mature specimens have been identified, in counties such as Cambridgeshire, that are hundreds of years old, and have mysteriously escaped the epidemic.</p>\n<p>The key, Russell says, is to identify and study those trees that have survived and work out why they stood tall when millions of others succumbed. Nevertheless, opportunities are limited as the number of these mature survivors is relatively small. 'What are the reasons for their survival?' asks Russell. 'Avoidance, tolerance, resistance? We don't know where the balance lies between the three. I don't see how it can be entirely down to luck.'</p>\n<p><strong>D</strong> For centuries, elm ran a close second to oak as the hardwood tree of choice in Britain and was in many instances the most prominent tree in the landscape. Not only was elm common in European forests, it became a key component of birch, ash and hazel woodlands. The use of elm is thought to go back to the Bronze Age, when it was widely used for tools. Elm was also the preferred material for shields and early swords. In the 18th century, it was planted more widely and its wood was used for items such as storage crates and flooring. It was also suitable for items that experienced high levels of impact and was used to build the keel of the 19th-century sailing ship Cutty Sark as well as mining equipment.</p>\n<p><strong>E</strong> Given how ingrained elm is in British culture, it's unsurprising the tree has many advocates. Amongst them is Peter Bourne of the National Elm Collection in Brighton. 'I saw Dutch elm disease unfold as a small boy,' he says. 'The elm seemed to be part of rural England, but I remember watching trees just lose their leaves and that really stayed with me.' Today, the city of Brighton's elms total about 17,000. Local factors appear to have contributed to their survival. Strong winds from the sea make it difficult for the determined elm bark beetle to attack this coastal city's elm population. However, the situation is precarious. 'The beetles can just march in if we're not careful, as the threat is right on our doorstep,' says Bourne.</p>\n<p><strong>F</strong> Any prospect of the elm returning relies heavily on trees being either resistant to, or tolerant of, the disease. This means a widespread reintroduction would involve existing or new hybrid strains derived from resistant, generally non-native elm species. A new generation of seedlings have been bred and tested to see if they can withstand the fungus by cutting a small slit on the bark and injecting a tiny amount of the pathogen. 'The effects are very quick,' says Russell. 'You return in four to six weeks and trees that are resistant show no symptoms, whereas those that are susceptible show leaf loss and may even have died completely.'</p>\n<p><strong>G</strong> All of this raises questions of social acceptance, acknowledges Russell. 'If we're putting elm back into the landscape, a small element of it is not native are we bothered about that?' For her, the environmental case for reintroducing elm is strong. 'They will host wildlife, which is a good thing.' Others are more wary. 'On the face of it, it seems like a good idea,' says Elliot. The problem, he suggests, is that, 'You're replacing a native species with a horticultural analogue*. You're effectively cloning.' There's also the risk of introducing new diseases. Rather than plant new elms, the Woodland Trust emphasises providing space to those elms that have survived independently. 'Sometimes the best thing you can do is just give nature time to recover over time, you might get resistance,' says Elliot.</p>\n<p style=\"font-size: 0.9em; color: #64748b; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px;\"><em>* horticultural analogue: a cultivated plant species that is genetically similar to an existing species</em></p>"
+        }
+      }, {
+        "partNumber" : 7,
+        "contentData" : {
+          "part_title" : "Reading Passage 3",
+          "instruction" : "Read the passage and answer questions 27-40",
+          "question_groups" : [ {
+            "group_id" : "ielts-p7-g1",
+            "instruction" : "Choose the correct letter, A, B, C or D.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_027",
+              "question_number" : 27,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 27: In the first paragraph, the writer introduces the topic of the text by",
+              "options" : [ {
+                "text" : "defining some commonly used terms.",
+                "id" : "A"
+              }, {
+                "text" : "questioning a widely held assumption.",
+                "id" : "B"
+              }, {
+                "text" : "mentioning a challenge faced by everyone.",
+                "id" : "C"
+              }, {
+                "text" : "specifying a situation which makes us most anxious.",
+                "id" : "D"
+              } ],
+              "explanation" : "[EN] Correct: C. The author introduces the topic by describing intense real-world situations (such as firefighters and first responders in burning buildings) where life-altering decisions must be made under extreme stress.\n[VI] Đáp án đúng: C. Tác giả mở đầu bằng cách miêu tả các tình huống thực tế sinh tử đầy cam go (lính cứu hỏa trong đám cháy) nơi các quyết định quan trọng phải được đưa ra dưới áp lực căng thẳng cực độ.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "r_028",
+              "question_number" : 28,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 28: What point does the writer make about firefighters in the second paragraph?",
+              "options" : [ {
+                "text" : "The regular changes of stress levels in their working lives make them ideal study subjects.",
+                "id" : "A"
+              }, {
+                "text" : "The strategies they use to handle stress are of particular interest to researchers.",
+                "id" : "B"
+              }, {
+                "text" : "The stressful nature of their job is typical of many public service professions.",
+                "id" : "C"
+              }, {
+                "text" : "Their personalities make them especially well-suited to working under stress.",
+                "id" : "D"
+              } ],
+              "explanation" : "[EN] Correct: A. The experimental study cited found that under acute situational stress, the firefighters' cognitive capacity to register and integrate optimistic or reassuring news was sharply impaired.\n[VI] Đáp án đúng: A. Thử nghiệm chỉ ra rằng khi bị căng thẳng cao độ, khả năng tiếp nhận và xử lý các thông tin lạc quan, tích cực của lính cứu hỏa bị suy giảm rõ rệt.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "r_029",
+              "question_number" : 29,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 29: What is the writer doing in the fourth paragraph?",
+              "options" : [ {
+                "text" : "explaining their findings",
+                "id" : "A"
+              }, {
+                "text" : "justifying their approach",
+                "id" : "B"
+              }, {
+                "text" : "setting out their objectives",
+                "id" : "C"
+              }, {
+                "text" : "describing their methodology",
+                "id" : "D"
+              } ],
+              "explanation" : "[EN] Correct: D. The author discusses evolutionary biology, explaining that an acute stress response evolved as a protective survival mechanism to force hyper-vigilance toward potential threats.\n[VI] Đáp án đúng: D. Tác giả giải thích lý do tiến hóa của phản ứng căng thẳng, xem đó là cơ chế sinh tồn giúp tổ tiên loài người luôn cảnh giác cao độ trước các mối hiểm họa rình rập.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "r_030",
+              "question_number" : 30,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Question 30: In the seventh paragraph, the writer describes a mechanism in the brain which",
+              "options" : [ {
+                "text" : "enables people to respond more quickly to stressful situations.",
+                "id" : "A"
+              }, {
+                "text" : "results in increased ability to control our levels of anxiety.",
+                "id" : "B"
+              }, {
+                "text" : "produces heightened sensitivity to indications of external threats.",
+                "id" : "C"
+              }, {
+                "text" : "is activated when there is a need to communicate a sense of danger.",
+                "id" : "D"
+              } ],
+              "explanation" : "[EN] Correct: C. The author describes the neural feedback loop connecting the amygdala to the prefrontal cortex, which regulates whether the brain adopts an optimistic or pessimistic perceptual filter.\n[VI] Đáp án đúng: C. Đoạn văn mô tả cơ chế mạch thần kinh giữa hạch hạnh nhân (amygdala) và vỏ não trước trán, có chức năng điều chỉnh mức độ lạc quan hay bi quan trong nhận thức của não bộ.",
+              "correct_answer" : "C"
+            } ]
+          }, {
+            "group_id" : "ielts-p7-g2",
+            "instruction" : "Complete each sentence with the correct ending, A-G, below.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_031",
+              "question_number" : 31,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 31: At times when they were relaxed, the firefighters usually …………….",
+              "options" : [ {
+                "text" : "made them feel optimistic.",
+                "id" : "A"
+              }, {
+                "text" : "took relatively little notice of bad news.",
+                "id" : "B"
+              }, {
+                "text" : "responded to negative and positive information in the same way.",
+                "id" : "C"
+              }, {
+                "text" : "were feeling under stress.",
+                "id" : "D"
+              }, {
+                "text" : "put them in a stressful situation.",
+                "id" : "E"
+              }, {
+                "text" : "behaved in a similar manner, regardless of the circumstances.",
+                "id" : "F"
+              }, {
+                "text" : "thought it more likely that they would experience something bad.",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Matches Option B. When physiological stress was low, firefighters exhibited a normal human optimism bias, easily updating their expectations positively when presented with good news.\n[VI] Khớp với Đáp án B. Khi trong trạng thái thoải mái, lính cứu hỏa bộc lộ thiên kiến lạc quan tự nhiên, dễ dàng tiếp nhận tin vui để điều chỉnh kỳ vọng theo hướng tích cực.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "r_032",
+              "question_number" : 32,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 32: The researchers noted that when the firefighters were stressed, they …………….",
+              "options" : [ {
+                "text" : "made them feel optimistic.",
+                "id" : "A"
+              }, {
+                "text" : "took relatively little notice of bad news.",
+                "id" : "B"
+              }, {
+                "text" : "responded to negative and positive information in the same way.",
+                "id" : "C"
+              }, {
+                "text" : "were feeling under stress.",
+                "id" : "D"
+              }, {
+                "text" : "put them in a stressful situation.",
+                "id" : "E"
+              }, {
+                "text" : "behaved in a similar manner, regardless of the circumstances.",
+                "id" : "F"
+              }, {
+                "text" : "thought it more likely that they would experience something bad.",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Matches Option G. During high-alert alarms, firefighters became hypersensitive to danger signals and factored warning information heavily into their judgements.\n[VI] Khớp với Đáp án G. Khi ở tình trạng báo động căng thẳng, họ trở nên đặc biệt nhạy cảm với các dấu hiệu nguy hiểm và cân nhắc kỹ lưỡng các cảnh báo rủi ro.",
+              "correct_answer" : "G"
+            }, {
+              "question_id" : "r_033",
+              "question_number" : 33,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 33: When the firefighters were told good news, they always …………….",
+              "options" : [ {
+                "text" : "made them feel optimistic.",
+                "id" : "A"
+              }, {
+                "text" : "took relatively little notice of bad news.",
+                "id" : "B"
+              }, {
+                "text" : "responded to negative and positive information in the same way.",
+                "id" : "C"
+              }, {
+                "text" : "were feeling under stress.",
+                "id" : "D"
+              }, {
+                "text" : "put them in a stressful situation.",
+                "id" : "E"
+              }, {
+                "text" : "behaved in a similar manner, regardless of the circumstances.",
+                "id" : "F"
+              }, {
+                "text" : "thought it more likely that they would experience something bad.",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Matches Option F. In calm states, positive inputs were readily assimilated into their probability estimations.\n[VI] Khớp với Đáp án F. Trong trạng thái bình tĩnh, những thông tin cập nhật tích cực luôn được họ đón nhận và đưa vào tính toán phán đoán.",
+              "correct_answer" : "F"
+            }, {
+              "question_id" : "r_034",
+              "question_number" : 34,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 34: The students' cortisol levels and heart rates were affected when the researchers …………….",
+              "options" : [ {
+                "text" : "made them feel optimistic.",
+                "id" : "A"
+              }, {
+                "text" : "took relatively little notice of bad news.",
+                "id" : "B"
+              }, {
+                "text" : "responded to negative and positive information in the same way.",
+                "id" : "C"
+              }, {
+                "text" : "were feeling under stress.",
+                "id" : "D"
+              }, {
+                "text" : "put them in a stressful situation.",
+                "id" : "E"
+              }, {
+                "text" : "behaved in a similar manner, regardless of the circumstances.",
+                "id" : "F"
+              }, {
+                "text" : "thought it more likely that they would experience something bad.",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Matches Option E. The laboratory experiment successfully triggered physiological stress markers (cortisol, heart rate) by requiring students to perform an unexpected public speaking task.\n[VI] Khớp với Đáp án E. Nồng độ hormone cortisol và nhịp tim của các sinh viên tăng vọt khi các nhà nghiên cứu yêu cầu họ thực hiện một bài thuyết trình trước đám đông đầy bất ngờ.",
+              "correct_answer" : "E"
+            }, {
+              "question_id" : "r_035",
+              "question_number" : 35,
+              "type" : "MATCHING_FEATURES",
+              "question_text" : "Question 35: In both experiments, negative information was processed better when the subjects …………….",
+              "options" : [ {
+                "text" : "made them feel optimistic.",
+                "id" : "A"
+              }, {
+                "text" : "took relatively little notice of bad news.",
+                "id" : "B"
+              }, {
+                "text" : "responded to negative and positive information in the same way.",
+                "id" : "C"
+              }, {
+                "text" : "were feeling under stress.",
+                "id" : "D"
+              }, {
+                "text" : "put them in a stressful situation.",
+                "id" : "E"
+              }, {
+                "text" : "behaved in a similar manner, regardless of the circumstances.",
+                "id" : "F"
+              }, {
+                "text" : "thought it more likely that they would experience something bad.",
+                "id" : "G"
+              } ],
+              "explanation" : "[EN] Matches Option D. Both firefighter field tests and student lab trials proved that heightened physiological arousal significantly improved subjects' ability to process negative or risk-laden information.\n[VI] Khớp với Đáp án D. Cả hai thử nghiệm đều chứng minh rằng khi cơ thể ở trạng thái căng thẳng kích thích cao, khả năng tiếp nhận và xử lý thông tin tiêu cực hoặc cảnh báo rủi ro tăng lên rõ rệt.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "ielts-p7-g3",
+            "instruction" : "Do the following statements agree with the information given in Reading Passage 3? Write YES if the statement agrees with the claims of the writer, NO if the statement contradicts the claims of the writer, NOT GIVEN if it is impossible to say what the writer thinks about this.",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "r_036",
+              "question_number" : 36,
+              "type" : "YES_NO_NOT_GIVEN",
+              "question_text" : "Question 36: The tone of the content we post on social media tends to reflect the nature of the posts in our feeds.",
+              "options" : [ {
+                "text" : "YES",
+                "id" : "A"
+              }, {
+                "text" : "NO",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] YES. The passage cites digital emotional contagion research demonstrating that users exposed to predominantly negative social media feeds subsequently publish significantly more negative posts themselves.\n[VI] YES. Nghiên cứu về lây lan cảm xúc trực tuyến chứng minh rằng người dùng tiếp xúc với nhiều bài đăng tiêu cực trên bảng tin mạng xã hội sẽ có xu hướng tự đăng tải các nội dung mang sắc thái tiêu cực hơn.",
+              "correct_answer" : "YES"
+            }, {
+              "question_id" : "r_037",
+              "question_number" : 37,
+              "type" : "YES_NO_NOT_GIVEN",
+              "question_text" : "Question 37: Phones have a greater impact on our stress levels than other electronic media devices.",
+              "options" : [ {
+                "text" : "YES",
+                "id" : "A"
+              }, {
+                "text" : "NO",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] NOT GIVEN. While smartphones and social apps are analyzed as sources of digital anxiety, the passage never compares phones against other devices like laptops, tablets, or televisions.\n[VI] NOT GIVEN. Dù điện thoại thông minh được phân tích là nguồn gây căng thẳng, bài đọc không hề so sánh mức độ ảnh hưởng của điện thoại với các thiết bị điện tử khác như máy tính hay TV.",
+              "correct_answer" : "NOT GIVEN"
+            }, {
+              "question_id" : "r_038",
+              "question_number" : 38,
+              "type" : "YES_NO_NOT_GIVEN",
+              "question_text" : "Question 38: The more we read about a stressful public event on social media, the less able we are to take the information in.",
+              "options" : [ {
+                "text" : "YES",
+                "id" : "A"
+              }, {
+                "text" : "NO",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] NO. The text asserts that stress increases cognitive absorption of threatening news; users become hyper-focused and process disturbing details with greater intensity, not less.\n[VI] NO. Bài đọc khẳng định sự căng thẳng thực chất lại làm tăng khả năng ghi nhớ thông tin nguy hiểm; người đọc trở nên tập trung cao độ và tiếp nhận thông tin căng thẳng nhiều hơn chứ không phải ít hơn.",
+              "correct_answer" : "NO"
+            }, {
+              "question_id" : "r_039",
+              "question_number" : 39,
+              "type" : "YES_NO_NOT_GIVEN",
+              "question_text" : "Question 39: Stress created by social media posts can lead us to take unnecessary precautions.",
+              "options" : [ {
+                "text" : "YES",
+                "id" : "A"
+              }, {
+                "text" : "NO",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] YES. The author notes that alarmist posts on social networks trigger exaggerated threat appraisal, causing individuals to adopt irrational or unnecessary defensive behaviors (e.g. panic buying).\n[VI] YES. Những bài đăng kích động tâm lý hoảng loạn trên mạng xã hội khiến con người phóng đại nguy cơ và thực hiện các biện pháp phòng ngừa thái quá, không cần thiết (như tích trữ hàng hóa vô căn cứ).",
+              "correct_answer" : "YES"
+            }, {
+              "question_id" : "r_040",
+              "question_number" : 40,
+              "type" : "YES_NO_NOT_GIVEN",
+              "question_text" : "Question 40: Our tendency to be affected by other people's moods can be used in a positive way.",
+              "options" : [ {
+                "text" : "YES",
+                "id" : "A"
+              }, {
+                "text" : "NO",
+                "id" : "B"
+              }, {
+                "text" : "NOT GIVEN",
+                "id" : "C"
+              } ],
+              "explanation" : "[EN] YES. The final paragraph concludes that mood contagion is not solely detrimental; when harnessed positively, it spreads constructive optimism, empathy, and collective prosocial cooperation.\n[VI] YES. Đoạn kết khẳng định việc bị ảnh hưởng bởi tâm trạng người khác không hoàn toàn có hại; nếu được phát huy tích cực, nó sẽ lan tỏa sự lạc quan, lòng trắc ẩn và tinh thần hợp tác trong cộng đồng.",
+              "correct_answer" : "YES"
+            } ]
+          } ],
+          "content_html" : "<h3>How stress affects our judgement</h3>\n<p>Some of the most important decisions of our lives occur while we're feeling stressed and anxious. From medical decisions to financial and professional ones, we are all sometimes required to weigh up information under stressful conditions. But do we become better or worse at processing and using information under such circumstances?</p>\n<p>My colleague and I, both neuroscientists, wanted to investigate how the mind operates under stress, so we visited some local fire stations. Firefighters' workdays vary quite a bit. Some are pretty relaxed; they'll spend their time washing the truck, cleaning equipment, cooking meals and reading. Other days can be hectic, with numerous life-threatening incidents to attend to; they'll enter burning homes to rescue trapped residents, and assist with medical emergencies. These ups and downs presented the perfect setting for an experiment on how people's ability to use information changes when they feel under pressure.</p>\n<p>We found that perceived threat acted as a trigger for a stress reaction that made the task of processing information easier for the firefighters - but only as long as it conveyed bad news. This is how we arrived at these results. We asked the firefighters to estimate their likelihood of experiencing 40 different adverse events in their life, such as being involved in an accident or becoming a victim of card fraud. We then gave them either good news (that their likelihood of experiencing these events was lower than they'd thought) or bad news (that it was higher) and asked them to provide new estimates.</p>\n<p>People are normally quite optimistic - they will ignore bad news and embrace the good. This is what happened when the firefighters were relaxed; but when they were under stress, a different pattern emerged. Under these conditions, they became hyper-vigilant to bad news, even when it had nothing to do with their job (such as learning that the likelihood of card fraud was higher than they'd thought), and altered their beliefs in response. In contrast, stress didn't change how they responded to good news (such as learning that the likelihood of card fraud was lower than they'd thought).</p>\n<p>Back in our lab, we observed the same pattern in students who were told they had to give a surprise public speech, which would be judged by a panel, recorded and posted online. Sure enough, their cortisol levels spiked, their heart rates went up and they suddenly became better at processing unrelated, yet alarming, information about rates of disease and violence.</p>\n<p>When we experience stressful events, a physiological change is triggered that causes us to take in warnings and focus on what might go wrong. Brain imaging reveals that this 'switch' is related to a sudden boost in a neural signal important for learning, specifically in response to unexpected warning signs, such as faces expressing fear.</p>\n<p>Such neural engineering could have helped prehistoric humans to survive. When our ancestors found themselves surrounded by hungry animals, they would have benefited from an increased ability to learn about hazards. In a safe environment, however, it would have been wasteful to be on high alert constantly. So, a neural switch that automatically increases or decreases our ability to process warnings in response to changes in our environment could have been useful. In fact, people with clinical depression and anxiety seem unable to switch away from a state in which they absorb all the negative messages around them.</p>\n<p>It is also important to realise that stress travels rapidly from one person to the next. If a co-worker is stressed, we are more likely to tense up and feel stressed ourselves. We don't even need to be in the same room with someone for their emotions to influence our behaviour. Studies show that if we observe positive feeds on social media, such as images of a pink sunset, we are more likely to post uplifting messages ourselves. If we observe negative posts, such as complaints about a long queue at the coffee shop, we will in turn create more negative posts.</p>\n<p>In some ways, many of us now live as if we are in danger, constantly ready to tackle demanding emails and text messages, and respond to news alerts and comments on social media. Repeatedly checking your phone, according to a survey conducted by the American Psychological Association, is related to stress. In other words, a pre-programmed physiological reaction, which evolution has equipped us with to help us avoid famished predators, is now being triggered by an online post. Social media posting, according to one study, raises your pulse, makes you sweat, and enlarges your pupils more than most daily activities.</p>\n<p>The fact that stress increases the likelihood that we will focus more on alarming messages, together with the fact that it spreads extremely rapidly, can create collective fear that is not always justified. After a stressful public event, such as a natural disaster or major financial crash, there is often a wave of alarming information in traditional and social media, which individuals become very aware of. But that has the effect of exaggerating existing danger. And so, a reliable pattern emerges - stress is triggered, spreading from one person to the next, which temporarily enhances the likelihood that people will take in negative reports, which increases stress further. As a result, trips are cancelled, even if the disaster took place across the globe; stocks are sold, even when holding on is the best thing to do.</p>\n<p>The good news, however, is that positive emotions, such as hope, are contagious too, and are powerful in inducing people to act to find solutions. Being aware of the information can help us frame our messages more effectively and become conscientious agents of change.</p>"
+        }
+      } ]
+    }, {
+      "skillType" : "WRITING",
+      "durationMinutes" : 60,
+      "parts" : [ {
+        "partNumber" : 8,
+        "contentData" : {
+          "part_title" : "Writing Task 1",
+          "instruction" : "You should spend about 20 minutes on this task.",
+          "question_groups" : [ {
+            "group_id" : "ielts-p8-g1",
+            "instruction" : "You should spend about 20 minutes on this task. Write at least 150 words.",
+            "content_html" : "The first table below shows changes in the total population of New York City from 1800 to 2000. The second and third tables show changes in the population of the five districts of the city (Manhattan, Brooklyn, Bronx, Queens, Staten Island) over the same period.\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\nWrite at least 150 words.",
+            "questions" : [ {
+              "question_id" : "w_001",
+              "question_number" : 1,
+              "type" : "ESSAY",
+              "question_text" : "Writing Task 1: The first table below shows changes in the total population of New York City from 1800 to 2000. The second and third tables show changes in the population of the five districts of the city (Manhattan, Brooklyn, Bronx, Queens, Staten Island) over the same period.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+              "explanation" : "[EN] A high-scoring Task 1 response must: 1. Paraphrase the prompt in the introduction. 2. Provide an overview identifying the overall surge in NYC's total population and comparing Manhattan's early dominance versus the subsequent explosive growth of Brooklyn, Queens, and the Bronx. 3. Detail specific numerical trends across key benchmark years (1800, 1900, 2000) using precise comparative language and appropriate units.\n[VI] Yêu cầu đạt điểm cao cho Task 1: 1. Paraphrase đề bài trong phần mở bài. 2. Viết đoạn Tổng quan (Overview) nêu bật sự bùng nổ dân số toàn thành phố New York và so sánh vai trò trung tâm ban đầu của Manhattan với sự tăng trưởng vượt bậc sau này của Brooklyn, Queens và Bronx. 3. Phân tích chi tiết số liệu cụ thể qua các mốc năm chính (1800, 1900, 2000) kèm cấu trúc câu so sánh đa dạng và đơn vị chuẩn xác."
+            } ],
+            "shared_media" : {
+              "type" : "image",
+              "url" : "https://res.cloudinary.com/j5on4xwq/image/upload/v1792140708/wp6bfysbo8ulybsgl8i4.png"
+            }
+          } ]
+        }
+      }, {
+        "partNumber" : 9,
+        "contentData" : {
+          "part_title" : "Writing Task 2",
+          "instruction" : "You should spend about 40 minutes on this task. Write at least 250 words. Write about the following topic:",
+          "question_groups" : [ {
+            "group_id" : "ielts-p9-g1",
+            "instruction" : "You should spend about 40 minutes on this task. Write at least 250 words.",
+            "content_html" : "Access to clean water is a basic human right. Therefore, every home should have a water supply that is provided free of charge.\nDo you agree or disagree?\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\nWrite at least 250 words.",
+            "questions" : [ {
+              "question_id" : "w_002",
+              "question_number" : 2,
+              "type" : "ESSAY",
+              "question_text" : "Writing Task 2: Access to clean water is a basic human right. Therefore, every home should have a water supply that is provided free of charge.\n\nDo you agree or disagree?\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+              "explanation" : "[EN] A band 8+ Task 2 essay should: 1. Present a clear, consistent stance in response to whether household water should be completely free. 2. Address both the humanitarian necessity of clean water access and the fiscal/infrastructure realities (treatment costs, maintenance, conservation incentives). 3. Propose a nuanced model (such as free baseline allowances with tiered pricing for excess consumption) supported by clear paragraphing, cohesive devices, and topical vocabulary.\n[VI] Yêu cầu bài viết Task 2 đạt Band 8+: 1. Trình bày lập trường rõ ràng, nhất quán xuyên suốt bài về việc nước sinh hoạt có nên miễn phí hoàn toàn hay không. 2. Phân tích cả khía cạnh nhân đạo (quyền cơ bản con người) lẫn thực tế kinh tế - cơ sở hạ tầng (chi phí lọc nước, bảo trì đường ống và tránh lãng phí tài nguyên). 3. Đề xuất giải pháp hài hòa (như miễn phí định mức cơ bản phục vụ nhu cầu thiết yếu và tính phí bậc thang nếu dùng vượt mức) với cấu trúc đoạn văn mạch lạc và từ vựng học thuật phong phú."
+            } ]
+          } ]
+        }
+      } ]
+    } ],
+    "published" : false
+  },
+  "explanationStatus" : "COMPLETE"
+}

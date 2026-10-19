@@ -45,10 +45,9 @@ class OfficialExamDatasetTest {
         assertThat(mediaUrls(ielts, "shared_media", "media")).allMatch(ExcelV2ExamParser::safeUrl);
         assertThat(mediaUrls(toeic, "shared_media", "media")).allMatch(ExcelV2ExamParser::safeUrl);
 
-        ExamDatasetBundle unapprovedToeic = ExamDatasetBundle.exportOfficial(toeic,
-                OfficialExamDatasetRegistry.ETS_TOEIC_KEY, null);
-        assertThatThrownBy(unapprovedToeic::validate).isInstanceOf(AppException.class);
-        assertThat(unapprovedToeic.request().isPublished()).isFalse();
+        assertThatThrownBy(() -> ExamDatasetBundle.exportOfficial(toeic,
+                OfficialExamDatasetRegistry.ETS_TOEIC_KEY, null))
+                .isInstanceOf(AppException.class);
     }
 
     @Test
@@ -59,7 +58,7 @@ class OfficialExamDatasetTest {
                 .extracting(issue -> issue.code())
                 .contains("SOURCE_CONTENT_UNVERIFIED");
         assertThatThrownBy(() -> ExamDatasetBundle.exportOfficial(ielts,
-                OfficialExamDatasetRegistry.CAMBRIDGE_IELTS_KEY, null))
+                OfficialExamDatasetRegistry.CAMBRIDGE_IELTS_KEY, 1, null))
                 .isInstanceOf(AppException.class);
     }
 

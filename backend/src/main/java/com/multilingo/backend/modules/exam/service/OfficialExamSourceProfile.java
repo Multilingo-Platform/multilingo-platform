@@ -11,6 +11,8 @@ import java.util.Set;
 public final class OfficialExamSourceProfile {
     public static final String CAMBRIDGE_IELTS_20_SHA256 =
             "1427bd88ff54e59d695bc2b3b02bfbe301e0658a3a76b79bfb3f650461402ee1";
+    public static final String CAMBRIDGE_IELTS_20_V2_SHA256 =
+            "d00af9a50c325b85d22cbdcdc2a8205a42da0d2bbe0587985e53575fb4ce549d";
     public static final String ETS_2024_COMPLETED_SHA256 =
             "990f8aa1d8190302e469aa021c50ea30e3a65817b4db698c30d47463c08a7fde";
     public static final String ETS_2024_LEGACY_SHA256 =
@@ -29,7 +31,13 @@ public final class OfficialExamSourceProfile {
 
             — Anna Yakovleva""";
 
-    private enum Kind { CAMBRIDGE_IELTS_20, ETS_2024_COMPLETED, ETS_2024_LEGACY, UNKNOWN }
+    private enum Kind {
+        CAMBRIDGE_IELTS_20_V1,
+        CAMBRIDGE_IELTS_20_V2,
+        ETS_2024_COMPLETED,
+        ETS_2024_LEGACY,
+        UNKNOWN
+    }
 
     private final Kind kind;
 
@@ -39,25 +47,38 @@ public final class OfficialExamSourceProfile {
 
     public static OfficialExamSourceProfile forSha256(String sha256) {
         String normalized = sha256 == null ? "" : sha256.toLowerCase(Locale.ROOT);
-        if (CAMBRIDGE_IELTS_20_SHA256.equals(normalized)) return new OfficialExamSourceProfile(Kind.CAMBRIDGE_IELTS_20);
+        if (CAMBRIDGE_IELTS_20_SHA256.equals(normalized))
+            return new OfficialExamSourceProfile(Kind.CAMBRIDGE_IELTS_20_V1);
+        if (CAMBRIDGE_IELTS_20_V2_SHA256.equals(normalized))
+            return new OfficialExamSourceProfile(Kind.CAMBRIDGE_IELTS_20_V2);
         if (ETS_2024_COMPLETED_SHA256.equals(normalized)) return new OfficialExamSourceProfile(Kind.ETS_2024_COMPLETED);
         if (ETS_2024_LEGACY_SHA256.equals(normalized)) return new OfficialExamSourceProfile(Kind.ETS_2024_LEGACY);
         return new OfficialExamSourceProfile(Kind.UNKNOWN);
     }
 
     public boolean isCambridgeIelts20() {
-        return kind == Kind.CAMBRIDGE_IELTS_20;
+        return isCambridgeIelts20V1() || isCambridgeIelts20V2();
+    }
+
+    public boolean isCambridgeIelts20V1() {
+        return kind == Kind.CAMBRIDGE_IELTS_20_V1;
+    }
+
+    public boolean isCambridgeIelts20V2() {
+        return kind == Kind.CAMBRIDGE_IELTS_20_V2;
     }
 
     public String normalizeCambridgeTitle(String value) {
         if (!isCambridgeIelts20() || value == null) return value;
-        return value.equals("Cambridge Ielts 20 Test 1 (Chưa giải thích)")
-                ? "Cambridge Ielts 20 Test 1"
-                : value;
+        return switch (value) {
+            case "Cambridge Ielts 20 Test 1 (Chưa giải thích)",
+                    "Cambridge Ielts 20 Test 1 (Full giải thích)" -> "Cambridge Ielts 20 Test 1";
+            default -> value;
+        };
     }
 
     public Optional<String> verifiedCambridgeElmsPassage() {
-        if (!isCambridgeIelts20()) return Optional.empty();
+        if (!isCambridgeIelts20V1()) return Optional.empty();
         try (InputStream input = OfficialExamSourceProfile.class.getResourceAsStream(CAMBRIDGE_ELMS_PASSAGE_RESOURCE)) {
             if (input == null) throw new IllegalStateException("Verified Cambridge passage correction is missing.");
             return Optional.of(new String(input.readAllBytes(), StandardCharsets.UTF_8).strip());
@@ -67,7 +88,7 @@ public final class OfficialExamSourceProfile {
     }
 
     public boolean hasVerifiedCambridgeCorrection(String cellReference) {
-        return isCambridgeIelts20() && CAMBRIDGE_ELMS_CORRECTED_CELLS.contains(cellReference);
+        return isCambridgeIelts20V1() && CAMBRIDGE_ELMS_CORRECTED_CELLS.contains(cellReference);
     }
 
     public boolean isCompletedToeic() {

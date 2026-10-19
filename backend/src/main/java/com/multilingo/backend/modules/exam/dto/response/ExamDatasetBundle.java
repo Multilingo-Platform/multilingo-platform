@@ -52,11 +52,32 @@ public record ExamDatasetBundle(int schemaVersion, String datasetKey, int versio
                 new Source("ETS_2024_Test_1.xlsx", sourceHash, null), digest(request), request);
     }
 
-    /** Creates a v2 bundle using only source metadata registered in code. */
+    /** Creates the current registered version using certified server-side approval reference. */
+    public static ExamDatasetBundle exportOfficial(ExamBuilderRequest input, String datasetKey) {
+        return exportOfficial(input, datasetKey, currentVersion(datasetKey));
+    }
+
+    /** Creates an explicitly selected registered version using certified server-side approval reference. */
+    public static ExamDatasetBundle exportOfficial(ExamBuilderRequest input, String datasetKey, int version) {
+        OfficialExamDatasetRegistry.DatasetDefinition definition = OfficialExamDatasetRegistry
+                .require(datasetKey, version);
+        return exportOfficial(input, datasetKey, version, definition.sources().getFirst().approvalReference());
+    }
+
+    /** Creates the current registered version using only source metadata registered in code. */
     public static ExamDatasetBundle exportOfficial(ExamBuilderRequest input, String datasetKey,
             String approvalReference) {
+        return exportOfficial(input, datasetKey, currentVersion(datasetKey), approvalReference);
+    }
+
+    /** Creates an explicitly selected registered version using only source metadata registered in code. */
+    public static ExamDatasetBundle exportOfficial(ExamBuilderRequest input, String datasetKey, int version,
+            String approvalReference) {
         OfficialExamDatasetRegistry.DatasetDefinition definition = OfficialExamDatasetRegistry
-                .require(datasetKey, currentVersion(datasetKey));
+                .require(datasetKey, version);
+        String registeredApprovalReference = definition.sources().getFirst().approvalReference();
+        if (registeredApprovalReference == null || registeredApprovalReference.isBlank()
+                || !registeredApprovalReference.equals(approvalReference)) invalid();
         ExamBuilderRequest request = canonical(input);
         requireOfficialPublishable(definition, request);
         requireRegisteredShape(definition, request);
@@ -70,10 +91,27 @@ public record ExamDatasetBundle(int schemaVersion, String datasetKey, int versio
                 definition.explanationStatus());
     }
 
-    /** Exports registry-backed codes as v2; arbitrary admin-created exams retain the legacy exporter. */
+    /** Exports registry-backed codes as v2 using server-side certified approval reference; arbitrary admin-created exams retain the legacy exporter. */
     public static ExamDatasetBundle exportForCode(ExamBuilderRequest request, String examCode) {
+        return exportForCode(request, examCode, null);
+    }
+
+    /** Exports registry-backed codes with verified approval provenance; fails closed when reference is missing or caller reference does not match server. */
+    public static ExamDatasetBundle exportForCode(ExamBuilderRequest request, String examCode,
+            String approvalReference) {
         return OfficialExamDatasetRegistry.findByExamCode(examCode)
-                .map(definition -> exportOfficial(request, definition.datasetKey(), null))
+                .map(definition -> {
+                    String serverRef = definition.sources().getFirst().approvalReference();
+                    if (serverRef == null || serverRef.isBlank()) {
+                        throw new AppException(ErrorCode.VALIDATION_FAILED,
+                                "Bộ đề chính thức chưa có approval reference được xác nhận phía server.");
+                    }
+                    if (approvalReference != null && !serverRef.equals(approvalReference)) {
+                        throw new AppException(ErrorCode.VALIDATION_FAILED,
+                                "Caller không thể tự khai approval reference khác với chứng thực phía server.");
+                    }
+                    return exportOfficial(request, definition.datasetKey(), definition.version(), serverRef);
+                })
                 .orElseGet(() -> export(request));
     }
 
@@ -102,7 +140,9 @@ public record ExamDatasetBundle(int schemaVersion, String datasetKey, int versio
             OfficialExamDatasetRegistry.SourceDefinition expected = definition.sources().get(index);
             if (actual == null || !expected.fileName().equals(actual.fileName())
                     || !expected.sha256().equals(actual.sha256()) || actual.approvalReference() == null
-                    || actual.approvalReference().isBlank()) invalid();
+                    || actual.approvalReference().isBlank()
+                    || expected.approvalReference() == null
+                    || !expected.approvalReference().equals(actual.approvalReference())) invalid();
         }
         requireOfficialPublishable(definition, request);
         requireRegisteredShape(definition, request);
@@ -270,7 +310,8 @@ public record ExamDatasetBundle(int schemaVersion, String datasetKey, int versio
     private static void requireOfficialPublishable(OfficialExamDatasetRegistry.DatasetDefinition definition,
             ExamBuilderRequest request) {
         if (OfficialExamDatasetRegistry.CAMBRIDGE_IELTS_KEY.equals(definition.datasetKey()))
-            new IeltsAcademicPublicationValidator().requirePublishable(request);
+            new IeltsAcademicPublicationValidator().requirePublishable(request,
+                    "COMPLETE".equals(definition.explanationStatus()));
         else new ExamPublicationValidator().requirePublishable(request);
     }
 

@@ -152,4 +152,26 @@ class AdminExamControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").value(10));
     }
+
+    @Test
+    void exportDataset_Success() throws Exception {
+        com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle bundle =
+                new com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle(2,
+                        "cambridge-ielts-20-test-1", 2, "IELTS-CAMBRIDGE-20-T1-V2",
+                        new com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle.Source(
+                                "Cambridge_Ielts_20_Test_1_(Full_giải_thích).xlsx", "a".repeat(64),
+                                "OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-19"),
+                        "b".repeat(64), null, java.util.List.of(), "COMPLETE");
+
+        when(examService.exportDataset(1)).thenReturn(bundle);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/admin/exams/1/dataset-export"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.schemaVersion").value(2))
+                .andExpect(jsonPath("$.data.datasetKey").value("cambridge-ielts-20-test-1"))
+                .andExpect(jsonPath("$.data.source.approvalReference").value("OWNER_RIGHTS_CONFIRMED_CHAT_2026-10-19"));
+
+        verify(examService).exportDataset(1);
+    }
 }
