@@ -220,6 +220,36 @@ describe('TV3-21 real result page writing feedback contract integration', () => 
     expect(http.get.mock.calls.filter(call => call[0] === '/v1/attempts/42/writing-feedback')).toHaveLength(1);
   });
 
+  it('TC_21_16b: first-load 403 shows a safe non-retryable error without leaking backend details', async () => {
+    http.get.mockImplementation(async (url: string) => {
+      if (url === '/v1/attempts/42/result') {
+        return resultEnvelope(attemptResultFixture(42)) as never;
+      }
+      if (url === '/v1/attempts/42/writing-feedback') {
+        const forbidden: any = new Error('Forbidden');
+        forbidden.response = { status: 403, data: { message: 'SECRET_BACKEND_REASON' } };
+        throw forbidden;
+      }
+      throw new Error(`Unexpected GET ${url}`);
+    });
+
+    mount();
+    await screen.findByRole('heading', { name: 'Kết quả thi thử #42' });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Xem nhận xét AI/i }));
+    });
+
+    await screen.findByText('Bạn không có quyền xem nhận xét của bài thi này.');
+    const alert = screen.getByRole('alert');
+    expect(alert).not.toHaveTextContent('SECRET_BACKEND_REASON');
+    // A 403 is terminal for this part: the panel must not offer an inline retry action.
+    expect(screen.queryByRole('button', { name: /^Thử lại$/i })).not.toBeInTheDocument();
+    expect(
+      http.get.mock.calls.filter(call => call[0] === '/v1/attempts/42/writing-feedback'),
+    ).toHaveLength(1);
+  });
+
   it('TC_21_03: multi-part independent disclosure and PENDING state has no automatic polling or window focus listener; only manual refresh triggers new GET', async () => {
     const twoPartsResult = {
       ...attemptResultFixture(42),

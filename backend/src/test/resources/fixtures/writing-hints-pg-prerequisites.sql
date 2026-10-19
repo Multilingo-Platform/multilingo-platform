@@ -14,6 +14,20 @@ CREATE TABLE users (
     google_id VARCHAR(255), last_login_at TIMESTAMPTZ, last_login_ip VARCHAR(45),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE TABLE user_study_stats (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, user_id INT NOT NULL UNIQUE,
+    current_streak INT DEFAULT 0 NOT NULL, highest_streak INT DEFAULT 0 NOT NULL,
+    total_learning_minutes INT DEFAULT 0 NOT NULL, last_study_date DATE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE TABLE daily_study_logs (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, user_id INT NOT NULL,
+    study_date DATE NOT NULL, learning_minutes INT DEFAULT 0 NOT NULL,
+    flashcards_due INT DEFAULT 0 NOT NULL, flashcards_reviewed INT DEFAULT 0 NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
 CREATE TABLE user_quotas (
     id SERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id),
     feature_code VARCHAR(50) NOT NULL, used_count INT NOT NULL DEFAULT 0,

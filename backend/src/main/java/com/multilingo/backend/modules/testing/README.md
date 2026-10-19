@@ -2,7 +2,7 @@
 
 **Thành viên phụ trách:** Thành viên 3 (TV3)  
 **Package:** `com.multilingo.backend.modules.testing`  
-**Tài liệu phân công chi tiết:** [docs/md/PHAN_CONG_NHIEM_VU_5_NGUOI.md](file:///f:/Working/JavaBackend/multilingo-platform/docs/md/PHAN_CONG_NHIEM_VU_5_NGUOI.md)
+**Tài liệu phân công chi tiết:** `docs/md/PHAN_CONG_NHIEM_VU_5_NGUOI.md`
 
 ---
 
@@ -12,7 +12,7 @@
 2. **UC08.4 - Gợi ý dàn ý & Từ vựng từ AI (Writing Hints):** Bấm "💡 Gợi ý AI Hints" trong khi luyện viết, gọi Gemini API sinh dàn ý và 5-10 từ vựng theo chủ đề bài viết.
 3. **UC08.5 - Tự động thu bài khi hết giờ:** Đồng hồ đếm ngược về `00:00`, tự động khóa form và nộp bài lên hệ thống.
 4. **UC09 - Chấm điểm trắc nghiệm & điền từ tự động:** So khớp câu trả lời với đáp án đúng, chuẩn hóa text (`trim()`, lowercase), sinh mảng `is_correct_flags`, tính điểm tổng.
-5. **UC09.2 - Chấm điểm Writing bằng Gemini 2.5 Flash:** Gửi bài viết và tiêu chí chấm (Task Achievement, Coherence, Lexical, Grammar) lên Gemini API, nhận về điểm thành phần, lời nhận xét và bài viết mẫu sửa lỗi.
+5. **UC09.2 - Chấm điểm Writing bằng Gemini client:** Gửi bài viết và tiêu chí chấm (Task Achievement, Coherence, Lexical, Grammar) lên model do người vận hành cấu hình qua `GEMINI_MODEL`, nhận về điểm thành phần, lời nhận xét, bài viết sửa lỗi và diff.
 6. **UC10 - Xem kết quả bài thi & Lời giải chi tiết:** Xem bảng điểm tổng quan, chi tiết từng câu đúng/sai kèm giải thích song ngữ.
 7. **UC10.2 - Xem nhận xét AI & Giao diện Diff-View sửa lỗi:** Hiển thị nhận xét 4 tiêu chí từ Gemini và giao diện so sánh sửa lỗi bài viết tự luận.
 
@@ -20,8 +20,11 @@
 
 ## 2. CÁC BẢNG CƠ SỞ DỮ LIỆU PHỤ TRÁCH
 
-- `test_attempts`: Quản lý phiên làm bài (`test_mode`: `MOCK_TEST`, `PRACTICE`; `test_scope`: `FULL_EXAM`, `SINGLE_SKILL`, `SINGLE_PART`), thời gian bắt đầu/kết thúc, tổng điểm.
-- `attempt_answers`: Chứa `user_answers` (JSONB), `is_correct_flags` (JSONB), và `ai_feedback` (JSONB - kết quả AI chấm bài và gợi ý sửa lỗi).
+- `test_attempts`: Quản lý phiên làm bài (`test_mode`: `MOCK_TEST`, `PRACTICE`; `test_scope`: `FULL_EXAM`, `SINGLE_SKILL`, `SINGLE_PART`), `exam_snapshot` bất biến, thời gian bắt đầu/kết thúc, trạng thái, tổng điểm và `result_summary`.
+- `attempt_answers`: Chứa `user_answers` (JSONB), `is_correct_flags` (JSONB), `earned_score`, và `ai_feedback` (JSONB - kết quả AI chấm bài, diff và gợi ý sửa lỗi).
+- `writing_hint_requests`: Ledger idempotency/quota cho Writing Hints (xem mục 6.3).
+- `writing_grading_jobs`: Hàng đợi chấm Writing bền vững, gồm snapshot ngữ cảnh, trạng thái job, lease, quota và kết quả đã validate.
+- `attempt_listening_playback`: Một phiên playback server-authoritative cho mỗi attempt TOEIC Mock.
 
 ---
 
@@ -29,14 +32,21 @@
 
 ```text
 com.multilingo.backend.modules.testing
-├── controller/          # TestAttemptController, GradingController, AIAssistantController
-├── dto/                 # Data Transfer Objects
-│   ├── request/         # StartTestRequest, SubmitTestRequest, AIWritingHintRequest, AIGradeRequest
-│   └── response/        # TestAttemptResponse, TestResultDetailResponse, AIFeedbackResponse
-├── entity/              # TestAttempt, AttemptAnswer
-├── repository/          # TestAttemptRepository, AttemptAnswerRepository
-└── service/             # TestAttemptService, GradingEngineService, GeminiAIService
-    └── impl/            # TestAttemptServiceImpl, GradingEngineServiceImpl, GeminiAIServiceImpl
+├── controller/          # Attempt lifecycle, Hints, Writing feedback, Practice feedback,
+│                        # Listening playback, Learner exam structure
+├── dto/                 # request/ và response/ cho các endpoint trên
+├── entity/              # TestAttempt, AttemptAnswer, WritingHintRequest, WritingGradingJob
+├── repository/          # JPA repositories và query khóa/lease
+├── service/             # Service interfaces + implementations
+│   ├── support/         # Snapshot readers, mappers, validators, enqueuer, state resolver
+│   ├── worker/          # WritingGradingWorker
+│   └── scheduler/       # WritingGradingDispatcher
+├── ai/                  # gemini/, hints/, grading/, media/ (provider và image fetcher)
+├── adapter/             # Exam/Identity/Language/Grading/Quota boundaries
+├── grading/             # Objective grading engine và DTO
+├── config/              # Feature properties và validation
+├── exception/           # Lỗi nghiệp vụ riêng của module
+└── util/                # Attempt scope, snapshot/grading key, word counter
 ```
 
 ---
@@ -45,8 +55,9 @@ com.multilingo.backend.modules.testing
 
 1. **Entity:** Kế thừa `BaseEntity`.
 2. **Cột JSONB:** Quản lý `user_answers`, `is_correct_flags`, `ai_feedback` bằng kiểu JSONB.
-3. **Controller:** Trả về `ResponseEntity<ApiResponse<T>>`.
-4. **Tích hợp Gemini AI:** Gọi API bằng HTTP Client (WebClient / RestTemplate / Spring AI), bao bọc lỗi kết nối và ném `AppException` nếu AI timeout hoặc quota vượt giới hạn.
+3. **Controller:** Trả về `ResponseEntity<ApiResponse<T>>`; endpoint đọc kết quả/feedback gửi `Cache-Control: no-store`.
+4. **Tích hợp Gemini AI:** Chỉ gọi qua `GeminiClient` đã bọc lỗi; caller chịu trách nhiệm ownership, quota, idempotency, validate output và persistence. Không log bài viết, prompt, feedback hoặc URL ảnh.
+5. **Phân quyền:** Mọi endpoint attempt lấy `userId` từ `IdentityAdapter`; user khác chủ sở hữu bị từ chối, không lộ answer key/transcript.
 
 ---
 
@@ -72,7 +83,7 @@ Hạ tầng Gemini Client sử dụng tiền tố `testing.gemini.*` trong `appl
 ### Trạng thái tích hợp nghiệp vụ
 
 > [!IMPORTANT]
-> TV3-18 đã dùng Gemini client cho Writing Hints **text-only**. Revision R2 chỉ bổ sung khả năng gửi ảnh ở tầng hạ tầng; không thay prompt Hints hoặc tự trích ảnh từ snapshot. Submit, Practice feedback và Writing grading chưa được nối vào multimodal bởi R2. Có hạ tầng không đồng nghĩa bài Writing đã được chấm từ ảnh.
+> Trạng thái hiện tại: TV3-18 dùng Gemini client cho Writing Hints **text-only**. TV3-20 đã nối Writing grading vào submit/enqueue/worker: bài ESSAY được tạo `writing_grading_jobs`, worker gọi Gemini ngoài transaction rồi lưu feedback; khi `testing.writing-grading.images-enabled=true`, worker có thể tải 0–2 ảnh từ snapshot qua `ImageFetcher` và gửi inline cho model. Toàn bộ pipeline này vẫn **opt-in** và mặc định tắt (`WRITING_GRADING_ENABLED=false`, `WRITING_GRADING_IMAGES_ENABLED=false`). Practice feedback là đánh giá objective tại chỗ, không gọi AI; Hints vẫn không gửi ảnh.
 
 ### Revision R2 — Inline images và fetcher độc lập
 
@@ -95,7 +106,7 @@ Fetcher nằm ở `com.multilingo.backend.modules.testing.ai.media`, không ph�
 ```java
 FetchedImage image = imageFetcher.fetch(allowedImageUrl);
 GeminiImagePart part = new GeminiImagePart(image.mimeType(), image.data());
-// Caller tự tạo GeminiGenerationRequest với List.of(part); đây không phải wiring nghiệp vụ R2.
+// Caller tự tạo GeminiGenerationRequest với List.of(part); fetcher không tự gọi Gemini.
 ```
 
 | Thuộc tính | Biến môi trường | Mặc định |
@@ -114,7 +125,7 @@ GeminiImagePart part = new GeminiImagePart(image.mimeType(), image.data());
 
 **Rủi ro còn lại:** JDK HttpClient tự resolve DNS lúc kết nối, nên precheck không loại bỏ hoàn toàn DNS-rebinding. Allowlist CDN cố định là kiểm soát chính; không mở rộng prefix tùy tiện. Timeout cancel future nhưng native DNS có thể còn chạy. Chữ trong ảnh là dữ liệu không đáng tin; caller TV3-20 phải đặt system instruction chống prompt injection. Ảnh gửi Gemini được chuyển sang Google, cần xem xét dữ liệu và quyền sử dụng nội dung trước khi bật nghiệp vụ.
 
-**Bàn giao TV3-20:** URL extraction có thứ tự từ snapshot/HTML, giới hạn ảnh, fetch trước reserve quota, prompt grading, error nghiệp vụ, feedback/prompt/model/image identity persistence và orchestration do TV3-20 xử lý. R2 không gọi fetcher hoặc Gemini mới từ controller, submit, Hints, worker hoặc scheduler.
+**Wiring TV3-20 (đã triển khai):** `WritingGradingContextReader` trích URL ảnh có thứ tự từ snapshot theo allowlist; `WritingGradingEnqueuer` lưu context và tạo job; `WritingGradingWorker` tải ảnh ngoài transaction, gọi Gemini, rồi lưu feedback/diff và digest ảnh qua coordinator. Hints vẫn text-only. Fetcher không được gọi từ controller hay Hints.
 
 ### Ranh giới trách nhiệm của Caller (Use Cases / Workers)
 
@@ -213,3 +224,98 @@ Nhằm bảo vệ connection pool của cơ sở dữ liệu khỏi việc bị 
 2. **Quy tắc phân giải ngôn ngữ:** `learningLanguage` = request → `User.targetLanguage` → lỗi required/unsupported (`422`); `hintLanguage` = request → learning language đã resolve. Không dùng ngôn ngữ live Exam, native language, locale giao diện hoặc `Accept-Language` làm mặc định. Retry FAILED cùng request ID giữ ngôn ngữ đã đóng băng; đổi ngôn ngữ cần request ID mới.
    Prompt yêu cầu mọi generated field theo `hintLanguage` và giữ nguyên đề gốc. Test fixture/schema chỉ kiểm tra contract và bảo toàn nội dung; vẫn cần staging verification để xác nhận ngôn ngữ của output từ model thật.
 3. **Bảo mật Logging (Zero Leakage):** Không bao giờ ghi raw payload bài viết học viên hay nội dung LLM vào log. Mọi ngoại lệ trả về thông điệp lỗi tĩnh theo `ErrorCode` chuẩn.
+
+---
+
+## 7. VÒNG ĐỜI ATTEMPT VÀ API HIỆN CÓ
+
+`TestAttemptController` là entry point của vòng đời làm bài. Tất cả endpoint đều yêu cầu user đã đăng nhập; `userId` được lấy từ `IdentityAdapter`, không lấy từ request body/path.
+
+| Method | Endpoint | Hành vi chính |
+|---|---|---|
+| `POST` | `/api/v1/attempts` | Tạo attempt, chụp `exam_snapshot`, trả `201` + `WorkspaceResponse`. |
+| `GET` | `/api/v1/attempts/{id}` hoặc `/{id}/workspace` | Resume workspace; chỉ owner; snapshot và saved answers lấy từ server. |
+| `PUT` | `/api/v1/attempts/{id}/answers` | Autosave draft; trả version server. |
+| `POST` | `/api/v1/attempts/{id}/sections/{sectionId}/lock` | Khóa section theo progression (Mock full exam). |
+| `POST` | `/api/v1/attempts/{id}/submit` | Nộp bài idempotent; nếu attempt đã finalize thì trả trạng thái hiện có, không chấm lại. |
+| `GET` | `/api/v1/attempts/{id}/result` | Result summary/review navigation; từ chối attempt còn `IN_PROGRESS`. |
+| `GET` | `/api/v1/attempts/{id}/review/{partId}` | Review theo part trong snapshot; từ chối part ngoài scope và attempt còn sống. |
+| `GET` | `/api/v1/attempts/{id}/writing-feedback?partId=` | Feedback Writing theo part; `Cache-Control: no-store`; không lazy-finalize. |
+| `POST` | `/api/v1/attempts/{id}/practice-feedback` | Feedback objective tức thời, chỉ `PRACTICE` + `IN_PROGRESS`; read-only. |
+| `POST` | `/api/v1/attempts/{id}/writing-hints` | Hints AI cho Writing Practice; ownership/quota/idempotency. |
+| `GET` | `/api/v1/attempts/{id}/listening-playback` | Đọc timeline playback server-authoritative. |
+| `POST` | `/api/v1/attempts/{id}/listening-playback/start` | Bắt đầu playback Mock idempotent; không nhận position/URL từ client. |
+| `GET` | `/api/v1/exams/{id}/structure` | Cấu trúc đề đã publish cho learner. |
+
+### 7.1. Submit, chấm objective và trạng thái
+
+1. Submit khóa attempt, ghi `end_time`/`time_spent_seconds`, chuyển `SUBMITTED`.
+2. Hệ thống chấm objective từ `exam_snapshot`; ưu tiên đáp án nằm trong snapshot, fallback adapter chỉ khi snapshot thiếu key nhưng có câu objective.
+3. Objective thành công: lưu `result_summary`, `overall_score`, `section_scores`, `earned_score` và `is_correct_flags`; sau đó enqueue Writing (nếu có ESSAY).
+4. Không có Writing: attempt `COMPLETED`. Có Writing: trạng thái tổng hợp do `WritingGradingAttemptStateResolver` quyết định (`AI_GRADING`, `AI_GRADING_QUEUED`, `GRADING_FAILED`, `COMPLETED`).
+5. Objective lỗi: `GRADING_FAILED`; không enqueue Writing. Lỗi DB khi enqueue phải propagate để rollback submit, không tạo trạng thái partial.
+
+`result`/`review` chỉ đọc dữ liệu đã lưu; không tự chấm lại. Với Mock đã quá deadline, `ensureFinalized` có thể finalize theo server time trước khi trả kết quả.
+
+### 7.2. Practice feedback
+
+- Chỉ áp dụng `test_mode=PRACTICE`, attempt `IN_PROGRESS`, đúng owner.
+- Validate `partId`/`questionId` thuộc snapshot và là câu objective; không ghi đáp án vào `attempt_answers` và không gọi provider AI.
+- `Cache-Control: no-store` cho cả success và lỗi.
+
+---
+
+## 8. WRITING GRADING PIPELINE (TV3-19/20/21)
+
+### 8.1. Enqueue và worker
+
+- `WritingGradingEnqueuer` quét các câu `ESSAY` trong section `WRITING` của snapshot, tạo tối đa một job cho mỗi `(attempt_id, part_id, question_id)`.
+- Bài **≤ 10 từ** được chấm local 0 điểm (`TOO_SHORT`), không gọi Gemini, không reserve quota, không tải ảnh.
+- Khi grading bật, job mới ở `READY`; khi tắt, job ở `WAITING` với `FEATURE_DISABLED` để có thể chấm sau khi bật.
+- `WritingGradingDispatcher` chạy theo `poll-interval`, phục hồi lease hết hạn, giới hạn batch/concurrency và chỉ dispatch khi **cả** `enabled` và `dispatcher-enabled` đều bật.
+- `WritingGradingWorker` claim job trong transaction ngắn, tải ảnh và gọi Gemini **ngoài** transaction DB, rồi complete/fail trong transaction riêng. Không log essay, prompt, feedback hay URL ảnh.
+
+### 8.2. Trạng thái job và feedback
+
+| Job status | Ý nghĩa | Feedback API |
+|---|---|---|
+| `READY`, `RUNNING`, `RETRY_WAIT` | Đang chờ/chạy hoặc retry | `PENDING` |
+| `WAITING` | Chưa thể chạy (feature/provider/quota) | `QUEUED` |
+| `SUCCEEDED` | Có kết quả đã validate | `DONE` |
+| `FAILED` | Lỗi terminal/retry đã cạn | `FAILED` |
+| `UNAVAILABLE` | Không thể chấm (ngôn ngữ, ngữ cảnh, ảnh...) | `UNAVAILABLE` |
+
+- Feedback được đọc từ `attempt_answers.ai_feedback` trước, sau đó từ `writing_grading_jobs.result_json`; dữ liệu hỏng fail-closed sang `FAILED`, không hiển thị điểm giả.
+- Response có `partStatus` tổng hợp: `DONE`, `PENDING`, `QUEUED`, `FAILED`, `UNAVAILABLE`; mỗi task có score, criteria, corrected essay, corrections và diff.
+- Chỉ chấm Writing khi exam language là `en`; ngôn ngữ khác trả `UNAVAILABLE` (`UNSUPPORTED_LANGUAGE`). Giới hạn: essay tối đa 8.000 code points, context tối đa 16.000 code points.
+- Ảnh trong snapshot: tối đa 2 ảnh/task; URL phải qua allowlist `testing.image-fetch.*`; ảnh lỗi/không hợp lệ được map thành lỗi an toàn, không làm lộ URL. Khi ảnh bị tắt nhưng task có visual context, feedback là `UNAVAILABLE` (`VISUAL_CONTEXT_UNSUPPORTED`).
+
+### 8.3. Cấu hình vận hành
+
+| Thuộc tính | Biến môi trường | Mặc định | Ghi chú |
+|---|---|---|---|
+| `testing.writing-grading.enabled` | `WRITING_GRADING_ENABLED` | `false` | Bật enqueue/worker. |
+| `testing.writing-grading.dispatcher-enabled` | `WRITING_GRADING_DISPATCHER_ENABLED` | `false` | Phải bật cùng `enabled` để scheduler chạy. |
+| `testing.writing-grading.images-enabled` | `WRITING_GRADING_IMAGES_ENABLED` | `false` | Cần `IMAGE_FETCH_ENABLED=true` và allowlist. |
+| `testing.writing-grading.poll-interval` | `WRITING_GRADING_POLL_INTERVAL` | `5s` | Chu kỳ dispatcher. |
+| `testing.writing-grading.batch-size` | `WRITING_GRADING_BATCH_SIZE` | `10` | Số job tối đa mỗi lượt. |
+| `testing.writing-grading.concurrency` | `WRITING_GRADING_CONCURRENCY` | `2` | Số worker; executor không queue. |
+| `testing.writing-grading.quota-recheck-interval` | `WRITING_GRADING_QUOTA_RECHECK_INTERVAL` | `60s` | Thời điểm recheck job `WAITING`. |
+| `testing.writing-grading.lease-extension` | `WRITING_GRADING_LEASE_EXTENSION` | `15s` | Lease claim/recovery. |
+| `testing.gemini.enabled` | `GEMINI_ENABLED` | `false` | Provider thật; test phải dùng fake. |
+| `testing.gemini.api-key` | `GEMINI_API_KEY` | *(trống)* | Không ghi giá trị vào log/evidence. |
+| `testing.gemini.model` | `GEMINI_MODEL` | *(trống)* | Model ID do operator chọn; phải hỗ trợ ảnh nếu bật visual. |
+| `testing.image-fetch.enabled` | `IMAGE_FETCH_ENABLED` | `false` | Fetcher ảnh độc lập. |
+| `testing.image-fetch.allowed-url-prefixes` | `IMAGE_FETCH_ALLOWED_URL_PREFIXES` | *(rỗng)* | Danh sách prefix HTTPS, phân tách bằng dấu phẩy. |
+| `testing.writing-hints.enabled` | `WRITING_HINTS_ENABLED` | `false` | Hints vẫn text-only. |
+
+Khi bật visual grading, startup fail-fast nếu `IMAGE_FETCH_ENABLED=false` hoặc cấu hình fetch không hợp lệ. Không bật `GEMINI_ENABLED`/`IMAGE_FETCH_ENABLED` trong unit test; dùng fake boundary.
+
+---
+
+## 9. KIỂM CHỨNG VÀ BÀN GIAO
+
+- Ma trận traceability: `docs/testing/TV3-22-regression-matrix.md`.
+- Browser smoke/accessibility và giới hạn mock: `docs/testing/TV3-22-browser-smoke.md`.
+- Bàn giao tổng hợp, command chạy lại, evidence và findings: `docs/testing/TV3-22-handover.md`.
+- Kết quả gate gần nhất và blocker phải được đọc từ handover/handoff, không suy rộng từ unit test sang end-to-end. PostgreSQL phải chạy trên database riêng; browser smoke dùng API mock không thay thế backend HTTP integration hay kiểm thử staging.

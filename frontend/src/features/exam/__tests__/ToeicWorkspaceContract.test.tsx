@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -68,6 +68,8 @@ interface PartSpec {
   secret?: boolean;
   audioUrl?: string;
   mediaUrl?: string;
+  /** Part 1 convention: every one-question group owns its own photograph. */
+  mediaPerGroup?: boolean;
 }
 
 /** Canonical 7-Part TOEIC layout: q_001..q_200 across Listening (P1–4) and Reading (P5–7). */
@@ -95,7 +97,9 @@ function buildPart(spec: PartSpec) {
       group_id: `p${spec.partNumber}-g${groupIndex + 1}`,
       instruction: groupIndex === 0 ? `Questions for Part ${spec.partNumber}` : null,
       ...(spec.contentHtml ? { content_html: `<p>Passage p${spec.partNumber}-g${groupIndex + 1}</p>` } : {}),
-      ...(spec.mediaUrl && groupIndex === 0 ? { shared_media: { type: 'image', url: spec.mediaUrl } } : {}),
+      ...(spec.mediaUrl && (spec.mediaPerGroup || groupIndex === 0)
+        ? { shared_media: { type: 'image', url: spec.mediaPerGroup ? `${spec.mediaUrl}?g=${groupIndex + 1}` : spec.mediaUrl } }
+        : {}),
       questions,
     };
   });
@@ -124,6 +128,56 @@ function buildFullSnapshot() {
       { id: 10, section_id: 10, skill_type: 'LISTENING', title: 'Listening', parts: parts.slice(0, 4) },
       { id: 20, section_id: 20, skill_type: 'READING', title: 'Reading', parts: parts.slice(4) },
     ],
+  };
+}
+
+/**
+ * Listening-only snapshot for page-level playback tests. Rendering all 200 questions is not needed
+ * to prove playback and made the default-worker suite exceed the per-test budget.
+ */
+function buildListeningSnapshot() {
+  questionCursor = 0;
+  const parts = PART_SPECS.slice(0, 2).map(buildPart);
+  return {
+    exam_id: 1,
+    code: 'TOEIC-ETS-2024-T1-V2',
+    title: 'ETS TOEIC 2024 Test 1',
+    type: 'TOEIC',
+    sections: [{ id: 10, section_id: 10, skill_type: 'LISTENING', title: 'Listening', parts }],
+  };
+}
+
+/** R1 layout: six Part 1 photograph groups plus one Part 2 group with all 25 questions. */
+const R1_PART_SPECS: PartSpec[] = [
+  {
+    partNumber: 1,
+    partId: 101,
+    skill: 'LISTENING',
+    groupSizes: [1, 1, 1, 1, 1, 1],
+    secret: true,
+    mediaPerGroup: true,
+    audioUrl: 'https://cdn.test/p1.mp3',
+    mediaUrl: 'https://cdn.test/p1-photo.png',
+  },
+  {
+    partNumber: 2,
+    partId: 102,
+    skill: 'LISTENING',
+    groupSizes: [25],
+    secret: true,
+    audioUrl: 'https://cdn.test/p2.mp3',
+  },
+];
+
+function buildR1Snapshot() {
+  questionCursor = 0;
+  const parts = R1_PART_SPECS.map(buildPart);
+  return {
+    exam_id: 1,
+    code: 'TOEIC-ETS-2024-T1-V2',
+    title: 'ETS TOEIC 2024 Test 1',
+    type: 'TOEIC',
+    sections: [{ id: 10, section_id: 10, skill_type: 'LISTENING', title: 'Listening', parts }],
   };
 }
 
@@ -340,7 +394,7 @@ describe('TW-09 — Mock page through the real normalizer + WorkspacePage', () =
       return Promise.reject(new Error(`unexpected POST ${url}`));
     });
 
-    renderWorkspacePage(buildFullSnapshot());
+    renderWorkspacePage(buildListeningSnapshot());
 
     // 1. Initial page load: timeline is NOT_STARTED -> Start button is rendered
     const startBtn = await screen.findByRole('button', { name: /bắt đầu phát audio/i }, { timeout: 4000 });
@@ -359,7 +413,7 @@ describe('TW-09 — Mock page through the real normalizer + WorkspacePage', () =
 
   it('a Mock TOEIC attempt reloads/reconnects directly into server audio if timeline is already RUNNING', async () => {
     // Reload/reconnect scenario: timeline GET already returns RUNNING
-    renderWorkspacePage(buildFullSnapshot(), 'MOCK_TEST', mockPlaybackSnapshot('RUNNING'));
+    renderWorkspacePage(buildListeningSnapshot(), 'MOCK_TEST', mockPlaybackSnapshot('RUNNING'));
 
     expect(await screen.findByTestId('toeic-audio-server', {}, { timeout: 4000 })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /bắt đầu phát audio/i })).not.toBeInTheDocument();
@@ -618,5 +672,212 @@ describe('TW-09 — P1 finding (REQUIRED, currently RED)', () => {
 
     // AC-05: Mock audio is enabled from the server summary; losing it disables the whole timeline.
     expect(workspace.listeningPlayback).toEqual({ status: 'NOT_STARTED', available: true });
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* 8. TV3-22 / R1 — Part 1 six photos, Part 2 twenty-five questions     */
+/* ------------------------------------------------------------------ */
+
+describe('TV3-22 R1 — TOEIC Part 1/Part 2 workspace regression', () => {
+  let scrollIntoView: ReturnType<typeof vi.fn>;
+  let originalScrollIntoView: typeof Element.prototype.scrollIntoView | undefined;
+
+  beforeEach(() => {
+    originalScrollIntoView = Element.prototype.scrollIntoView;
+    scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView as unknown as typeof Element.prototype.scrollIntoView;
+  });
+
+  afterEach(() => {
+    if (originalScrollIntoView) {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    } else {
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
+  function listeningQuestionCards(): HTMLElement[] {
+    return Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid^="listening-question-"]'),
+    );
+  }
+
+  it('renders six Part 1 questions and six photographs at once with canonical palette numbers', async () => {
+    const { store } = renderWorkspacePage(buildR1Snapshot(), 'PRACTICE');
+
+    await screen.findByTestId('listening-question-q_001');
+
+    // All six Part 1 questions stay mounted simultaneously; none is swapped out one at a time.
+    expect(listeningQuestionCards()).toHaveLength(6);
+    for (let number = 1; number <= 6; number += 1) {
+      const id = `q_${String(number).padStart(3, '0')}`;
+      expect(screen.getByTestId(`listening-question-${id}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`listening-photo-p1-g${number}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`palette-${id}`).textContent).toBe(String(number));
+    }
+    // Spoken Part 1 prompts/options stay out of the DOM.
+    expect(document.body.textContent).not.toContain(SECRET_PROMPT);
+    expect(document.body.textContent).not.toContain(SECRET_OPTION);
+
+    // Answer/flag are persisted in Redux and reflected by the palette while the Part stays mounted.
+    fireEvent.click(within(screen.getByTestId('listening-answer-fieldset-q_001'))
+      .getByRole('radio', { name: 'Lựa chọn A' }));
+    fireEvent.click(screen.getByTestId('flag-btn-q_002'));
+
+    expect(store.getState().answers.answers[101]?.q_001).toBe('A');
+    expect(store.getState().answers.flags[101]?.q_002).toBe(true);
+    expect(screen.getByTestId('palette-q_001')).toHaveAttribute('data-answered', 'true');
+    expect(screen.getByTestId('palette-q_002')).toHaveAttribute('data-flagged', 'true');
+
+    // Palette navigation scrolls to the target card without unmounting the other questions.
+    fireEvent.click(screen.getByTestId('palette-q_006'));
+    await waitFor(() => {
+      expect(screen.getByTestId('palette-q_006')).toHaveAttribute('aria-current', 'true');
+    });
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(listeningQuestionCards()).toHaveLength(6);
+  });
+
+  it('renders all 25 Part 2 questions at once and keeps answers/flags across Part switches', async () => {
+    const { store } = renderWorkspacePage(buildR1Snapshot(), 'PRACTICE');
+    await screen.findByTestId('listening-question-q_001');
+
+    fireEvent.click(screen.getByRole('button', { name: /^Part 2/ }));
+    await screen.findByTestId('listening-question-q_007');
+
+    // Part 2 is one continuous group: every one of the 25 questions is in the DOM.
+    expect(listeningQuestionCards()).toHaveLength(25);
+    expect(screen.getByTestId('listening-question-q_007')).toBeInTheDocument();
+    expect(screen.getByTestId('listening-question-q_031')).toBeInTheDocument();
+    expect(screen.getByTestId('palette-q_007').textContent).toBe('7');
+    expect(screen.getByTestId('palette-q_031').textContent).toBe('31');
+
+    fireEvent.click(within(screen.getByTestId('listening-answer-fieldset-q_007'))
+      .getByRole('radio', { name: 'Lựa chọn B' }));
+    fireEvent.click(screen.getByTestId('flag-btn-q_008'));
+
+    // Palette navigation to the last question keeps the whole Part mounted and marks the target.
+    fireEvent.click(screen.getByTestId('palette-q_031'));
+    await waitFor(() => {
+      expect(screen.getByTestId('palette-q_031')).toHaveAttribute('aria-current', 'true');
+    });
+    expect(listeningQuestionCards()).toHaveLength(25);
+
+    // Round-trip Part 2 → Part 1 → Part 2: answer/flag state is never lost.
+    fireEvent.click(screen.getByRole('button', { name: /^Part 1/ }));
+    await screen.findByTestId('listening-question-q_001');
+    expect(listeningQuestionCards()).toHaveLength(6);
+    expect(screen.getByTestId('palette-q_007')).toHaveAttribute('data-answered', 'true');
+    expect(screen.getByTestId('palette-q_008')).toHaveAttribute('data-flagged', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: /^Part 2/ }));
+    await screen.findByTestId('listening-question-q_007');
+    expect(store.getState().answers.answers[102]?.q_007).toBe('B');
+    expect(store.getState().answers.flags[102]?.q_008).toBe(true);
+    expect(within(screen.getByTestId('listening-answer-fieldset-q_007'))
+      .getByRole('radio', { name: 'Lựa chọn B' })).toBeChecked();
+  });
+
+  it('Practice retry keeps only the wrong Part 2 questions in scope and filters the palette', async () => {
+    renderWorkspacePage(buildR1Snapshot(), 'PRACTICE');
+    await screen.findByTestId('listening-question-q_001');
+
+    fireEvent.click(screen.getByRole('button', { name: /^Part 2/ }));
+    await screen.findByTestId('listening-question-q_007');
+
+    const q7 = screen.getByTestId('listening-question-q_007');
+    fireEvent.click(within(screen.getByTestId('listening-answer-fieldset-q_007'))
+      .getByRole('radio', { name: 'Lựa chọn B' }));
+
+    httpPost.mockResolvedValueOnce(envelope({
+      attemptId: ATTEMPT_ID,
+      partId: 102,
+      questionId: 'q_007',
+      type: 'SINGLE_CHOICE',
+      userAnswer: 'B',
+      verdict: 'WRONG',
+      score: 0,
+      correctAnswer: 'A',
+      explanation: 'The photograph shows the correct option A.',
+    }) as never);
+
+    fireEvent.click(within(q7).getByRole('button', { name: 'Kiểm tra đáp án cho câu 7' }));
+
+    await waitFor(() => {
+      expect(within(q7).getByText('Chưa chính xác')).toBeInTheDocument();
+    });
+    expect(httpPost).toHaveBeenCalledWith(
+      `/v1/attempts/${ATTEMPT_ID}/practice-feedback`,
+      { partId: 102, questionId: 'q_007', answer: 'B' },
+      expect.anything(),
+    );
+    expect(screen.getByTestId('retry-wrong-count').textContent).toContain('1 câu sai');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Luyện lại câu sai' }));
+
+    // Only the wrong question of the active Part remains rendered.
+    await waitFor(() => {
+      expect(listeningQuestionCards()).toHaveLength(1);
+    });
+    expect(screen.getByTestId('listening-question-q_007')).toBeInTheDocument();
+    expect(screen.queryByTestId('listening-question-q_008')).not.toBeInTheDocument();
+
+    // Palette cells outside the retry set are disabled, but only within the active Part.
+    expect(screen.getByTestId('palette-q_007')).not.toBeDisabled();
+    expect(screen.getByTestId('palette-q_008')).toBeDisabled();
+    expect(screen.getByTestId('palette-q_001')).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Về toàn bộ câu' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('listening-question-q_008')).toBeInTheDocument();
+    });
+    expect(listeningQuestionCards()).toHaveLength(25);
+  });
+
+  it('Mock playback starts from the server timeline and keeps exactly one media element', async () => {
+    const running = {
+      ...mockPlaybackSnapshot('RUNNING'),
+      elapsedMs: 2000,
+      positionMs: 2000,
+      remainingMs: 178000,
+    };
+    httpPost.mockImplementation((url: string) => {
+      if (url.includes('/listening-playback/start')) {
+        return Promise.resolve(envelope(running) as never);
+      }
+      return Promise.reject(new Error(`unexpected POST ${url}`));
+    });
+
+    renderWorkspacePage(buildR1Snapshot(), 'MOCK_TEST');
+
+    const startBtn = await screen.findByRole('button', { name: /bắt đầu phát audio/i }, { timeout: 4000 });
+    fireEvent.click(startBtn);
+
+    expect(await screen.findByTestId('toeic-audio-server', {}, { timeout: 4000 })).toBeInTheDocument();
+
+    const audioElements = Array.from(document.querySelectorAll('audio'));
+    expect(audioElements).toHaveLength(1);
+    const audio = audioElements[0] as HTMLAudioElement;
+    expect(audio.getAttribute('src')).toBe('https://cdn.test/p1.mp3');
+    expect(audio.hasAttribute('controls')).toBe(false);
+    expect(audio.getAttribute('controlsList')).toContain('nodownload');
+
+    // The server position is applied once the media element reports readiness. jsdom keeps
+    // `readyState` at 0, so expose a ready element before dispatching the browser event.
+    Object.defineProperty(audio, 'readyState', { configurable: true, value: 1 });
+    fireEvent(audio, new Event('loadedmetadata'));
+    await waitFor(() => {
+      expect(audio.currentTime).toBeGreaterThanOrEqual(2);
+    });
+
+    // The page only asks its API for workspace/timeline; it never fetches media directly.
+    expect(httpGet.mock.calls.every(([url]) => !String(url).includes('cdn.test'))).toBe(true);
+    expect(httpPost).toHaveBeenCalledTimes(1);
+    expect(httpPost).toHaveBeenCalledWith(
+      `/v1/attempts/${ATTEMPT_ID}/listening-playback/start`,
+      null,
+      expect.anything(),
+    );
   });
 });
