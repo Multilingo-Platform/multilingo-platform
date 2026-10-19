@@ -322,10 +322,13 @@ describe('ExamBuilder utils', () => {
       expect(getPartBounds('Reading Passage 1', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 13 });
       expect(getPartBounds('Reading Passage 2', 'IELTS_ACADEMIC')).toEqual({ start: 14, end: 26 });
       expect(getPartBounds('Reading Passage 3', 'IELTS_ACADEMIC')).toEqual({ start: 27, end: 40 });
+      expect(getPartBounds('Writing Task 1', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 1 });
+      expect(getPartBounds('Writing Task 2', 'IELTS_ACADEMIC')).toEqual({ start: 2, end: 2 });
 
       // Case insensitivity & partial match
       expect(getPartBounds('listening part 1: notes completion', 'IELTS_GENERAL')).toEqual({ start: 1, end: 10 });
       expect(getPartBounds('passage 2: science history', 'IELTS_ACADEMIC')).toEqual({ start: 14, end: 26 });
+      expect(getPartBounds('task 1: chart description', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 1 });
     });
 
     it('QUESTION_TYPES includes canonical FILL_IN_THE_BLANK and IELTS-relevant types', () => {

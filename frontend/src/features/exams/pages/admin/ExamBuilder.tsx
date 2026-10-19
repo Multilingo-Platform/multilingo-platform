@@ -436,6 +436,8 @@ export const getPartBounds = (partTitle: string, examType: string) => {
     if (lower.includes('reading passage 1') || lower.includes('passage 1')) return { start: 1, end: 13 };
     if (lower.includes('reading passage 2') || lower.includes('passage 2')) return { start: 14, end: 26 };
     if (lower.includes('reading passage 3') || lower.includes('passage 3')) return { start: 27, end: 40 };
+    if (lower.includes('writing task 1') || lower.includes('task 1')) return { start: 1, end: 1 };
+    if (lower.includes('writing task 2') || lower.includes('task 2')) return { start: 2, end: 2 };
   }
   if (examType.startsWith('TOEIC') && !examType.includes('WRITING')) {
     if (partTitle.includes('Part 1')) return { start: 1, end: 6 };
@@ -1916,26 +1918,44 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         
         if (!partName) return; // Ignore empty rows
 
+        const lowerPartTitle = (partName || '').toLowerCase();
+        const isReadingPassage = lowerPartTitle.includes('passage') || ((importedType || '').startsWith('NLTV') && lowerPartTitle.includes('đọc'));
+
         if (partName !== lastPartName) {
           const partInstruction = rawPartInstruction || rawLegacyInstruction || '';
           currentPart = {
             part_title: partName.replace(/^Part \d+: /, ''),
             instruction: partInstruction,
             question_groups: [],
-            shared_audio: rawPartMedia ? { url: rawPartMedia } : undefined
+            shared_audio: rawPartMedia ? { url: rawPartMedia } : undefined,
+            shared_content_html: (isReadingPassage && rawPassage) ? rawPassage : undefined
           };
           tempParts.push(currentPart);
           lastPartName = partName;
           lastGroupName = ''; // reset group
           lastGroupOptions = [];
+
+          // Synchronize fallback counter with standard bounds for this part
+          const bounds = getPartBounds(partName, importedType || 'IELTS_ACADEMIC');
+          if (bounds) {
+            fallbackQCounter = bounds.start;
+          }
         } else if (currentPart && !currentPart.instruction) {
           if (rawPartInstruction) currentPart.instruction = rawPartInstruction;
           else if (rawLegacyInstruction) currentPart.instruction = rawLegacyInstruction;
         }
 
+        if (currentPart && isReadingPassage && rawPassage && !currentPart.shared_content_html) {
+          currentPart.shared_content_html = rawPassage;
+        }
+
         if (currentPart && !currentPart.shared_audio && rawPartMedia) {
           currentPart.shared_audio = { url: rawPartMedia };
         }
+
+        const isPartReadingPassage = isReadingPassage && currentPart?.shared_content_html && 
+          (rawPassage === currentPart.shared_content_html || rawPassage.trim() === currentPart.shared_content_html.trim());
+        const groupPassage = isPartReadingPassage ? '' : rawPassage;
 
         if (groupName !== lastGroupName || !currentGroup) {
           lastGroupOptions = [];
@@ -1955,7 +1975,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           currentGroup = {
             group_id: generateId('group'),
             instruction: groupInstruction,
-            content_html: rawPassage,
+            content_html: groupPassage,
             questions: [],
             shared_images: groupImageUrls.length > 0 ? groupImageUrls : undefined,
             shared_media: groupImageUrls.length > 0 ? { type: 'image', url: groupImageUrls[0], display_config: { size_preset: 'medium', alignment: 'center' } } : undefined
@@ -1963,8 +1983,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           if (currentPart) currentPart.question_groups.push(currentGroup);
           lastGroupName = groupName;
         } else {
-          if (rawPassage && currentGroup && !currentGroup.content_html) {
-            currentGroup.content_html = rawPassage;
+          if (groupPassage && currentGroup && !currentGroup.content_html) {
+            currentGroup.content_html = groupPassage;
           }
           if (currentGroup && !currentGroup.instruction) {
             if (colMap.groupInstruction > 0 && rawGroupInstruction) {
@@ -2072,52 +2092,89 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
            }
         }
 
-        const rangeMatch = questionText.match(/(?:questions?|câu)?\s*(\d+)\s*(?:-|to|and|và|–)\s*(\d+)/i);
+        const rangeMatch = questionText.match(/(?:questions?|câu|q)?\s*(\d+)\s*(?:-|to|and|và|–)\s*(\d+)/i);
         const isMultiPair = type === 'MULTIPLE_CHOICE_MULTI' && rangeMatch && (parseInt(rangeMatch[2], 10) === parseInt(rangeMatch[1], 10) + 1);
 
         if (isMultiPair && rangeMatch) {
           const startNum = parseInt(rangeMatch[1], 10);
           const endNum = parseInt(rangeMatch[2], 10);
+          const q1Id = `q_${String(startNum).padStart(3, '0')}`;
+          const q2Id = `q_${String(endNum).padStart(3, '0')}`;
 
-          const q1: Question = {
-            question_id: `q_${String(startNum).padStart(3, '0')}`,
-            type: type,
-            question_text: questionText,
-            metadata: {
-              options: options.length > 0 ? [...options] : undefined,
-              correct_answer: Array.isArray(parsedCorrectAnswer) ? [...parsedCorrectAnswer] : parsedCorrectAnswer,
-              correct_option_index: correctOptionIndex,
-              correct_option_indices: correctOptionIndices ? [...correctOptionIndices] : undefined,
-              explanation: explanation
-            }
-          };
-          const q2: Question = {
-            question_id: `q_${String(endNum).padStart(3, '0')}`,
-            type: type,
-            question_text: questionText,
-            metadata: {
-              options: options.length > 0 ? [...options] : undefined,
-              correct_answer: Array.isArray(parsedCorrectAnswer) ? [...parsedCorrectAnswer] : parsedCorrectAnswer,
-              correct_option_index: correctOptionIndex,
-              correct_option_indices: correctOptionIndices ? [...correctOptionIndices] : undefined,
-              explanation: explanation
-            }
-          };
+          // Avoid duplicate push if Excel has multiple rows for the same multi-choice pair (e.g. Row 18 & Row 19 both for Q17-18)
+          const alreadyExists = currentGroup.questions.some(q => q.question_id === q1Id || q.question_id === q2Id);
+          if (!alreadyExists) {
+            const q1: Question = {
+              question_id: q1Id,
+              type: type,
+              question_text: questionText,
+              metadata: {
+                options: options.length > 0 ? [...options] : undefined,
+                correct_answer: Array.isArray(parsedCorrectAnswer) ? [...parsedCorrectAnswer] : parsedCorrectAnswer,
+                correct_option_index: correctOptionIndex,
+                correct_option_indices: correctOptionIndices ? [...correctOptionIndices] : undefined,
+                explanation: explanation
+              }
+            };
+            const q2: Question = {
+              question_id: q2Id,
+              type: type,
+              question_text: questionText,
+              metadata: {
+                options: options.length > 0 ? [...options] : undefined,
+                correct_answer: Array.isArray(parsedCorrectAnswer) ? [...parsedCorrectAnswer] : parsedCorrectAnswer,
+                correct_option_index: correctOptionIndex,
+                correct_option_indices: correctOptionIndices ? [...correctOptionIndices] : undefined,
+                explanation: explanation
+              }
+            };
 
-          if (qMedia) {
-            (q1.metadata as any).media = { type: 'image', url: qMedia };
-            (q2.metadata as any).media = { type: 'image', url: qMedia };
+            if (qMedia) {
+              (q1.metadata as any).media = { type: 'image', url: qMedia };
+              (q2.metadata as any).media = { type: 'image', url: qMedia };
+            }
+
+            currentGroup.questions.push(q1);
+            currentGroup.questions.push(q2);
+            fallbackQCounter = Math.max(fallbackQCounter, endNum + 1);
+          }
+        } else {
+          const isWriting = (partName || '').toLowerCase().includes('writing');
+          let detectedNum: number | null = null;
+
+          if (isWriting) {
+            if (partName.includes('Task 1') || questionText.includes('Task 1')) detectedNum = 1;
+            else if (partName.includes('Task 2') || questionText.includes('Task 2')) detectedNum = 2;
           }
 
-          currentGroup.questions.push(q1);
-          currentGroup.questions.push(q2);
-          fallbackQCounter = Math.max(fallbackQCounter, endNum + 1);
-        } else {
-          const numMatch = questionText.match(/\d+/);
-          const qNum = numMatch ? String(numMatch[0]).padStart(3, '0') : String(fallbackQCounter++).padStart(3, '0');
+          if (detectedNum === null) {
+            // Priority 1: Prefix match like "Câu 12:", "Question 12.", "Q12 ", "12. "
+            const prefixMatch = questionText.match(/^(?:questions?|câu|q|task|part)?\s*(\d+)[.:\s-]/i);
+            if (prefixMatch) {
+              detectedNum = parseInt(prefixMatch[1], 10);
+            }
+          }
+
+          if (detectedNum === null) {
+            // Priority 2: Bracketed number like "[32]" for fill in the blank
+            const bracketMatch = questionText.match(/\[(\d+)\]/);
+            if (bracketMatch) {
+              detectedNum = parseInt(bracketMatch[1], 10);
+            }
+          }
+
+          let qNum: string;
+          if (detectedNum !== null) {
+            qNum = String(detectedNum).padStart(3, '0');
+            fallbackQCounter = Math.max(fallbackQCounter, detectedNum + 1);
+          } else {
+            qNum = String(fallbackQCounter++).padStart(3, '0');
+          }
+
+          const qId = isWriting ? `q_w_${qNum}` : `q_${qNum}`;
 
           const newQuestion: Question = {
-            question_id: `q_${qNum}`,
+            question_id: qId,
             type: type,
             question_text: questionText,
             metadata: {
@@ -2809,7 +2866,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                     </select>
                                     {isPrimaryMulti && (
                                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: '4px', border: '1px solid #fde68a' }}>
-                                        Cặp 2 câu hỏi (Dùng chung 1 đề và 1 danh sách lựa chọn A-E)
+                                        Cặp 2 câu hỏi (Dùng chung 1 đề)
                                       </span>
                                     )}
                                   </div>
