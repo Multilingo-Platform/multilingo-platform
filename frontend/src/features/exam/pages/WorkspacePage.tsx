@@ -41,6 +41,7 @@ import ReadingPartContent, {
   type ReadingGroupView,
   type ReadingQuestionView,
 } from '../components/workspace/ReadingPartContent';
+import { WritingPromptContent } from '../components/workspace/WritingPromptContent';
 import { AlertCircle } from 'lucide-react';
 import { useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../app/store';
@@ -69,6 +70,8 @@ function hashContent(value: string): string {
 const TOEIC_READING_SPLIT_MIN = 30;
 const TOEIC_READING_SPLIT_MAX = 70;
 const TOEIC_READING_SPLIT_STEP = 5;
+const WRITING_SPLIT_MIN = 35;
+const WRITING_SPLIT_MAX = 65;
 const DEFAULT_SPLIT_BOUNDS = { min: 25, max: 75 };
 
 /**
@@ -648,6 +651,8 @@ const WorkspacePage: React.FC = () => {
   const showToeicReference = isToeicReading && referenceDocs.length > 0;
   splitBoundsRef.current = showToeicReference
     ? { min: TOEIC_READING_SPLIT_MIN, max: TOEIC_READING_SPLIT_MAX }
+    : currentSkill === 'WRITING'
+    ? { min: WRITING_SPLIT_MIN, max: WRITING_SPLIT_MAX }
     : DEFAULT_SPLIT_BOUNDS;
 
   const highlightsByNamespace = useSelector((state: RootState) => state.answers.highlights);
@@ -678,6 +683,26 @@ const WorkspacePage: React.FC = () => {
 
   const adjustSplitRatio = (delta: number) => {
     setSplitRatio(prev => Math.min(TOEIC_READING_SPLIT_MAX, Math.max(TOEIC_READING_SPLIT_MIN, prev + delta)));
+  };
+
+  const handleDividerKeyDown = (e: React.KeyboardEvent) => {
+    const { min, max } = splitBoundsRef.current;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setSplitRatio(prev => Math.max(min, prev - 5));
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setSplitRatio(prev => Math.min(max, prev + 5));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setSplitRatio(min);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setSplitRatio(max);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setSplitRatio(50);
+    }
   };
 
   // Question views for the reading column, with canonical whole-exam numbers from the snapshot.
@@ -1123,90 +1148,78 @@ const WorkspacePage: React.FC = () => {
 
       {/* 2. MAIN BODY: SPLIT-PANE WORKSPACE */}
       <div
-        ref={workspaceContainerRef}
         className={`flex flex-1 overflow-hidden relative ${
           isPracticeMode ? 'flex-col md:flex-row' : ''
         }`}
       >
-        {/* LEFT PANE: Reading Passage or Writing Prompt Workspace */}
-        {showLeftPane && (
-          <section
-            style={{ width: `${splitRatio}%` }}
-            className={`hidden lg:flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden ${
-              isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
-            }`}
-          >
-            {/* Toolbar */}
-            <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider bg-white px-2.5 py-1 rounded border border-slate-200">
-                  {partTitle}
-                </span>
-                <span className="text-xs text-slate-500">
-                  {(() => {
-                    const snapType = (activeWorkspace?.exam_snapshot?.type || '').toUpperCase();
-                    let certLabel = 'IELTS Academic';
-                    if (snapType.includes('TOEIC')) {
-                      certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
-                    } else if (snapType.includes('NLTV') || snapType.includes('VSTEP')) {
-                      certLabel = 'NLTV';
-                    } else if (snapType.includes('GENERAL')) {
-                      certLabel = 'IELTS General';
-                    }
-                    const skillLabel = (currentSkill as string) === 'WRITING' ? 'Writing' : 'Reading';
-                    return `${certLabel} ${skillLabel}`;
-                  })()}
-                </span>
-              </div>
-              {isPracticeMode && currentSkill === 'READING' && (
+        {/* Content area: Left Pane + Divider + Main */}
+        <div
+          ref={workspaceContainerRef}
+          className="flex flex-1 min-w-0 overflow-hidden relative"
+        >
+          {/* LEFT PANE: Reading Passage or Writing Prompt Workspace */}
+          {showLeftPane && (
+            <section
+              style={{ width: `${splitRatio}%` }}
+              className={`hidden lg:flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden ${
+                isDraggingSplit ? 'transition-none select-none' : 'transition-[width] duration-200 ease-in-out'
+              }`}
+            >
+              {/* Toolbar */}
+              <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Bôi đen từ để tra từ điển AI
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider bg-white px-2.5 py-1 rounded border border-slate-200">
+                    {partTitle}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {(() => {
+                      const snapType = (activeWorkspace?.exam_snapshot?.type || '').toUpperCase();
+                      let certLabel = 'IELTS Academic';
+                      if (snapType.includes('TOEIC')) {
+                        certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
+                      } else if (snapType.includes('NLTV') || snapType.includes('VSTEP')) {
+                        certLabel = 'NLTV';
+                      } else if (snapType.includes('GENERAL')) {
+                        certLabel = 'IELTS General';
+                      }
+                      const skillLabel = (currentSkill as string) === 'WRITING' ? 'Writing' : 'Reading';
+                      return `${certLabel} ${skillLabel}`;
+                    })()}
                   </span>
                 </div>
-              )}
-            </div>
+                {isPracticeMode && currentSkill === 'READING' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Bôi đen từ để tra từ điển AI
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            {/* Passage / Prompt Text Content */}
-            <div
-              ref={readingContainerRef}
-              className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
-            >
-              {showToeicReference ? (
-                <div onClick={handlePassageClick}>
-                  <ReferencePane docs={referenceDocsRendered} />
-                </div>
-              ) : currentSkill === 'WRITING' ? (
-                <div className="space-y-6">
-                  <h2 className="font-heading text-xl font-bold text-slate-900">
-                    {partTitle}
-                  </h2>
-                  {partInstruction && (
-                    <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
-                      {partInstruction}
-                    </div>
-                  )}
-                  {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
-                  {partSharedMedia && partSharedMedia.url !== partQuestions[0]?.media?.url && (
-                    <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />
-                  )}
-                  {partQuestions[0] && (
-                    <div className="space-y-4">
-                      <div className="prose prose-slate max-w-none text-slate-800 font-medium whitespace-pre-wrap">
-                        {partQuestions[0].question_text}
-                      </div>
-                      {partQuestions[0].media && (
-                        <div className="mt-4 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
-                          <MediaDisplay media={partQuestions[0].media} alt="Writing Prompt Graph" />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
+              {/* Passage / Prompt Text Content */}
+              <div
+                ref={readingContainerRef}
+                className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
+              >
+                {showToeicReference ? (
+                  <div onClick={handlePassageClick}>
+                    <ReferencePane docs={referenceDocsRendered} />
+                  </div>
+                ) : currentSkill === 'WRITING' ? (
+                  <div data-testid="desktop-writing-prompt">
+                    <WritingPromptContent
+                      partTitle={partTitle}
+                      partInstruction={partInstruction}
+                      partSharedAudio={partSharedAudio}
+                      partSharedMedia={partSharedMedia}
+                      groups={displayQuestionGroups}
+                      questions={partQuestions}
+                    />
+                  </div>
+                ) : (
                 <div className="space-y-4">
                   {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
                   {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
@@ -1241,10 +1254,18 @@ const WorkspacePage: React.FC = () => {
         {showGenericLeftPane && (
           <div
             data-testid="pane-divider"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={currentSkill === 'WRITING' ? 'Thanh điều chỉnh độ rộng đề bài và bài làm' : 'Thanh điều chỉnh độ rộng'}
+            aria-valuenow={Math.round(splitRatio)}
+            aria-valuemin={splitBoundsRef.current.min}
+            aria-valuemax={splitBoundsRef.current.max}
+            tabIndex={0}
+            onKeyDown={handleDividerKeyDown}
             onMouseDown={() => setIsDraggingSplit(true)}
             onDoubleClick={() => setSplitRatio(50)}
             title="Kéo để chỉnh độ rộng 2 bên (Nhấp đúp để đặt lại 50/50)"
-            className={`hidden lg:flex w-2.5 hover:w-3.5 bg-slate-200 hover:bg-amber-400 cursor-col-resize items-center justify-center border-x border-slate-300 transition-colors group select-none shrink-0 z-20 ${
+            className={`hidden lg:flex w-2.5 hover:w-3.5 bg-slate-200 hover:bg-amber-400 cursor-col-resize items-center justify-center border-x border-slate-300 transition-colors group select-none shrink-0 z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
               isDraggingSplit ? 'bg-amber-500 w-3.5' : ''
             }`}
           >
@@ -1346,9 +1367,23 @@ const WorkspacePage: React.FC = () => {
                 }}
               />
             ) : partQuestions.length > 0 ? (
-              <div className="flex flex-col gap-4 max-w-3xl">
+              <div className={`flex flex-col gap-4 ${currentSkill === 'WRITING' ? 'w-full' : 'max-w-3xl'}`}>
+                {/* Mobile Writing Prompt: render once above question cards when on mobile */}
+                {currentSkill === 'WRITING' && (
+                  <div data-testid="mobile-writing-prompt" className="lg:hidden mb-2">
+                    <WritingPromptContent
+                      partTitle={partTitle}
+                      partInstruction={partInstruction}
+                      partSharedAudio={partSharedAudio}
+                      partSharedMedia={partSharedMedia}
+                      groups={displayQuestionGroups}
+                      questions={partQuestions}
+                    />
+                  </div>
+                )}
+
                 {/* Part Instruction Callout */}
-                {partInstruction && (
+                {currentSkill !== 'WRITING' && partInstruction && (
                   <div className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700">
                     <span className="font-bold text-amber-800 block mb-0.5">Hướng dẫn làm bài:</span>
                     {partInstruction}
@@ -1372,14 +1407,14 @@ const WorkspacePage: React.FC = () => {
                     data-group-id={group.group_id}
                     className="space-y-4"
                   >
-                    {group.instruction && group.instruction.trim() !== (partInstruction || '').trim() && (
+                    {currentSkill !== 'WRITING' && group.instruction && group.instruction.trim() !== (partInstruction || '').trim() && (
                       <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
                         {group.instruction}
                       </div>
                     )}
-                    {group.shared_audio?.url && <AudioPlayer url={group.shared_audio.url} isActive={true} />}
-                    {group.shared_media && <MediaDisplay media={group.shared_media} alt={`${group.group_id} media`} />}
-                    {(group.content_html || group.context_html) && (
+                    {currentSkill !== 'WRITING' && group.shared_audio?.url && <AudioPlayer url={group.shared_audio.url} isActive={true} />}
+                    {currentSkill !== 'WRITING' && group.shared_media && <MediaDisplay media={group.shared_media} alt={`${group.group_id} media`} />}
+                    {currentSkill !== 'WRITING' && (group.content_html || group.context_html) && (
                       <HtmlContent
                         html={group.content_html || group.context_html}
                         className="prose prose-slate max-w-none"
@@ -1409,7 +1444,7 @@ const WorkspacePage: React.FC = () => {
                               }`}>
                                 {q.question_number}
                               </span>
-                              <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'lg:hidden' : ''}`}>
+                              <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'hidden' : ''}`}>
                                 {q.question_text}
                               </div>
                             </div>
@@ -1446,6 +1481,7 @@ const WorkspacePage: React.FC = () => {
                                 partId={partId}
                                 currentAnswer={currentVal}
                                 minWords={minWords}
+                                showPrompt={currentSkill !== 'WRITING'}
                                 onChange={(val) => {
                                   if (!isCurrentSectionLocked && !submission.isLocked()) {
                                     dispatch(setAnswer({ partId, questionId: qId, value: val }));
@@ -1530,6 +1566,7 @@ const WorkspacePage: React.FC = () => {
             )}
           </div>
         </main>
+      </div>
 
         {/* 3. RIGHT SIDEBAR: QUESTION PALETTE DOCK */}
         <aside
