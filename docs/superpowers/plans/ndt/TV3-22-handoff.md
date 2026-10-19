@@ -1459,3 +1459,140 @@ Broad và Focused gate PASS với runner exit 0, evidence đầy đủ và workb
 ### 4. Kết luận & dừng (STOP — all AC PASS theo reviewer)
 
 Theo review "sau R-01–R-04" (Decision: PASS, AC-01–AC-09 PASS): TV3-22 bàn giao với trạng thái PASS. Entry này bổ sung đúng kết quả lượt Broad đang chạy mà reviewer yêu cầu. Không thay đổi scope khác, không commit, không push. F-01–F-03 và các follow-up ngoài phạm vi (Workbook Cambridge IELTS staged riêng, baseVersion, staging/audio/provider thật) giữ nguyên như reviewer chỉ định.
+
+---
+
+## 2026-10-19 — Subtask CIP-03 — re-FIX IMPLEMENTED (Cross-reference)
+
+**Ghi chú:** Thực hiện re-FIX finding P1 từ Codex Review trong `CAMBRIDGE-IELTS-20-T1-PUBLISH-handoff.md` (thuộc kế hoạch Cambridge IELTS 20 Test 1).
+- **Chi tiết kết quả thực hiện:** Đã ghi nhận đầy đủ tại `docs/superpowers/plans/ndt/CAMBRIDGE-IELTS-20-T1-PUBLISH-handoff.md` (mục `## 2026-10-19 — Executor — CIP-03 re-FIX IMPLEMENTED`).
+- **Trạng thái:** PASS (CIP-03 focused 45/45 PASS, Extended dataset & security suite 71/71 PASS, `git diff --check` sạch, checksum workbook nguyên vẹn). Dừng chờ Codex Reviewer re-review CIP-03.
+
+---
+
+## 2026-10-19 — Subtask CIP-03 — re-FIX #2 IMPLEMENTED (Cross-reference)
+
+**Ghi chú:** Thực hiện re-FIX finding P1 (lần 3) từ Codex Review trong `CAMBRIDGE-IELTS-20-T1-PUBLISH-handoff.md` (thuộc kế hoạch Cambridge IELTS 20 Test 1).
+- **Chi tiết kết quả thực hiện:** Đã ghi nhận đầy đủ tại `docs/superpowers/plans/ndt/CAMBRIDGE-IELTS-20-T1-PUBLISH-handoff.md` (mục `## 2026-10-19 — Executor — CIP-03 re-FIX #2 IMPLEMENTED`).
+- **Trạng thái:** PASS (CIP-03 focused + controller 52/52 PASS, Extended dataset & security suite 78/78 PASS, `git diff --check` sạch, checksum workbook nguyên vẹn). Dừng chờ Codex Reviewer re-review CIP-03.
+
+---
+
+## 2026-10-19 — Subtask CIP-03 — re-FIX #3 IMPLEMENTED
+
+**Scope:** Chỉ xử lý finding P1 về approval provenance của bundle schema V2 trong Codex Review lần 4.
+
+### Root cause
+
+- `ExamDatasetBundle.exportOfficial(..., approvalReference)` chấp nhận reference do caller truyền vào mà không yêu cầu registry có certified reference.
+- `validate()` chỉ kiểm tra mismatch khi `expected.approvalReference() != null`; dataset registry chưa được phê duyệt (`null`) vì vậy vẫn chấp nhận reference tùy ý.
+
+### Changes
+
+- `ExamDatasetBundle.exportOfficial(...)` giờ fail-closed nếu registry source không có approval reference server-side hoặc reference truyền vào không khớp.
+- `ExamDatasetBundle.validate()` giờ yêu cầu mọi source schema V2 có approval reference server-side không-null và khớp tuyệt đối.
+- Regression test `ExamDatasetBundleV2Test.rejectsRegisteredIeltsV1WithoutServerApprovalReference` được thêm để chứng minh V1/unapproved không thể dùng reference giả.
+- Cập nhật `OfficialExamDatasetTest` để kiểm tra rejection ngay tại export thay vì encode hành vi bypass cũ.
+
+### TDD evidence
+
+1. RED: test mới thất bại đúng nguyên nhân — `Expecting code to raise a throwable`.
+2. GREEN: sau production fix, test mới và V2 compatibility test PASS.
+
+### Verification thực tế
+
+Focused CIP-03 regression:
+
+```powershell
+.\mvnw.cmd '-Dtest=OfficialExamDatasetRegistryTest,IeltsAcademicPublicationValidatorTest,ExamDatasetBundleV2Test,ExamPublicationFlowTest,DefaultExamDatasetRunnerTest,AdminExamControllerTest,OfficialExamDatasetTest,ExamDatasetIntegrationTest' test
+```
+
+Kết quả: **59 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS**.
+
+Focused RED test trước fix:
+
+```text
+1 test, 1 failure: rejectsRegisteredIeltsV1WithoutServerApprovalReference
+Failure: Expecting code to raise a throwable.
+```
+
+`git diff --check`: PASS. Không commit, không push. Các thay đổi/untracked khác trong working tree được giữ nguyên.
+
+**Trạng thái:** IMPLEMENTED — dừng chờ Codex Reviewer re-review CIP-03.
+
+## 2026-10-19 — Subtask CIP-04 — re-FIX media verification
+
+**Review disposition:** Codex review xác nhận không có finding code P0/P1/P2 trong
+generator hoặc runtime contract test. Blocker còn lại là thiếu evidence media
+thật; không sửa production code hay test contract.
+
+**Verification bổ sung:**
+
+- Fetch trực tiếp đủ 4 audio và 4 image từ canonical runtime bundle: cả 8 trả
+  HTTP 200, MIME đúng (`audio/mp4` hoặc `image/png`), có `Accept-Ranges: bytes`
+  và `Access-Control-Allow-Origin: *`.
+- Đã ghi byte size và SHA-256 của từng asset trong
+  `docs/datasets/cambridge-ielts-20-test-1-v2-media-audit.md`.
+- Browser load/render thành công cả 4 ảnh; đã ghi intrinsic dimensions và chụp
+  screenshot kiểm chứng một ảnh.
+- Audio playback/seek chưa được xác minh: browser harness abort request khi
+  điều hướng trực tiếp đến M4A và môi trường không có `ffprobe`. Không suy đoán
+  duration/codec và không giả tạo evidence.
+
+**Trạng thái:** HTTP/MIME/size/hash/CORS/image-render evidence **PASS**; CIP-04
+media publication gate vẫn **BLOCKED** cho đến khi audio playback/seek được kiểm
+tra trong media element của ứng dụng hoặc browser-capable media harness.
+Không commit, không push; dừng để Codex re-review.
+
+### Browser media-element recheck — 2026-10-19T18:18+07:00
+
+Đã chạy probe bằng HTML `audio` element cho đủ 4 M4A. Cả bốn request trả
+`error`, `readyState=0`, `duration=null`; browser ghi nhận
+`net::ERR_ABORTED`. Vì vậy playback/seek chưa được chứng minh và không có
+P0/P1/P2 code finding nào để sửa hoặc thêm regression test. Đây là blocker của
+browser harness/môi trường, không phải bằng chứng lỗi bundle runtime.
+
+Audit chi tiết đã được cập nhật tại
+`docs/datasets/cambridge-ielts-20-test-1-v2-media-audit.md`. CIP-04 vẫn
+**BLOCKED**; dừng để Codex re-review, không commit/push.
+
+---
+
+## 2026-10-19 — Codex Reviewer — Re-review Subtask TV3-22-04
+
+**Agent:** Codex Reviewer
+**Reviewed scope:** TV3-22-04 — PostgreSQL regression riêng và sửa test harness
+**Decision: PASS**
+
+### Verified acceptance criteria
+
+- Đối chiếu approved plan, implementation và diff từ baseline `5b3442e` đến
+  `HEAD b47dbc4`; thay đổi liên quan chỉ là test harness trong
+  `WritingHintPostgresIT.java` và
+  `writing-hints-pg-prerequisites.sql`, không có production/schema/migration
+  change.
+- Hai bảng prerequisite mới (`user_study_stats`, `daily_study_logs`) khớp
+  cột, kiểu và default của V1; migration V20261012100000 vẫn chạy và tạo
+  practice counters/unique index như dự kiến. Test tạo schema ngẫu nhiên và
+  dọn schema trong `finally`; các nhóm TV3, TW-03, TW-04 dùng database riêng.
+- Gate Postgres yêu cầu cấu hình các database, ghi rõ thiếu cấu hình là
+  BLOCKED, và Surefire audit từ chối zero-test hoặc skipped test. Không thấy
+  P0/P1/P2 trong scope.
+
+### Test evidence
+
+- **Reviewer kiểm tra evidence đã lưu, không chạy lại PostgreSQL:** manifest
+  `.superpowers/tv3-22/20261019_022818Z/manifest.json` ghi Gate Postgres PASS,
+  exit 0; 25 TV3 tests + 5 playback tests, 0 failure/error/skip. Hai bước có
+  `VERIFIED_PASS`; artifact được tạo từ PostgreSQL disposable riêng.
+- **Reviewer-run:** `git diff --check` trên diff hai file từ baseline đến HEAD
+  — exit 0.
+- Không chạy lại suites: test endpoint variables hiện không được cấu hình và
+  ephemeral cluster đã bị hủy; tránh chạy test có thể skip rồi nhầm là PASS.
+
+### OUT-OF-SCOPE và next action
+
+- Các thay đổi Cambridge dataset/source audit và các finding của TV3-22-05/06
+  nằm ngoài subtask 22-04; không đánh giá ở entry này.
+- Không cần fix trong scope; tiếp tục theo gate của subtask kế tiếp. Chỉ append
+  review; không sửa code/plan, commit hoặc push.
