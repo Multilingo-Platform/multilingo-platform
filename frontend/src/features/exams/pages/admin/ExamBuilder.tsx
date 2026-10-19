@@ -7,6 +7,8 @@ import MediaUploadButton from '../../../../components/common/MediaUploadButton';
 import RichTextEditor from '../../../../components/common/RichTextEditor';
 import Swal from 'sweetalert2';
 import './ExamBuilder.css';
+import axiosClient from '../../../../core/api/axiosClient';
+import { addEditorOption, removeEditorOption, toEditorParts } from '../../utils/examContentMapping';
 
 interface QuestionMetadata {
   options?: string[];
@@ -22,6 +24,8 @@ interface Question {
   type: string;
   question_text: string;
   metadata: QuestionMetadata;
+  answer_group?: { id: string; mode: string; question_ids: string[] };
+  media?: { type: string; url: string; [key: string]: unknown };
 }
 
 export interface QuestionGroup {
@@ -35,6 +39,8 @@ export interface QuestionGroup {
 }
 
 export interface ExamPart {
+  partNumber?: number;
+  [key: string]: any;
   part_title: string;
   instruction: string;
   shared_audio?: { url: string; duration_seconds?: number };
@@ -778,6 +784,24 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   const [selectedSkill, setSelectedSkill] = useState('IELTS_LISTENING');
   const [wizardMode, setWizardMode] = useState<'START' | 'FULL' | 'SKILL' | 'PART' | 'BUILDER'>('START');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importController = useRef<AbortController | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importIssues, setImportIssues] = useState<Array<{ sheet: string | null; cell: string | null; questionId: string | null; message: string }>>([]);
+  const [saving, setSaving] = useState(false);
+  const saveMutex = useRef(false);
+  useEffect(() => () => { importController.current?.abort(); }, []);
+  const importNotice = <>
+    {importing && <p role="status">Đang kiểm tra file Excel…</p>}
+    {importError && <p role="alert">{importError}</p>}
+    {importIssues.length > 0 && <div role="alert">
+      <p>Cần hoàn thiện {importIssues.length} vấn đề trước khi xuất bản. Dữ liệu hiện chỉ là bản nháp.</p>
+      <ul>{importIssues.slice(0, 50).map((issue, index) => <li key={index}>
+        {[issue.sheet, issue.cell, issue.questionId].filter(Boolean).join(' — ')}: {issue.message}
+      </li>)}</ul>
+      {importIssues.length > 50 && <p>Hiển thị 50 vấn đề đầu tiên. Các vấn đề còn lại cần được kiểm tra trong báo cáo preview.</p>}
+    </div>}
+  </>;
 
   useEffect(() => {
     if (initialData) {
@@ -788,6 +812,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       
       const publishedState = initialData.published !== undefined ? initialData.published : initialData.isPublished;
       setIsPublished(publishedState !== false);
+      if (normalizedType === 'TOEIC_LR' || normalizedType === 'IELTS_ACADEMIC') {
+        const mapped = toEditorParts(initialData);
+        setParts(mapped);
+        if (mapped.length) setWizardMode('BUILDER');
+        return;
+      }
       
       const loadedParts: ExamPart[] = [];
       initialData.sections?.forEach((s: any) => {
@@ -1760,9 +1790,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     });
   };
 
-  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImportOtherExcel = async (file: File) => {
 
     try {
       const workbook = new ExcelJS.Workbook();
@@ -2258,35 +2286,80 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       Swal.fire({
         icon: 'success',
         title: 'Nhập Đề Thi Thành Công!',
-        html: `
-          <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; padding: 0.5rem;">
-            <p style="margin-bottom: 0.4rem;"><b>Tên đề thi:</b> <span style="color: var(--primary); font-weight: 700;">${finalExamTitle}</span></p>
-            <p style="margin-bottom: 0.4rem;"><b>Loại chứng chỉ:</b> ${EXAM_TYPE_OPTIONS[detectedType] || detectedType}</p>
-            <p style="margin-bottom: 0.4rem;"><b>Số phần thi:</b> ${tempParts.length} phần</p>
-            <p style="margin-bottom: 0;"><b>Tổng số câu hỏi:</b> ${totalQuestionsCount} câu</p>
-          </div>
-        `,
+        text: `Đã nhập ${tempParts.length} phần, ${totalQuestionsCount} câu. Cần kiểm tra nội dung trước khi lưu.`,
         confirmButtonText: 'Bắt đầu xem & chỉnh sửa'
       });
-    } catch (error: any) {
-      console.error(error);
-      Swal.fire('Lỗi', 'Không thể đọc file Excel: ' + (error?.message || 'Vui lòng kiểm tra lại định dạng.'), 'error');
+    } catch {
+      Swal.fire('Lỗi', 'Không thể đọc file Excel. Hãy kiểm tra định dạng và thử lại.', 'error');
     }
   };
 
-  const handleSave = () => {
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || importController.current) return;
+    const controller = new AbortController();
+    importController.current = controller;
+    setImporting(true);
+    setImportError(null);
+    try {
+      // Preserve existing non-TOEIC editing, but never fall back around TOEIC validation.
+      let legacyType = '';
+      try {
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(await file.arrayBuffer());
+        const info = workbook.getWorksheet('Thông Tin Đề Thi');
+        info?.eachRow(row => {
+          const rawType = row.getCell(2).text.trim();
+          if (row.getCell(1).text.trim() === 'Mã loại chứng chỉ' && rawType) legacyType = normalizeExamType(rawType);
+        });
+      } catch { /* Malformed files remain the backend preview's responsibility. */ }
+      if (controller.signal.aborted) return;
+      if (['IELTS_GENERAL', 'TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)) {
+        await handleImportOtherExcel(file);
+        setIsPublished(false);
+        return;
+      }
+      const form = new FormData();
+      form.append('file', file);
+      const response = await axiosClient.post<any, any>('/v1/admin/exams/import/preview', form, { signal: controller.signal, timeout: 10000 });
+      if (controller.signal.aborted) return;
+      if (!response.success || !response.data?.request?.sections || !Array.isArray(response.data.issues)) throw new Error('Invalid preview');
+      const preview = response.data;
+      setExamTitle(preview.request.title);
+      setExamType(normalizeExamType(preview.request.type));
+      setIsPublished(false);
+      setParts(toEditorParts(preview.request));
+      setImportIssues(preview.issues);
+      setActivePartIndex(0);
+      setWizardMode('BUILDER');
+    } catch {
+      if (!controller.signal.aborted) setImportError('Không thể đọc file Excel. Hãy kiểm tra định dạng và thử lại.');
+    } finally {
+      if (importController.current === controller) {
+        importController.current = null;
+        setImporting(false);
+      }
+    }
+  };
+  const handleSave = async (draft = false) => {
+    if (saveMutex.current || importing) return;
+    saveMutex.current = true;
+    setSaving(true);
     const finalJson = {
       exam_title: examTitle,
       exam_type: examType,
-      is_published: isPublished,
+      is_published: draft ? false : isPublished,
       parts: parts
     };
-    onSave(JSON.stringify(finalJson, null, 2));
+    try { await onSave(JSON.stringify(finalJson, null, 2)); }
+    finally { saveMutex.current = false; setSaving(false); }
   };
 
   if (wizardMode === 'START') {
     return (
       <div className="eb-wizard-container">
+        {importNotice}
         <h2 className="eb-wizard-title">Bắt đầu tạo Đề thi</h2>
         <p className="eb-wizard-subtitle">Chọn phương thức phù hợp để xây dựng cấu trúc đề thi của bạn.</p>
         
@@ -2316,8 +2389,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>Chỉ tạo một đoạn văn (Passage) hoặc một part trắc nghiệm nhỏ bất kỳ</p>
           </div>
 
-          <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls" onChange={handleImportExcel} />
-          <div className="ed-card eb-wizard-card hover-bg-tertiary" onClick={() => fileInputRef.current?.click()}>
+          <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx" disabled={importing} onChange={handleImportExcel} />
+          <div className="ed-card eb-wizard-card hover-bg-tertiary" role="button" tabIndex={0} aria-disabled={importing} onKeyDown={event => { if (!importing && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); fileInputRef.current?.click(); } }} onClick={() => !importing && fileInputRef.current?.click()}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #db2777 0%, #be185d 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', boxShadow: '0 4px 10px rgba(190, 24, 93, 0.3)' }}>
               <Upload size={28} color="white" />
             </div>
@@ -2884,8 +2957,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                       <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Các lựa chọn (Options):</span>
                                       <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', borderRadius: 'var(--radius-sm)' }} onClick={() => {
-                                        const newOpts = [...(q.metadata.options || []), `Lựa chọn mới`];
-                                        updateQuestionMetadata(pIndex, gIndex, qIndex, 'options', newOpts);
+                                        updateQuestion(pIndex, gIndex, qIndex, 'metadata', addEditorOption(q.metadata));
                                       }}>
                                         <Plus size={12} style={{ marginRight: '0.2rem' }} /> Thêm đáp án
                                       </button>
@@ -2893,7 +2965,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                     {q.metadata.options.length > 0 ? (
                                       <div className="eb-options-grid">
                                         {q.metadata.options.map((opt, oIdx) => {
-                                          const isMulti = q.type === 'MULTIPLE_CHOICE_MULTI';
+                                          const isMulti = q.type === 'MULTIPLE_CHOICE_MULTI' || Boolean(q.answer_group);
                                           const hasValidAnswer = isMulti
                                             ? (q.metadata.correct_option_indices !== undefined 
                                                 ? q.metadata.correct_option_indices.length > 0 
@@ -2942,7 +3014,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                                 style={{ cursor: 'pointer', accentColor: 'var(--success)', width: '16px', height: '16px', flexShrink: 0 }}
                                                 title="Chọn làm đáp án đúng"
                                               />
-                                              <div style={{ fontWeight: 700, fontSize: '0.875rem', width: '20px', color: isChecked ? 'var(--success)' : 'inherit', flexShrink: 0 }}>{String.fromCharCode(65 + oIdx)}.</div>
+                                              <div style={{ fontWeight: 700, fontSize: '0.875rem', width: '20px', color: isChecked ? 'var(--success)' : 'inherit', flexShrink: 0 }}>{q.metadata.option_ids?.[oIdx] || String.fromCharCode(65 + oIdx)}.</div>
                                               <input type="text" className="input-field" value={opt} onChange={(e) => {
                                                   const oldVal = opt;
                                                   const newVal = e.target.value;
@@ -2969,22 +3041,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                                   }
                                                 }} style={{ padding: '0.2rem', fontSize: '0.875rem', border: 'none', flex: 1, background: 'transparent' }} />
                                               <button className="btn" style={{ padding: '0.2rem', color: 'var(--text-muted)', background: 'transparent', border: 'none', flexShrink: 0 }} onClick={() => {
-                                                const newOpts = [...(q.metadata.options || [])];
-                                                const removedVal = newOpts.splice(oIdx, 1)[0];
-                                                updateQuestionMetadata(pIndex, gIndex, qIndex, 'options', newOpts);
-                                                
-                                                // Remove from correct_answer if deleted
-                                                if (isMulti) {
-                                                  let currentArr = Array.isArray(q.metadata.correct_answer) ? [...q.metadata.correct_answer] : [];
-                                                  if (currentArr.includes(removedVal)) {
-                                                    currentArr = currentArr.filter(item => item !== removedVal);
-                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', currentArr);
-                                                  }
-                                                } else {
-                                                  if (q.metadata.correct_answer === removedVal) {
-                                                    updateQuestionMetadata(pIndex, gIndex, qIndex, 'correct_answer', '');
-                                                  }
-                                                }
+                                                updateQuestion(pIndex, gIndex, qIndex, 'metadata', removeEditorOption(q.metadata, oIdx));
                                               }}>
                                                 <Trash2 size={14} />
                                               </button>
@@ -3154,7 +3211,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               }
             });
           }}>Hủy</button>
-          <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={handleSave}><Save size={18} /> Lưu Đề Thi</button>
+          {importNotice}
+          <button className="btn btn-outline" disabled={saving || importing} onClick={() => handleSave(true)}>Lưu nháp</button>
+          <button className="btn btn-primary" disabled={saving || importing} style={{ justifyContent: 'center' }} onClick={() => handleSave()}><Save size={18} /> Lưu Đề Thi</button>
         </div>
       </div>
 

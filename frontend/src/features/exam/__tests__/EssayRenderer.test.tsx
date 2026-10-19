@@ -42,4 +42,44 @@ describe('EssayRenderer Word Count & Warning', () => {
     fireEvent.change(textarea, { target: { value: 'New text' } });
     expect(onChange).toHaveBeenCalledWith('New text');
   });
+
+  it('hides prompt and media when showPrompt is false', () => {
+    render(
+      <EssayRenderer
+        value=""
+        onChange={vi.fn()}
+        questionText="Write about the chart below."
+        media={{ url: 'https://example.com/chart.png', type: 'image' }}
+        showPrompt={false}
+      />
+    );
+    expect(screen.queryByText('Write about the chart below.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Writing Prompt Graph' })).not.toBeInTheDocument();
+  });
+
+  it('renders prompt and media when showPrompt is true or omitted', () => {
+    render(
+      <EssayRenderer
+        value=""
+        onChange={vi.fn()}
+        questionText="Write about the chart below."
+        media={{ url: 'https://example.com/chart.png', type: 'image' }}
+      />
+    );
+    expect(screen.getByText('Write about the chart below.')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Writing Prompt Graph' })).toBeInTheDocument();
+  });
+
+  it('has accessible label on textarea', () => {
+    render(
+      <EssayRenderer
+        value=""
+        onChange={vi.fn()}
+        questionText="Task 1 prompt"
+        showPrompt={false}
+      />
+    );
+    const textarea = screen.getByLabelText(/Bài làm cho: Task 1 prompt/i);
+    expect(textarea).toBeInTheDocument();
+  });
 });

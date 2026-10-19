@@ -53,6 +53,26 @@ describe('TV3-16-01 practiceFeedbackContract', () => {
       ).not.toThrow();
     });
 
+    it('accepts exactly both current answers for a paired question when the anchor matches', () => {
+      expect(() => validatePracticeFeedbackRequest(42, {
+        ...validReq,
+        questionId: 'l_017',
+        answer: 'A',
+        groupAnswers: { l_017: 'A', l_018: 'E' },
+      } as any)).not.toThrow();
+    });
+
+    it.each([
+      { groupAnswers: { l_017: 'A' }, answer: 'A' },
+      { groupAnswers: { l_017: 'A', l_018: 'E', l_019: 'C' }, answer: 'A' },
+      { groupAnswers: { l_017: 'E', l_018: 'A' }, answer: 'A' },
+      { groupAnswers: { l_018: 'E', l_019: 'A' }, answer: 'A' },
+    ])('rejects malformed paired request $groupAnswers', ({ groupAnswers, answer }) => {
+      expect(() => validatePracticeFeedbackRequest(42, {
+        ...validReq, questionId: 'l_017', answer, groupAnswers,
+      } as any)).toThrow(PracticeFeedbackContractError);
+    });
+
     it.each([0, -1, 1.5, 2147483648, NaN, Infinity, null, undefined, '42'])(
       'rejects invalid attemptId %s',
       (invalidId) => {
@@ -317,6 +337,41 @@ describe('TV3-16-01 practiceFeedbackContract', () => {
       expect(result.userAnswer).toBe('A');
     });
 
+    it('normalizes both paired results in the requested stable order and verifies each echoed answer', () => {
+      const expectedGroupAnswers = { l_017: 'A', l_018: 'E' };
+      const result = normalizePracticeFeedback({
+        ...practiceFeedbackFixture({ questionId: 'l_017', userAnswer: 'A', correctAnswer: ['A', 'E'], explanation: 'slot one' }),
+        groupResults: [
+          { questionId: 'l_017', userAnswer: 'A', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'E'], explanation: 'slot one' },
+          { questionId: 'l_018', userAnswer: 'E', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'E'], explanation: 'slot two' },
+        ],
+      }, 42, 10, 'l_017', 'A', expectedGroupAnswers as any);
+      expect(result.groupResults?.map(item => item.questionId)).toEqual(['l_017', 'l_018']);
+      expect(result.groupResults?.map(item => item.userAnswer)).toEqual(['A', 'E']);
+    });
+
+    it.each([
+      { groupResults: [{ questionId: 'l_017', userAnswer: 'A', verdict: 'CORRECT', score: 1, correctAnswer: 'A', explanation: null }] },
+      { groupResults: [
+        { questionId: 'l_017', userAnswer: 'A', verdict: 'CORRECT', score: 1, correctAnswer: 'A', explanation: null },
+        { questionId: 'l_018', userAnswer: 'A', verdict: 'CORRECT', score: 1, correctAnswer: 'A', explanation: null },
+      ] },
+    ])('rejects incomplete or answer-mismatched paired response', ({ groupResults }) => {
+      expect(() => normalizePracticeFeedback({
+        ...practiceFeedbackFixture({ questionId: 'l_017', userAnswer: 'A' }), groupResults,
+      }, 42, 10, 'l_017', 'A', { l_017: 'A', l_018: 'E' } as any)).toThrow(PracticeFeedbackContractError);
+    });
+
+    it('rejects a paired response whose top-level anchor disagrees with its group result', () => {
+      expect(() => normalizePracticeFeedback({
+        ...practiceFeedbackFixture({ questionId: 'l_017', userAnswer: 'A', verdict: 'WRONG', score: 0 }),
+        groupResults: [
+          { questionId: 'l_017', userAnswer: 'A', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'E'], explanation: null },
+          { questionId: 'l_018', userAnswer: 'E', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'E'], explanation: null },
+        ],
+      }, 42, 10, 'l_017', 'A', { l_017: 'A', l_018: 'E' } as any)).toThrow(PracticeFeedbackContractError);
+    });
+
     it('accepts matching response when map keys have different insertion order', () => {
       const raw = practiceFeedbackFixture({
         userAnswer: { '2': 'B', '1': 'A' },
@@ -332,6 +387,91 @@ describe('TV3-16-01 practiceFeedbackContract', () => {
       });
       const result = normalizePracticeFeedback(raw, 42, 10, 'q1', unicodeAns);
       expect(result.userAnswer).toBe(unicodeAns);
+    });
+
+    it('normalizes valid listeningDetail with transcript and options', () => {
+      const raw = practiceFeedbackFixture({
+        listeningDetail: {
+          transcript: 'Where is the meeting taking place?',
+          options: [
+            { label: 'A', text: 'In conference room B.' },
+            { label: 'B', text: 'At 3:00 PM.' },
+          ],
+        },
+      });
+      const result = normalizePracticeFeedback(raw, 42, 10, 'q1', 'A');
+      expect(result.listeningDetail).toEqual({
+        transcript: 'Where is the meeting taking place?',
+        options: [
+          { label: 'A', text: 'In conference room B.' },
+          { label: 'B', text: 'At 3:00 PM.' },
+        ],
+      });
+    });
+
+    it('accepts snake_case listening_detail alias', () => {
+      const raw = practiceFeedbackFixture({
+        listening_detail: {
+          transcript: 'Transcript via snake_case alias',
+        },
+      } as any);
+      const result = normalizePracticeFeedback(raw, 42, 10, 'q1', 'A');
+      expect(result.listeningDetail).toEqual({
+        transcript: 'Transcript via snake_case alias',
+      });
+    });
+
+    it('normalizes listeningDetail on groupResults items', () => {
+      const raw = practiceFeedbackFixture({
+        explanation: 'Exp 1',
+        correctAnswer: 'A',
+        groupResults: [
+          {
+            questionId: 'q1',
+            userAnswer: 'A',
+            verdict: 'CORRECT',
+            score: 1,
+            correctAnswer: 'A',
+            explanation: 'Exp 1',
+            listeningDetail: { transcript: 'Spoken line 1' },
+          },
+          {
+            questionId: 'q2',
+            userAnswer: 'B',
+            verdict: 'CORRECT',
+            score: 1,
+            correctAnswer: 'B',
+            explanation: 'Exp 2',
+            listeningDetail: { transcript: 'Spoken line 2' },
+          },
+        ],
+      });
+      const result = normalizePracticeFeedback(raw, 42, 10, 'q1', 'A', { q1: 'A', q2: 'B' });
+      expect(result.groupResults?.[0].listeningDetail).toEqual({ transcript: 'Spoken line 1' });
+      expect(result.groupResults?.[1].listeningDetail).toEqual({ transcript: 'Spoken line 2' });
+    });
+
+    it('throws PracticeFeedbackContractError when listeningDetail is not a record or has invalid options', () => {
+      const invalidDetail1 = practiceFeedbackFixture({
+        listeningDetail: 'invalid-string-detail',
+      } as any);
+      expect(() => normalizePracticeFeedback(invalidDetail1, 42, 10, 'q1', 'A')).toThrow(
+        PracticeFeedbackContractError
+      );
+
+      const invalidDetail2 = practiceFeedbackFixture({
+        listeningDetail: { transcript: 123 },
+      } as any);
+      expect(() => normalizePracticeFeedback(invalidDetail2, 42, 10, 'q1', 'A')).toThrow(
+        PracticeFeedbackContractError
+      );
+
+      const invalidDetail3 = practiceFeedbackFixture({
+        listeningDetail: { options: [{ label: 'A' }] }, // missing text
+      } as any);
+      expect(() => normalizePracticeFeedback(invalidDetail3, 42, 10, 'q1', 'A')).toThrow(
+        PracticeFeedbackContractError
+      );
     });
   });
 

@@ -3,24 +3,73 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 import { isAnswered } from '../utils/answerUtils';
+import { resolveQuestionNumber } from '../utils/toeicWorkspaceModel';
 
 export interface QuestionPaletteProps {
   allParts?: any[];
   activePartId?: number;
+  activeQuestionId?: string | null;
   questions?: Question[];
   partId?: number;
   lockedPartIds?: Set<number> | number[];
   visibleQuestionIds?: readonly string[] | ReadonlySet<string>;
+  /** True only for verified TOEIC snapshots; other exams keep their own question numbering. */
+  isToeicExam?: boolean;
   onNavigate: ((partId: number, questionId: string) => void) | ((questionId: string) => void);
+}
+
+/**
+ * Questions of a Part, preferring the flat list and otherwise walking the nested groups in
+ * server order (camelCase, snake_case or wrapped in `content`).
+ */
+function extractQuestions(part: any): any[] {
+  if (Array.isArray(part?.questions) && part.questions.length > 0) return part.questions;
+  const groups =
+    part?.questionGroups ??
+    part?.question_groups ??
+    part?.content?.questionGroups ??
+    part?.content?.question_groups;
+  if (Array.isArray(groups)) {
+    return groups.flatMap(group => (Array.isArray(group?.questions) ? group.questions : []));
+  }
+  return [];
+}
+
+function declaredPartNumber(part: any): number | null {
+  const raw = part?.part_number ?? part?.partNumber;
+  return typeof raw === 'number' && Number.isSafeInteger(raw) && raw > 0 ? raw : null;
+}
+
+/**
+ * Cell label for a question. TOEIC uses the canonical whole-exam number (1..200) and never the
+ * array index, the Part ordinal or the DB id. Every other exam (IELTS/Writing/general) keeps its
+ * own explicit numbering so the shared palette cannot renumber it.
+ */
+function questionCellLabel(
+  question: any,
+  partNumber: number | null,
+  isToeicExam: boolean
+): { display: string; aria: string } {
+  if (isToeicExam) {
+    const number = resolveQuestionNumber(question, partNumber).number;
+    return number !== null
+      ? { display: String(number), aria: String(number) }
+      : { display: '–', aria: 'chưa xác định' };
+  }
+  const raw = question?.question_number ?? question?.questionNumber ?? question?.id;
+  const text = raw === undefined || raw === null ? '–' : String(raw);
+  return { display: text, aria: text };
 }
 
 const QuestionPalette: React.FC<QuestionPaletteProps> = ({
   allParts,
   activePartId,
+  activeQuestionId,
   questions,
   partId: singlePartId,
   lockedPartIds,
   visibleQuestionIds,
+  isToeicExam = false,
   onNavigate,
 }) => {
   const answers = useSelector((state: RootState) => state.answers.answers);
@@ -41,9 +90,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
   normalizedParts.forEach((p: any) => {
     const pId = p.part_id ?? p.id;
-    const qList = Array.isArray(p.questions) && p.questions.length > 0
-      ? p.questions
-      : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) ?? [];
+    const qList = extractQuestions(p);
 
     total += qList.length;
 
@@ -106,9 +153,8 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {normalizedParts.map((p: any, index: number) => {
           const pId = p.part_id ?? p.id;
-          const qList = Array.isArray(p.questions) && p.questions.length > 0
-            ? p.questions
-            : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) ?? [];
+          const pNumber = declaredPartNumber(p);
+          const qList = extractQuestions(p);
 
           if (qList.length === 0) return null;
 
@@ -124,7 +170,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
             <div key={pId}>
               {normalizedParts.length > 1 && (
                 <div style={{ fontSize: '0.85rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)', color: '#1f2937', marginBottom: '8px' }}>
-                  {p.title || p.content?.part_title || `Part ${index + 1}`}
+                  {p.title || p.content?.part_title || `Part ${pNumber ?? index + 1}`}
                 </div>
               )}
               <nav
@@ -137,6 +183,8 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                   const answered = isAnswered(val, q.type);
                   const isFlagged = !!flags?.[pId]?.[qId];
                   const isActive = activePartId ? pId === activePartId : true;
+                  const { display: displayNumber, aria: ariaNumber } = questionCellLabel(q, pNumber, isToeicExam);
+                  const isCurrentQuestion = activeQuestionId != null && activeQuestionId === qId;
 
                   const isExcludedFromRetry = isCurrentActivePart && visibleQuestionIdSet !== null && !visibleQuestionIdSet.has(qId);
                   const isCellDisabled = isPartLocked || Boolean(isExcludedFromRetry);
@@ -176,9 +224,9 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                       data-status={isFlagged ? 'flagged' : answered ? 'answered' : 'unanswered'}
                       disabled={isCellDisabled}
                       aria-disabled={isCellDisabled ? 'true' : 'false'}
-                      aria-label={`Câu ${q.question_number ?? q.id}${isFlagged ? ' (đã gắn cờ)' : ''}${answered ? ' (đã trả lời)' : ' (chưa trả lời)'}`}
+                      aria-current={isCurrentQuestion ? 'true' : undefined}
+                      aria-label={`Câu ${ariaNumber}${isFlagged ? ' (đã gắn cờ)' : ''}${answered ? ' (đã trả lời)' : ' (chưa trả lời)'}`}
                       onClick={() => { if (!isCellDisabled) handleCellClick(pId, qId); }}
-                      onKeyDown={e => { if (e.key === 'Enter' && !isCellDisabled) handleCellClick(pId, qId); }}
                       style={{
                         position: 'relative',
                         width: '32px',
@@ -202,6 +250,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                       {/* Flag icon pill on top right corner */}
                       {isFlagged && (
                         <span
+                          aria-hidden="true"
                           style={{
                             position: 'absolute',
                             top: '-4px',
@@ -223,7 +272,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                           🚩
                         </span>
                       )}
-                      {q.question_number ?? q.id}
+                      {displayNumber}
                     </button>
                   );
                 })}

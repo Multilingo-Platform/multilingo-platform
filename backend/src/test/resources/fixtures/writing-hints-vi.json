@@ -1,0 +1,15 @@
+{
+  "hintLanguage": "vi",
+  "outline": [
+    {"title": "Mở bài", "points": ["Diễn đạt lại yêu cầu bằng lời của mình.", "Giới thiệu chủ đề năng lượng tái tạo."]},
+    {"title": "Thân bài", "points": ["So sánh xu hướng của các nguồn năng lượng.", "Chỉ dùng số liệu mà người học xác nhận từ biểu đồ."]}
+  ],
+  "vocabulary": [
+    {"term": "tăng trưởng", "definition": "Sự gia tăng theo thời gian.", "explanation": "Dùng khi mô tả xu hướng đi lên.", "example": "Sản lượng điện mặt trời có xu hướng tăng trưởng."},
+    {"term": "ổn định", "definition": "Ít thay đổi trong một khoảng thời gian.", "explanation": "Dùng để diễn đạt một mức tương đối đều.", "example": "Sản lượng thủy điện duy trì ổn định."},
+    {"term": "dao động", "definition": "Tăng giảm quanh một mức.", "explanation": "Dùng khi xu hướng không liên tục tăng hoặc giảm.", "example": "Sản lượng điện gió có thể dao động qua các năm."},
+    {"term": "tỷ trọng", "definition": "Phần đóng góp trong tổng thể.", "explanation": "Dùng để so sánh vai trò của từng nguồn.", "example": "Cần đối chiếu tỷ trọng của các nguồn năng lượng."},
+    {"term": "chênh lệch", "definition": "Khoảng cách giữa hai giá trị.", "explanation": "Dùng khi so sánh số liệu đã được xác nhận.", "example": "Người học cần xác định chênh lệch trên biểu đồ."}
+  ],
+  "limitations": ["Gợi ý chỉ dựa trên văn bản; người học cần kiểm tra số liệu trong biểu đồ."]
+}

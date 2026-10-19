@@ -69,7 +69,9 @@ class TestAttemptReviewServiceTest {
                 entityManager,
                 gradingInputFactory,
                 summaryMapper,
-                reviewMapper
+                reviewMapper,
+                mock(com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer.class),
+                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver()
         );
     }
 

@@ -136,6 +136,31 @@ class PracticeFeedbackRequestValidatorTest {
         assertThat(input.answer()).isEqualTo(Map.of("item_1", "target_A", "item_2", "target_B"));
     }
 
+    @Test
+    void validate_pairedAnswersKeepsBothCurrentValuesAndMatchesAnchor() throws Exception {
+        var input = validator.validate(parseRequest("""
+            {"partId": 10, "questionId": "l_018", "answer": null,
+             "groupAnswers": {"l_018": null, "l_017": "E"}}
+            """));
+
+        assertThat(input.groupAnswers()).containsEntry("l_017", "E").containsEntry("l_018", null);
+        assertThat(input.answer()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "{\"partId\":10,\"questionId\":\"l_017\",\"answer\":\"A\",\"groupAnswers\":{\"l_017\":\"A\"}}",
+        "{\"partId\":10,\"questionId\":\"l_017\",\"answer\":\"A\",\"groupAnswers\":{\"l_017\":\"A\",\"l_018\":\"E\",\"l_019\":\"B\"}}",
+        "{\"partId\":10,\"questionId\":\"l_017\",\"answer\":\"B\",\"groupAnswers\":{\"l_017\":\"A\",\"l_018\":\"E\"}}",
+        "{\"partId\":10,\"questionId\":\"l_017\",\"answer\":\"A\",\"groupAnswers\":{\"l_017\":\"A\",\"l_018\":12}}"
+    })
+    void validate_rejectsMalformedPairAnswersOrMismatchedAnchor(String json) throws Exception {
+        assertThatThrownBy(() -> validator.validate(parseRequest(json)))
+                .isInstanceOf(AppException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.VALIDATION_FAILED);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
         "{\"partId\": 0, \"questionId\": \"q1\", \"answer\": \"A\"}",

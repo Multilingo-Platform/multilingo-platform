@@ -12,11 +12,16 @@ import com.multilingo.backend.modules.exam.repository.ExamPartRepository;
 import com.multilingo.backend.modules.exam.repository.ExamRepository;
 import com.multilingo.backend.modules.exam.repository.ExamSectionRepository;
 import com.multilingo.backend.modules.exam.service.AdminExamService;
+import com.multilingo.backend.modules.exam.service.ExamContentNormalizer;
+import com.multilingo.backend.modules.exam.service.ExamPublicationValidator;
+import com.multilingo.backend.modules.exam.service.IeltsAcademicPublicationValidator;
+import com.multilingo.backend.modules.exam.service.OfficialExamDatasetRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -34,17 +39,24 @@ public class AdminExamServiceImpl implements AdminExamService {
 
     @Override
     public Integer createExam(ExamBuilderRequest request) {
+        String prefix = request.getType().split("_")[0].toUpperCase();
+        String shortCode = java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        return createExamWithCode(request, prefix + "-" + shortCode);
+    }
+
+    @Override
+    public Integer createExamWithCode(ExamBuilderRequest request, String code) {
+        request = prepare(request, code);
         Exam exam = new Exam();
         
         // Generate a shorter, human-readable code: e.g. IELTS-A8B9C2
-        String prefix = request.getType().split("_")[0].toUpperCase();
-        String shortCode = java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        exam.setCode(prefix + "-" + shortCode);
+        exam.setCode(code);
         
         exam.setTitle(request.getTitle());
         exam.setType(request.getType());
         exam.setExamLanguage(request.getExamLanguage());
         exam.setIsPublished(request.isPublished());
+        setDuration(exam, request);
         exam = examRepository.save(exam);
 
         saveSectionsAndParts(exam, request.getSections());
@@ -56,6 +68,7 @@ public class AdminExamServiceImpl implements AdminExamService {
     public void updateExam(Integer id, ExamBuilderRequest request) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+        request = prepare(request, exam.getCode());
 
         List<Integer> sectionIds = sectionRepository.findByExam_Id(id).stream().map(ExamSection::getId).toList();
         if (!sectionIds.isEmpty()) {
@@ -67,6 +80,7 @@ public class AdminExamServiceImpl implements AdminExamService {
         exam.setType(request.getType());
         exam.setExamLanguage(request.getExamLanguage());
         exam.setIsPublished(request.isPublished());
+        setDuration(exam, request);
         examRepository.save(exam);
 
         saveSectionsAndParts(exam, request.getSections());
@@ -98,6 +112,7 @@ public class AdminExamServiceImpl implements AdminExamService {
             section.setSkillType(sectionReq.getSkillType());
             section.setTitle(sectionReq.getSkillType() + " Section");
             section.setDurationMinutes(sectionReq.getDurationMinutes());
+            section.setOrderIndex(i + 1);
             section = sectionRepository.save(section);
 
             if (sectionReq.getParts() != null) {
@@ -192,8 +207,10 @@ public class AdminExamServiceImpl implements AdminExamService {
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
         List<SectionBuilderRequest> sectionRequests = sectionRepository.findByExam_Id(id).stream()
+                .sorted(java.util.Comparator.comparing(ExamSection::getOrderIndex).thenComparing(ExamSection::getId))
                 .map(section -> {
                     List<PartBuilderRequest> partRequests = partRepository.findBySection_Id(section.getId()).stream()
+                            .sorted(java.util.Comparator.comparing(ExamPart::getPartNumber))
                             .map(part -> PartBuilderRequest.builder()
                                     .partNumber(part.getPartNumber())
                                     .contentData(part.getContentData())
@@ -221,7 +238,71 @@ public class AdminExamServiceImpl implements AdminExamService {
     public void updateExamStatus(Integer id, boolean isPublished) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+        if (isPublished) {
+            var original = getExamDetail(id);
+            var canonical = new ExamContentNormalizer().normalize(original);
+            requirePublishable(canonical, exam.getCode());
+            if (("TOEIC_LR".equals(original.getType()) || isRegisteredCambridgeCode(exam.getCode()))
+                    && !original.equals(canonical))
+                throw new AppException(ErrorCode.VALIDATION_FAILED, "Hãy lưu lại đề theo định dạng chuẩn trước khi xuất bản.");
+        }
         exam.setIsPublished(isPublished);
         examRepository.save(exam);
+    }
+
+    private ExamBuilderRequest prepare(ExamBuilderRequest request, String examCode) {
+        ExamBuilderRequest normalized=new ExamContentNormalizer().normalize(request);
+        validateRegisteredIdentity(normalized, examCode);
+        new ExamPublicationValidator().requireStructure(normalized);
+        if (isRegisteredCambridgeCode(examCode)) new IeltsAcademicPublicationValidator().requireStructure(normalized);
+        if (normalized.isPublished()) requirePublishable(normalized, examCode);
+        return normalized;
+    }
+
+    private static void requirePublishable(ExamBuilderRequest request, String examCode) {
+        validateRegisteredIdentity(request, examCode);
+        var definition = OfficialExamDatasetRegistry.findByExamCode(examCode);
+        if (definition.isPresent()) {
+            if (OfficialExamDatasetRegistry.CAMBRIDGE_IELTS_KEY.equals(definition.get().datasetKey()))
+                new IeltsAcademicPublicationValidator().requirePublishable(request,
+                        "COMPLETE".equals(definition.get().explanationStatus()));
+            else new ExamPublicationValidator().requirePublishable(request);
+            com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle.requireRegisteredShape(
+                    definition.get(), request);
+            return;
+        }
+        new ExamPublicationValidator().requirePublishable(request);
+    }
+
+    private static void validateRegisteredIdentity(ExamBuilderRequest request, String examCode) {
+        OfficialExamDatasetRegistry.findByExamCode(examCode).ifPresent(definition -> {
+            if (request == null || !Objects.equals(definition.type(), request.getType())
+                    || !Objects.equals(definition.title(), request.getTitle())
+                    || !Objects.equals(definition.language(), request.getExamLanguage()))
+                throw new AppException(ErrorCode.VALIDATION_FAILED,
+                        "Mã đề chính thức không khớp type, tên đề hoặc ngôn ngữ đã đăng ký.");
+        });
+    }
+
+    private static boolean isRegisteredCambridgeCode(String examCode) {
+        return OfficialExamDatasetRegistry.findByExamCode(examCode)
+                .filter(definition -> OfficialExamDatasetRegistry.CAMBRIDGE_IELTS_KEY.equals(definition.datasetKey()))
+                .isPresent();
+    }
+    private void setDuration(Exam exam,ExamBuilderRequest request) {
+        if (java.util.Set.of("TOEIC_LR", "IELTS_ACADEMIC").contains(request.getType()))
+            exam.setDurationMinutes(request.getSections().stream().mapToInt(s -> s.getDurationMinutes()).sum());
+    }
+
+    @Override
+    public com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle exportDataset(Integer id) {
+        return exportDataset(id, null);
+    }
+
+    @Override
+    public com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle exportDataset(Integer id, String approvalReference) {
+        Exam exam = examRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+        return com.multilingo.backend.modules.exam.dto.response.ExamDatasetBundle
+                .exportForCode(getExamDetail(id), exam.getCode(), approvalReference);
     }
 }

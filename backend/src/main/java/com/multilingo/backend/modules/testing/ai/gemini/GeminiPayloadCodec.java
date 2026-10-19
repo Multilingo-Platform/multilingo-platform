@@ -13,6 +13,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
+import java.util.Base64;
 
 /**
  * Encodes requests to Google Gemini generateContent wire format and normalizes responses.
@@ -25,7 +26,10 @@ public class GeminiPayloadCodec {
             "RECITATION",
             "BLOCKLIST",
             "PROHIBITED_CONTENT",
-            "SPII"
+            "SPII",
+            "IMAGE_SAFETY",
+            "IMAGE_PROHIBITED_CONTENT",
+            "IMAGE_RECITATION"
     );
 
     private final ObjectMapper objectMapper;
@@ -64,6 +68,11 @@ public class GeminiPayloadCodec {
             ObjectNode userContent = contents.addObject();
             userContent.put("role", "user");
             ArrayNode userParts = userContent.putArray("parts");
+            for (GeminiImagePart image : request.images()) {
+                ObjectNode inline = userParts.addObject().putObject("inlineData");
+                inline.put("mimeType", image.mimeType());
+                inline.put("data", Base64.getEncoder().encodeToString(image.data()));
+            }
             userParts.addObject().put("text", request.userText());
 
             ObjectNode genConfig = root.putObject("generationConfig");
@@ -74,20 +83,22 @@ public class GeminiPayloadCodec {
                     : "text/plain";
             genConfig.put("responseMimeType", responseMimeType);
 
-            BoundedByteArrayOutputStream out = new BoundedByteArrayOutputStream(GeminiProperties.MAX_REQUEST_BYTES);
+            int requestLimit = request.images().isEmpty() ? GeminiProperties.MAX_REQUEST_BYTES
+                    : GeminiProperties.MAX_MULTIMODAL_REQUEST_BYTES;
+            BoundedByteArrayOutputStream out = new BoundedByteArrayOutputStream(requestLimit);
             try {
                 objectMapper.writeValue(out, root);
                 return out.toByteArray();
             } catch (PayloadLimitExceededException e) {
                 throw new GeminiClientException(
                         GeminiClientException.Kind.INVALID_INPUT,
-                        "Request payload exceeds maximum allowed size of " + GeminiProperties.MAX_REQUEST_BYTES + " bytes"
+                        "Request payload exceeds maximum allowed size of " + requestLimit + " bytes"
                 );
             } catch (Exception e) {
                 if (isPayloadLimitExceeded(e)) {
                     throw new GeminiClientException(
                             GeminiClientException.Kind.INVALID_INPUT,
-                            "Request payload exceeds maximum allowed size of " + GeminiProperties.MAX_REQUEST_BYTES + " bytes"
+                            "Request payload exceeds maximum allowed size of " + requestLimit + " bytes"
                     );
                 }
                 throw new GeminiClientException(
@@ -168,6 +179,11 @@ public class GeminiPayloadCodec {
         // 1. Check prompt-level safety block
         if (root.has("promptFeedback")) {
             JsonNode promptFeedback = root.get("promptFeedback");
+            if (!promptFeedback.isObject()
+                    || (promptFeedback.hasNonNull("blockReason") && !promptFeedback.get("blockReason").isTextual())) {
+                throw new GeminiClientException(GeminiClientException.Kind.INVALID_RESPONSE,
+                        "Invalid prompt feedback in provider response");
+            }
             if (promptFeedback.has("blockReason") && !promptFeedback.get("blockReason").isNull()
                     && !promptFeedback.get("blockReason").asText().isBlank()) {
                 throw new GeminiClientException(

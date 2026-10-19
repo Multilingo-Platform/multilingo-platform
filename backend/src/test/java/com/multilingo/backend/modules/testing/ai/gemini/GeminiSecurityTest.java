@@ -30,6 +30,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ExtendWith(OutputCaptureExtension.class)
 class GeminiSecurityTest {
 
+    @Test
+    void r2ImageBytesAndBase64NeverLeakThroughProductionFailure(CapturedOutput output) {
+        byte[] bytes = "PRIVATE_IMAGE_BYTES_SENTINEL".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var image = new GeminiImagePart("image/png", bytes);
+        var request = new GeminiGenerationRequest("PRIVATE_SYSTEM", "PRIVATE_ESSAY", 32,
+                GeminiGenerationRequest.OutputFormat.JSON, java.util.List.of(image));
+        var codec = new GeminiPayloadCodec();
+        assertThat(codec.encode(request).length).isGreaterThan(bytes.length);
+        String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
+        GeminiClientException error = null;
+        try { codec.decode(("{PRIVATE_PROVIDER_BODY:" + base64).getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
+        catch (GeminiClientException safe) { error = safe; }
+        assertThat(error).isNotNull();
+        var response = new GlobalExceptionHandler().handleAppException(error);
+        assertThat(response.getBody().getMessage()).doesNotContain(base64, "PRIVATE_PROVIDER_BODY");
+        assertThat(image.toString() + request.toString() + output.getAll()).doesNotContain(base64,
+                "PRIVATE_IMAGE_BYTES_SENTINEL", "PRIVATE_ESSAY", "PRIVATE_SYSTEM", "PRIVATE_PROVIDER_BODY");
+    }
+
     private HttpServer primaryServer;
     private HttpServer secondaryServer;
     private HttpClient httpClient;

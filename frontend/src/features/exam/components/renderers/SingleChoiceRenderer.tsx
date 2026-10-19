@@ -6,9 +6,23 @@ interface Props {
   value: string | null;
   onChange: (v: string) => void;
   questionId: string;
+  /**
+   * TOEIC Listening Part 1/2: the options are spoken, so only the letter may be rendered.
+   * Defaults to `false` so IELTS/general renderers keep printing the option text.
+   */
+  labelOnly?: boolean;
+  /** With `labelOnly`, reveal the source option text (Practice) after the answer was checked. */
+  revealText?: boolean;
 }
 
-const SingleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, questionId }) => {
+const SingleChoiceRenderer: React.FC<Props> = ({
+  options,
+  value,
+  onChange,
+  questionId,
+  labelOnly = false,
+  revealText = false,
+}) => {
   const normalizedOptions: ExamOption[] = (options ?? []).map((opt: any, idx: number) => {
     const letter = String.fromCharCode(65 + idx);
     if (typeof opt === 'string') {
@@ -32,6 +46,9 @@ const SingleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, quest
       {normalizedOptions.map((opt, idx) => {
         const isChecked = value === opt.id || (Boolean(opt.text) && value === opt.text);
         const letter = opt.id || String.fromCharCode(65 + idx);
+        const hasText = typeof opt.text === 'string' && opt.text.trim().length > 0;
+        const showText = hasText && (!labelOnly || revealText);
+
         return (
           <label
             key={opt.id || idx}
@@ -48,7 +65,7 @@ const SingleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, quest
               value={opt.id}
               checked={isChecked}
               onChange={() => onChange(opt.id)}
-              aria-label={opt.text}
+              aria-label={showText ? opt.text : `Lựa chọn ${letter}`}
               className="mt-1 h-4 w-4 border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
             />
             <span
@@ -60,9 +77,18 @@ const SingleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, quest
             >
               {letter}
             </span>
-            <span className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1">
-              {opt.text ? opt.text : `Lựa chọn ${letter}`}
-            </span>
+            {labelOnly && !showText ? (
+              <span
+                data-testid={`option-label-${questionId}-${letter}`}
+                className="text-sm sm:text-[15px] font-medium text-slate-500 pt-0.5 flex-1"
+              >
+                ({letter})
+              </span>
+            ) : (
+              <span className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1">
+                {opt.text ? opt.text : `Lựa chọn ${letter}`}
+              </span>
+            )}
           </label>
         );
       })}

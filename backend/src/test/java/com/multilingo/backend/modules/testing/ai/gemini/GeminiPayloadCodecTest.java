@@ -17,6 +17,99 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GeminiPayloadCodecTest {
 
+    @Test
+    void r2GoldenTextOnlyBytesRemainIdentical() {
+        String text = "Tiếng Việt\n\"a\"";
+        for (var format : GeminiGenerationRequest.OutputFormat.values()) {
+            for (String system : new String[]{null, "System"}) {
+                String golden = (system == null ? "{" : "{\"systemInstruction\":{\"parts\":[{\"text\":\"System\"}]},")
+                        + "\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Tiếng Việt\\n\\\"a\\\"\"}]}],"
+                        + "\"generationConfig\":{\"candidateCount\":1,\"maxOutputTokens\":32,\"responseMimeType\":\""
+                        + (format == GeminiGenerationRequest.OutputFormat.TEXT ? "text/plain" : "application/json") + "\"}}";
+                assertThat(codec.encode(new GeminiGenerationRequest(system, text, 32, format)))
+                        .isEqualTo(golden.getBytes(StandardCharsets.UTF_8));
+            }
+        }
+    }
+
+    @Test
+    void r2InlinePartsPrecedeTextAndPreserveBinaryBytes() throws Exception {
+        var images = java.util.List.of(new GeminiImagePart("image/png", new byte[]{0, 1, -1}),
+                new GeminiImagePart("image/webp", new byte[]{4, 5}));
+        var request = new GeminiGenerationRequest("System", "Essay", 32,
+                GeminiGenerationRequest.OutputFormat.JSON, images);
+        var parts = testMapper.readTree(codec.encode(request)).path("contents").get(0).path("parts");
+        assertThat(parts.size()).isEqualTo(3);
+        assertThat(parts.get(0).path("inlineData").path("mimeType").asText()).isEqualTo("image/png");
+        assertThat(java.util.Base64.getDecoder().decode(parts.get(0).path("inlineData").path("data").asText()))
+                .containsExactly(0, 1, -1);
+        assertThat(parts.get(1).path("inlineData").path("data").asText()).isEqualTo("BAU=");
+        assertThat(parts.get(2).path("text").asText()).isEqualTo("Essay");
+    }
+
+    @Test
+    void r2MultimodalJsonExactCapAndPlusOneDespiteValidRawText() {
+        var image = new GeminiImagePart("image/png", new byte[2_097_152]);
+        var images = java.util.List.of(image, image);
+        // Independently counted wire envelope; the two base64 bodies are each 2,796,204 ASCII bytes.
+        String skeleton = "{\"contents\":[{\"role\":\"user\",\"parts\":["
+                + "{\"inlineData\":{\"mimeType\":\"image/png\",\"data\":\"\"}},"
+                + "{\"inlineData\":{\"mimeType\":\"image/png\",\"data\":\"\"}},{\"text\":\"\"}]}],"
+                + "\"generationConfig\":{\"candidateCount\":1,\"maxOutputTokens\":1,\"responseMimeType\":\"text/plain\"}}";
+        int budget = 6_291_456 - skeleton.length() - 2 * 2_796_204;
+        int escaped = Math.floorDiv(budget - 131_070 + 4, 5) + 1;
+        String text = "\u0001".repeat(escaped) + "a".repeat(budget - 6 * escaped);
+        assertThat(text.getBytes(StandardCharsets.UTF_8).length).isLessThan(131_072);
+        assertThat(codec.encode(new GeminiGenerationRequest(null, text, 1,
+                GeminiGenerationRequest.OutputFormat.TEXT, images))).hasSize(6_291_456);
+        assertThatThrownBy(() -> codec.encode(new GeminiGenerationRequest(null, text + "a", 1,
+                GeminiGenerationRequest.OutputFormat.TEXT, images)))
+                .isInstanceOfSatisfying(GeminiClientException.class,
+                        e -> assertThat(e.getKind()).isEqualTo(GeminiClientException.Kind.INVALID_INPUT));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT", "IMAGE_RECITATION"})
+    void r2BlocksImageSafetyReasons(String reason) {
+        String response = "{\"candidates\":[{\"finishReason\":\"" + reason + "\"}]}";
+        assertThatThrownBy(() -> codec.decode(response.getBytes(StandardCharsets.UTF_8)))
+                .isInstanceOfSatisfying(GeminiClientException.class,
+                        e -> assertThat(e.getKind()).isEqualTo(GeminiClientException.Kind.BLOCKED));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[]", "\"SECRET_URL\"", "{\"blockReason\":false}", "{\"blockReason\":{}}"})
+    void r2RejectsMalformedPromptFeedback(String feedback) {
+        String response = "{\"promptFeedback\":" + feedback
+                + ",\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ok\"}]}}]}";
+        assertThatThrownBy(() -> codec.decode(response.getBytes(StandardCharsets.UTF_8)))
+                .isInstanceOfSatisfying(GeminiClientException.class, e -> {
+                    assertThat(e.getKind()).isEqualTo(GeminiClientException.Kind.INVALID_RESPONSE);
+                    assertThat(e.getMessage()).doesNotContain("SECRET_URL");
+                });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"inlineData", "fileData"})
+    void r2StillRejectsImageOutputAlongsideValidText(String field) {
+        String response = "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":["
+                + "{\"text\":\"valid\"},{\"" + field + "\":{\"data\":\"SECRET_IMAGE\"}}]}}]}";
+        assertThatThrownBy(() -> codec.decode(response.getBytes(StandardCharsets.UTF_8)))
+                .isInstanceOfSatisfying(GeminiClientException.class, e -> {
+                    assertThat(e.getKind()).isEqualTo(GeminiClientException.Kind.INVALID_RESPONSE);
+                    assertThat(e.getMessage()).doesNotContain("SECRET_IMAGE");
+                    assertThat(e.getCause()).isNull();
+                });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"IMAGE_OTHER", "NO_IMAGE"})
+    void r2NonSafetyImageReasonsDoNotBecomeSuccessOrSafety(String reason) {
+        assertThatThrownBy(() -> codec.decode(("{\"candidates\":[{\"finishReason\":\"" + reason + "\"}]}")
+                .getBytes(StandardCharsets.UTF_8))).isInstanceOfSatisfying(GeminiClientException.class,
+                e -> assertThat(e.getKind()).isEqualTo(GeminiClientException.Kind.INVALID_RESPONSE));
+    }
+
     private GeminiPayloadCodec codec;
     private ObjectMapper testMapper;
 

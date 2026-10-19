@@ -243,6 +243,33 @@ describe('WorkspacePractice Integration (TC_16_01, TC_16_10, TC_16_12, AC-01, AC
     });
   });
 
+  it('passes public answer-group metadata through WorkspacePage and shows feedback for both slots', async () => {
+    const pairedWorkspace = structuredClone(basePracticeWorkspace);
+    const questionGroups = pairedWorkspace.exam_snapshot.sections[0].parts[0].content!.question_groups;
+    const pair = { id: 'listening-17-18', mode: 'DISTINCT_UNORDERED' as const, question_ids: ['q1', 'q2'] };
+    questionGroups[0].questions[0].answer_group = pair;
+    questionGroups[0].questions[1].answer_group = pair;
+    vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult({ workspace: pairedWorkspace }));
+    vi.mocked(attemptApi.checkPracticeAnswer).mockResolvedValueOnce({
+      attemptId: 42, partId: 10, questionId: 'q1', type: 'SINGLE_CHOICE', userAnswer: 'A',
+      verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'B'], explanation: null,
+      groupResults: [
+        { questionId: 'q1', userAnswer: 'A', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'B'], explanation: null },
+        { questionId: 'q2', userAnswer: 'B', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'B'], explanation: null },
+      ],
+    });
+    renderWorkspace(makeStore({ 10: { q1: 'A', q2: 'B' } }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Kiểm tra đáp án cho câu 1/i }));
+    await waitFor(() => expect(attemptApi.checkPracticeAnswer).toHaveBeenCalledWith(42, {
+      partId: 10, questionId: 'q1', answer: 'A', groupAnswers: { q1: 'A', q2: 'B' },
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) })));
+    await waitFor(() => expect(screen.getAllByText('Chính xác')).toHaveLength(2));
+    const memberAnswerLabels = screen.getAllByText('Câu trả lời của bạn:');
+    expect(memberAnswerLabels[0].parentElement).toHaveTextContent('A');
+    expect(memberAnswerLabels[1].parentElement).toHaveTextContent('B');
+  });
+
   it('renders notice and hides check button for ESSAY question in PRACTICE mode', () => {
     vi.mocked(workspaceHookModule.default).mockReturnValue(mockHookResult());
 

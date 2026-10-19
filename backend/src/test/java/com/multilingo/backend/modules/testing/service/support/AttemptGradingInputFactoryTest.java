@@ -182,4 +182,27 @@ class AttemptGradingInputFactoryTest {
         assertThat(input.getPartKeys().get(1).getSectionName()).isEqualTo("READING");
         assertThat(original.getSectionName()).isEqualTo("Old Section");
     }
+
+    @Test
+    void prepareCopiesThePairMetadataWithScopedGradingKeys() {
+        var group = new GradingKey.AnswerGroup("listening-17-18", "DISTINCT_UNORDERED",
+                List.of("l_017", "l_018"));
+        GradingKey first = new GradingKey();
+        first.setQuestionId("l_017"); first.setType("SINGLE_CHOICE"); first.setCorrect(List.of("A", "E"));
+        first.setAnswerGroup(group);
+        GradingKey second = new GradingKey();
+        second.setQuestionId("l_018"); second.setType("SINGLE_CHOICE"); second.setCorrect(List.of("A", "E"));
+        second.setAnswerGroup(group);
+        PartGradingKey loaded = new PartGradingKey();
+        loaded.setPartId(10); loaded.setAnswers(Map.of("l_017", first, "l_018", second));
+        Map<String, Object> snapshot = createSnapshot(List.of(Map.of("id", 10, "questions", List.of(
+                Map.of("question_id", "l_017", "type", "SINGLE_CHOICE"),
+                Map.of("question_id", "l_018", "type", "SINGLE_CHOICE")))));
+
+        var scoped = factory.prepare(snapshot, List.of(), Map.of(10, loaded)).getPartKeys().get(10).getAnswers();
+
+        assertThat(scoped.get("l_017").getAnswerGroup()).isEqualTo(group);
+        assertThat(scoped.get("l_018").getAnswerGroup()).isEqualTo(group);
+        assertThat(scoped.get("l_017")).isNotSameAs(first);
+    }
 }

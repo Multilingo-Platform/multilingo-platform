@@ -97,6 +97,7 @@ public class AttemptGradingInputFactory {
                 copiedKey.setType(key.getType());
                 copiedKey.setCorrect(key.getCorrect());
                 copiedKey.setAlternates(key.getAlternates() != null ? new ArrayList<>(key.getAlternates()) : null);
+                copiedKey.setAnswerGroup(key.getAnswerGroup());
                 copiedAnswers.put(q.getQuestionId(), copiedKey);
             }
 

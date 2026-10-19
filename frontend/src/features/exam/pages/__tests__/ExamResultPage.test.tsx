@@ -1,10 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import axiosClient from '../../../../core/api/axiosClient';
 import ExamResultPage from '../ExamResultPage';
 import { useAttemptResult } from '../../hooks/useAttemptResult';
 import { normalizeAttemptResult } from '../../api/resultContract';
 import { attemptResultFixture } from '../../__tests__/fixtures/attemptResult';
+import { validAiDoneTextOnlyWire } from '../../__tests__/fixtures/writingFeedback';
 
 vi.mock('../../hooks/useAttemptResult', () => ({ useAttemptResult: vi.fn() }));
 const hook = vi.mocked(useAttemptResult);
@@ -113,5 +115,82 @@ describe('result page states', () => {
     mount();
 
     expect(screen.queryByRole('link', { name: /Xem bài làm và lời giải/i })).not.toBeInTheDocument();
+  });
+
+  it('TC_ERP_01: passes data.attemptId to WritingResultSummary; "Cập nhật kết quả" button reloads attempt result without calling feedback hook', () => {
+    mount();
+    // Disclosure button for part 20 should be rendered because attemptId=42 is passed
+    const disclosureBtn = screen.getByRole('button', { name: /Xem nhận xét AI/i });
+    expect(disclosureBtn).toBeInTheDocument();
+    expect(disclosureBtn).toHaveAttribute('aria-controls', 'writing-feedback-part-20');
+
+    // Click "Cập nhật kết quả" button
+    const updateResultBtn = screen.getByRole('button', { name: /Cập nhật kết quả/i });
+    expect(updateResultBtn).toBeInTheDocument();
+    fireEvent.click(updateResultBtn);
+    expect(reload).toHaveBeenCalledOnce();
+  });
+
+  it('TC_ERP_02: navigating between attempts on the same route instance resets disclosure state and prevents GET for new attempt until clicked', async () => {
+    const mockGet = vi.spyOn(axiosClient, 'get').mockImplementation(async (url: string, config?: any) => {
+      const match = url.match(/\/attempts\/(\d+)\/writing-feedback/);
+      const matchedAttemptId = match ? Number(match[1]) : 42;
+      return {
+        success: true,
+        data: {
+          ...validAiDoneTextOnlyWire,
+          attemptId: matchedAttemptId,
+          partId: config?.params?.partId ?? 20,
+        },
+      };
+    });
+
+    // 1. Initial attempt 42
+    hook.mockReturnValue(state());
+    const view = mount('42');
+
+    // Open part 20 on attempt 42
+    const btn42 = screen.getByRole('button', { name: /Xem nhận xét AI/i });
+    await act(async () => {
+      fireEvent.click(btn42);
+    });
+    expect(btn42).toHaveAttribute('aria-expanded', 'true');
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(mockGet).toHaveBeenCalledWith(
+      '/v1/attempts/42/writing-feedback',
+      expect.objectContaining({ params: { partId: 20 } })
+    );
+
+    // 2. Navigate to attempt 43 (simulate route change with new data)
+    hook.mockReturnValue({
+      ...state(),
+      data: normalizeAttemptResult(attemptResultFixture(43), 43),
+    });
+
+    await act(async () => {
+      view.rerender(
+        <MemoryRouter initialEntries={['/attempts/43/result']}>
+          <Routes>
+            <Route path="/attempts/:attemptId/result" element={<ExamResultPage />} />
+          </Routes>
+        </MemoryRouter>
+      );
+    });
+
+    // Disclosure on attempt 43 MUST be closed, and no second GET dispatched
+    const btn43 = screen.getByRole('button', { name: /Xem nhận xét AI/i });
+    expect(btn43).toHaveAttribute('aria-expanded', 'false');
+    expect(mockGet).toHaveBeenCalledTimes(1);
+
+    // Click to open on attempt 43
+    await act(async () => {
+      fireEvent.click(btn43);
+    });
+    expect(btn43).toHaveAttribute('aria-expanded', 'true');
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(mockGet).toHaveBeenCalledWith(
+      '/v1/attempts/43/writing-feedback',
+      expect.objectContaining({ params: { partId: 20 } })
+    );
   });
 });

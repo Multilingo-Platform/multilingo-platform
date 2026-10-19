@@ -28,3 +28,6 @@ desktop.ini
 application-dev.properties
 **/application-local.properties
 **/application-local.yml
+
+# Test & Superpowers Runtime Evidence
+.superpowers/

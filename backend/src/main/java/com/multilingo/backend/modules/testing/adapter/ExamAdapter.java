@@ -12,6 +12,11 @@ import java.util.Optional;
 public interface ExamAdapter {
     Optional<ExamFixture> findById(Integer examId);
 
+    /** New learner attempts require explicit publication eligibility. Fail closed by default. */
+    default Optional<ExamFixture> findPublishedSnapshotById(Integer examId) {
+        return Optional.empty();
+    }
+
     /**
      * Finds exam data intended for persisting an immutable snapshot of the attempt.
      * Retains correct_answer and explanation while removing server-internal secrets

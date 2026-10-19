@@ -62,14 +62,16 @@ class ReviewSnapshotPersistenceTest {
                 transactionManager,
                 entityManager,
                 gradingInputFactory,
-                summaryMapper
+                summaryMapper,
+                mock(com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer.class),
+                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver()
         );
         when(identityAdapter.getCurrentUserId()).thenReturn(100);
     }
 
     @Test
     void createAttempt_persistsSnapshotWithCorrectAnswerAndExplanation_whileReturningSanitizedWorkspace() throws Exception {
-        // Setup exam fixture returned by findSnapshotById
+        // New attempts must obtain their snapshot through the published-only path.
         Map<String, Object> question = new LinkedHashMap<>();
         question.put("question_id", "q_1");
         question.put("type", "SINGLE_CHOICE");
@@ -92,10 +94,11 @@ class ReviewSnapshotPersistenceTest {
         ExamFixture snapshotFixture = new ExamFixture();
         snapshotFixture.setId(1);
         snapshotFixture.setTitle("Test Exam");
+        snapshotFixture.setExamLanguage("en");
         snapshotFixture.setDurationMinutes(60);
         snapshotFixture.setSections(List.of(sectionFixture));
 
-        when(examAdapter.findSnapshotById(1)).thenReturn(Optional.of(snapshotFixture));
+        when(examAdapter.findPublishedSnapshotById(1)).thenReturn(Optional.of(snapshotFixture));
         when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(invocation -> {
             TestAttempt attempt = invocation.getArgument(0);
             attempt.setId(123);
@@ -109,6 +112,8 @@ class ReviewSnapshotPersistenceTest {
 
         // When creating attempt
         WorkspaceResponse workspaceResponse = service.createAttempt(request);
+        verify(examAdapter).findPublishedSnapshotById(1);
+        verify(examAdapter, never()).findSnapshotById(any());
 
         // Then verify repository saved attempt contains the full snapshot
         ArgumentCaptor<TestAttempt> captor = ArgumentCaptor.forClass(TestAttempt.class);
@@ -119,7 +124,8 @@ class ReviewSnapshotPersistenceTest {
         assertThat(persistedSnapshotJson)
                 .as("Persisted snapshot must retain correct_answer and explanation")
                 .contains("correct_answer")
-                .contains("Apple is correct because reasons.");
+                .contains("Apple is correct because reasons.")
+                .contains("\"examLanguage\":\"en\"");
 
         // But the returned workspaceResponse must NOT contain correct_answer or explanation
         String workspaceSnapshotJson = objectMapper.writeValueAsString(workspaceResponse.getExamSnapshot());
@@ -127,6 +133,7 @@ class ReviewSnapshotPersistenceTest {
                 .as("Workspace response snapshot must be sanitized")
                 .doesNotContain("correct_answer")
                 .doesNotContain("Apple is correct because reasons.")
-                .contains("Sample question");
+                .contains("Sample question")
+                .contains("\"examLanguage\":\"en\"");
     }
 }

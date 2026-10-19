@@ -8,9 +8,17 @@ interface Props {
   questionText: string;
   media?: SharedMedia | null;
   minWords?: number;
+  showPrompt?: boolean;
 }
 
-const EssayRenderer: React.FC<Props> = ({ value, onChange, questionText, media, minWords = 150 }) => {
+const EssayRenderer: React.FC<Props> = ({
+  value,
+  onChange,
+  questionText,
+  media,
+  minWords = 150,
+  showPrompt = true,
+}) => {
   const text = value ?? '';
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const isMet = wordCount >= minWords;
@@ -19,26 +27,32 @@ const EssayRenderer: React.FC<Props> = ({ value, onChange, questionText, media, 
 
   return (
     <div className="flex flex-col h-full relative">
-      <div className="lg:hidden mb-4 space-y-4">
-        <p className="font-medium text-slate-800 whitespace-pre-wrap">{questionText}</p>
-        {media?.url && (
-          <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
-            <img src={media.url} alt="Writing Prompt Graph" className="max-w-full h-auto max-h-[40vh] object-contain" />
-          </div>
-        )}
-      </div>
+      {showPrompt && (
+        <div className="lg:hidden mb-4 space-y-4">
+          <p className="font-medium text-slate-800 whitespace-pre-wrap">{questionText}</p>
+          {media?.url && (
+            <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
+              <img src={media.url} alt="Writing Prompt Graph" className="max-w-full h-auto max-h-[40vh] object-contain" />
+            </div>
+          )}
+        </div>
+      )}
 
-      <div className="relative flex-1 flex flex-col">
+      <div className="relative flex-1 flex flex-col min-h-[280px] lg:min-h-[320px]">
         <textarea
           rows={14}
           value={text}
           onChange={e => onChange(e.target.value)}
-          className="w-full p-4 pb-14 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-y font-sans text-[15px] leading-relaxed text-slate-800 bg-white shadow-inner transition-colors duration-200"
+          aria-label={questionText ? `Bài làm cho: ${questionText.slice(0, 60)}` : 'Bài tự luận'}
+          className="w-full flex-1 min-h-[240px] lg:min-h-[280px] p-4 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-y font-sans text-[15px] leading-relaxed text-slate-800 bg-white shadow-inner transition-colors duration-200"
           placeholder="Viết bài tự luận của bạn tại đây..."
         />
 
-        {/* Fixed bottom bar inside editor */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-2 pointer-events-none">
+        {/* Word count bar placed in layout flow below textarea */}
+        <div className="mt-2.5 flex items-center justify-between gap-2">
+          <div className="text-xs text-slate-400 font-medium">
+            {minWords ? `Yêu cầu tối thiểu ${minWords} từ` : null}
+          </div>
           <div
             data-testid="essay-word-count"
             data-status={status}

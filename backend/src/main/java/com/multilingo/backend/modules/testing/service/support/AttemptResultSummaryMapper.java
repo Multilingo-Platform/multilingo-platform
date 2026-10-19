@@ -443,7 +443,7 @@ public class AttemptResultSummaryMapper {
             if (partId.equals(ans.getPartId()) && ans.getUserAnswers() != null) {
                 Object raw = ans.getUserAnswers().get(questionId);
                 if (raw instanceof String text) {
-                    return (int) UNICODE_WORD_PATTERN.matcher(text).results().count();
+                    return com.multilingo.backend.modules.testing.util.WritingWordCounter.count(text);
                 }
             }
         }
