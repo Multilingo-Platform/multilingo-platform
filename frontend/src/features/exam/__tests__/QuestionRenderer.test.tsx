@@ -119,4 +119,52 @@ describe('QuestionRenderer', () => {
     expect(radios.slice(4).map(radio => radio.getAttribute('name')))
       .toEqual(Array(4).fill('map-label-q_002'));
   });
+
+  it('MATCHING_SENTENCE_ENDINGS renders select dropdown with options A to G and triggers onChange', () => {
+    const onChange = vi.fn();
+    const sentenceEndingsOpts = [
+      { id: 'A', text: 'made them feel optimistic.' },
+      { id: 'B', text: 'took relatively little notice of bad news.' },
+      { id: 'C', text: 'responded to negative and positive information in the same way.' },
+      { id: 'D', text: 'were feeling under stress.' },
+      { id: 'E', text: 'put them in a stressful situation.' },
+      { id: 'F', text: 'behaved in a similar manner, regardless of the circumstances.' },
+      { id: 'G', text: 'thought it more likely that they would experience something bad.' },
+    ];
+    const q = makeQuestion('MATCHING_SENTENCE_ENDINGS', sentenceEndingsOpts);
+
+    render(
+      <QuestionRenderer question={q} partId={1} currentAnswer={null} onChange={onChange} />
+    );
+
+    const select = screen.getByRole('combobox');
+    expect(select).toBeTruthy();
+    expect(screen.getAllByRole('option')).toHaveLength(8); // 1 placeholder + 7 options (A-G)
+
+    fireEvent.change(select, { target: { value: 'B' } });
+    expect(onChange).toHaveBeenCalledWith('B');
+  });
+
+  it('MatchingRenderer normalizes raw string array options to letter-indexed options', () => {
+    const onChange = vi.fn();
+    const rawStringOpts = [
+      'Option 1',
+      'Option 2',
+      'Option 3'
+    ];
+    const q = {
+      ...makeQuestion('MATCHING_FEATURES'),
+      options: rawStringOpts as any
+    };
+
+    render(
+      <QuestionRenderer question={q} partId={1} currentAnswer={null} onChange={onChange} />
+    );
+
+    const select = screen.getByRole('combobox');
+    expect(select).toBeTruthy();
+    expect(screen.getByText('A. Option 1')).toBeTruthy();
+    expect(screen.getByText('B. Option 2')).toBeTruthy();
+    expect(screen.getByText('C. Option 3')).toBeTruthy();
+  });
 });
