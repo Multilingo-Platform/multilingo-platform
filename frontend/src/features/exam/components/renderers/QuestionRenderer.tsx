@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Question } from '../../types/exam.types';
+import type { Question, ExamOption } from '../../types/exam.types';
 import type { AnswerValue } from '../../types/answer.types';
 import SingleChoiceRenderer from './SingleChoiceRenderer';
 import TFNGRenderer from './TFNGRenderer';
@@ -9,6 +9,7 @@ import MatchingRenderer from './MatchingRenderer';
 import EssayRenderer from './EssayRenderer';
 import MapLabelingRenderer from './MapLabelingRenderer';
 import DiagramLabelingRenderer from './DiagramLabelingRenderer';
+import MatchingInformationRenderer from './MatchingInformationRenderer';
 
 interface QuestionRendererProps {
   question: Question;
@@ -46,13 +47,22 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       );
 
     case 'MULTIPLE_CHOICE':
+    case 'MULTIPLE_CHOICE_MULTI': {
+      const normalizedOptions: ExamOption[] = (options ?? []).map((opt: any, idx: number) => {
+        if (typeof opt === 'string') {
+          return { id: String.fromCharCode(65 + idx), text: opt };
+        }
+        return opt;
+      });
       return (
         <MultipleChoiceRenderer
-          options={options ?? []}
+          options={normalizedOptions}
           value={(currentAnswer as string[] | null) ?? []}
           onChange={onChange}
+          maxSelections={type === 'MULTIPLE_CHOICE_MULTI' ? 2 : undefined}
         />
       );
+    }
 
     case 'FILL_IN_THE_BLANK':
       return (
@@ -65,12 +75,22 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
 
     case 'MATCHING_FEATURES':
     case 'MATCHING_HEADINGS':
+    case 'MATCHING_SENTENCE_ENDINGS':
       return (
         <MatchingRenderer
           options={options ?? []}
           value={currentAnswer as string | null}
           onChange={onChange}
           questionText={question_text}
+        />
+      );
+
+    case 'MATCHING_INFORMATION':
+      return (
+        <MatchingInformationRenderer
+          options={options ?? []}
+          value={currentAnswer as string | null}
+          onChange={onChange}
         />
       );
 

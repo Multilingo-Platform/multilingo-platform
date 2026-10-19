@@ -4,6 +4,10 @@ import {
   EXAM_TYPE_OPTIONS,
   deduplicatePartAndGroupInstructions,
   detectExcelColumns,
+  getIeltsTemplateParts,
+  getIeltsSampleExcelParts,
+  getPartBounds,
+  QUESTION_TYPES,
   type ExamPart
 } from '../pages/admin/ExamBuilder';
 
@@ -273,6 +277,199 @@ describe('ExamBuilder utils', () => {
       expect(colMap.question).toBe(6);
     });
   });
+
+  describe('IELTS Template and Dynamic Question Groups', () => {
+    it('getIeltsTemplateParts generates 9 parts without hardcoded multiple choice questions', () => {
+      const parts = getIeltsTemplateParts();
+      expect(parts).toHaveLength(9);
+
+      // Listening Part 1-4: question_groups must be empty so user can create them dynamically
+      const listeningParts = parts.slice(0, 4);
+      expect(listeningParts.map(p => p.part_title)).toEqual([
+        'Listening Part 1',
+        'Listening Part 2',
+        'Listening Part 3',
+        'Listening Part 4'
+      ]);
+      listeningParts.forEach(p => {
+        expect(p.question_groups).toEqual([]);
+      });
+
+      // Reading Passage 1-3: question_groups must be empty so user can create them dynamically
+      const readingParts = parts.slice(4, 7);
+      expect(readingParts.map(p => p.part_title)).toEqual([
+        'Reading Passage 1',
+        'Reading Passage 2',
+        'Reading Passage 3'
+      ]);
+      readingParts.forEach(p => {
+        expect(p.question_groups).toEqual([]);
+      });
+
+      // Writing Tasks (Task 1 & Task 2)
+      const writingParts = parts.slice(7, 9);
+      expect(writingParts[0].part_title).toBe('Writing Task 1');
+      expect(writingParts[0].question_groups[0].questions[0].type).toBe('WRITING_ESSAY');
+      expect(writingParts[1].part_title).toBe('Writing Task 2');
+      expect(writingParts[1].question_groups[0].questions[0].type).toBe('WRITING_ESSAY');
+    });
+
+    it('getPartBounds returns accurate bounds for IELTS parts and passages', () => {
+      expect(getPartBounds('Listening Part 1', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 10 });
+      expect(getPartBounds('Listening Part 2', 'IELTS_ACADEMIC')).toEqual({ start: 11, end: 20 });
+      expect(getPartBounds('Listening Part 3', 'IELTS_ACADEMIC')).toEqual({ start: 21, end: 30 });
+      expect(getPartBounds('Listening Part 4', 'IELTS_ACADEMIC')).toEqual({ start: 31, end: 40 });
+      expect(getPartBounds('Reading Passage 1', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 13 });
+      expect(getPartBounds('Reading Passage 2', 'IELTS_ACADEMIC')).toEqual({ start: 14, end: 26 });
+      expect(getPartBounds('Reading Passage 3', 'IELTS_ACADEMIC')).toEqual({ start: 27, end: 40 });
+      expect(getPartBounds('Writing Task 1', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 1 });
+      expect(getPartBounds('Writing Task 2', 'IELTS_ACADEMIC')).toEqual({ start: 2, end: 2 });
+
+      // Case insensitivity & partial match
+      expect(getPartBounds('listening part 1: notes completion', 'IELTS_GENERAL')).toEqual({ start: 1, end: 10 });
+      expect(getPartBounds('passage 2: science history', 'IELTS_ACADEMIC')).toEqual({ start: 14, end: 26 });
+      expect(getPartBounds('task 1: chart description', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 1 });
+    });
+
+    it('QUESTION_TYPES includes canonical FILL_IN_THE_BLANK and IELTS-relevant types', () => {
+      const typeValues = QUESTION_TYPES.map(q => q.value);
+      expect(typeValues).toContain('FILL_IN_THE_BLANK');
+      expect(typeValues).toContain('MULTIPLE_CHOICE');
+      expect(typeValues).toContain('MULTIPLE_CHOICE_MULTI');
+      expect(typeValues).toContain('TRUE_FALSE_NOT_GIVEN');
+      expect(typeValues).toContain('YES_NO_NOT_GIVEN');
+      expect(typeValues).toContain('MATCHING_HEADINGS');
+      expect(typeValues).toContain('MATCHING_FEATURES');
+
+      const multiChoice = QUESTION_TYPES.find(q => q.value === 'MULTIPLE_CHOICE_MULTI');
+      expect(multiChoice?.label).toBe('Trắc nghiệm Chọn 2 đáp án (Choose 2 / A-E)');
+    });
+
+    it('detectExcelColumns supports optional Lựa chọn E (Option E)', () => {
+      const headers17 = [
+        'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+        'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+        'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E',
+        'Đáp án đúng', 'Giải thích', 'Audio/File chung (Phần)', 'Đính kèm chung (Nhóm)',
+        'Đính kèm riêng (Câu hỏi)'
+      ];
+      const colMap17 = detectExcelColumns(headers17);
+      expect(colMap17.optD).toBe(11);
+      expect(colMap17.optE).toBe(12);
+      expect(colMap17.correct).toBe(13);
+
+      const headers16 = [
+        'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+        'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+        'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D',
+        'Đáp án đúng', 'Giải thích', 'Audio/File chung (Phần)', 'Đính kèm chung (Nhóm)',
+        'Đính kèm riêng (Câu hỏi)'
+      ];
+      const colMap16 = detectExcelColumns(headers16);
+      expect(colMap16.optD).toBe(11);
+      expect(colMap16.optE).toBe(-1);
+      expect(colMap16.optF).toBe(-1);
+      expect(colMap16.optG).toBe(-1);
+      expect(colMap16.correct).toBe(12);
+    });
+
+    it('detectExcelColumns supports optional Lựa chọn F, G, H for matching sentence endings', () => {
+      const headers19 = [
+        'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+        'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+        'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G',
+        'Đáp án đúng', 'Giải thích', 'Audio/File chung (Phần)', 'Đính kèm chung (Nhóm)',
+        'Đính kèm riêng (Câu hỏi)'
+      ];
+      const colMap19 = detectExcelColumns(headers19);
+      expect(colMap19.optA).toBe(8);
+      expect(colMap19.optE).toBe(12);
+      expect(colMap19.optF).toBe(13);
+      expect(colMap19.optG).toBe(14);
+      expect(colMap19.correct).toBe(15);
+      expect(colMap19.explanation).toBe(16);
+    });
+
+    it('detectExcelColumns supports all 8 options A to H (20 columns)', () => {
+      const headers20 = [
+        'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+        'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+        'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G', 'Lựa chọn H',
+        'Đáp án đúng', 'Giải thích', 'Audio/File chung (Phần)', 'Đính kèm chung (Nhóm)',
+        'Đính kèm riêng (Câu hỏi)'
+      ];
+      const colMap20 = detectExcelColumns(headers20);
+      expect(colMap20.optA).toBe(8);
+      expect(colMap20.optE).toBe(12);
+      expect(colMap20.optF).toBe(13);
+      expect(colMap20.optG).toBe(14);
+      expect(colMap20.optH).toBe(15);
+      expect(colMap20.correct).toBe(16);
+      expect(colMap20.explanation).toBe(17);
+      expect(colMap20.partMedia).toBe(18);
+      expect(colMap20.groupMedia).toBe(19);
+      expect(colMap20.qMedia).toBe(20);
+    });
+
+    it('detectExcelColumns supports "Choice A-H" and "Đáp án A-H" without colliding with "Đáp án đúng"', () => {
+      const headersChoice = [
+        'Part', 'Part Instruction', 'Group', 'Type', 'Group Instruction', 'Passage', 'Question',
+        'Choice A', 'Choice B', 'Choice C', 'Choice D', 'Choice E', 'Choice F', 'Choice G', 'Choice H',
+        'Correct Answer', 'Explanation', 'Part Media', 'Group Media', 'Question Media'
+      ];
+      const colMapChoice = detectExcelColumns(headersChoice);
+      expect(colMapChoice.optA).toBe(8);
+      expect(colMapChoice.optB).toBe(9);
+      expect(colMapChoice.optC).toBe(10);
+      expect(colMapChoice.optD).toBe(11);
+      expect(colMapChoice.optE).toBe(12);
+      expect(colMapChoice.optF).toBe(13);
+      expect(colMapChoice.optG).toBe(14);
+      expect(colMapChoice.optH).toBe(15);
+      expect(colMapChoice.correct).toBe(16);
+
+      const headersDapAn = [
+        'Phần', 'Hướng dẫn chung', 'Nhóm', 'Loại', 'Hướng dẫn riêng', 'Nội dung', 'Câu hỏi',
+        'Đáp án A', 'Đáp án B', 'Đáp án C', 'Đáp án D',
+        'Đáp án đúng', 'Giải thích', 'Audio', 'Ảnh', 'Đính kèm'
+      ];
+      const colMapDapAn = detectExcelColumns(headersDapAn);
+      expect(colMapDapAn.optA).toBe(8);
+      expect(colMapDapAn.optB).toBe(9);
+      expect(colMapDapAn.optC).toBe(10);
+      expect(colMapDapAn.optD).toBe(11);
+      expect(colMapDapAn.correct).toBe(12);
+    });
+
+    it('QUESTION_TYPES includes MATCHING_SENTENCE_ENDINGS and MATCHING_FEATURES', () => {
+      const typeValues = QUESTION_TYPES.map(q => q.value);
+      expect(typeValues).toContain('MATCHING_SENTENCE_ENDINGS');
+      expect(typeValues).toContain('MATCHING_FEATURES');
+
+      const sentenceEndings = QUESTION_TYPES.find(q => q.value === 'MATCHING_SENTENCE_ENDINGS');
+      expect(sentenceEndings?.label).toContain('Sentence Endings');
+    });
+
+    it('getIeltsSampleExcelParts provides diverse question types for Excel templates', () => {
+      const sampleParts = getIeltsSampleExcelParts();
+      expect(sampleParts).toHaveLength(9);
+
+      // Check that Listening Part 1 has both FILL_IN_THE_BLANK and MULTIPLE_CHOICE
+      const l1Groups = sampleParts[0].question_groups;
+      expect(l1Groups.length).toBeGreaterThan(1);
+      expect(l1Groups[0].questions[0].type).toBe('FILL_IN_THE_BLANK');
+      expect(l1Groups[1].questions[0].type).toBe('MULTIPLE_CHOICE');
+
+      // Check that Reading Passage 1 has TRUE_FALSE_NOT_GIVEN
+      const r1Groups = sampleParts[4].question_groups;
+      expect(r1Groups[0].questions[0].type).toBe('TRUE_FALSE_NOT_GIVEN');
+
+      // Check that Reading Passage 2 has MATCHING_HEADINGS
+      const r2Groups = sampleParts[5].question_groups;
+      expect(r2Groups[0].questions[0].type).toBe('MATCHING_HEADINGS');
+    });
+  });
 });
+
 
 

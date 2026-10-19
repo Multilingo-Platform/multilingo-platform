@@ -405,7 +405,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             testAttemptRepository.save(attempt);
             objectiveGradingSucceeded = true;
         } catch (Exception e) {
-            log.error("Grading failed for attempt {}: {}", attempt.getId(), e.getClass().getSimpleName());
+            log.error("Grading failed for attempt {}: {} - {}", attempt.getId(), e.getClass().getSimpleName(), e.getMessage(), e);
             attempt.setStatus(AttemptStatus.GRADING_FAILED);
             testAttemptRepository.save(attempt);
         }

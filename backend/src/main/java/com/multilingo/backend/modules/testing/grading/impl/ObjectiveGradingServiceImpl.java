@@ -23,8 +23,8 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
 
     private static final Set<String> OBJECTIVE_TYPES = Set.of(
         "SINGLE_CHOICE", "TRUE_FALSE_NOT_GIVEN", "YES_NO_NOT_GIVEN",
-        "FILL_IN_THE_BLANK", "MULTIPLE_CHOICE", "MATCHING",
-        "MATCHING_FEATURES", "MATCHING_HEADINGS",
+        "FILL_IN_THE_BLANK", "MULTIPLE_CHOICE", "MULTIPLE_CHOICE_MULTI", "MATCHING",
+        "MATCHING_FEATURES", "MATCHING_HEADINGS", "MATCHING_SENTENCE_ENDINGS", "MATCHING_INFORMATION",
         "DIAGRAM_LABELING", "MAP_LABELING"
     );
 
@@ -140,12 +140,12 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
     private QuestionGradingResult gradeQuestion(
             String questionId, String type, GradingKey key, Object rawAnswer) {
         return switch (type) {
-            case "SINGLE_CHOICE", "MATCHING_FEATURES", "MATCHING_HEADINGS",
+            case "SINGLE_CHOICE", "MATCHING_FEATURES", "MATCHING_HEADINGS", "MATCHING_SENTENCE_ENDINGS", "MATCHING_INFORMATION",
                  "MAP_LABELING", "FILL_IN_THE_BLANK", "DIAGRAM_LABELING" ->
                 gradeFillIn(questionId, key, rawAnswer);
             case "TRUE_FALSE_NOT_GIVEN" -> gradeTFNG(questionId, key, rawAnswer);
             case "YES_NO_NOT_GIVEN" -> gradeYNNG(questionId, key, rawAnswer);
-            case "MULTIPLE_CHOICE" -> gradeMultipleChoice(questionId, key, rawAnswer);
+            case "MULTIPLE_CHOICE", "MULTIPLE_CHOICE_MULTI" -> gradeMultipleChoice(questionId, type, key, rawAnswer);
             case "MATCHING" -> gradeMatching(questionId, key, rawAnswer);
             default -> throw new AppException(ErrorCode.GRADING_DATA_ERROR,
                 "GRADING_DATA_ERROR: Unhandled type: " + type);
@@ -222,7 +222,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
     // ─── MULTIPLE_CHOICE ─────────────────────────────────────────────────────────
 
     private QuestionGradingResult gradeMultipleChoice(
-            String questionId, GradingKey key, Object rawAnswer) {
+            String questionId, String type, GradingKey key, Object rawAnswer) {
         if (rawAnswer == null) return QuestionGradingResult.blank(questionId);
 
         List<?> userList = rawAnswer instanceof List<?> list ? list : List.of(rawAnswer);
@@ -253,9 +253,40 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
             }
         }
 
-        return userSet.equals(correctSet)
-            ? QuestionGradingResult.correct(questionId)
-            : QuestionGradingResult.wrong(questionId);
+        if (userSet.equals(correctSet)) {
+            return QuestionGradingResult.correct(questionId);
+        }
+
+        if ("MULTIPLE_CHOICE_MULTI".equalsIgnoreCase(type) && correctSet.size() > 1 && userSet.size() == 1) {
+            String single = userSet.iterator().next();
+            if (correctSet.contains(single)) {
+                return QuestionGradingResult.correct(questionId);
+            }
+        }
+
+        if (key.getAlternates() != null && !key.getAlternates().isEmpty()) {
+            if (userSet.size() == 1) {
+                String userSingle = userSet.iterator().next();
+                for (String alt : key.getAlternates()) {
+                    if (userSingle.equals(normalize(alt))) {
+                        return QuestionGradingResult.correct(questionId);
+                    }
+                }
+            } else {
+                Set<String> altSet = new HashSet<>();
+                for (String alt : key.getAlternates()) {
+                    String norm = normalize(alt);
+                    if (norm != null) {
+                        altSet.add(norm);
+                    }
+                }
+                if (userSet.equals(altSet)) {
+                    return QuestionGradingResult.correct(questionId);
+                }
+            }
+        }
+
+        return QuestionGradingResult.wrong(questionId);
     }
 
     // ─── MATCHING ────────────────────────────────────────────────────────────────

@@ -454,4 +454,143 @@ class DbGradingAdapterTest {
                 .isEqualTo(GradingVerdict.BLANK);
         assertThat(resBlank.getTotalScore()).isEqualByComparingTo(BigDecimal.ZERO);
     }
+
+    @Test
+    void loadPartKeys_extractsKeysFromQuestionMetadataWithCorrectOptionIndex() {
+        Exam exam = mockExam();
+        ExamSection listening = mockSection(20, "LISTENING");
+
+        Map<String, Object> photoQ = new LinkedHashMap<>();
+        photoQ.put("question_id", "q_photo_1");
+        photoQ.put("type", "MULTIPLE_CHOICE");
+        photoQ.put("metadata", Map.of(
+                "options", List.of("", "", "", ""),
+                "correct_option_index", 0,
+                "correct_answer", ""
+        ));
+
+        Map<String, Object> mcqQ = new LinkedHashMap<>();
+        mcqQ.put("question_id", "q_mcq_2");
+        mcqQ.put("type", "MULTIPLE_CHOICE");
+        mcqQ.put("metadata", Map.of(
+                "options", List.of("A job fair", "A cooking class", "A fund-raiser", "A company picnic"),
+                "correct_option_index", 3,
+                "correct_answer", "A company picnic"
+        ));
+
+        ExamPart part = mockPart(156, canonicalGroups(photoQ, mcqQ));
+        stubExam(exam, List.of(listening), Map.of(20, List.of(part)));
+
+        Map<Integer, PartGradingKey> keys = adapter.loadPartKeys(1);
+        assertThat(keys).containsKey(156);
+
+        PartGradingKey pgk = keys.get(156);
+        Map<String, GradingKey> answers = pgk.getAnswers();
+        assertThat(answers).hasSize(2);
+
+        // Photo question with empty options -> maps to 'A'
+        GradingKey key1 = answers.get("q_photo_1");
+        assertThat(key1.getCorrect()).isEqualTo("A");
+
+        // MCQ with options and index 3 -> maps to correct "A company picnic" and alternate 'D'
+        GradingKey key2 = answers.get("q_mcq_2");
+        assertThat(key2.getCorrect()).isEqualTo("A company picnic");
+        assertThat(key2.getAlternates()).contains("D");
+
+        // Test with engine: submitting 'D' or text should both be CORRECT
+        ObjectiveGradingServiceImpl engine = new ObjectiveGradingServiceImpl();
+
+        AttemptAnswer ansWithLetter = new AttemptAnswer();
+        ansWithLetter.setPartId(156);
+        ansWithLetter.setUserAnswers(Map.of("q_photo_1", "A", "q_mcq_2", "D"));
+        GradingResult resWithLetter = engine.gradeAttempt(List.of(ansWithLetter), keys);
+        assertThat(resWithLetter.getPartResults().get(156).get("q_photo_1").getVerdict())
+                .isEqualTo(GradingVerdict.CORRECT);
+        assertThat(resWithLetter.getPartResults().get(156).get("q_mcq_2").getVerdict())
+                .isEqualTo(GradingVerdict.CORRECT);
+
+        AttemptAnswer ansWithText = new AttemptAnswer();
+        ansWithText.setPartId(156);
+        ansWithText.setUserAnswers(Map.of("q_photo_1", "a", "q_mcq_2", "A company picnic"));
+        GradingResult resWithText = engine.gradeAttempt(List.of(ansWithText), keys);
+        assertThat(resWithText.getPartResults().get(156).get("q_photo_1").getVerdict())
+                .isEqualTo(GradingVerdict.CORRECT);
+        assertThat(resWithText.getPartResults().get(156).get("q_mcq_2").getVerdict())
+                .isEqualTo(GradingVerdict.CORRECT);
+    }
+
+    @Test
+    void gradeSentenceEndings_bothLetterAndTextAreCorrect() {
+        Exam exam = mockExam();
+        ExamSection reading = mockSection(10, "READING");
+
+        List<String> endings = List.of(
+                "made them feel optimistic.",
+                "took relatively little notice of bad news.",
+                "responded to negative and positive information in the same way.",
+                "were feeling under stress.",
+                "put them in a stressful situation.",
+                "behaved in a similar manner, regardless of the circumstances.",
+                "thought it more likely that they would experience something bad."
+        );
+
+        Map<String, Object> q31 = new LinkedHashMap<>();
+        q31.put("question_id", "q_031");
+        q31.put("type", "MATCHING_SENTENCE_ENDINGS");
+        q31.put("question_text", "At times when they were relaxed, the firefighters usually ..............");
+        q31.put("metadata", Map.of(
+                "options", endings,
+                "correct_option_index", 0,
+                "correct_answer", "made them feel optimistic."
+        ));
+
+        Map<String, Object> q32 = new LinkedHashMap<>();
+        q32.put("question_id", "q_032");
+        q32.put("type", "MATCHING_SENTENCE_ENDINGS");
+        q32.put("question_text", "The researchers noted that when the firefighters were stressed, they ..............");
+        q32.put("metadata", Map.of(
+                "options", endings,
+                "correct_option_index", 1,
+                "correct_answer", "took relatively little notice of bad news."
+        ));
+
+        ExamPart part = mockPart(158, canonicalGroups(q31, q32));
+        stubExam(exam, List.of(reading), Map.of(10, List.of(part)));
+
+        Map<Integer, PartGradingKey> keys = adapter.loadPartKeys(1);
+        assertThat(keys).containsKey(158);
+
+        PartGradingKey pgk = keys.get(158);
+        assertThat(pgk.getAnswers()).containsKeys("q_031", "q_032");
+
+        GradingKey key31 = pgk.getAnswers().get("q_031");
+        assertThat(key31.getCorrect()).isEqualTo("made them feel optimistic.");
+        assertThat(key31.getAlternates()).contains("A");
+
+        ObjectiveGradingServiceImpl engine = new ObjectiveGradingServiceImpl();
+
+        // 1. Submit by letter (A and b)
+        AttemptAnswer ansLetters = new AttemptAnswer();
+        ansLetters.setPartId(158);
+        ansLetters.setUserAnswers(Map.of("q_031", "A", "q_032", "b"));
+        GradingResult resLetters = engine.gradeAttempt(List.of(ansLetters), keys);
+        assertThat(resLetters.getPartResults().get(158).get("q_031").getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+        assertThat(resLetters.getPartResults().get(158).get("q_032").getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+
+        // 2. Submit by full sentence ending text
+        AttemptAnswer ansText = new AttemptAnswer();
+        ansText.setPartId(158);
+        ansText.setUserAnswers(Map.of("q_031", "made them feel optimistic.", "q_032", "took relatively little notice of bad news."));
+        GradingResult resText = engine.gradeAttempt(List.of(ansText), keys);
+        assertThat(resText.getPartResults().get(158).get("q_031").getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+        assertThat(resText.getPartResults().get(158).get("q_032").getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+
+        // 3. Submit wrong letter
+        AttemptAnswer ansWrong = new AttemptAnswer();
+        ansWrong.setPartId(158);
+        ansWrong.setUserAnswers(Map.of("q_031", "G", "q_032", "D"));
+        GradingResult resWrong = engine.gradeAttempt(List.of(ansWrong), keys);
+        assertThat(resWrong.getPartResults().get(158).get("q_031").getVerdict()).isEqualTo(GradingVerdict.WRONG);
+        assertThat(resWrong.getPartResults().get(158).get("q_032").getVerdict()).isEqualTo(GradingVerdict.WRONG);
+    }
 }

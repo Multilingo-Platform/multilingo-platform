@@ -38,6 +38,8 @@ public class PracticeFeedbackRequestValidator {
         "FILL_IN",
         "MATCHING_FEATURES",
         "MATCHING_HEADINGS",
+        "MATCHING_SENTENCE_ENDINGS",
+        "MATCHING_INFORMATION",
         "DIAGRAM_LABELING",
         "MAP_LABELING"
     );
@@ -144,7 +146,7 @@ public class PracticeFeedbackRequestValidator {
             return;
         }
 
-        if ("MULTIPLE_CHOICE".equals(normalizedType)) {
+        if ("MULTIPLE_CHOICE".equals(normalizedType) || "MULTIPLE_CHOICE_MULTI".equals(normalizedType)) {
             if (answer != null) {
                 if (!(answer instanceof List<?> list)) {
                     throw new AppException(ErrorCode.VALIDATION_FAILED);
