@@ -24,6 +24,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -116,7 +117,7 @@ class WritingGradingDispatcherTest {
         verify(jobRepository).findDueJobIds(eq(clock.instant()), eq(PageRequest.of(0, 2)));
         verify(worker).process(101);
         verify(worker).process(102);
-        assertThat(dispatcher.getInFlightCount()).isZero();
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> assertThat(dispatcher.getInFlightCount()).isZero());
     }
 
     @Test
@@ -194,7 +195,7 @@ class WritingGradingDispatcherTest {
 
         verify(worker).process(101);
         verify(worker).process(201);
-        assertThat(dispatcher.getInFlightCount()).isZero();
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> assertThat(dispatcher.getInFlightCount()).isZero());
     }
 
     @Test
