@@ -64,7 +64,9 @@ class AttemptGradingSameVersionTest {
                 transactionManager,
                 entityManager,
                 gradingInputFactory,
-                summaryMapper
+                summaryMapper,
+                mock(com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer.class),
+                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver()
         );
         when(identityAdapter.getCurrentUserId()).thenReturn(100);
     }

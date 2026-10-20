@@ -14,4 +14,6 @@ public class PracticeFeedbackRequest {
     private JsonNode partId;
     private JsonNode questionId;
     private JsonNode answer;
+    /** Two current selections for an IELTS paired answer group; null for ordinary questions. */
+    private JsonNode groupAnswers;
 }

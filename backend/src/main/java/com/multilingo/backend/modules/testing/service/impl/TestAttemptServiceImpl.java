@@ -15,6 +15,7 @@ import com.multilingo.backend.modules.testing.dto.response.SubmitResultResponse;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
+import com.multilingo.backend.modules.testing.entity.WritingGradingJob;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
@@ -35,6 +36,9 @@ import com.multilingo.backend.modules.testing.dto.response.ExamReviewResponse;
 import com.multilingo.backend.modules.testing.service.support.AttemptGradingInputFactory;
 import com.multilingo.backend.modules.testing.service.support.AttemptResultSummaryMapper;
 import com.multilingo.backend.modules.testing.service.support.AttemptReviewMapper;
+import com.multilingo.backend.modules.testing.service.support.ToeicWorkspaceProjection;
+import com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver;
+import com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer;
 import com.multilingo.backend.modules.testing.util.AttemptDuration;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +57,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -71,18 +76,14 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final AttemptGradingInputFactory gradingInputFactory;
     private final AttemptResultSummaryMapper summaryMapper;
     private final AttemptReviewMapper reviewMapper;
+    private final WritingGradingEnqueuer writingGradingEnqueuer;
+    private final WritingGradingAttemptStateResolver stateResolver;
 
-    public TestAttemptServiceImpl(
-            TestAttemptRepository testAttemptRepository,
-            AttemptAnswerRepository attemptAnswerRepository,
-            ExamAdapter examAdapter,
-            IdentityAdapter identityAdapter,
-            ObjectMapper objectMapper,
-            GradingAdapter gradingAdapter,
-            ObjectiveGradingService gradingService,
-            PlatformTransactionManager transactionManager,
-            EntityManager entityManager) {
-        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, new AttemptGradingInputFactory(), new AttemptResultSummaryMapper(objectMapper), new AttemptReviewMapper(objectMapper));
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService;
+
+    public void setListeningPlaybackService(com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService) {
+        this.listeningPlaybackService = listeningPlaybackService;
     }
 
     public TestAttemptServiceImpl(
@@ -95,8 +96,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             ObjectiveGradingService gradingService,
             PlatformTransactionManager transactionManager,
             EntityManager entityManager,
-            AttemptGradingInputFactory gradingInputFactory) {
-        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, new AttemptResultSummaryMapper(objectMapper), new AttemptReviewMapper(objectMapper));
+            WritingGradingEnqueuer writingGradingEnqueuer,
+            WritingGradingAttemptStateResolver stateResolver) {
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, new AttemptGradingInputFactory(), new AttemptResultSummaryMapper(objectMapper), new AttemptReviewMapper(objectMapper), writingGradingEnqueuer, stateResolver);
     }
 
     public TestAttemptServiceImpl(
@@ -110,8 +112,26 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             PlatformTransactionManager transactionManager,
             EntityManager entityManager,
             AttemptGradingInputFactory gradingInputFactory,
-            AttemptResultSummaryMapper summaryMapper) {
-        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, summaryMapper, new AttemptReviewMapper(objectMapper));
+            WritingGradingEnqueuer writingGradingEnqueuer,
+            WritingGradingAttemptStateResolver stateResolver) {
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, new AttemptResultSummaryMapper(objectMapper), new AttemptReviewMapper(objectMapper), writingGradingEnqueuer, stateResolver);
+    }
+
+    public TestAttemptServiceImpl(
+            TestAttemptRepository testAttemptRepository,
+            AttemptAnswerRepository attemptAnswerRepository,
+            ExamAdapter examAdapter,
+            IdentityAdapter identityAdapter,
+            ObjectMapper objectMapper,
+            GradingAdapter gradingAdapter,
+            ObjectiveGradingService gradingService,
+            PlatformTransactionManager transactionManager,
+            EntityManager entityManager,
+            AttemptGradingInputFactory gradingInputFactory,
+            AttemptResultSummaryMapper summaryMapper,
+            WritingGradingEnqueuer writingGradingEnqueuer,
+            WritingGradingAttemptStateResolver stateResolver) {
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, summaryMapper, new AttemptReviewMapper(objectMapper), writingGradingEnqueuer, stateResolver);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -127,19 +147,23 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             EntityManager entityManager,
             AttemptGradingInputFactory gradingInputFactory,
             AttemptResultSummaryMapper summaryMapper,
-            AttemptReviewMapper reviewMapper) {
-        this.testAttemptRepository = testAttemptRepository;
-        this.attemptAnswerRepository = attemptAnswerRepository;
-        this.examAdapter = examAdapter;
-        this.identityAdapter = identityAdapter;
-        this.objectMapper = objectMapper;
-        this.gradingAdapter = gradingAdapter;
-        this.gradingService = gradingService;
-        this.transactionManager = transactionManager;
-        this.entityManager = entityManager;
-        this.gradingInputFactory = gradingInputFactory;
-        this.summaryMapper = summaryMapper;
-        this.reviewMapper = reviewMapper;
+            AttemptReviewMapper reviewMapper,
+            WritingGradingEnqueuer writingGradingEnqueuer,
+            WritingGradingAttemptStateResolver stateResolver) {
+        this.testAttemptRepository = Objects.requireNonNull(testAttemptRepository, "testAttemptRepository must not be null");
+        this.attemptAnswerRepository = Objects.requireNonNull(attemptAnswerRepository, "attemptAnswerRepository must not be null");
+        this.examAdapter = Objects.requireNonNull(examAdapter, "examAdapter must not be null");
+        this.identityAdapter = Objects.requireNonNull(identityAdapter, "identityAdapter must not be null");
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+        this.gradingAdapter = Objects.requireNonNull(gradingAdapter, "gradingAdapter must not be null");
+        this.gradingService = Objects.requireNonNull(gradingService, "gradingService must not be null");
+        this.transactionManager = Objects.requireNonNull(transactionManager, "transactionManager must not be null");
+        this.entityManager = Objects.requireNonNull(entityManager, "entityManager must not be null");
+        this.gradingInputFactory = Objects.requireNonNull(gradingInputFactory, "gradingInputFactory must not be null");
+        this.summaryMapper = Objects.requireNonNull(summaryMapper, "summaryMapper must not be null");
+        this.reviewMapper = Objects.requireNonNull(reviewMapper, "reviewMapper must not be null");
+        this.writingGradingEnqueuer = Objects.requireNonNull(writingGradingEnqueuer, "writingGradingEnqueuer must not be null");
+        this.stateResolver = Objects.requireNonNull(stateResolver, "stateResolver must not be null");
     }
 
     @Override
@@ -148,8 +172,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         Integer userId = identityAdapter.getCurrentUserId();
 
         // 1. Validate exam exists
-        ExamFixture exam = examAdapter.findSnapshotById(request.getExamId())
-                .or(() -> examAdapter.findById(request.getExamId()))
+        ExamFixture exam = examAdapter.findPublishedSnapshotById(request.getExamId())
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Exam not found: " + request.getExamId()));
 
@@ -334,7 +357,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         attempt.setStatus(AttemptStatus.SUBMITTED);
         testAttemptRepository.save(attempt);
 
-        // Phase 2: Grading
+        // Phase 2: Objective Grading
+        boolean objectiveGradingSucceeded = false;
         try {
             List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
             Map<Integer, PartGradingKey> keys = SnapshotGradingKeyExtractor.extractFromSnapshot(attempt.getExamSnapshot());
@@ -377,36 +401,27 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             attempt.setOverallScore(gradingResult.getTotalScore());
             Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
             attempt.setSectionScores(sectionMap);
-
-            boolean hasWriting = checkHasWriting(input.getScopedParts());
-            if (hasWriting) {
-                boolean hasQuota = checkAiQuota(userId);
-                attempt.setStatus(hasQuota ? AttemptStatus.AI_GRADING : AttemptStatus.AI_GRADING_QUEUED);
-            } else {
-                attempt.setStatus(AttemptStatus.COMPLETED);
-            }
+            attempt.setStatus(AttemptStatus.COMPLETED);
             testAttemptRepository.save(attempt);
+            objectiveGradingSucceeded = true;
         } catch (Exception e) {
             log.error("Grading failed for attempt {}: {} - {}", attempt.getId(), e.getClass().getSimpleName(), e.getMessage(), e);
             attempt.setStatus(AttemptStatus.GRADING_FAILED);
             testAttemptRepository.save(attempt);
         }
 
+        // Phase 3: Writing Grading Enqueue (chỉ chạy khi objective grading thành công)
+        // Lỗi DB từ enqueue sẽ propagate để rollback submit, không để broad catch tạo trạng thái partial.
+        if (objectiveGradingSucceeded) {
+            List<AttemptAnswer> currentAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
+            List<WritingGradingJob> jobs = writingGradingEnqueuer.enqueue(attempt, currentAnswers);
+            List<AttemptAnswer> updatedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
+            AttemptStatus aggregatedStatus = stateResolver.resolve(jobs, updatedAnswers);
+            attempt.setStatus(aggregatedStatus);
+            testAttemptRepository.save(attempt);
+        }
+
         return SubmitResultResponse.from(attempt.getId(), attempt.getStatus());
-    }
-
-    // ─── private helpers ────────────────────────────────────────────────────────
-
-    private boolean checkHasWriting(List<AttemptResultScope.ScopedPart> scopedParts) {
-        if (scopedParts == null) return false;
-        return scopedParts.stream()
-                .flatMap(p -> p.getQuestions().stream())
-                .anyMatch(q -> "ESSAY".equalsIgnoreCase(q.getType()));
-    }
-
-    private boolean checkAiQuota(Integer userId) {
-        // Stub for Sprint 05: default true, will connect to user_quotas in Sprint 08/09
-        return true;
     }
 
     @Override
@@ -716,7 +731,12 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private WorkspaceResponse toWorkspaceResponse(TestAttempt attempt) {
         List<AutosaveAnswersRequest.PartAnswerDto> savedAnswers = loadSavedAnswers(attempt.getId());
         Map<String, Object> sanitizedSnapshot = WorkspaceSnapshotSanitizer.sanitize(attempt.getExamSnapshot());
+        Map<String, Object> projectedSnapshot = ToeicWorkspaceProjection.project(sanitizedSnapshot, attempt.getTestMode());
         Instant serverTime = Instant.now();
+        WorkspaceResponse.ListeningPlaybackSummary playbackSummary = null;
+        if (listeningPlaybackService != null) {
+            playbackSummary = listeningPlaybackService.getPlaybackSummary(attempt);
+        }
 
         return WorkspaceResponse.builder()
                 .attemptId(attempt.getId())
@@ -729,8 +749,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .gracePeriodSeconds(15)
                 .version(attempt.getVersion())
                 .savedAnswers(savedAnswers)
-                .examSnapshot(sanitizedSnapshot)
+                .examSnapshot(projectedSnapshot)
                 .lockedSections(attempt.getLockedSections() != null ? attempt.getLockedSections() : new java.util.ArrayList<>())
+                .listeningPlayback(playbackSummary)
                 .build();
     }
 

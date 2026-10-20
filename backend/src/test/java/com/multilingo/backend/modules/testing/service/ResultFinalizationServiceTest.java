@@ -13,6 +13,9 @@ import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.entity.enums.SubmitReason;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
+import com.multilingo.backend.modules.testing.config.WritingGradingProperties;
+import com.multilingo.backend.modules.testing.entity.enums.WritingGradingJobStatus;
+import com.multilingo.backend.modules.testing.repository.WritingGradingJobRepository;
 import com.multilingo.backend.modules.testing.grading.GradingVerdict;
 import com.multilingo.backend.modules.testing.grading.ObjectiveGradingService;
 import com.multilingo.backend.modules.testing.grading.dto.GradingKey;
@@ -59,6 +62,12 @@ class ResultFinalizationServiceTest {
 
     @MockBean
     private GradingAdapter gradingAdapter;
+
+    @Autowired
+    private WritingGradingProperties writingGradingProperties;
+
+    @Autowired
+    private WritingGradingJobRepository writingGradingJobRepository;
 
     @Autowired
     private ObjectiveGradingService objectiveGradingService;
@@ -187,7 +196,7 @@ class ResultFinalizationServiceTest {
     }
 
     @Test
-    @DisplayName("Section containing ESSAY questions should trigger AI_GRADING regardless of section name")
+    @DisplayName("Writing section containing ESSAY questions with valid prompt/essay freezes a runnable grading job -> AI_GRADING")
     void finalize_sectionWithEssay_triggersAiGrading() {
         CreateAttemptRequest createReq = new CreateAttemptRequest();
         createReq.setExamId(1);
@@ -196,28 +205,66 @@ class ResultFinalizationServiceTest {
         WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
         Integer attemptId = workspace.getAttemptId();
 
+        // Current contract (WritingGradingEnqueuer.extractWritingTargets): a WritingGradingJob is only
+        // frozen when the part belongs to a WRITING section; sections with other names never enqueue.
+        // Keep the original snapshot keys (examLanguage is required by the writing context contract).
         TestAttempt attempt = testAttemptRepository.findById(attemptId).orElseThrow();
-        Map<String, Object> snapshot = Map.of(
-                "sections", List.of(
-                        Map.of(
-                                "name", "Section Alpha",
-                                "parts", List.of(
-                                        Map.of("id", 1, "title", "Part 1", "questions", List.of(Map.of("id", "essay1", "type", "ESSAY")))
-                                )
+        Map<String, Object> snapshot = new HashMap<>(attempt.getExamSnapshot() != null ? attempt.getExamSnapshot() : Map.of());
+        snapshot.put("sections", List.of(
+                Map.of(
+                        "name", "Writing",
+                        "parts", List.of(
+                                Map.of("id", 1, "title", "Part 1", "questions", List.of(
+                                        Map.of("id", "essay1", "type", "ESSAY",
+                                                "prompt", "Writing task 1 prompt: Discuss global technological challenges.")
+                                ))
                         )
                 )
-        );
+        ));
         attempt.setExamSnapshot(snapshot);
         testAttemptRepository.save(attempt);
 
+        // The essay must exceed 10 words so the frozen job is runnable instead of the TOO_SHORT local result.
+        testAttemptService.autosaveAnswers(attemptId,
+                com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest.builder()
+                        .version(1)
+                        .answers(List.of(
+                                com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest.PartAnswerDto.builder()
+                                        .partId(1)
+                                        .answers(List.of(
+                                                com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest.QuestionAnswerDto.builder()
+                                                        .questionId("essay1")
+                                                        .answer("Artificial intelligence and automation will transform modern workplace dynamics in unprecedented ways globally.")
+                                                        .build()
+                                        ))
+                                        .build()
+                        ))
+                        .build());
+
         when(gradingAdapter.loadPartKeys(1)).thenReturn(Map.of());
 
-        SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
-                .reason(SubmitReason.MANUAL)
-                .build();
-        SubmitResultResponse submitResp = testAttemptService.submitAttempt(attemptId, submitReq);
+        // A READY job requires the writing-grading feature enabled; restore the previous flag afterwards.
+        boolean previouslyEnabled = writingGradingProperties.isEnabled();
+        writingGradingProperties.setEnabled(true);
+        try {
+            SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
+                    .reason(SubmitReason.MANUAL)
+                    .build();
+            SubmitResultResponse submitResp = testAttemptService.submitAttempt(attemptId, submitReq);
 
-        assertThat(submitResp.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
+            assertThat(submitResp.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
+
+            assertThat(writingGradingJobRepository.findAllByAttemptId(attemptId))
+                    .hasSize(1)
+                    .first()
+                    .satisfies(job -> {
+                        assertThat(job.getPartId()).isEqualTo(1);
+                        assertThat(job.getQuestionId()).isEqualTo("essay1");
+                        assertThat(job.getStatus()).isEqualTo(WritingGradingJobStatus.READY);
+                    });
+        } finally {
+            writingGradingProperties.setEnabled(previouslyEnabled);
+        }
     }
 
     @Test

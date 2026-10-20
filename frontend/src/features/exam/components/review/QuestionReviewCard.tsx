@@ -18,6 +18,20 @@ export interface QuestionReviewCardProps {
   isSelected?: boolean;
 }
 
+function answerMatchesOption(answer: unknown, optionId: string, optionText: string): boolean {
+  const values = Array.isArray(answer) ? answer : [answer];
+  const hasOptionText = optionText.trim().length > 0;
+
+  return values.some(value =>
+    value === optionId || (hasOptionText && value === optionText)
+  );
+}
+
+function isUnanswered(answer: unknown): boolean {
+  return answer === null || answer === undefined || answer === '' ||
+    (Array.isArray(answer) && answer.length === 0);
+}
+
 export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   question,
   partId,
@@ -28,6 +42,10 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   const verdictInfo = getVerdictBadgeInfo(question.verdict);
   const labelText = question.label || `Câu ${index + 1}`;
   const hasOptions = Array.isArray(question.options) && question.options.length > 0;
+  const hasOptionWithoutText = hasOptions && question.options!.some(option => {
+    const optionText = option.text || option.content || '';
+    return optionText.trim().length === 0;
+  });
 
   const isWritingQuestion = question.type === 'ESSAY' || question.verdict === 'PENDING';
   const writingInfo =
@@ -112,25 +130,22 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
       {/* Choice Options */}
       {hasOptions ? (
         <div className="space-y-2.5 mb-4">
-          {(question.userAnswer === null || question.userAnswer === undefined || question.userAnswer === '') && (
+          {isUnanswered(question.userAnswer) && (
             <div className="text-xs text-slate-500 italic mb-2">
               Lựa chọn của bạn: <span>Chưa trả lời</span>
             </div>
           )}
+          {hasOptionWithoutText && (
+            <p className="text-xs text-slate-500" role="note">
+              Chưa có lời thoại cho các lựa chọn. Vui lòng nghe audio để đối chiếu.
+            </p>
+          )}
           {question.options!.map((opt: ReviewOptionDto, optIdx: number) => {
             const optContent = opt.text || opt.content || '';
-            const isUserChoice =
-              question.userAnswer === opt.id ||
-              question.userAnswer === optContent ||
-              (Array.isArray(question.userAnswer) &&
-                (question.userAnswer.includes(opt.id) || question.userAnswer.includes(optContent)));
-
+            const isUserChoice = answerMatchesOption(question.userAnswer, opt.id, optContent);
             const isCorrectOption =
               opt.isCorrect === true ||
-              question.correctAnswer === opt.id ||
-              question.correctAnswer === optContent ||
-              (Array.isArray(question.correctAnswer) &&
-                (question.correctAnswer.includes(opt.id) || question.correctAnswer.includes(optContent)));
+              answerMatchesOption(question.correctAnswer, opt.id, optContent);
 
             let optionClasses = 'border-slate-200 bg-white text-slate-700';
             if (isCorrectOption) {
@@ -152,7 +167,15 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
                     readOnly
                     className="h-4 w-4 text-amber-600 cursor-not-allowed shrink-0"
                   />
-                  <HtmlContent html={optContent} className="inline-block" />
+                  <span
+                    className="font-semibold text-slate-800 shrink-0"
+                    data-testid={`review-option-id-${question.questionId}-${opt.id}`}
+                  >
+                    {opt.id}
+                  </span>
+                  {optContent.trim().length > 0 && (
+                    <HtmlContent html={optContent} className="inline-block" />
+                  )}
                 </div>
                 <div className="text-xs font-bold shrink-0">
                   {isCorrectOption && (

@@ -17,6 +17,11 @@ import java.util.regex.Pattern;
 public class GeminiProperties {
 
     public static final int MAX_REQUEST_BYTES = 131_072;
+    public static final int MAX_IMAGES_PER_REQUEST = 2;
+    public static final int MAX_IMAGE_BYTES = 2_097_152;
+    public static final int MAX_TOTAL_IMAGE_BYTES = 4_194_304;
+    public static final int MAX_TEXT_BYTES_WITH_IMAGES = 131_072;
+    public static final int MAX_MULTIMODAL_REQUEST_BYTES = 6_291_456;
     public static final int MAX_RESPONSE_BYTES = 524_288;
     private static final Duration MAX_ALLOWED_REQUEST_TIMEOUT = Duration.ofSeconds(120);
     private static final Pattern MODEL_PATTERN = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._-]*$");

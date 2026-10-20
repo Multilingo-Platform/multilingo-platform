@@ -18,6 +18,7 @@ import answerReducer, {
   selectIsQuestionFlagged,
   addHighlightRecord,
   removeHighlightRecord,
+  restoreHighlightRecords,
 } from '../store/answerSlice';
 
 function makeStore() {
@@ -35,16 +36,17 @@ describe('TV3-09 scoped mutation lock', () => {
   }
   it('blocks answer clears, flags and highlights without changing dirty counters', () => {
     let state = context();
+    const highlightContext = { attemptId: state.attemptId!, contextRevision: state.contextRevision };
     state = reducer(state, setAnswer({ partId: 10, questionId: 'essay', value: 'B' }));
     state = reducer(state, toggleFlag({ partId: 10, questionId: 'essay' }));
-    state = reducer(state, addHighlightRecord({ passageId: 'p', contentHash: 'hash', highlight: { id: 'h', start: 0, end: 4, text: 'text' } }));
+    state = reducer(state, addHighlightRecord({ ...highlightContext, passageId: 'p', contentHash: 'hash', documentText: 'text', highlight: { id: 'h', start: 0, end: 4, text: 'text' } }));
     const locked = lock(state);
     for (const action of [
       setAnswer({ partId: 10, questionId: 'essay', value: null }),
       setAnswer({ partId: 10, questionId: 'essay', value: '' }),
       toggleFlag({ partId: 10, questionId: 'essay' }), clearFlags(),
-      addHighlightRecord({ passageId: 'p', contentHash: 'hash', highlight: { id: 'h2', start: 5, end: 8, text: 'new' } }),
-      removeHighlightRecord({ passageId: 'p', offset: 1 }),
+      addHighlightRecord({ ...highlightContext, passageId: 'p', contentHash: 'hash', documentText: 'text', highlight: { id: 'h2', start: 5, end: 8, text: 'new' } }),
+      removeHighlightRecord({ ...highlightContext, passageId: 'p', highlightId: 'h' }),
     ]) expect(reducer(locked, action)).toBe(locked);
   });
   it('ignores wrong attempt/revision and allows editing only after scoped unlock', () => {
@@ -246,23 +248,29 @@ describe('answerSlice', () => {
     });
 
     it('handles highlight addition and removal', () => {
-      let state = reducer(
-        initialState,
+      let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 9, savedAnswers: [] }));
+      const highlightContext = { attemptId: 5, contextRevision: state.contextRevision };
+      state = reducer(
+        state,
         addHighlightRecord({
+          ...highlightContext,
           passageId: 'p1',
           contentHash: 'hash1',
+          documentText: '0123456789',
           highlight: { id: '1', start: 5, end: 10, text: 'abc' },
         })
       );
 
       expect(state.highlights['p1'].items).toHaveLength(1);
-      expect(state.isDirty).toBe(true);
+      expect(state.isDirty).toBe(false);
+      expect(state.pendingVersion).toBe(0);
 
       state = reducer(
         state,
         removeHighlightRecord({
+          ...highlightContext,
           passageId: 'p1',
-          offset: 7,
+          highlightId: '1',
         })
       );
 
@@ -287,8 +295,11 @@ describe('answerSlice', () => {
       let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
       state = reducer(state, toggleFlag({ partId: 1, questionId: 'q_1' }));
       state = reducer(state, addHighlightRecord({
+        attemptId: 5,
+        contextRevision: state.contextRevision,
         passageId: 'p1',
         contentHash: 'hash1',
+        documentText: 'hello',
         highlight: { id: 'h1', start: 0, end: 5, text: 'hello' },
       }));
       expect(state.flags[1]?.['q_1']).toBe(true);
@@ -304,8 +315,11 @@ describe('answerSlice', () => {
       let state = reducer(initialState, setAttemptContext({ attemptId: 5, version: 1, savedAnswers: [] }));
       state = reducer(state, toggleFlag({ partId: 1, questionId: 'q_1' }));
       state = reducer(state, addHighlightRecord({
+        attemptId: 5,
+        contextRevision: state.contextRevision,
         passageId: 'p1',
         contentHash: 'hash1',
+        documentText: 'hello',
         highlight: { id: 'h1', start: 0, end: 5, text: 'hello' },
       }));
 
@@ -326,5 +340,38 @@ describe('answerSlice', () => {
       expect(state.isDirty).toBe(true);
       expect(state.activeSaveId).toBeNull();
     });
+  });
+
+  it('ignores highlight mutations from stale attempt/revision and restores only matching context', () => {
+    let state = reducer(initialState, setAttemptContext({ attemptId: 71, version: 12, savedAnswers: [] }));
+    const revision = state.contextRevision;
+    const stale = addHighlightRecord({
+      attemptId: 72, contextRevision: revision, passageId: 'old', contentHash: 'h', documentText: 'text',
+      highlight: { id: 'x', start: 0, end: 2, text: 'te' },
+    });
+    expect(reducer(state, stale)).toBe(state);
+    state = reducer(state, restoreHighlightRecords({
+      attemptId: 71, contextRevision: revision,
+      highlights: { ns: { contentHash: 'hash', items: [{ id: 'r', start: 0, end: 1, text: 't' }] } },
+    }));
+    expect(state.highlights.ns.items).toHaveLength(1);
+    expect(state).toMatchObject({ isDirty: false, pendingVersion: 0, version: 12 });
+    expect(reducer(state, restoreHighlightRecords({ attemptId: 71, contextRevision: revision - 1, highlights: {} }))).toBe(state);
+  });
+
+  it('keeps the existing cluster id when a newly selected range expands it to the left', () => {
+    let state = reducer(initialState, setAttemptContext({ attemptId: 73, version: 2, savedAnswers: [] }));
+    const context = { attemptId: 73, contextRevision: state.contextRevision };
+    state = reducer(state, addHighlightRecord({
+      ...context, passageId: 'stable-cluster', contentHash: 'h', documentText: '0123456789',
+      highlight: { id: 'existing-id', start: 5, end: 9, text: 'wrong' },
+    }));
+    state = reducer(state, addHighlightRecord({
+      ...context, passageId: 'stable-cluster', contentHash: 'h', documentText: '0123456789',
+      highlight: { id: 'new-selection-id', start: 2, end: 6, text: 'also wrong' },
+    }));
+    expect(state.highlights['stable-cluster'].items).toEqual([
+      { id: 'existing-id', start: 2, end: 9, text: '2345678' },
+    ]);
   });
 });

@@ -1,0 +1,50 @@
+{
+  "examCode": "TOEIC-ETS-2024-T1-V2",
+  "source": "ETS 2024 Test 1",
+  "approvalReference": "TEST-ONLY-SYNTHETIC",
+  "totalDurationMs": 2652239,
+  "tracks": [
+    {
+      "partNumber": 1,
+      "audioUrl": "https://media.test/p1.mp3",
+      "durationMs": 173505,
+      "startOffsetMs": 0,
+      "etag": "test-1",
+      "contentLength": 1000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "partNumber": 2,
+      "audioUrl": "https://media.test/p2.mp3",
+      "durationMs": 536686,
+      "startOffsetMs": 173505,
+      "etag": "test-2",
+      "contentLength": 1001,
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "partNumber": 3,
+      "audioUrl": "https://media.test/p3.mp3",
+      "durationMs": 1105842,
+      "startOffsetMs": 710191,
+      "etag": "test-3",
+      "contentLength": 1002,
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "partNumber": 4,
+      "audioUrl": "https://media.test/p4.mp3",
+      "durationMs": 836206,
+      "startOffsetMs": 1816033,
+      "etag": "test-4",
+      "contentLength": 1003,
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ],
+  "verification": {
+    "version": 1,
+    "status": "VERIFIED",
+    "durationEvidenceReference": "TEST-ONLY: synthetic metadata; no production approval",
+    "metadataSha256": "d837512dcd0c0a283504f406bc236e3e537ce86cf3322452de7a59264a51016b"
+  }
+}

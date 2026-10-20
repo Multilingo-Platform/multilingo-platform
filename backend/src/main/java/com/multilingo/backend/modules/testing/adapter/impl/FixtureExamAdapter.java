@@ -42,4 +42,10 @@ public class FixtureExamAdapter implements ExamAdapter {
                 .filter(e -> examId.equals(e.getId()))
                 .findFirst();
     }
+
+    @Override
+    public Optional<ExamFixture> findPublishedSnapshotById(Integer examId) {
+        // Only the explicitly profiled dev/test fixture catalog is eligible.
+        return findSnapshotById(examId);
+    }
 }

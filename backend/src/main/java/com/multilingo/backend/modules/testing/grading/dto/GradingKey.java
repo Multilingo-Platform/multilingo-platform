@@ -1,7 +1,9 @@
 package com.multilingo.backend.modules.testing.grading.dto;
 
 import lombok.Data;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Answer key cho một câu hỏi trong fixture chấm điểm.
@@ -9,6 +11,31 @@ import java.util.List;
  */
 @Data
 public class GradingKey {
+    public record AnswerGroup(String id, String mode, List<String> questionIds) {
+        public AnswerGroup {
+            questionIds = questionIds == null ? List.of() : List.copyOf(questionIds);
+        }
+
+        public static AnswerGroup parse(Object raw, String expectedQuestionId) {
+            if (raw == null) return null;
+            if (!(raw instanceof Map<?, ?> map)
+                    || !(map.get("id") instanceof String id) || id.isBlank()
+                    || !(map.get("mode") instanceof String mode) || !"DISTINCT_UNORDERED".equals(mode)
+                    || !(map.get("question_ids") instanceof List<?> rawIds) || rawIds.size() != 2) {
+                throw new IllegalArgumentException("Invalid IELTS answer group metadata.");
+            }
+            List<String> ids = new ArrayList<>(2);
+            for (Object value : rawIds) {
+                if (!(value instanceof String questionId) || questionId.isBlank())
+                    throw new IllegalArgumentException("Invalid IELTS answer group member.");
+                ids.add(questionId);
+            }
+            if (ids.get(0).equals(ids.get(1)) || !ids.contains(expectedQuestionId))
+                throw new IllegalArgumentException("IELTS answer group member IDs are inconsistent.");
+            return new AnswerGroup(id, mode, ids);
+        }
+    }
+
     /** Khớp với questionId trong userAnswers (ví dụ: "q_1") */
     private String questionId;
 
@@ -35,4 +62,7 @@ public class GradingKey {
      * Null hoặc rỗng = không có alternate.
      */
     private List<String> alternates;
+
+    /** Present only for canonical two-slot IELTS questions. */
+    private AnswerGroup answerGroup;
 }

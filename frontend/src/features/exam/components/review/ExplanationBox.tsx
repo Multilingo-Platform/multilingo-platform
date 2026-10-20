@@ -16,7 +16,7 @@ export const ExplanationBox: React.FC<Props> = ({ htmlContent }) => {
           <span>💡</span>
           <span>Giải thích chi tiết:</span>
         </div>
-        <div className="text-gray-500 italic">Không có giải thích chi tiết cho câu hỏi này.</div>
+        <div className="text-gray-500 italic">Chưa có giải thích</div>
       </div>
     );
   }

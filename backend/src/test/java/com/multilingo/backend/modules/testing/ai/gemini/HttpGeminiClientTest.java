@@ -38,6 +38,21 @@ import static org.mockito.Mockito.when;
 
 class HttpGeminiClientTest {
 
+    @Test
+    void r2MultimodalTimeoutStillCancelsTheOnlyRequest() {
+        properties.setConnectTimeout(Duration.ofMillis(10));
+        properties.setRequestTimeout(Duration.ofMillis(200));
+        var hanging = new CompletableFuture<HttpResponse<byte[]>>();
+        doReturn(hanging).when(httpClient).sendAsync(any(), any());
+        var generator = new HttpGeminiClient(httpClient, properties, codec);
+        var request = new GeminiGenerationRequest(null, "essay", 32, GeminiGenerationRequest.OutputFormat.JSON,
+                List.of(new GeminiImagePart("image/png", com.multilingo.backend.modules.testing.ai.media.ImageFixtures.png())));
+        assertThatThrownBy(() -> generator.generate(request)).isInstanceOfSatisfying(GeminiClientException.class,
+                error -> assertThat(error.getKind()).isEqualTo(GeminiClientException.Kind.TIMEOUT));
+        assertThat(hanging.isCancelled()).isTrue();
+        verify(httpClient, times(1)).sendAsync(any(), any());
+    }
+
     private HttpClient httpClient;
     private GeminiProperties properties;
     private GeminiPayloadCodec codec;

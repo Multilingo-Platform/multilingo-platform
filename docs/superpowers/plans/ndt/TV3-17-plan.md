@@ -3,7 +3,7 @@
 > **For agentic workers:** Khi triển khai, dùng skill `tv3-plan-executor`; đọc plan và handoff trước khi sửa, thực hiện tuần tự RED → GREEN và cập nhật handoff. Không commit hoặc push.
 
 **Ngày:** 2026-10-12  
-**Trạng thái:** IMPLEMENTED  
+**Trạng thái:** R2 IMPLEMENTED — AWAITING FINAL REVIEW; REGRESSION VERIFIED PASS
 **Baseline:** HEAD `73da0a9`, branch `feature/TV3-00-contract-audit`.
 
 **Goal:** Tạo Gemini client nội bộ backend có cấu hình an toàn, deadline, giới hạn payload, phân loại lỗi và tests không gọi provider thật.
@@ -310,4 +310,80 @@ Tại repository root: `git diff --check`, `git status --short`.
 | 17-13 | Regression | Workspace/review/result/practice | Contract và security behavior giữ nguyên | 05 |
 
 **Definition of Done:** AC-01–08 có evidence; RED/GREEN từng task; tests mới, regression liên quan và backend suite PASS hoặc ghi blocker kèm evidence; không thêm dependency/endpoint/migration/worker/frontend; không gọi provider thật; không lộ dữ liệu nhạy cảm; diff trong phạm vi TV3-17; handoff append; dừng chờ review; không commit/push.
+
+## Revision R2 — Multimodal
+
+Ngày duyệt: 2026-10-14. Baseline `3dee084b34fd3d787de49b3ffe0258ff31b979ce`, branch `feature/TV3-00-contract-audit`. Spec là brief R2 của chủ dự án và plan R2 được yêu cầu triển khai trong chat; phần 17-01…05 phía trên là lịch sử, không viết lại.
+
+**Goal:** Gemini nhận tối đa hai ảnh inline; fetcher URL → ảnh độc lập với Gemini và nghiệp vụ. Chưa nối vào Hints/grading/submit/quota. Java 21/JDK HttpClient/Jackson, không thêm dependency.
+
+### Constraints được sửa và giữ nguyên
+
+- Cho phép `inlineData` ảnh, vẫn không Files API/tools/streaming/safety overrides.
+- Text-only cap 131072 và byte output không đổi; multimodal có cap riêng bên dưới.
+- Thêm `ai/media`, sửa có kiểm soát `ai/gemini`, main/test properties, README và plan/handoff này.
+- Timeout Gemini vẫn default 30s/max 120s; README nhắc model cần hỗ trợ ảnh và timeout có thể cần tăng.
+- Không frontend/endpoint/DB/migration/Hints/quota/worker/shared handler/ErrorCode; không mạng/provider/CDN thật, không key thật, không retry/cache/fallback/concurrency limiter, không commit/push. Giữ mọi dirty/untracked work ETS.
+
+### Contract R2
+
+`GeminiImagePart(String mimeType, byte[] data)`: chỉ MIME chính xác `image/png`, `image/jpeg`, `image/webp`; data 1..2097152; defensive copy khi tạo/đọc, toString chỉ MIME/length. Sai → safe INVALID_INPUT, không cause.
+
+`GeminiGenerationRequest(systemInstruction,userText,maxOutputTokens,outputFormat,List<GeminiImagePart> images)`: constructor 4 tham số giữ nguyên, tương đương ảnh rỗng; null list thành rỗng, list bất biến, không null element. Giữ validation cũ, không trim. toString thêm imageCount, không MIME/ảnh/text.
+
+| Constant GeminiProperties | Value |
+|---|---:|
+| MAX_REQUEST_BYTES | 131072 |
+| MAX_IMAGES_PER_REQUEST | 2 |
+| MAX_IMAGE_BYTES | 2097152 |
+| MAX_TOTAL_IMAGE_BYTES | 4194304 |
+| MAX_TEXT_BYTES_WITH_IMAGES | 131072 |
+| MAX_MULTIMODAL_REQUEST_BYTES | 6291456 |
+| MAX_RESPONSE_BYTES | 524288 |
+
+Codec: ảnh theo thứ tự list rồi text cuối; `inlineData.mimeType/data`, base64 chuẩn không xuống dòng. Bounded serialization chọn cap theo có ảnh. Raw UTF-8 system+user text có ảnh <=131072; không nhầm với JSON escape bytes. Decoder vẫn từ chối output inlineData/fileData; thêm IMAGE_SAFETY, IMAGE_PROHIBITED_CONTENT, IMAGE_RECITATION → BLOCKED theo quyết định chủ dự án. IMAGE_OTHER/NO_IMAGE → INVALID_RESPONSE; textual nonblank promptFeedback.blockReason → BLOCKED, malformed shape → safe INVALID_RESPONSE.
+
+`ImageFetcher.fetch(String url): FetchedImage`; `FetchedImage(String mimeType,byte[] data)` defensive copy/safe toString. Media caps độc lập với Gemini, test bridge xác nhận cùng 2 MiB. Fetcher không import Gemini/attempt/quota/DB.
+
+URL policy: HTTPS; hostname, không IP literal/localhost/userinfo/fragment/backslash/segment `..`; port default/443; <=2048 chars; cấm encoded dot/slash/backslash trước normalization. Prefix config HTTPS, host/path kết thúc `/`, không query/userinfo/fragment; so sánh scheme/host/effective port/path, giữ query URL tải. Không hardcode cloud demo hoặc suy allowlist từ URL snapshot.
+
+Address policy: resolver inject được, kiểm tra TẤT CẢ kết quả; reject loopback/link-local/site-local/any-local/multicast, ULA fc00::/7, CGNAT 100.64/10, 0/8 và IPv4-mapped IPv6 tương ứng. DNS fail → ADDRESS_REJECTED, không raw cause.
+
+Transport: riêng HttpClient, Redirect.NEVER, chỉ GET/Accept PNG JPEG WebP, không cookie/authenticator/Authorization/x-goog-api-key. Monotonic deadline từ đầu fetch bao gồm DNS và body; resolver qua virtual-thread executor chỉ tạo khi enabled; timeout cancel, interrupt restore flag. Bounded subscriber cancel ngay khi actual bytes >2 MiB; Content-Length chỉ precheck; reject encoding khác identity. Chỉ HTTP200 tạo ảnh, 3xx không follow; 2xx khác INVALID_CONTENT. Không giữ/in upstream error body.
+
+Sniffing không decode pixel: PNG signature/IHDR/chunk bounds/IEND; JPEG SOI/header/EOI; WebP RIFF/WEBP/declared size/chunk bounds. Empty/truncated/minimal structure sai → INVALID_CONTENT; MIME/magic không khớp hoặc GIF/SVG/HTML/EXE → UNSUPPORTED_TYPE.
+
+`ImageFetchException extends AppException(UNCATEGORIZED_EXCEPTION)`, không cause, Kind/retryable/upstreamStatus; cố định message. Kinds nonretryable: DISABLED, INVALID_URL, HOST_NOT_ALLOWED, ADDRESS_REJECTED, REDIRECT_REJECTED, UPSTREAM_NOT_FOUND(404/410), UPSTREAM_REJECTED(other4xx), INTERRUPTED, TOO_LARGE, UNSUPPORTED_TYPE, INVALID_CONTENT. Retryable: RATE_LIMITED(429), UPSTREAM(5xx), TIMEOUT(deadline/408), TRANSPORT(I/O). Không tự retry.
+
+Properties `testing.image-fetch`: enabled env IMAGE_FETCH_ENABLED=false; allowed-url-prefixes env IMAGE_FETCH_ALLOWED_URL_PREFIXES rỗng; connect-timeout IMAGE_FETCH_CONNECT_TIMEOUT=5s; request-timeout IMAGE_FETCH_REQUEST_TIMEOUT=10s. Enabled yêu cầu prefix hợp lệ và 0<connect<=request<=30s; disabled không transport/executor/DNS và luôn có đúng một ImageFetcher bean. Parse/validate lỗi an toàn không rejected URL/config trong logs; snapshot config khi tạo client. Qualifier riêng geminiHttpClient/imageFetchHttpClient kể cả shutdown.
+
+### Tasks và review focus
+
+Thứ tự bắt buộc 17-06 → 17-07 → 17-08 → 17-09 → 17-10. Mỗi task tests trước, behavioral RED rồi GREEN, diff check, append IN_PROGRESS/IMPLEMENTED và review gate; không chuyển khi còn P0/P1. Không nới assertions cũ.
+
+- [x] **17-06:** tạo gemini/GeminiImagePart.java và test; sửa GeminiGenerationRequest/GeminiProperties/GeminiContractTest. Test MIME/null/uppercase, bytes empty/cap/+1, copy cả hai chiều, immutable/null list/element, 0/1/2/3 ảnh, raw UTF8 cap/+1, constructor cũ/toString. Gate: GeminiImagePartTest,GeminiContractTest,GeminiPropertiesTest. AC-R01–03.
+- [x] **17-07:** sửa GeminiPayloadCodec và test. Capture golden baseline TEXT/JSON/system/Unicode trước sửa; test ảnh→text, base64, JSON text-only/multimodal cap/+1 (escape expansion hợp lệ raw-text), image safety/prompt block/response inline rejection. Gate: GeminiImagePartTest,GeminiContractTest,GeminiPayloadCodecTest. AC-R01–03.
+- [x] **17-08:** tạo media/ImageFetcher,FetchedImage,ImageFetchException,ImageFetchProperties,ImageUrlPolicy,ImageAddressPolicy,ImageSniffer và tests FetchedImageTest,ImageFetchExceptionTest,ImageFetchPropertiesTest,ImageUrlPolicyTest,ImageAddressPolicyTest,ImageSnifferTest; main/test properties thêm namespace. Tests URL spoof/traversal/2048/2049, mọi dải IP/mixed/DNS failure, MIME/structure/truncation, safe exceptions/config. AC-R03–05/R07.
+- [x] **17-09:** tạo media/HttpImageFetcher,ImageFetchConfiguration,BoundedByteBodySubscriber và HttpImageFetcherTest,ImageFetchConfigurationTest,ImageFetchHttpContractTest,ImageFetchSecurityTest. Gemini BoundedBodySubscriber làm wrapper generic exception factory, giữ API/message/behavior cũ. Sửa GeminiConfiguration qualifiers, thêm mixed configuration tests. Test zero dispatch khi policy reject, loopback với test policy, no redirect/headers, DNS/body timeout, late/interrupt/cap/chunk/status, overlapping success+failure, 4 enable combinations/startup no DNS/shutdown. AC-R04–08.
+- [x] **17-10:** sửa GeminiHttpContractTest/GeminiSecurityTest, README/plan/handoff. Bridge fetch giả→GeminiImagePart→Gemini thật/server giả; bytes/header/caps; overlapping multimodal một call lỗi; log/handler sentinel. README config/caps/model/timeout, Hints đã dùng text-only nhưng R2 chưa nối grading. Chạy focused/regression/broad suite, AC mapping, dừng final review. AC-R01–09.
+
+Ngày 2026-10-14: đã triển khai 17-06…10 và chạy đủ ba nhóm verification bên dưới. Focused 299/299 PASS; review độc lập không có finding P0/P1/P2 trong R2. **Definition of Done chưa đạt:** business regression có 1 error; broad suite có 1 failure/3 errors/14 skips. Các lỗi thuộc hai test tạo attempt cũ chưa theo thay đổi ETS ở dirty baseline, không thuộc diff R2. AC-R09 còn BLOCKED; xem entry cuối handoff để đối chiếu, không diễn giải checklist triển khai thành toàn bộ backend PASS.
+
+Review Focus: qualifier/transport key isolation; DNS/body deadline; raw/encoded prefix traversal và mixed DNS; escape expansion vượt JSON cap; failure isolation/late completion.
+
+### AC và verification
+
+AC-R01 byte-identical text-only và old tests; R02 ordered inline/caps; R03 copy/no leakage; R04 allowlist/address/redirect; R05 bounded body/deadline/sniff; R06 transports riêng/no key; R07 disabled/startup config; R08 no retry/cache và concurrent reuse; R09 scope/regressions/evidence.
+
+Tại backend:
+
+```powershell
+.\mvnw.cmd '-Dtest=GeminiImagePartTest,GeminiContractTest,GeminiPropertiesTest,GeminiPayloadCodecTest,HttpGeminiClientTest,BoundedBodySubscriberTest,GeminiConfigurationTest,GeminiHttpContractTest,GeminiSecurityTest,FetchedImageTest,ImageFetchExceptionTest,ImageFetchPropertiesTest,ImageUrlPolicyTest,ImageAddressPolicyTest,ImageSnifferTest,HttpImageFetcherTest,ImageFetchConfigurationTest,ImageFetchHttpContractTest,ImageFetchSecurityTest' test
+.\mvnw.cmd '-Dtest=WritingHintPromptFactoryTest,WritingHintGeneratorTest,WritingHintsServiceTest,WritingHintsControllerIT,WritingHintsContractIT,TestAttemptWorkspaceResponseTest,WorkspaceSnapshotSanitizerTest,TestAttemptReviewServiceTest,ReviewSnapshotPersistenceTest,PracticeFeedbackServiceTest,ExamReviewContractIT,ResultSummaryContractIT,PracticeFeedbackContractIT' test
+.\mvnw.cmd '-Dtest=*,!GenerateTemplateTest' test
+```
+
+Chủ dự án đã chọn loại GenerateTemplateTest vì ghi workbook. Ghi broad suite, không gọi full nguyên bản; không tự cấu hình PostgreSQL/provider để hết skip. Root diff check/status so dirty baseline. Handoff ghi test count/errors/skips thật, không sửa entry cũ.
+
+Risks/bàn giao TV3-20: DNS rebinding giữa precheck/JDK connect chưa loại trừ; cancel không chắc native DNS/provider dừng; sniff không chứng minh decode/chấm đúng; ảnh gửi Google cần xem xét dữ liệu/bản quyền. TV3-20 xử lý URL extraction/HTML img, quota ordering, prompt injection, feedback/prompt/model/image identity persistence, grading orchestration. Không kết luận Writing đã đọc ảnh khi chỉ infrastructure hoàn tất.
 

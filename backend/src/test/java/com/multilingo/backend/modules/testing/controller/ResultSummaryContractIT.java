@@ -19,6 +19,7 @@ import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import com.multilingo.backend.modules.testing.repository.AttemptAnswerRepository;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
+import com.multilingo.backend.modules.testing.config.WritingGradingProperties;
 import com.multilingo.backend.modules.testing.service.TestAttemptService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,6 +69,9 @@ class ResultSummaryContractIT {
 
     @Autowired
     private TestAttemptService testAttemptService;
+
+    @Autowired
+    private WritingGradingProperties writingGradingProperties;
 
     private final List<Integer> createdAttemptIds = new ArrayList<>();
     private final List<Integer> createdExamIds = new ArrayList<>();
@@ -206,7 +210,7 @@ class ResultSummaryContractIT {
                             Map.of(
                                     "instruction", "Write an essay about climate change",
                                     "questions", List.of(
-                                            Map.of("question_id", "essay_1", "type", "ESSAY")
+                                            Map.of("question_id", "essay_1", "type", "ESSAY", "prompt", "Write an essay about climate change.")
                                     )
                             )
                     )
@@ -393,36 +397,42 @@ class ResultSummaryContractIT {
         Integer attemptId = workspace.getAttemptId();
         createdAttemptIds.add(attemptId);
 
-        // Candidate answers q1 = "A" (CORRECT) and writes essay
-        AutosaveAnswersRequest.PartAnswerDto ansP1 = new AutosaveAnswersRequest.PartAnswerDto();
-        ansP1.setPartId(rP1.getId());
-        ansP1.setAnswers(List.of(new AutosaveAnswersRequest.QuestionAnswerDto("q1", "A")));
+        boolean prevEnabled = writingGradingProperties.isEnabled();
+        writingGradingProperties.setEnabled(true);
+        try {
+            // Candidate answers q1 = "A" (CORRECT) and writes essay (> 10 words)
+            AutosaveAnswersRequest.PartAnswerDto ansP1 = new AutosaveAnswersRequest.PartAnswerDto();
+            ansP1.setPartId(rP1.getId());
+            ansP1.setAnswers(List.of(new AutosaveAnswersRequest.QuestionAnswerDto("q1", "A")));
 
-        AutosaveAnswersRequest.PartAnswerDto ansWP = new AutosaveAnswersRequest.PartAnswerDto();
-        ansWP.setPartId(wP.getId());
-        ansWP.setAnswers(List.of(new AutosaveAnswersRequest.QuestionAnswerDto("essay_1", "I believe climate change requires immediate global collective action."))); // 9 words
+            AutosaveAnswersRequest.PartAnswerDto ansWP = new AutosaveAnswersRequest.PartAnswerDto();
+            ansWP.setPartId(wP.getId());
+            ansWP.setAnswers(List.of(new AutosaveAnswersRequest.QuestionAnswerDto("essay_1", "I believe climate change requires immediate global collective action from all nations today."))); // 12 words
 
-        testAttemptService.submitAttempt(attemptId, SubmitAttemptRequest.builder()
-                .reason(SubmitReason.MANUAL)
-                .finalAnswers(List.of(ansP1, ansWP))
-                .build());
+            testAttemptService.submitAttempt(attemptId, SubmitAttemptRequest.builder()
+                    .reason(SubmitReason.MANUAL)
+                    .finalAnswers(List.of(ansP1, ansWP))
+                    .build());
 
-        TestAttempt dbAttempt = testAttemptRepository.findById(attemptId).orElseThrow();
-        // Has essay -> should be AI_GRADING
-        assertThat(dbAttempt.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
+            TestAttempt dbAttempt = testAttemptRepository.findById(attemptId).orElseThrow();
+            // Has essay -> should be AI_GRADING
+            assertThat(dbAttempt.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
 
-        mockMvc.perform(get("/api/v1/attempts/" + attemptId + "/result"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("AI_GRADING"))
-                .andExpect(jsonPath("$.data.summaryAvailable").value(true))
-                .andExpect(jsonPath("$.data.overallScore").value(1.0))
-                .andExpect(jsonPath("$.data.resultSummary.totalObjectiveCount").value(5))
-                .andExpect(jsonPath("$.data.resultSummary.correctCount").value(1))
-                .andExpect(jsonPath("$.data.resultSummary.writing.status").value("PENDING"))
-                .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].questionId").value("essay_1"))
-                .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].wordCount").value(9))
-                .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].score").isEmpty())
-                .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].maxScore").isEmpty());
+            mockMvc.perform(get("/api/v1/attempts/" + attemptId + "/result"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.status").value("AI_GRADING"))
+                    .andExpect(jsonPath("$.data.summaryAvailable").value(true))
+                    .andExpect(jsonPath("$.data.overallScore").value(1.0))
+                    .andExpect(jsonPath("$.data.resultSummary.totalObjectiveCount").value(5))
+                    .andExpect(jsonPath("$.data.resultSummary.correctCount").value(1))
+                    .andExpect(jsonPath("$.data.resultSummary.writing.status").value("PENDING"))
+                    .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].questionId").value("essay_1"))
+                    .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].wordCount").value(13))
+                    .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].score").isEmpty())
+                    .andExpect(jsonPath("$.data.resultSummary.writing.tasks[0].maxScore").isEmpty());
+        } finally {
+            writingGradingProperties.setEnabled(prevEnabled);
+        }
     }
 
     @Test

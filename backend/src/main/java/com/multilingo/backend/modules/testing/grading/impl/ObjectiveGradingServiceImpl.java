@@ -4,6 +4,7 @@ import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.grading.GradingVerdict;
+import com.multilingo.backend.modules.testing.grading.IeltsAnswerGroupEvaluator;
 import com.multilingo.backend.modules.testing.grading.ObjectiveGradingService;
 import com.multilingo.backend.modules.testing.grading.dto.*;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,8 @@ import java.util.*;
  */
 @Service
 public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
+
+    private final IeltsAnswerGroupEvaluator answerGroupEvaluator = new IeltsAnswerGroupEvaluator();
 
     private static final Set<String> OBJECTIVE_TYPES = Set.of(
         "SINGLE_CHOICE", "TRUE_FALSE_NOT_GIVEN", "YES_NO_NOT_GIVEN",
@@ -50,6 +53,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
                 aa.getUserAnswers() != null ? aa.getUserAnswers() : Collections.emptyMap();
 
             Map<String, QuestionGradingResult> partResult = new HashMap<>();
+            Map<String, GradingKey.AnswerGroup> evaluatedAnswerGroups = new HashMap<>();
 
             for (Map.Entry<String, GradingKey> keyEntry : pgk.getAnswers().entrySet()) {
                 String questionId = keyEntry.getKey();
@@ -69,6 +73,29 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
                     throw new AppException(ErrorCode.GRADING_DATA_ERROR,
                         "GRADING_DATA_ERROR: Unknown question type in grading fixture: " + type
                         + " for questionId: " + questionId);
+                }
+
+                if (key.getAnswerGroup() != null) {
+                    String answerGroupId = key.getAnswerGroup().id();
+                    if (answerGroupId == null || answerGroupId.isBlank()) {
+                        throw new AppException(ErrorCode.GRADING_DATA_ERROR, "IELTS answer group is invalid.");
+                    }
+                    GradingKey.AnswerGroup previousGroup = evaluatedAnswerGroups.putIfAbsent(
+                            answerGroupId, key.getAnswerGroup());
+                    if (previousGroup != null && !previousGroup.equals(key.getAnswerGroup())) {
+                        throw new AppException(ErrorCode.GRADING_DATA_ERROR, "IELTS answer group ID is reused.");
+                    }
+                    if (previousGroup == null) {
+                        Map<String, QuestionGradingResult> groupResults = answerGroupEvaluator.evaluate(
+                                pgk.getAnswers(), userAnswers, key);
+                        partResult.putAll(groupResults);
+                        for (QuestionGradingResult groupResult : groupResults.values()) {
+                            totalObjectiveCount++;
+                            if (groupResult.getVerdict() == GradingVerdict.CORRECT) correctCount++;
+                            totalScore = totalScore.add(groupResult.getScore());
+                        }
+                    }
+                    continue;
                 }
 
                 if (key.getCorrect() == null) {

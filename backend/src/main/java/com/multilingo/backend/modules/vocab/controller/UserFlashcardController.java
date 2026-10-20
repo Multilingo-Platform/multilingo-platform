@@ -65,7 +65,7 @@ public class UserFlashcardController {
             @Valid @RequestBody CreateFlashcardRequest request
     ) {
         Integer userId = identityResolver.requireUserId();
-        log.info("API: Thêm thẻ từ vựng '{}' vào deckId={} bởi userId={}", request.getCustomWord(), deckId, userId);
+        log.info("API: Thêm thẻ vào deckId={} bởi userId={}", deckId, userId);
         FlashcardResponse response = userFlashcardService.addCard(deckId, request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }

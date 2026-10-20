@@ -151,6 +151,83 @@ describe('TV3-16-02 usePracticeFeedback', () => {
     sessionStorage.clear();
   });
 
+  it('checks both paired answers and invalidates both feedbacks when either slot changes', async () => {
+    const pairMetadata = { id: 'listening-17-18', mode: 'DISTINCT_UNORDERED' as const, question_ids: ['q1', 'q2'] };
+    const pairQuestions: Question[] = mockQuestions.slice(0, 2).map(question => ({
+      ...question,
+      answer_group: pairMetadata,
+    }));
+    vi.mocked(attemptApi.checkPracticeAnswer).mockResolvedValueOnce({
+      ...practiceFeedbackFixture, questionId: 'q1', userAnswer: 'A', verdict: 'WRONG', score: 0,
+      groupResults: [
+        { questionId: 'q1', userAnswer: 'A', verdict: 'WRONG', score: 0, correctAnswer: ['A', 'E'], explanation: 'Slot 1' },
+        { questionId: 'q2', userAnswer: 'E', verdict: 'CORRECT', score: 1, correctAnswer: ['A', 'E'], explanation: 'Slot 2' },
+      ],
+    });
+    const { result, store } = setupHook({
+      questions: pairQuestions,
+      preloadedAnswers: { answers: { 10: { q1: 'A', q2: 'E' } } },
+    });
+
+    await act(async () => result.current.check('q1'));
+
+    expect(attemptApi.checkPracticeAnswer).toHaveBeenCalledWith(42, {
+      partId: 10, questionId: 'q1', answer: 'A', groupAnswers: { q1: 'A', q2: 'E' },
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(result.current.getFeedback('q1').data?.verdict).toBe('WRONG');
+    expect(result.current.getFeedback('q2').data).toMatchObject({ questionId: 'q2', userAnswer: 'E', verdict: 'CORRECT' });
+    expect(result.current.wrongQuestionIds).toEqual(['q1', 'q2']);
+
+    act(() => store.dispatch(setAnswer({ partId: 10, questionId: 'q2', value: 'A' })));
+    expect(result.current.getFeedback('q1').phase).toBe('idle');
+    expect(result.current.getFeedback('q2').phase).toBe('idle');
+  });
+
+  it.each([
+    { name: 'network', error: new Error('Network Error'), message: 'Không thể kết nối', retryable: true },
+    { name: 'timeout', error: { code: 'ECONNABORTED' }, message: 'Hết thời gian chờ', retryable: true },
+    { name: 'contract', error: new PracticeFeedbackContractError(), message: 'không hợp lệ', retryable: true },
+    ...[400, 401, 403, 404, 409, 422].map(status => ({
+      name: `HTTP ${status}`, error: { response: { status } },
+      message: status === 401 || status === 403 ? 'không có quyền' : status === 409 ? 'đã thay đổi' : 'không hợp lệ',
+      retryable: false,
+    })),
+  ])('settles both paired slots after $name failure with the matching retry policy', async ({ error, message, retryable }) => {
+    const pairMetadata = { id: 'listening-17-18', mode: 'DISTINCT_UNORDERED' as const, question_ids: ['q1', 'q2'] };
+    const { result } = setupHook({
+      questions: mockQuestions.slice(0, 2).map(question => ({ ...question, answer_group: pairMetadata })),
+      preloadedAnswers: { answers: { 10: { q1: 'A', q2: 'B' } } },
+    });
+    let rejectRequest!: (reason: unknown) => void;
+    vi.mocked(attemptApi.checkPracticeAnswer).mockImplementationOnce(() => new Promise((_, reject) => { rejectRequest = reject; }));
+    let pending!: Promise<void>;
+    act(() => { pending = result.current.check('q1'); });
+    expect(result.current.getFeedback('q1').phase).toBe('checking');
+    expect(result.current.getFeedback('q2').phase).toBe('checking');
+    await act(async () => { rejectRequest(error); await pending; });
+    expect(result.current.busy).toBe(false);
+    for (const id of ['q1', 'q2']) {
+      expect(result.current.getFeedback(id)).toMatchObject({ phase: 'error', data: null, error: { retryable } });
+      expect(result.current.getFeedback(id).error?.message).toContain(message);
+    }
+    if (retryable) {
+      vi.mocked(attemptApi.checkPracticeAnswer).mockResolvedValueOnce({
+        ...practiceFeedbackFixture, questionId: 'q2', userAnswer: 'B',
+        groupResults: ['q1', 'q2'].map((questionId, index) => ({
+          questionId, userAnswer: index === 0 ? 'A' : 'B', verdict: 'CORRECT' as const,
+          score: 1, correctAnswer: ['A', 'B'], explanation: 'Verified pair',
+        })),
+      });
+      await act(async () => result.current.check('q2'));
+      for (const id of ['q1', 'q2']) expect(result.current.getFeedback(id)).toMatchObject({
+        phase: 'ready', error: null, data: { questionId: id, verdict: 'CORRECT' },
+      });
+    } else {
+      await act(async () => result.current.check('q2'));
+      expect(attemptApi.checkPracticeAnswer).toHaveBeenCalledTimes(1);
+    }
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });

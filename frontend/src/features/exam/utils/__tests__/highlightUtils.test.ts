@@ -29,4 +29,29 @@ describe('highlightUtils', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('2');
   });
+
+  it('does not mutate inputs and derives merged text from the canonical passage', async () => {
+    const { normalizeAgainstText } = await import('../highlightUtils');
+    const ranges: Highlight[] = [
+      { id: 'first', start: 0, end: 3, text: 'wrong' },
+      { id: 'second', start: 3, end: 6, text: 'also wrong' },
+    ];
+    const before = structuredClone(ranges);
+
+    const result = normalizeAgainstText(ranges, 'abcdef');
+
+    expect(result).toEqual([{ id: 'first', start: 0, end: 6, text: 'abcdef' }]);
+    expect(ranges).toEqual(before);
+  });
+
+  it('drops invalid or out-of-bounds ranges when normalizing against a document', async () => {
+    const { normalizeAgainstText } = await import('../highlightUtils');
+    expect(normalizeAgainstText([
+      { id: 'nan', start: Number.NaN, end: 2, text: '' },
+      { id: 'negative', start: -1, end: 2, text: '' },
+      { id: 'outside', start: 1, end: 9, text: '' },
+      { id: 'empty', start: 2, end: 2, text: '' },
+      { id: 'ok', start: 0, end: 2, text: 'x' },
+    ], 'ab')).toEqual([{ id: 'ok', start: 0, end: 2, text: 'ab' }]);
+  });
 });

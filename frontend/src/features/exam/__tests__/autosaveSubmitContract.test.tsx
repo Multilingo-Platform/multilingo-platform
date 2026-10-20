@@ -92,6 +92,35 @@ describe('TV3-08 real frontend pipeline', () => {
     expect(screen.getByTestId('local-draft-notice')).toBeInTheDocument();
   });
 
+  it('double-clicking confirm while submission is in flight sends exactly one MANUAL POST', async () => {
+    http.get.mockResolvedValueOnce(workspace() as never);
+    http.post.mockReturnValueOnce(new Promise(() => {}) as never);
+    mount();
+    await flush();
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'C' } });
+    fireEvent.click(screen.getByRole('button', { name: /^🚀?\s*nộp bài$/i }));
+
+    const confirm = document.getElementById('btn-confirm-submit')!;
+    expect(confirm).not.toBeDisabled();
+    // Both clicks land before React can remove the dialog, exactly like a real double click.
+    act(() => {
+      confirm.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      confirm.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await flush();
+
+    expect(http.post).toHaveBeenCalledOnce();
+    expect(http.post.mock.calls[0][1]).toEqual({
+      reason: 'MANUAL',
+      baseVersion: 7,
+      finalAnswers: [{ part_id: 10, answers: [{ question_id: 'essay', answer: 'C' }] }],
+    });
+    expect(http.put).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(document.getElementById('btn-submit-exam')).toBeDisabled();
+  });
+
   it('reloads backend after 1601, then autosaves with its new version', async () => {
     http.get.mockResolvedValueOnce(workspace() as never);
     http.put.mockRejectedValueOnce({ response: { status: 409, data: { code: 1601 } } });

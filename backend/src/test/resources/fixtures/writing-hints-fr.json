@@ -1,0 +1,15 @@
+{
+  "hintLanguage": "fr",
+  "outline": [
+    {"title": "Introduction", "points": ["Reformulez la consigne avec vos propres mots.", "Présentez le sujet des énergies renouvelables."]},
+    {"title": "Développement", "points": ["Comparez les tendances des différentes sources.", "Utilisez seulement les chiffres vérifiés sur le graphique."]}
+  ],
+  "vocabulary": [
+    {"term": "croissance", "definition": "Une augmentation au fil du temps.", "explanation": "À utiliser pour décrire une tendance ascendante.", "example": "La production solaire présente une tendance à la croissance."},
+    {"term": "stabilité", "definition": "Un niveau qui change peu.", "explanation": "À utiliser pour décrire une évolution régulière.", "example": "La production hydraulique montre une certaine stabilité."},
+    {"term": "fluctuation", "definition": "Une alternance de hausses et de baisses.", "explanation": "À utiliser pour une tendance irrégulière.", "example": "La production éolienne peut connaître des fluctuations."},
+    {"term": "proportion", "definition": "La part d'un élément dans un ensemble.", "explanation": "À utiliser pour comparer les contributions des sources.", "example": "Comparez la proportion de chaque source d'énergie."},
+    {"term": "écart", "definition": "La différence entre deux valeurs.", "explanation": "À utiliser pour comparer des chiffres vérifiés.", "example": "Vérifiez l'écart entre les valeurs du graphique."}
+  ],
+  "limitations": ["Ces conseils reposent sur le texte ; les chiffres du graphique doivent être vérifiés par l'apprenant."]
+}

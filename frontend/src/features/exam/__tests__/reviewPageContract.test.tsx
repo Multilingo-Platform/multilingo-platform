@@ -696,6 +696,50 @@ describe('TV3-14 real review page pipeline (only HTTP/browser mocked)', () => {
     expect(document.querySelector('script')).toBeNull();
   });
 
+  it('real pipeline: preserves audio-only option IDs without treating empty text as an answer', async () => {
+    const resultWire = multiPartAttemptResultFixture(42);
+    const reviewPart10Wire = {
+      ...attemptReviewFixture(42, 10),
+      questions: [
+        {
+          questionId: 'p1_audio_only_wire',
+          type: 'SINGLE_CHOICE',
+          label: 'Question 1',
+          verdict: 'BLANK',
+          score: 0,
+          userAnswer: '',
+          correctAnswer: '',
+          options: [
+            { id: 'A', text: '' },
+            { id: 'B', text: '' },
+            { id: 'C', text: '' },
+            { id: 'D', text: '' },
+          ],
+        },
+      ],
+      questionGroups: [],
+    };
+
+    http.get.mockImplementation(async (url: string) => {
+      if (url === '/v1/attempts/42/result') return resultEnvelope(resultWire) as any;
+      if (url === '/v1/attempts/42/review/10') return reviewEnvelope(reviewPart10Wire) as any;
+      throw new Error(`Unexpected GET ${url}`);
+    });
+
+    mount(['/attempts/42/review?partId=10']);
+
+    await screen.findByRole('heading', { name: /Bài thi #42 - Part 10/i });
+
+    for (const optionId of ['A', 'B', 'C', 'D']) {
+      expect(screen.getByTestId(`review-option-id-p1_audio_only_wire-${optionId}`)).toHaveTextContent(optionId);
+    }
+    expect(screen.getByText('Chưa có lời thoại cho các lựa chọn. Vui lòng nghe audio để đối chiếu.')).toBeInTheDocument();
+    for (const radio of screen.getAllByRole('radio')) {
+      expect(radio).not.toBeChecked();
+    }
+    expect(screen.queryByText('Đáp án đúng')).not.toBeInTheDocument();
+  });
+
   it('real pipeline: strips autoplay from rich HTML video/audio across prompt, passage, questionText and options; cleans up on Part switch', async () => {
     const pauseSpy = vi.fn();
     HTMLMediaElement.prototype.pause = pauseSpy;

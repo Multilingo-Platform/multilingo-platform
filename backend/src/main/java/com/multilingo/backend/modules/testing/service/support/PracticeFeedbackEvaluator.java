@@ -97,31 +97,59 @@ public class PracticeFeedbackEvaluator {
         Map<String, Object> rawQuestionMap = rawResult.questionMap();
         Object groupOptions = rawResult.inheritedGroupOptions();
 
-        Object expObj = rawQuestionMap.get("explanation");
-        String explanation = null;
-        if (expObj != null) {
-            if (!(expObj instanceof String expStr)) {
-                throw new AppException(ErrorCode.GRADING_DATA_ERROR, "Invalid explanation type for question: " + input.questionId());
-            }
-            explanation = expStr;
+        GradingKey.AnswerGroup answerGroup;
+        try {
+            answerGroup = GradingKey.AnswerGroup.parse(rawQuestionMap.get("answer_group"),
+                    targetQuestion.getQuestionId());
+        } catch (IllegalArgumentException exception) {
+            throw new AppException(ErrorCode.GRADING_DATA_ERROR, "IELTS answer group is invalid.");
+        }
+        if (answerGroup == null && input.groupAnswers() != null
+                || answerGroup != null && input.groupAnswers() == null) {
+            throw new AppException(ErrorCode.VALIDATION_FAILED, "Cần gửi đủ đáp án cho nhóm câu hỏi hai ô.");
         }
 
-        // 4. Deep-copy question and assign canonical question ID & type; inherit group options if needed
-        @SuppressWarnings("unchecked")
-        Map<String, Object> copiedQuestion = (Map<String, Object>) deepCopyValue(rawQuestionMap);
-        copiedQuestion.put("question_id", targetQuestion.getQuestionId());
-        copiedQuestion.put("type", canonicalType);
-
-        if (!copiedQuestion.containsKey("options") || copiedQuestion.get("options") == null) {
-            if (groupOptions != null) {
-                copiedQuestion.put("options", deepCopyValue(groupOptions));
+        List<Map<String, Object>> copiedQuestions = new ArrayList<>();
+        Map<String, RawQuestionResult> rawQuestionsById = new LinkedHashMap<>();
+        List<String> questionIds = answerGroup == null
+                ? List.of(targetQuestion.getQuestionId())
+                : answerGroup.questionIds();
+        if (answerGroup != null) {
+            if (!new HashSet<>(input.groupAnswers().keySet()).equals(new HashSet<>(questionIds))
+                    || !Objects.equals(input.answer(), input.groupAnswers().get(targetQuestion.getQuestionId()))) {
+                throw new AppException(ErrorCode.VALIDATION_FAILED, "Đáp án nhóm không khớp câu hỏi được yêu cầu.");
             }
+        }
+
+        for (String questionId : questionIds) {
+            ScopedQuestion scopedQuestion = targetPart.getQuestions().stream()
+                    .filter(question -> Objects.equals(question.getQuestionId(), questionId))
+                    .findFirst()
+                    .orElseThrow(() -> new AppException(ErrorCode.GRADING_DATA_ERROR,
+                            "IELTS answer group is outside the requested part."));
+            if (answerGroup != null && !"SINGLE_CHOICE".equals(scopedQuestion.getType()))
+                throw new AppException(ErrorCode.GRADING_DATA_ERROR, "IELTS answer group question type is invalid.");
+            RawQuestionResult rawMember = questionId.equals(targetQuestion.getQuestionId())
+                    ? rawResult : findRawQuestion(rawPart, questionId);
+            if (rawMember == null) throw new AppException(ErrorCode.GRADING_DATA_ERROR,
+                    "IELTS answer group member is missing from the snapshot.");
+            try {
+                GradingKey.AnswerGroup memberGroup = GradingKey.AnswerGroup.parse(
+                        rawMember.questionMap().get("answer_group"), questionId);
+                if (!Objects.equals(answerGroup, memberGroup))
+                    throw new IllegalArgumentException("Mismatched IELTS answer group.");
+            } catch (IllegalArgumentException exception) {
+                throw new AppException(ErrorCode.GRADING_DATA_ERROR, "IELTS answer group is invalid.");
+            }
+            rawQuestionsById.put(questionId, rawMember);
+            copiedQuestions.add(copyQuestion(rawMember.questionMap(), questionId, scopedQuestion.getType(),
+                    rawMember.inheritedGroupOptions()));
         }
 
         // 5. Create transient single-question snapshot and extract key
         Map<String, Object> miniPart = new LinkedHashMap<>();
         miniPart.put("id", input.partId());
-        miniPart.put("questions", List.of(copiedQuestion));
+        miniPart.put("questions", copiedQuestions);
 
         Map<String, Object> miniSection = new LinkedHashMap<>();
         miniSection.put("name", targetPart.getSkill() != null ? targetPart.getSkill() : "READING");
@@ -147,12 +175,20 @@ public class PracticeFeedbackEvaluator {
         }
 
         // Validate and project correct answer BEFORE calling ObjectiveGradingService (AC-07)
-        Object validatedCorrect = validateAndProjectCorrectAnswer(canonicalType, key.getCorrect(), targetQuestion.getQuestionId());
-        key.setCorrect(validatedCorrect);
+        Map<String, Object> validatedCorrectAnswers = new LinkedHashMap<>();
+        for (String questionId : questionIds) {
+            GradingKey memberKey = pgk.getAnswers().get(questionId);
+            if (memberKey == null || memberKey.getCorrect() == null)
+                throw new AppException(ErrorCode.GRADING_DATA_ERROR, "Missing or invalid grading key.");
+            Object validatedCorrect = validateAndProjectCorrectAnswer(memberKey.getType(), memberKey.getCorrect(), questionId);
+            memberKey.setCorrect(validatedCorrect);
+            validatedCorrectAnswers.put(questionId, validatedCorrect);
+        }
 
         // 6. Build transient AttemptAnswer and grade with ObjectiveGradingService
-        Map<String, Object> singleAnswer = new LinkedHashMap<>();
-        singleAnswer.put(targetQuestion.getQuestionId(), input.answer());
+        Map<String, Object> singleAnswer = input.groupAnswers() == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(input.groupAnswers());
+        if (input.groupAnswers() == null) singleAnswer.put(targetQuestion.getQuestionId(), input.answer());
 
         AttemptAnswer transientAnswer = AttemptAnswer.builder()
                 .partId(input.partId())
@@ -173,6 +209,19 @@ public class PracticeFeedbackEvaluator {
         }
 
         // 7. Project response
+        List<PracticeFeedbackResponse.GroupAnswer> groupResults = answerGroup == null ? null : questionIds.stream()
+                .map(questionId -> {
+                    QuestionGradingResult memberResult = partResults.get(questionId);
+                    if (memberResult == null) throw new AppException(ErrorCode.GRADING_DATA_ERROR,
+                            "Grading engine did not produce answer-group feedback.");
+                    Object memberAnswer = input.groupAnswers().get(questionId);
+                    String memberExplanation = readExplanation(rawQuestionsById.get(questionId).questionMap(), questionId);
+                    Object memberListeningDetail = readListeningDetail(rawQuestionsById.get(questionId).questionMap(), questionId);
+                    return new PracticeFeedbackResponse.GroupAnswer(questionId, memberAnswer,
+                            memberResult.getVerdict(), memberResult.getScore(),
+                            validatedCorrectAnswers.get(questionId), memberExplanation, memberListeningDetail);
+                }).toList();
+
         return PracticeFeedbackResponse.builder()
                 .attemptId(attemptId)
                 .partId(input.partId())
@@ -181,9 +230,50 @@ public class PracticeFeedbackEvaluator {
                 .userAnswer(input.answer())
                 .verdict(qResult.getVerdict())
                 .score(qResult.getScore())
-                .correctAnswer(validatedCorrect)
-                .explanation(explanation)
+                .correctAnswer(validatedCorrectAnswers.get(targetQuestion.getQuestionId()))
+                .explanation(readExplanation(rawQuestionMap, targetQuestion.getQuestionId()))
+                .listeningDetail(readListeningDetail(rawQuestionMap, targetQuestion.getQuestionId()))
+                .groupResults(groupResults)
                 .build();
+    }
+
+    private static Object readListeningDetail(Map<String, Object> question, String questionId) {
+        if (question == null) return null;
+        Object detail = question.get("listening_detail");
+        if (detail == null) detail = question.get("listeningDetail");
+        if (detail == null) {
+            Object transcript = question.get("transcript");
+            if (transcript == null) transcript = question.get("listening_transcript");
+            if (transcript == null) transcript = question.get("listeningTranscript");
+            if (transcript != null) {
+                if (transcript instanceof String s) {
+                    if (!s.isBlank()) {
+                        detail = Map.of("transcript", s);
+                    }
+                } else if (transcript instanceof Map<?, ?> m) {
+                    detail = m;
+                }
+            }
+        }
+        return detail;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> copyQuestion(Map<String, Object> source, String questionId,
+            String type, Object inheritedOptions) {
+        Map<String, Object> copied = (Map<String, Object>) deepCopyValue(source);
+        copied.put("question_id", questionId);
+        copied.put("type", type);
+        if ((!copied.containsKey("options") || copied.get("options") == null) && inheritedOptions != null)
+            copied.put("options", deepCopyValue(inheritedOptions));
+        return copied;
+    }
+
+    private static String readExplanation(Map<String, Object> question, String questionId) {
+        Object explanation = question.get("explanation");
+        if (explanation == null) return null;
+        if (explanation instanceof String text) return text;
+        throw new AppException(ErrorCode.GRADING_DATA_ERROR, "Invalid explanation type for question: " + questionId);
     }
 
     /**

@@ -261,7 +261,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
               />
             ) : (
               <div className="text-slate-500 italic">
-                Chưa có giải thích chi tiết cho câu hỏi này.
+                Chưa có giải thích
               </div>
             )}
           </div>

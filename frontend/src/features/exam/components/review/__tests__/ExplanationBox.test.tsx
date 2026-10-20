@@ -16,6 +16,6 @@ describe('ExplanationBox', () => {
   it('renders default message when htmlContent is empty or null', () => {
     render(<ExplanationBox htmlContent="" />);
     const box = screen.getByTestId('explanation-box');
-    expect(box).toHaveTextContent('Không có giải thích chi tiết cho câu hỏi này.');
+    expect(box).toHaveTextContent('Chưa có giải thích');
   });
 });

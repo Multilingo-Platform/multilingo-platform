@@ -1,5 +1,6 @@
 package com.multilingo.backend.modules.testing.service;
 
+import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
 import com.multilingo.backend.common.FixtureAdaptersTestConfig;
 import org.springframework.context.annotation.Import;
@@ -12,7 +13,10 @@ import com.multilingo.backend.modules.testing.entity.enums.SubmitReason;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import com.multilingo.backend.modules.testing.grading.ObjectiveGradingService;
+import com.multilingo.backend.modules.testing.config.WritingGradingProperties;
+import com.multilingo.backend.modules.testing.entity.enums.WritingGradingJobStatus;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
+import com.multilingo.backend.modules.testing.repository.WritingGradingJobRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,6 +44,12 @@ class SubmissionServiceTest {
 
     @MockBean
     private ObjectiveGradingService objectiveGradingService;
+
+    @Autowired
+    private WritingGradingProperties writingGradingProperties;
+
+    @Autowired
+    private WritingGradingJobRepository writingGradingJobRepository;
 
     @Test
     void submitAttempt_gradingFails_statusIsGradingFailed() {
@@ -199,7 +209,10 @@ class SubmissionServiceTest {
         createReq.setTestMode(TestMode.PRACTICE);
         WorkspaceResponse workspace = testAttemptService.createAttempt(createReq);
 
-        // Inject writing section into examSnapshot of attempt
+        // Inject writing section into examSnapshot of attempt.
+        // Current contract (WritingGradingContextReader/WritingHintContextReader): the part must belong
+        // to a WRITING section and the ESSAY question must carry a non-blank prompt, otherwise the
+        // frozen job is UNAVAILABLE and the attempt resolves to GRADING_FAILED.
         TestAttempt attempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
         java.util.Map<String, Object> snapshot = new java.util.HashMap<>(attempt.getExamSnapshot() != null ? attempt.getExamSnapshot() : java.util.Map.of());
         snapshot.put("sections", java.util.List.of(
@@ -210,7 +223,11 @@ class SubmissionServiceTest {
                                         "id", 1,
                                         "title", "Writing Task 1",
                                         "questions", java.util.List.of(
-                                                java.util.Map.of("id", "essay_1", "type", "ESSAY")
+                                                java.util.Map.of(
+                                                        "id", "essay_1",
+                                                        "type", "ESSAY",
+                                                        "prompt", "Writing task 1 prompt: Discuss global technological challenges."
+                                                )
                                         )
                                 )
                         )
@@ -218,6 +235,23 @@ class SubmissionServiceTest {
         ));
         attempt.setExamSnapshot(snapshot);
         testAttemptRepository.save(attempt);
+
+        // Freeze a runnable job instead of the TOO_SHORT local result: the essay must exceed 10 words.
+        testAttemptService.autosaveAnswers(workspace.getAttemptId(),
+                AutosaveAnswersRequest.builder()
+                        .version(1)
+                        .answers(java.util.List.of(
+                                com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest.PartAnswerDto.builder()
+                                        .partId(1)
+                                        .answers(java.util.List.of(
+                                                com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest.QuestionAnswerDto.builder()
+                                                        .questionId("essay_1")
+                                                        .answer("Artificial intelligence and automation will transform modern workplace dynamics in unprecedented ways globally.")
+                                                        .build()
+                                        ))
+                                        .build()
+                        ))
+                        .build());
 
         org.mockito.Mockito.reset(objectiveGradingService);
         when(objectiveGradingService.gradeAttempt(any(), any())).thenReturn(
@@ -228,15 +262,31 @@ class SubmissionServiceTest {
                         .build()
         );
 
-        SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
-                .reason(SubmitReason.MANUAL)
-                .build();
+        // A READY job (AI_GRADING) requires the writing-grading feature enabled; restore afterwards.
+        boolean previouslyEnabled = writingGradingProperties.isEnabled();
+        writingGradingProperties.setEnabled(true);
+        try {
+            SubmitAttemptRequest submitReq = SubmitAttemptRequest.builder()
+                    .reason(SubmitReason.MANUAL)
+                    .build();
 
-        SubmitResultResponse response = testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq);
-        assertThat(response.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
+            SubmitResultResponse response = testAttemptService.submitAttempt(workspace.getAttemptId(), submitReq);
+            assertThat(response.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
 
-        TestAttempt submittedAttempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
-        assertThat(submittedAttempt.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
+            TestAttempt submittedAttempt = testAttemptRepository.findById(workspace.getAttemptId()).orElseThrow();
+            assertThat(submittedAttempt.getStatus()).isEqualTo(AttemptStatus.AI_GRADING);
+
+            assertThat(writingGradingJobRepository.findAllByAttemptId(workspace.getAttemptId()))
+                    .hasSize(1)
+                    .first()
+                    .satisfies(job -> {
+                        assertThat(job.getPartId()).isEqualTo(1);
+                        assertThat(job.getQuestionId()).isEqualTo("essay_1");
+                        assertThat(job.getStatus()).isEqualTo(WritingGradingJobStatus.READY);
+                    });
+        } finally {
+            writingGradingProperties.setEnabled(previouslyEnabled);
+        }
     }
 
     @Test

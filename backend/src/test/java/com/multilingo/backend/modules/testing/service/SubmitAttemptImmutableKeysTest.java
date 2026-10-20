@@ -19,8 +19,12 @@ import com.multilingo.backend.modules.testing.grading.impl.ObjectiveGradingServi
 import com.multilingo.backend.modules.testing.repository.AttemptAnswerRepository;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.testing.service.impl.TestAttemptServiceImpl;
+import com.multilingo.backend.modules.testing.entity.WritingGradingJob;
+import com.multilingo.backend.modules.testing.entity.enums.WritingGradingJobStatus;
 import com.multilingo.backend.modules.testing.service.support.AttemptGradingInputFactory;
 import com.multilingo.backend.modules.testing.service.support.AttemptResultSummaryMapper;
+import com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver;
+import com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +51,8 @@ class SubmitAttemptImmutableKeysTest {
     private final EntityManager entityManager = mock(EntityManager.class);
     private final AttemptGradingInputFactory gradingInputFactory = new AttemptGradingInputFactory();
     private final AttemptResultSummaryMapper summaryMapper = new AttemptResultSummaryMapper(objectMapper);
+    private final WritingGradingEnqueuer writingGradingEnqueuer = mock(WritingGradingEnqueuer.class);
+    private final WritingGradingAttemptStateResolver stateResolver = new WritingGradingAttemptStateResolver();
 
     private TestAttemptServiceImpl service;
 
@@ -63,9 +69,25 @@ class SubmitAttemptImmutableKeysTest {
                 transactionManager,
                 entityManager,
                 gradingInputFactory,
-                summaryMapper
+                summaryMapper,
+                writingGradingEnqueuer,
+                stateResolver
         );
         when(identityAdapter.getCurrentUserId()).thenReturn(100);
+        when(writingGradingEnqueuer.enqueue(any(), any())).thenAnswer(invocation -> {
+            TestAttempt att = invocation.getArgument(0);
+            if (att != null && att.getExamSnapshot() != null) {
+                Object sectionsObj = att.getExamSnapshot().get("sections");
+                if (sectionsObj instanceof List<?> sections) {
+                    for (Object s : sections) {
+                        if (s instanceof Map<?, ?> m && ("WRITING".equalsIgnoreCase(String.valueOf(m.get("skill"))) || "WRITING".equalsIgnoreCase(String.valueOf(m.get("name"))))) {
+                            return List.of(WritingGradingJob.builder().status(WritingGradingJobStatus.READY).build());
+                        }
+                    }
+                }
+            }
+            return Collections.emptyList();
+        });
     }
 
     @Test

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import MediaUploadButton from './MediaUploadButton';
 import { formatHtmlContent } from '../../utils/htmlUtils';
+import DOMPurify from 'dompurify';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {
@@ -136,7 +137,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Convert text and HTML into formatted HTML preserving all newlines and paragraphs
   const getPreviewHtml = () => {
-    return formatHtmlContent(value);
+    return DOMPurify.sanitize(formatHtmlContent(value));
   };
 
   const wordCount = (value || '').trim() ? (value || '').trim().split(/\s+/).length : 0;

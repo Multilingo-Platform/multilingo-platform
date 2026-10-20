@@ -66,17 +66,29 @@ public class DbExamAdapter implements ExamAdapter {
         return examRepository.findById(examId).map(exam -> mapToFixture(exam, true));
     }
 
+    @Override
+    public Optional<ExamFixture> findPublishedSnapshotById(Integer examId) {
+        return examRepository.findById(examId)
+                .filter(exam -> Boolean.TRUE.equals(exam.getIsPublished()))
+                .map(exam -> mapToFixture(exam, true));
+    }
+
     @SuppressWarnings("unchecked")
     private ExamFixture mapToFixture(Exam exam, boolean forSnapshot) {
         ExamFixture fixture = new ExamFixture();
         fixture.setId(exam.getId());
+        fixture.setCode(exam.getCode());
+        fixture.setType(exam.getType());
         fixture.setTitle(exam.getTitle());
         fixture.setDurationMinutes(exam.getDurationMinutes());
         fixture.setUpdatedAt(exam.getUpdatedAt());
+        fixture.setExamLanguage(exam.getExamLanguage());
 
         List<ExamSection> entitySections = examSectionRepository.findByExam_Id(exam.getId());
 
         List<SectionFixture> sections = entitySections.stream()
+                .sorted(Comparator.comparing(ExamSection::getOrderIndex, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(ExamSection::getId, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(section -> {
                     SectionFixture sFixture = new SectionFixture();
                     sFixture.setId(section.getId());

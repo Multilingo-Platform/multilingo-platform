@@ -13,11 +13,15 @@ import com.multilingo.backend.modules.exam.dto.request.SectionBuilderRequest;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import com.multilingo.backend.modules.exam.dto.response.ExamImportPreviewResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +29,30 @@ public class ExamParserService {
 
     private final ObjectMapper objectMapper;
 
+    public ExamImportPreviewResponse previewExamFile(MultipartFile file) {
+        if(file == null || file.isEmpty() || file.getSize()>10*1024*1024) throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
+        try {
+            byte[] bytes = file.getBytes();
+            String hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+            try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+                ExamImportPreviewResponse parsed = parseWorkbook(workbook, hash);
+                var issues = new java.util.ArrayList<>(parsed.issues());
+                OfficialExamSourceProfile sourceProfile = OfficialExamSourceProfile.forSha256(hash);
+                if ("TOEIC_LR".equals(parsed.request().getType()))
+                    issues.addAll(new ExamPublicationValidator().issues(parsed.request()));
+                else if ("IELTS_ACADEMIC".equals(parsed.request().getType())
+                        && sourceProfile.isCambridgeIelts20()) {
+                    issues.addAll(new IeltsAcademicPublicationValidator()
+                            .issues(parsed.request(), sourceProfile.isCambridgeIelts20V2()).stream()
+                            .filter(issue -> !"SOURCE_CONTENT_UNVERIFIED".equals(issue.code())).toList());
+                }
+                return new ExamImportPreviewResponse(parsed.request(),java.util.List.copyOf(issues),parsed.counts(),hash,issues.isEmpty());
+            }
+        } catch(Exception e) {throw new AppException(ErrorCode.INVALID_IMPORT_FILE);}
+    }
+
     public ExamBuilderRequest parseExamFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
+        if (file == null || file.isEmpty() || file.getSize() > 10 * 1024 * 1024) {
             throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
         }
 
@@ -49,7 +75,14 @@ public class ExamParserService {
     }
 
     private ExamBuilderRequest parseExcel(MultipartFile file) {
-        try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
+        try {
+            byte[] bytes = file.getBytes();
+            String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+            try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+                ExamImportPreviewResponse parsed = parseWorkbook(workbook, hash);
+                if (parsed != null) return parsed.request();
+            }
+            try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
             ExamBuilderRequest request = new ExamBuilderRequest();
 
             Sheet infoSheet = workbook.getSheet("ExamInfo");
@@ -203,9 +236,18 @@ public class ExamParserService {
             
             request.setSections(new ArrayList<>(sectionMap.values()));
             return request;
+            }
         } catch (Exception e) {
             throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
         }
+    }
+
+    private ExamImportPreviewResponse parseWorkbook(Workbook workbook, String sha256) {
+        IeltsExcelV2ExamParser ieltsParser = new IeltsExcelV2ExamParser();
+        if (ieltsParser.supports(workbook)) return ieltsParser.parse(workbook, sha256);
+        ExcelV2ExamParser toeicParser = new ExcelV2ExamParser();
+        if (toeicParser.supports(workbook)) return toeicParser.parse(workbook, sha256);
+        return null;
     }
     
     private String getStringValue(Cell cell) {

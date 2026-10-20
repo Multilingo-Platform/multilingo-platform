@@ -6,12 +6,16 @@ import type {
   CreateAttemptRequest,
   SubmitResult,
   WorkspaceResponse,
+  WorkspaceListeningPlaybackSummary,
   ExamResultResponse,
   ExamReviewResponse,
   TestScope,
   TestMode,
   PracticeFeedbackRequest,
   PracticeFeedbackResponse,
+  WritingHintsRequest,
+  WritingHintsResponse,
+  WritingFeedbackResponse,
 } from '../types/api.types';
 import type { AttemptStatus, PartAnswers, UserAnswer, AnswerValue } from '../types/answer.types';
 import { normalizeAttemptResult, ResultContractError } from './resultContract';
@@ -21,8 +25,22 @@ import {
   PracticeFeedbackContractError,
   validatePracticeFeedbackRequest,
 } from './practiceFeedbackContract';
+import {
+  normalizeWritingHints,
+  WritingHintsContractError,
+  validateWritingHintsRequest,
+} from './writingHintsContract';
+import {
+  normalizeWritingFeedback,
+  WritingFeedbackContractError,
+} from './writingFeedbackContract';
 
-export { ReviewContractError, PracticeFeedbackContractError };
+export {
+  ReviewContractError,
+  PracticeFeedbackContractError,
+  WritingHintsContractError,
+  WritingFeedbackContractError,
+};
 
 export class WorkspaceContractError extends Error {
   constructor(message: string = 'Dữ liệu phiên thi không hợp lệ. Vui lòng thử tải lại.') {
@@ -52,6 +70,73 @@ function pickField(
     return raw[aliasKey];
   }
   return undefined;
+}
+
+const SNAPSHOT_CANONICAL_ALIASES: ReadonlyArray<readonly [canonical: string, alias: string]> = [
+  ['section_id', 'sectionId'],
+  ['skill_type', 'skillType'],
+  ['part_id', 'partId'],
+  ['part_number', 'partNumber'],
+  ['question_groups', 'questionGroups'],
+  ['group_id', 'groupId'],
+  ['question_id', 'questionId'],
+  ['question_number', 'questionNumber'],
+];
+
+/**
+ * Fills missing canonical snake_case keys from their camelCase wire aliases. Only missing keys
+ * are added and no identity is invented.
+ */
+function fillCanonicalAliases(node: Record<string, unknown>): Record<string, unknown> {
+  let result = node;
+  for (const [canonical, alias] of SNAPSHOT_CANONICAL_ALIASES) {
+    if (!(canonical in node) && node[alias] !== undefined) {
+      if (result === node) result = { ...node };
+      result[canonical] = node[alias];
+    }
+  }
+  return result;
+}
+
+/**
+ * Normalizes the exam snapshot at the API boundary: parts, groups and questions may arrive with
+ * camelCase or snake_case aliases, and the workspace model reads canonical keys. Untouched fields
+ * are preserved and the DB `id` is never promoted to an identity.
+ */
+function normalizeSnapshotAliases(snapshot: unknown): unknown {
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.sections)) return snapshot;
+
+  const sections = snapshot.sections.map(sectionRaw => {
+    if (!isRecord(sectionRaw)) return sectionRaw;
+    let section = fillCanonicalAliases(sectionRaw);
+    if (section.skill_type === undefined && typeof sectionRaw.name === 'string') {
+      section = { ...section, skill_type: sectionRaw.name };
+    }
+    if (!Array.isArray(sectionRaw.parts)) return section;
+
+    const parts = sectionRaw.parts.map(partRaw => {
+      if (!isRecord(partRaw)) return partRaw;
+      const part = fillCanonicalAliases(partRaw);
+      const groupsRaw = part.question_groups ?? part.questionGroups;
+      if (!Array.isArray(groupsRaw)) return part;
+
+      const groups = groupsRaw.map(groupRaw => {
+        if (!isRecord(groupRaw)) return groupRaw;
+        const group = fillCanonicalAliases(groupRaw);
+        if (!Array.isArray(groupRaw.questions)) return group;
+        const questions = groupRaw.questions.map(questionRaw =>
+          isRecord(questionRaw) ? fillCanonicalAliases(questionRaw) : questionRaw
+        );
+        return { ...group, questions };
+      });
+
+      return { ...part, question_groups: groups };
+    });
+
+    return { ...section, parts };
+  });
+
+  return { ...snapshot, sections };
 }
 
 function isValidIsoInstant(val: unknown): val is string {
@@ -94,6 +179,35 @@ const VALID_STATUSES: Set<AttemptStatus> = new Set([
   'COMPLETED',
   'EXPIRED',
 ]);
+
+const PLAYBACK_SUMMARY_STATUSES: ReadonlySet<string> = new Set([
+  'NOT_STARTED',
+  'RUNNING',
+  'FINISHED',
+  'LOCKED',
+  'CLOSED',
+  'UNAVAILABLE',
+]);
+
+function normalizeListeningPlaybackSummary(
+  raw: unknown
+): WorkspaceListeningPlaybackSummary | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isRecord(raw)) throw new WorkspaceContractError();
+
+  const status = raw.status;
+  if (typeof status !== 'string' || !PLAYBACK_SUMMARY_STATUSES.has(status)) {
+    throw new WorkspaceContractError();
+  }
+  const available = raw.available;
+  if (typeof available !== 'boolean') {
+    throw new WorkspaceContractError();
+  }
+  return {
+    status: status as WorkspaceListeningPlaybackSummary['status'],
+    available,
+  };
+}
 
 function normalizeWorkspace(
   raw: unknown,
@@ -235,6 +349,9 @@ function normalizeWorkspace(
       ? serverNowMs - clientMidpoint
       : 0;
 
+  const playbackRaw = pickField(raw, 'listeningPlayback', 'listening_playback');
+  const listeningPlayback = normalizeListeningPlaybackSummary(playbackRaw);
+
   return {
     attempt_id: attemptId,
     status,
@@ -245,10 +362,11 @@ function normalizeWorkspace(
     serverTime,
     gracePeriodSeconds: gracePeriod,
     lockedSections,
-    exam_snapshot: snapshotRaw as any,
+    exam_snapshot: normalizeSnapshotAliases(snapshotRaw) as WorkspaceResponse['exam_snapshot'],
     version,
     saved_answers,
     serverTimeOffset: Number.isFinite(safeOffset) ? safeOffset : 0,
+    ...(listeningPlayback ? { listeningPlayback } : {}),
   };
 }
 
@@ -324,6 +442,7 @@ export interface SubmitAttemptApiRequest {
 }
 
 const WRITE_TIMEOUT_MS = 10_000;
+export const HINTS_TIMEOUT_MS = 150_000;
 
 function validateWriteContext(attemptId: number, version: number): void {
   if (![attemptId, version].every(value => Number.isSafeInteger(value) && value >= 1 && value <= 2147483647)) {
@@ -332,7 +451,11 @@ function validateWriteContext(attemptId: number, version: number): void {
 }
 
 /** Axios timeout does not include time queued behind the refresh interceptor. */
-async function boundedAttemptRequest<T>(execute: (signal: AbortSignal) => Promise<T>, external?: AbortSignal): Promise<T> {
+async function boundedAttemptRequest<T>(
+  execute: (signal: AbortSignal) => Promise<T>,
+  external?: AbortSignal,
+  timeoutMs: number = WRITE_TIMEOUT_MS
+): Promise<T> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let cancel: (() => void) | undefined;
@@ -346,7 +469,7 @@ async function boundedAttemptRequest<T>(execute: (signal: AbortSignal) => Promis
     timer = setTimeout(() => {
       reject(new Error('Yêu cầu quá thời gian. Vui lòng thử lại.'));
       controller.abort();
-    }, WRITE_TIMEOUT_MS);
+    }, timeoutMs);
   });
   try {
     if (controller.signal.aborted) return await deadline;
@@ -459,6 +582,14 @@ export async function checkPracticeAnswer(
         : Array.isArray(req.answer)
           ? [...req.answer]
           : { ...req.answer },
+    ...(req.groupAnswers !== undefined
+      ? { groupAnswers: Object.fromEntries(Object.entries(req.groupAnswers).map(([id, answer]) => [
+          id,
+          answer === null || typeof answer === 'string'
+            ? answer
+            : Array.isArray(answer) ? [...answer] : { ...answer },
+        ])) }
+      : {}),
   };
   const res = await boundedAttemptRequest(
     signal =>
@@ -477,6 +608,81 @@ export async function checkPracticeAnswer(
     attemptId,
     payload.partId,
     payload.questionId,
-    payload.answer
+    payload.answer,
+    payload.groupAnswers
   );
+}
+
+/**
+ * POST /api/v1/attempts/:id/writing-hints
+ * Generates outline, vocabulary, and limitations for an ESSAY question in a Practice attempt.
+ * Bounded request with 150.000 ms timeout and AbortSignal support.
+ */
+export async function generateWritingHints(
+  attemptId: number,
+  req: WritingHintsRequest,
+  options?: { signal?: AbortSignal }
+): Promise<WritingHintsResponse> {
+  const validatedReq = validateWritingHintsRequest(attemptId, req);
+  const payload: Record<string, unknown> = {
+    partId: validatedReq.partId,
+    questionId: validatedReq.questionId,
+    requestId: validatedReq.requestId,
+  };
+  if (validatedReq.learningLanguage !== undefined) {
+    payload.learningLanguage = validatedReq.learningLanguage;
+  }
+  if (validatedReq.hintLanguage !== undefined) {
+    payload.hintLanguage = validatedReq.hintLanguage;
+  }
+
+  const res = await boundedAttemptRequest(
+    signal =>
+      axiosClient.post<unknown, ApiResponse<unknown>>(
+        `/v1/attempts/${attemptId}/writing-hints`,
+        payload,
+        { signal, timeout: HINTS_TIMEOUT_MS }
+      ),
+    options?.signal,
+    HINTS_TIMEOUT_MS
+  );
+
+  return normalizeWritingHints(res, {
+    ...validatedReq,
+    attemptId,
+  });
+}
+
+/**
+ * GET /api/v1/attempts/:id/writing-feedback?partId=:partId
+ * Fetches Writing AI/system feedback for a specific part after submission.
+ * Bounded request with 10.000 ms timeout and AbortSignal support.
+ */
+export async function getWritingFeedback(
+  attemptId: number,
+  partId: number,
+  options?: { signal?: AbortSignal }
+): Promise<WritingFeedbackResponse> {
+  if (!isPositiveInt(attemptId) || !isPositiveInt(partId)) {
+    throw new WritingFeedbackContractError('ID phiên thi hoặc phần thi không hợp lệ');
+  }
+
+  const res = await boundedAttemptRequest(
+    signal =>
+      axiosClient.get<unknown, ApiResponse<unknown>>(
+        `/v1/attempts/${attemptId}/writing-feedback`,
+        {
+          params: { partId },
+          signal,
+          timeout: WRITE_TIMEOUT_MS,
+        }
+      ),
+    options?.signal
+  );
+
+  if (!isRecord(res) || res.success !== true || res.data == null) {
+    throw new WritingFeedbackContractError();
+  }
+
+  return normalizeWritingFeedback(res.data, attemptId, partId);
 }

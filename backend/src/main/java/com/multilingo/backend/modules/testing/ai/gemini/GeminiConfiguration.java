@@ -2,6 +2,7 @@ package com.multilingo.backend.modules.testing.ai.gemini;
 
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -36,7 +37,7 @@ public class GeminiConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "testing.gemini", name = "enabled", havingValue = "true")
-    public DisposableBean geminiHttpClientShutdown(HttpClient geminiHttpClient) {
+    public DisposableBean geminiHttpClientShutdown(@Qualifier("geminiHttpClient") HttpClient geminiHttpClient) {
         return geminiHttpClient::shutdownNow;
     }
 
@@ -44,7 +45,7 @@ public class GeminiConfiguration {
     public GeminiClient geminiClient(
             GeminiProperties properties,
             GeminiPayloadCodec codec,
-            ObjectProvider<HttpClient> httpClientProvider
+            @Qualifier("geminiHttpClient") ObjectProvider<HttpClient> httpClientProvider
     ) {
         if (!properties.isEnabled()) {
             return new DisabledGeminiClient();

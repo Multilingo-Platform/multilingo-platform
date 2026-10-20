@@ -96,7 +96,7 @@ public class UserFlashcardServiceImpl implements UserFlashcardService {
 
         // 4. Kiểm tra trùng lặp từ trong cùng 1 deck
         if (userFlashcardRepository.existsByDeckIdAndCustomWordIgnoreCase(deckId, word)) {
-            log.warn("Từ vựng đã tồn tại trong bộ thẻ: deckId={}, word='{}'", deckId, word);
+            log.warn("Từ vựng đã tồn tại trong bộ thẻ: deckId={}", deckId);
             throw new AppException(ErrorCode.FLASHCARD_WORD_DUPLICATE, "Từ vựng này đã tồn tại trong bộ thẻ");
         }
 
@@ -173,7 +173,7 @@ public class UserFlashcardServiceImpl implements UserFlashcardService {
 
         // 8. Lưu thẻ vào CSDL
         UserFlashcard saved = userFlashcardRepository.save(card);
-        log.info("Thêm thành công thẻ từ vựng: cardId={}, word='{}', deckId={}, userId={}", saved.getId(), saved.getCustomWord(), deckId, userId);
+        log.info("Thêm thành công thẻ từ vựng: cardId={}, deckId={}, userId={}", saved.getId(), deckId, userId);
 
         return userFlashcardMapper.toResponse(saved);
     }

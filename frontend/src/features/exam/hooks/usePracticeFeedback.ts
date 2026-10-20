@@ -40,6 +40,7 @@ interface ActiveFlight {
   flightId: number;
   partId: number;
   questionId: string;
+  questionIds: string[];
   abortController: AbortController;
 }
 
@@ -47,6 +48,17 @@ function cloneAnswerValue(val: AnswerValue): AnswerValue {
   if (val === null || typeof val === 'string') return val;
   if (Array.isArray(val)) return [...val];
   return { ...val };
+}
+
+function pairedQuestionIds(question: Question): string[] | null {
+  const group = question.answer_group;
+  if (!group) return null;
+  if (typeof group.id !== 'string' || !group.id.trim() || group.mode !== 'DISTINCT_UNORDERED'
+    || !Array.isArray(group.question_ids) || group.question_ids.length !== 2
+    || new Set(group.question_ids).size !== 2 || group.question_ids.some(id => typeof id !== 'string' || !id.trim())) {
+    return [];
+  }
+  return group.question_ids;
 }
 
 function extractHttpStatus(err: unknown): number | undefined {
@@ -185,13 +197,14 @@ export function usePracticeFeedback(
     setBusy(false);
     setFeedbacksByPart((prev) => {
       const partFb = prev[flight.partId];
-      if (!partFb || !partFb[flight.questionId]) return prev;
+      if (!partFb || !flight.questionIds.some(id => partFb[id])) return prev;
+      const nextPart = { ...partFb };
+      for (const id of flight.questionIds) {
+        if (nextPart[id]) nextPart[id] = { phase: 'idle', data: null, error: null };
+      }
       return {
         ...prev,
-        [flight.partId]: {
-          ...partFb,
-          [flight.questionId]: { phase: 'idle', data: null, error: null },
-        },
+        [flight.partId]: nextPart,
       };
     });
   }, []);
@@ -286,6 +299,9 @@ export function usePracticeFeedback(
               invalidatedByPart[pId] = new Set();
             }
             invalidatedByPart[pId].add(qId);
+            const changedQuestion = live.current.questions?.find(question => question.question_id === qId);
+            const pairedIds = changedQuestion ? pairedQuestionIds(changedQuestion) : null;
+            if (pairedIds && pairedIds.length === 2) pairedIds.forEach(id => invalidatedByPart[pId].add(id));
             hasChange = true;
           }
         }
@@ -333,12 +349,15 @@ export function usePracticeFeedback(
 
   const wrongQuestionIds = useMemo(() => {
     if (partId === null || !questions || questions.length === 0) return [];
-    return questions
-      .filter((q) => {
+    const wrongIds = new Set(questions.filter((q) => {
         const fb = currentPartFeedbacks[q.question_id];
         return fb?.phase === 'ready' && fb.data?.verdict === 'WRONG';
-      })
-      .map((q) => q.question_id);
+      }).map(question => question.question_id));
+    for (const question of questions) {
+      const pairIds = pairedQuestionIds(question);
+      if (pairIds?.length === 2 && pairIds.some(id => wrongIds.has(id))) pairIds.forEach(id => wrongIds.add(id));
+    }
+    return questions.map(question => question.question_id).filter(id => wrongIds.has(id));
   }, [partId, questions, currentPartFeedbacks]);
 
   const getFeedback = useCallback(
@@ -373,6 +392,42 @@ export function usePracticeFeedback(
       const targetQ = current.questions.find((q) => q.question_id === questionId);
       if (!targetQ) return;
 
+      const pairIds = pairedQuestionIds(targetQ);
+      if (pairIds?.length === 0) {
+        setFeedbacksByPart((prev) => ({
+          ...prev,
+          [pId]: {
+            ...prev[pId],
+            [questionId]: { phase: 'error', data: null, error: {
+              message: 'Cấu trúc cặp câu hỏi không hợp lệ. Vui lòng tải lại trang.', retryable: false,
+            } },
+          },
+        }));
+        return;
+      }
+      const questionIds = pairIds ?? [questionId];
+      const pairQuestions = pairIds?.map(id => current.questions?.find(question => question.question_id === id) ?? null) ?? [];
+      if (pairIds && (
+        pairQuestions.some(question => !question || question.type !== 'SINGLE_CHOICE') ||
+        pairQuestions.some(question => {
+          const memberPairIds = question ? pairedQuestionIds(question) : null;
+          return !memberPairIds || memberPairIds.length !== 2 || memberPairIds.some((id, index) => id !== pairIds[index]);
+        }) ||
+        pairQuestions.some(question => (question?.options ?? []).map(option => option.id).sort().join('\u0000') !==
+          (pairQuestions[0]?.options ?? []).map(option => option.id).sort().join('\u0000'))
+      )) {
+        setFeedbacksByPart((prev) => ({
+          ...prev,
+          [pId]: {
+            ...prev[pId],
+            [questionId]: { phase: 'error', data: null, error: {
+              message: 'Dữ liệu cặp đáp án không nhất quán. Vui lòng tải lại trang.', retryable: false,
+            } },
+          },
+        }));
+        return;
+      }
+
       if (targetQ.type === 'ESSAY') {
         setFeedbacksByPart((prev) => ({
           ...prev,
@@ -393,10 +448,16 @@ export function usePracticeFeedback(
 
       const expectedQuestionType = targetQ.type;
 
-      const rawAnswer = storeState.answers?.[pId]?.[questionId] ?? null;
-      const answerToSend = cloneAnswerValue(rawAnswer);
-
-      const targetRevision = questionRevisions.current[`${pId}:${questionId}`] ?? 0;
+      const groupAnswers = pairIds
+        ? Object.fromEntries(pairIds.map(id => [id, cloneAnswerValue(storeState.answers?.[pId]?.[id] ?? null)]))
+        : undefined;
+      const answerToSend = cloneAnswerValue(groupAnswers?.[questionId] ?? storeState.answers?.[pId]?.[questionId] ?? null);
+      const targetRevisions = Object.fromEntries(questionIds.map(id => [
+        id, questionRevisions.current[`${pId}:${id}`] ?? 0,
+      ]));
+      const hasAnswerChangedDuringFlight = () => questionIds.some(id =>
+        (questionRevisions.current[`${pId}:${id}`] ?? 0) !== targetRevisions[id]
+      );
       const targetAttemptId = ws.attempt_id;
       const targetContextRevision = storeState.contextRevision;
       const targetPartId = pId;
@@ -408,22 +469,17 @@ export function usePracticeFeedback(
         flightId,
         partId: pId,
         questionId,
+        questionIds,
         abortController,
       };
       busyRef.current = true;
       setBusy(true);
 
-      setFeedbacksByPart((prev) => ({
-        ...prev,
-        [pId]: {
-          ...prev[pId],
-          [questionId]: {
-            phase: 'checking',
-            data: null,
-            error: null,
-          },
-        },
-      }));
+      setFeedbacksByPart((prev) => {
+        const nextPart = { ...prev[pId] };
+        for (const id of questionIds) nextPart[id] = { phase: 'checking', data: null, error: null };
+        return { ...prev, [pId]: nextPart };
+      });
 
       try {
         const response = await checkPracticeAnswer(
@@ -432,6 +488,7 @@ export function usePracticeFeedback(
             partId: targetPartId,
             questionId,
             answer: answerToSend,
+            ...(groupAnswers ? { groupAnswers } : {}),
           },
           { signal: abortController.signal }
         );
@@ -451,19 +508,18 @@ export function usePracticeFeedback(
 
         if (live.current.partId !== targetPartId) return;
 
-        const currentRevision =
-          questionRevisions.current[`${targetPartId}:${questionId}`] ?? 0;
-        if (currentRevision !== targetRevision) {
-          // Discard response because answer was modified during flight (A -> B -> A)
+        if (hasAnswerChangedDuringFlight()) {
+          // A change in either member invalidates the shared pair response.
           setFeedbacksByPart((prev) => {
             const partFb = prev[targetPartId];
-            if (!partFb || !partFb[questionId]) return prev;
+            if (!partFb || !questionIds.some(id => partFb[id])) return prev;
+            const nextPart = { ...partFb };
+            for (const id of questionIds) {
+              if (nextPart[id]) nextPart[id] = { phase: 'idle', data: null, error: null };
+            }
             return {
               ...prev,
-              [targetPartId]: {
-                ...partFb,
-                [questionId]: { phase: 'idle', data: null, error: null },
-              },
+              [targetPartId]: nextPart,
             };
           });
           return;
@@ -475,17 +531,43 @@ export function usePracticeFeedback(
           );
         }
 
-        setFeedbacksByPart((prev) => ({
-          ...prev,
-          [targetPartId]: {
-            ...prev[targetPartId],
-            [questionId]: {
-              phase: 'ready',
-              data: response,
+        if (pairIds) {
+          const results = response.groupResults;
+          if (!groupAnswers || !results || results.length !== 2 ||
+            results.some((item, index) => item.questionId !== pairIds[index] ||
+              !areAnswerValuesEqual(item.userAnswer, groupAnswers[pairIds[index]]))) {
+            throw new PracticeFeedbackContractError();
+          }
+          const { groupResults: ignoredGroupResults, ...baseResponse } = response;
+          void ignoredGroupResults;
+          const memberStates = Object.fromEntries(results.map(item => {
+            const memberQuestion = current.questions!.find(question => question.question_id === item.questionId)!;
+            if (memberQuestion.type !== expectedQuestionType) throw new PracticeFeedbackContractError();
+            return [item.questionId, {
+              phase: 'ready' as const,
+              data: {
+                ...baseResponse,
+                questionId: item.questionId,
+                type: memberQuestion.type,
+                userAnswer: item.userAnswer,
+                verdict: item.verdict,
+                score: item.score,
+                correctAnswer: item.correctAnswer,
+                explanation: item.explanation,
+              },
               error: null,
+            }];
+          }));
+          setFeedbacksByPart(prev => ({ ...prev, [targetPartId]: { ...prev[targetPartId], ...memberStates } }));
+        } else {
+          setFeedbacksByPart((prev) => ({
+            ...prev,
+            [targetPartId]: {
+              ...prev[targetPartId],
+              [questionId]: { phase: 'ready', data: response, error: null },
             },
-          },
-        }));
+          }));
+        }
       } catch (err: unknown) {
         if (unmountedRef.current) return;
         if (activeFlightRef.current?.flightId !== flightId) return;
@@ -501,6 +583,10 @@ export function usePracticeFeedback(
         }
 
         const status = extractHttpStatus(err);
+        const failedMembers = (message: string, retryable: boolean): Record<string, PracticeQuestionFeedback> =>
+          Object.fromEntries(questionIds.map(id => [id, {
+            phase: 'error', data: null, error: { message, retryable },
+          }]));
 
         if (status === 401 || status === 403) {
           const msg = 'Phiên làm việc đã hết hạn hoặc không có quyền kiểm tra đáp án.';
@@ -508,14 +594,7 @@ export function usePracticeFeedback(
           setBlockedMessage(msg);
           setFeedbacksByPart({
             [targetPartId]: {
-              [questionId]: {
-                phase: 'error',
-                data: null,
-                error: {
-                  message: msg,
-                  retryable: false,
-                },
-              },
+              ...failedMembers(msg, false),
             },
           });
           return;
@@ -530,14 +609,7 @@ export function usePracticeFeedback(
             ...prev,
             [targetPartId]: {
               ...(prev[targetPartId] ?? {}),
-              [questionId]: {
-                phase: 'error',
-                data: null,
-                error: {
-                  message: msg,
-                  retryable: false,
-                },
-              },
+              ...failedMembers(msg, false),
             },
           }));
           return;
@@ -552,31 +624,23 @@ export function usePracticeFeedback(
             ...prev,
             [targetPartId]: {
               ...(prev[targetPartId] ?? {}),
-              [questionId]: {
-                phase: 'error',
-                data: null,
-                error: {
-                  message: msg,
-                  retryable: false,
-                },
-              },
+              ...failedMembers(msg, false),
             },
           }));
           return;
         }
 
-        const currentRevision =
-          questionRevisions.current[`${targetPartId}:${questionId}`] ?? 0;
-        if (currentRevision !== targetRevision) {
+        if (hasAnswerChangedDuringFlight()) {
           setFeedbacksByPart((prev) => {
             const partFb = prev[targetPartId];
-            if (!partFb || !partFb[questionId]) return prev;
+            if (!partFb || !questionIds.some(id => partFb[id])) return prev;
+            const nextPart = { ...partFb };
+            for (const id of questionIds) {
+              if (nextPart[id]) nextPart[id] = { phase: 'idle', data: null, error: null };
+            }
             return {
               ...prev,
-              [targetPartId]: {
-                ...partFb,
-                [questionId]: { phase: 'idle', data: null, error: null },
-              },
+              [targetPartId]: nextPart,
             };
           });
           return;
@@ -587,14 +651,7 @@ export function usePracticeFeedback(
             ...prev,
             [targetPartId]: {
               ...prev[targetPartId],
-              [questionId]: {
-                phase: 'error',
-                data: null,
-                error: {
-                  message: 'Hết thời gian chờ phản hồi từ máy chủ. Vui lòng thử lại.',
-                  retryable: true,
-                },
-              },
+              ...failedMembers('Hết thời gian chờ phản hồi từ máy chủ. Vui lòng thử lại.', true),
             },
           }));
         } else if (
@@ -605,14 +662,7 @@ export function usePracticeFeedback(
             ...prev,
             [targetPartId]: {
               ...prev[targetPartId],
-              [questionId]: {
-                phase: 'error',
-                data: null,
-                error: {
-                  message: 'Dữ liệu phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại.',
-                  retryable: true,
-                },
-              },
+              ...failedMembers('Dữ liệu phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại.', true),
             },
           }));
         } else {
@@ -620,14 +670,7 @@ export function usePracticeFeedback(
             ...prev,
             [targetPartId]: {
               ...prev[targetPartId],
-              [questionId]: {
-                phase: 'error',
-                data: null,
-                error: {
-                  message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại.',
-                  retryable: true,
-                },
-              },
+              ...failedMembers('Không thể kết nối đến máy chủ. Vui lòng thử lại.', true),
             },
           }));
         }
@@ -645,12 +688,17 @@ export function usePracticeFeedback(
   const hideFeedback = useCallback((questionIds: readonly string[]) => {
     const currentPartId = live.current.partId;
     if (currentPartId === null || questionIds.length === 0) return;
+    const idsToHide = new Set(questionIds);
+    for (const question of live.current.questions ?? []) {
+      const pairIds = pairedQuestionIds(question);
+      if (pairIds?.length === 2 && pairIds.some(id => idsToHide.has(id))) pairIds.forEach(id => idsToHide.add(id));
+    }
     setFeedbacksByPart((prev) => {
       const partFb = prev[currentPartId];
       if (!partFb) return prev;
       const nextPartFb = { ...partFb };
       let changed = false;
-      for (const qId of questionIds) {
+      for (const qId of idsToHide) {
         if (nextPartFb[qId]) {
           nextPartFb[qId] = { phase: 'idle', data: null, error: null };
           changed = true;
