@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type {
   ExamReviewResponse,
   ReviewQuestionDto,
@@ -7,6 +7,9 @@ import type {
 } from '../../types/api.types';
 import HtmlContent from '../content/HtmlContent';
 import { QuestionReviewCard } from './QuestionReviewCard';
+import { readHighlightArchive, findArchivedHighlights, type HighlightArchive } from '../../utils/highlightStorage';
+import { prepareReadingDocument } from '../../utils/readingHighlightDocument';
+import { applyHighlights } from '../../utils/htmlHighlight';
 import {
   filterReviewQuestions,
   formatScore,
@@ -50,6 +53,7 @@ export interface PartReviewContentProps {
   onSelectQuestion?: (questionId: any) => void;
   activeFilter?: ReviewFilter;
   onFilterChange?: (filter: ReviewFilter) => void;
+  ownerId?: string | null;
 }
 
 export const PartReviewContent: React.FC<PartReviewContentProps> = ({
@@ -58,6 +62,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
   selectedQuestionId,
   activeFilter: externalFilter,
   onFilterChange: externalOnFilterChange,
+  ownerId = null,
 }) => {
   const [internalFilter, setInternalFilter] = useState<ReviewFilter>('ALL');
   const currentFilter = externalFilter ?? internalFilter;
@@ -66,6 +71,20 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const audioElementsRef = useRef<HTMLAudioElement[]>([]);
   audioElementsRef.current = [];
+  const [highlightArchive, setHighlightArchive] = useState<HighlightArchive | null>(null);
+  const [highlightArchiveContext, setHighlightArchiveContext] = useState<string | null>(null);
+  const highlightContextKey = ownerId ? `${ownerId}:${reviewData.attemptId}:${reviewData.partId}` : null;
+  const isReadingReview = reviewData.skill?.toUpperCase() === 'READING';
+
+  // This component only mounts after the review API contract has been validated by its page hook.
+  useEffect(() => {
+    setHighlightArchive(null);
+    setHighlightArchiveContext(null);
+    if (!ownerId || !isReadingReview) return;
+    const result = readHighlightArchive(ownerId, reviewData.attemptId);
+    setHighlightArchive(result.archive);
+    setHighlightArchiveContext(highlightContextKey);
+  }, [ownerId, reviewData.attemptId, reviewData.partId, highlightContextKey, isReadingReview]);
 
   const registerAudio = (el: HTMLAudioElement | null) => {
     if (el && !audioElementsRef.current.includes(el)) {
@@ -106,6 +125,10 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
 
   // Part-level stimulus / passage
   const partStimulusHtml = extractPartStimulus(reviewData.examData);
+  const preparedPartStimulus = useMemo(() => partStimulusHtml
+    ? prepareReadingDocument(partStimulusHtml, { partId: reviewData.partId, documentId: 'part' }, { stripExecutableMedia: false })
+    : null, [partStimulusHtml, reviewData.partId]);
+  const activeHighlightArchive = highlightArchiveContext === highlightContextKey ? highlightArchive : null;
 
   // Audio URL from part or shared media
   const partAudioUrl =
@@ -221,8 +244,19 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
           <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
             Nội dung bài đọc (Passage)
           </div>
-          <div className="text-slate-800 text-sm leading-relaxed prose max-w-none">
-            <HtmlContent html={partStimulusHtml} />
+          <div
+            className="text-slate-800 text-sm leading-relaxed prose max-w-none"
+            data-testid={isReadingReview ? 'review-reading-passage' : undefined}
+            data-highlight-scope={isReadingReview ? 'part' : undefined}
+            data-highlight-hash={isReadingReview ? preparedPartStimulus?.contentHash : undefined}
+          >
+            <HtmlContent
+              prepared={isReadingReview}
+              html={isReadingReview && preparedPartStimulus ? applyHighlights(
+                preparedPartStimulus.html,
+                findArchivedHighlights(activeHighlightArchive, reviewData.partId, 'part', preparedPartStimulus.contentHash, preparedPartStimulus.text)
+              ) : partStimulusHtml}
+            />
           </div>
         </div>
       )}
@@ -309,11 +343,21 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                 )}
 
                 {/* Group contentHtml sanitized */}
-                {group.contentHtml && (
+                {(group.contentHtml || (group as any).contextHtml) && (() => {
+                  const groupHtml = group.contentHtml || (group as any).contextHtml;
+                  const documentId = String(group.groupId ?? `group-${gIdx + 1}`);
+                  const prepared = prepareReadingDocument(groupHtml!, { partId: reviewData.partId, documentId }, { stripExecutableMedia: false });
+                  const stored = findArchivedHighlights(activeHighlightArchive, reviewData.partId, documentId, prepared.contentHash, prepared.text);
+                  return (
                   <div className="p-4 bg-slate-50 rounded-md border border-slate-200 text-slate-800 text-sm">
-                    <HtmlContent html={group.contentHtml} />
+                    {isReadingReview ? (
+                      <div data-highlight-scope={documentId} data-highlight-hash={prepared.contentHash}>
+                        <HtmlContent html={applyHighlights(prepared.html, stored)} prepared />
+                      </div>
+                    ) : <HtmlContent html={groupHtml!} />}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Questions in group */}
                 <div className="space-y-4 pt-2">

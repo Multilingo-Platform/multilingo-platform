@@ -94,7 +94,7 @@ function eligible(options: UseWritingHintsOptions, state: RootState['answers'], 
   if (matches.length !== 1) return false;
   const { section, part } = matches[0];
   if (!positiveId(section.id) || sections.filter(candidate => candidate.id === section.id).length !== 1 ||
-    section.skill_type !== 'WRITING' || ws.lockedSections.includes(section.id)) return false;
+    (section.skill_type ?? (section as any).name)?.toUpperCase() !== 'WRITING' || ws.lockedSections.includes(section.id)) return false;
   const selected = options.questions.filter(question => question.question_id === questionId);
   const recorded = snapshotQuestions(part);
   const ids = recorded.map(snapshotQuestionId);

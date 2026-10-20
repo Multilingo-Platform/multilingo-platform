@@ -103,7 +103,14 @@ public enum ErrorCode {
     WRITING_HINTS_LANGUAGE_REQUIRED(1608, HttpStatus.UNPROCESSABLE_ENTITY, "Vui lòng chỉ định ngôn ngữ học tập"),
     WRITING_HINTS_CONTEXT_UNAVAILABLE(1609, HttpStatus.UNPROCESSABLE_ENTITY, "Nội dung bài viết không khả dụng để tạo gợi ý"),
     WRITING_HINTS_TIMEOUT(1610, HttpStatus.GATEWAY_TIMEOUT, "Yêu cầu gợi ý viết đã quá thời gian chờ"),
-    WRITING_HINTS_REQUEST_TOO_LARGE(1611, HttpStatus.PAYLOAD_TOO_LARGE, "Dung lượng yêu cầu vượt quá giới hạn cho phép");
+    WRITING_HINTS_REQUEST_TOO_LARGE(1611, HttpStatus.PAYLOAD_TOO_LARGE, "Dung lượng yêu cầu vượt quá giới hạn cho phép"),
+    DICTIONARY_LOOKUP_UNAVAILABLE(1612, HttpStatus.SERVICE_UNAVAILABLE, "Dịch vụ tra từ hiện không khả dụng"),
+    DICTIONARY_LOOKUP_INVALID_RESPONSE(1613, HttpStatus.BAD_GATEWAY, "Phản hồi tra từ không hợp lệ"),
+    DICTIONARY_LOOKUP_IN_PROGRESS(1614, HttpStatus.CONFLICT, "Yêu cầu tra từ đang được xử lý"),
+    DICTIONARY_LOOKUP_REQUEST_CONFLICT(1615, HttpStatus.CONFLICT, "Yêu cầu tra từ bị xung đột"),
+    DICTIONARY_LOOKUP_TIMEOUT(1616, HttpStatus.GATEWAY_TIMEOUT, "Yêu cầu tra từ đã quá thời gian chờ"),
+    DICTIONARY_LOOKUP_RATE_LIMITED(1617, HttpStatus.TOO_MANY_REQUESTS, "Vui lòng chờ trước khi tra từ tiếp theo"),
+    DICTIONARY_LOOKUP_REQUEST_TOO_LARGE(1618, HttpStatus.PAYLOAD_TOO_LARGE, "Dung lượng yêu cầu tra từ vượt giới hạn");
 
     private final int code;
     private final HttpStatus httpStatus;

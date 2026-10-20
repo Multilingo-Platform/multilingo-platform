@@ -7,7 +7,11 @@ export type Highlight = {
 
 export function normalize(ranges: Highlight[]): Highlight[] {
   if (ranges.length === 0) return [];
-  const sorted = [...ranges].sort((a, b) => a.start - b.start);
+  const sorted = ranges
+    .filter(isValidRange)
+    .map((range) => ({ ...range }))
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+  if (sorted.length === 0) return [];
   const result: Highlight[] = [sorted[0]];
 
   for (let i = 1; i < sorted.length; i++) {
@@ -16,7 +20,7 @@ export function normalize(ranges: Highlight[]): Highlight[] {
 
     if (current.start <= last.end) {
       last.end = Math.max(last.end, current.end);
-      last.text = last.text + ' ' + current.text;
+      if (current.start < last.end) last.text = last.text || current.text;
     } else {
       result.push({ ...current });
     }
@@ -24,11 +28,34 @@ export function normalize(ranges: Highlight[]): Highlight[] {
   return result;
 }
 
+function isValidRange(range: Highlight): boolean {
+  return Boolean(
+    range && typeof range.id === 'string' && range.id.length > 0 &&
+    Number.isFinite(range.start) && Number.isInteger(range.start) && range.start >= 0 &&
+    Number.isFinite(range.end) && Number.isInteger(range.end) && range.end > range.start &&
+    typeof range.text === 'string'
+  );
+}
+
+/** Validates ranges against the exact visible-text document and rebuilds debug text from it. */
+export function normalizeAgainstText(ranges: Highlight[], documentText: string): Highlight[] {
+  if (!Array.isArray(ranges) || typeof documentText !== 'string') return [];
+  const valid = ranges.filter((range) =>
+    isValidRange(range) && range.end <= documentText.length
+  );
+  return normalize(valid).map((range) => ({
+    ...range,
+    text: documentText.slice(range.start, range.end).slice(0, 50),
+  }));
+}
+
 export function removeAt(ranges: Highlight[], offset: number): Highlight[] {
   return ranges.filter((r) => offset < r.start || offset >= r.end);
 }
 
 export interface HighlightNamespaceInput {
+  /** Authenticated account id; prevents same-attempt IDs from leaking across users. */
+  ownerId?: string | null;
   attemptId: number | string;
   partId: number | string;
   /** Reference document id; a missing group id collapses to a stable placeholder. */
@@ -43,9 +70,10 @@ export interface HighlightNamespaceInput {
  * reference document from ever leaking into another attempt, Part, group or content version.
  */
 export function buildHighlightNamespace(input: HighlightNamespaceInput): string {
+  const owner = input.ownerId == null || input.ownerId === '' ? '-' : String(input.ownerId);
   const attempt = String(input.attemptId);
   const part = String(input.partId);
   const group = input.groupId == null || input.groupId === '' ? '-' : String(input.groupId);
   const hash = input.contentHash == null || input.contentHash === '' ? '-' : String(input.contentHash);
-  return `hl:${attempt}:${part}:${group}:${hash}`;
+  return `hl:${owner}:${attempt}:${part}:${group}:${hash}`;
 }

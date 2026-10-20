@@ -1,10 +1,12 @@
-import type { Highlight } from './highlightUtils';
+import { normalizeAgainstText, type Highlight } from './highlightUtils';
 
 export function applyHighlights(html: string, highlights: Highlight[]): string {
   if (!highlights || !highlights.length || !html) return html;
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
+  const cleanItems = normalizeAgainstText(highlights, doc.body.textContent ?? '');
+  if (cleanItems.length === 0) return doc.body.innerHTML;
   const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null);
 
   let currentOffset = 0;
@@ -16,7 +18,7 @@ export function applyHighlights(html: string, highlights: Highlight[]): string {
     const nodeStart = currentOffset;
     const nodeEnd = currentOffset + text.length;
 
-    const intersecting = highlights.filter(h => h.start < nodeEnd && h.end > nodeStart);
+    const intersecting = cleanItems.filter(h => h.start < nodeEnd && h.end > nodeStart);
 
     if (intersecting.length > 0) {
       const fragment = doc.createDocumentFragment();
@@ -31,7 +33,7 @@ export function applyHighlights(html: string, highlights: Highlight[]): string {
         }
 
         const mark = doc.createElement('mark');
-        mark.setAttribute('data-hl-id', h.id);
+        mark.setAttribute('data-hl-id', h.id.slice(0, 100));
         mark.className = 'bg-yellow-200 rounded-sm';
         mark.textContent = text.substring(hStartInNode, hEndInNode);
         fragment.appendChild(mark);

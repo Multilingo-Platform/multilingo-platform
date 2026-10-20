@@ -300,6 +300,33 @@ export interface WritingHintsResponse {
   limitations: string[];
 }
 
+export interface DictionaryLookupRequest {
+  requestId: string;
+  partId: number;
+  documentId: string;
+  selectedText: string;
+  contextText: string;
+}
+
+export interface DictionaryLookupResponse extends DictionaryLookupRequest {
+  attemptId: number;
+  sourceContext: string;
+  learningLanguage: 'en';
+  meaningLanguage: 'vi';
+  meaningVi: string;
+  phonetic: string | null;
+  partOfSpeech: string | null;
+  exampleEn: string;
+  exampleVi: string;
+}
+
+export interface DictionaryLookupFailure {
+  kind: 'quota' | 'rate-limited' | 'context' | 'access' | 'ended' | 'disabled' | 'contract' | 'request';
+  message: string;
+  retryAfterSeconds: number | null;
+  retryable: boolean;
+}
+
 export interface WritingHintsFailure {
   kind:
     | 'pending'

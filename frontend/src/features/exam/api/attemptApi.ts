@@ -74,6 +74,7 @@ function pickField(
 
 const SNAPSHOT_CANONICAL_ALIASES: ReadonlyArray<readonly [canonical: string, alias: string]> = [
   ['section_id', 'sectionId'],
+  ['skill_type', 'skillType'],
   ['part_id', 'partId'],
   ['part_number', 'partNumber'],
   ['question_groups', 'questionGroups'],
@@ -107,7 +108,10 @@ function normalizeSnapshotAliases(snapshot: unknown): unknown {
 
   const sections = snapshot.sections.map(sectionRaw => {
     if (!isRecord(sectionRaw)) return sectionRaw;
-    const section = fillCanonicalAliases(sectionRaw);
+    let section = fillCanonicalAliases(sectionRaw);
+    if (section.skill_type === undefined && typeof sectionRaw.name === 'string') {
+      section = { ...section, skill_type: sectionRaw.name };
+    }
     if (!Array.isArray(sectionRaw.parts)) return section;
 
     const parts = sectionRaw.parts.map(partRaw => {

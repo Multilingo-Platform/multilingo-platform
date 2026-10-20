@@ -11,11 +11,15 @@ export interface ReferenceDoc {
   html: string | null;
   /** Source images (shared media) that belong to this document. */
   mediaUrls: string[];
+  contentHash?: string | null;
+  namespace?: string | null;
+  text?: string;
 }
 
 export interface ReferencePaneProps {
   docs: ReferenceDoc[];
   className?: string;
+  testId?: string;
 }
 
 function asImage(url: string): SharedMedia {
@@ -28,11 +32,11 @@ function asImage(url: string): SharedMedia {
  * or frame; images stay visible. Each document is wrapped with `data-highlight-scope` so a
  * selection (and its text offsets) is always attributed to exactly one document.
  */
-const ReferencePane: React.FC<ReferencePaneProps> = ({ docs, className }) => {
+const ReferencePane: React.FC<ReferencePaneProps> = ({ docs, className, testId = 'toeic-reference-pane' }) => {
   if (docs.length === 0) return null;
 
   return (
-    <div data-testid="toeic-reference-pane" className={className ?? 'space-y-6'}>
+    <div data-testid={testId} className={className ?? 'space-y-6'}>
       {docs.map((doc, index) => {
         const label = doc.instruction ?? `Tài liệu ${index + 1}`;
         return (
@@ -62,9 +66,10 @@ const ReferencePane: React.FC<ReferencePaneProps> = ({ docs, className }) => {
 
             {doc.html && (
               // Offset base for highlights: contains exactly this document's rendered text.
-              <div data-highlight-scope={doc.groupId}>
+              <div data-highlight-scope={doc.groupId} data-highlight-hash={doc.contentHash ?? undefined}>
                 <HtmlContent
                   html={doc.html}
+                  prepared
                   stripMedia
                   className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:font-heading [&_h3]:text-base [&_h3]:font-bold [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700 [&_table]:w-full [&_table]:overflow-x-auto"
                 />
