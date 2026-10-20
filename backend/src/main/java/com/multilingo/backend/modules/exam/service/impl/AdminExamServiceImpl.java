@@ -17,6 +17,7 @@ import com.multilingo.backend.modules.exam.service.ExamPublicationValidator;
 import com.multilingo.backend.modules.exam.service.IeltsAcademicPublicationValidator;
 import com.multilingo.backend.modules.exam.service.OfficialExamDatasetRegistry;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ public class AdminExamServiceImpl implements AdminExamService {
         this(examRepository, sectionRepository, partRepository, null);
     }
 
+    @Autowired
     public AdminExamServiceImpl(ExamRepository examRepository,
                                 ExamSectionRepository sectionRepository,
                                 ExamPartRepository partRepository,
