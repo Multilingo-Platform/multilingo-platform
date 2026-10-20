@@ -12,11 +12,14 @@ import com.multilingo.backend.modules.exam.repository.ExamPartRepository;
 import com.multilingo.backend.modules.exam.repository.ExamRepository;
 import com.multilingo.backend.modules.exam.repository.ExamSectionRepository;
 import com.multilingo.backend.modules.exam.service.AdminExamService;
+import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -25,11 +28,16 @@ public class AdminExamServiceImpl implements AdminExamService {
     private final ExamRepository examRepository;
     private final ExamSectionRepository sectionRepository;
     private final ExamPartRepository partRepository;
+    private final TestAttemptRepository testAttemptRepository;
 
-    public AdminExamServiceImpl(ExamRepository examRepository, ExamSectionRepository sectionRepository, ExamPartRepository partRepository) {
+    public AdminExamServiceImpl(ExamRepository examRepository,
+                                ExamSectionRepository sectionRepository,
+                                ExamPartRepository partRepository,
+                                TestAttemptRepository testAttemptRepository) {
         this.examRepository = examRepository;
         this.sectionRepository = sectionRepository;
         this.partRepository = partRepository;
+        this.testAttemptRepository = testAttemptRepository;
     }
 
     @Override
@@ -114,6 +122,8 @@ public class AdminExamServiceImpl implements AdminExamService {
 
     @Override
     public List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse> getAllExams() {
+        Map<Integer, Long> attemptCountMap = getAttemptCountMap();
+
         return examRepository.findAll().stream().map(exam -> {
             com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse resp = new com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse();
             resp.setId(exam.getId());
@@ -137,10 +147,27 @@ public class AdminExamServiceImpl implements AdminExamService {
             }
             resp.setParts(partsCount);
             resp.setQuestions(questionsCount);
-            resp.setJoins(0);
+            resp.setJoins(attemptCountMap.getOrDefault(exam.getId(), 0L).intValue());
             
             return resp;
         }).toList();
+    }
+
+    private Map<Integer, Long> getAttemptCountMap() {
+        if (testAttemptRepository == null) {
+            return Collections.emptyMap();
+        }
+        List<Object[]> counts = testAttemptRepository.countAttemptsGroupByExamId();
+        if (counts == null || counts.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return counts.stream()
+                .filter(row -> row != null && row.length >= 2 && row[0] instanceof Integer && row[1] instanceof Number)
+                .collect(Collectors.toMap(
+                        row -> (Integer) row[0],
+                        row -> ((Number) row[1]).longValue(),
+                        (existing, replacement) -> existing
+                ));
     }
 
     private int countQuestionsInPart(ExamPart part) {

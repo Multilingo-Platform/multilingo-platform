@@ -6,7 +6,10 @@ import {
   detectExcelColumns,
   getIeltsTemplateParts,
   getIeltsSampleExcelParts,
+  getNltvTemplateParts,
   getPartBounds,
+  getMaxGroupsForPart,
+  getQuestionNumLabel,
   QUESTION_TYPES,
   type ExamPart
 } from '../pages/admin/ExamBuilder';
@@ -34,10 +37,11 @@ describe('ExamBuilder utils', () => {
   });
 
   it('correctly maps NLTV variations', () => {
-    expect(normalizeExamType('NLTV')).toBe('NLTV_B1_C1');
-    expect(normalizeExamType('NLTV_B1_C1')).toBe('NLTV_B1_C1');
-    expect(normalizeExamType('NLTV (B1 - C1)')).toBe('NLTV_B1_C1');
-    expect(normalizeExamType('NLTV_A1_A2')).toBe('NLTV_A1_A2');
+    expect(normalizeExamType('NLTV')).toBe('NLTV');
+    expect(normalizeExamType('NLTV_B1_C1')).toBe('NLTV');
+    expect(normalizeExamType('NLTV (B1 - C1)')).toBe('NLTV');
+    expect(normalizeExamType('NLTV_A1_A2')).toBe('NLTV');
+    expect(normalizeExamType('NLTV (A1 - A2)')).toBe('NLTV');
   });
 
   it('provides readable display labels for all standard exam types', () => {
@@ -45,7 +49,9 @@ describe('ExamBuilder utils', () => {
     expect(EXAM_TYPE_OPTIONS['TOEIC_WRITING']).toBe('TOEIC Writing');
     expect(EXAM_TYPE_OPTIONS['IELTS_ACADEMIC']).toBe('IELTS Academic');
     expect(EXAM_TYPE_OPTIONS['IELTS_GENERAL']).toBe('IELTS General');
-    expect(EXAM_TYPE_OPTIONS['NLTV_B1_C1']).toBe('NLTV (B1 - C1)');
+    expect(EXAM_TYPE_OPTIONS['NLTV']).toBe('Đánh giá Năng lực Tiếng Việt (NLTV)');
+    expect(EXAM_TYPE_OPTIONS['NLTV_B1_C1']).toBeUndefined();
+    expect(EXAM_TYPE_OPTIONS['NLTV_A1_A2']).toBeUndefined();
   });
 
   describe('deduplicatePartAndGroupInstructions', () => {
@@ -329,6 +335,117 @@ describe('ExamBuilder utils', () => {
       expect(getPartBounds('listening part 1: notes completion', 'IELTS_GENERAL')).toEqual({ start: 1, end: 10 });
       expect(getPartBounds('passage 2: science history', 'IELTS_ACADEMIC')).toEqual({ start: 14, end: 26 });
       expect(getPartBounds('task 1: chart description', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 1 });
+    });
+
+    it('getPartBounds returns accurate bounds for NLTV parts', () => {
+      expect(getPartBounds('Kỹ năng Nghe - Phần 1', 'NLTV')).toEqual({ start: 1, end: 15 });
+      expect(getPartBounds('Kỹ năng Nghe - Phần 2', 'NLTV')).toEqual({ start: 16, end: 29 });
+      expect(getPartBounds('Kỹ năng Nghe - Phần 3', 'NLTV')).toEqual({ start: 30, end: 43 });
+      expect(getPartBounds('Kỹ năng Nghe - Phần 4', 'NLTV')).toEqual({ start: 44, end: 55 });
+      expect(getPartBounds('Kỹ năng Đọc - Phần 1', 'NLTV')).toEqual({ start: 1, end: 16 });
+      expect(getPartBounds('Kỹ năng Đọc - Phần 2', 'NLTV')).toEqual({ start: 17, end: 40 });
+      expect(getPartBounds('Kỹ năng Viết - Phần 1', 'NLTV')).toEqual({ start: 1, end: 10 });
+      expect(getPartBounds('Kỹ năng Viết - Phần 2', 'NLTV')).toEqual({ start: 1, end: 1 });
+      expect(getPartBounds('Kỹ năng Viết - Phần 3', 'NLTV')).toEqual({ start: 1, end: 1 });
+    });
+
+    it('getNltvTemplateParts generates standard 9 parts with correct group and question structures', () => {
+      const parts = getNltvTemplateParts();
+      expect(parts).toHaveLength(9);
+
+      // Listening: 4 parts, 55 questions total
+      const lParts = parts.slice(0, 4);
+      expect(lParts[0].part_title).toBe('Kỹ năng Nghe - Phần 1');
+      expect(lParts[0].question_groups).toHaveLength(1);
+      expect(lParts[0].question_groups[0].questions).toHaveLength(15);
+      expect(lParts[0].question_groups[0].questions[0].question_id).toBe('q_001');
+      expect(lParts[0].question_groups[0].questions[14].question_id).toBe('q_015');
+      expect(lParts[0].question_groups.reduce((acc, g) => acc + g.questions.length, 0)).toBe(15);
+
+      expect(lParts[1].part_title).toBe('Kỹ năng Nghe - Phần 2');
+      expect(lParts[1].question_groups).toHaveLength(5);
+      expect(lParts[1].question_groups[0].questions).toHaveLength(6);
+      expect(lParts[1].question_groups[1].questions).toHaveLength(2);
+      expect(lParts[1].question_groups.reduce((acc, g) => acc + g.questions.length, 0)).toBe(14);
+
+      expect(lParts[2].part_title).toBe('Kỹ năng Nghe - Phần 3');
+      expect(lParts[2].question_groups).toHaveLength(7);
+      expect(lParts[2].question_groups.reduce((acc, g) => acc + g.questions.length, 0)).toBe(14);
+
+      expect(lParts[3].part_title).toBe('Kỹ năng Nghe - Phần 4');
+      expect(lParts[3].question_groups).toHaveLength(6);
+      expect(lParts[3].question_groups.reduce((acc, g) => acc + g.questions.length, 0)).toBe(12);
+
+      const totalListeningQs = lParts.reduce((acc, p) => acc + p.question_groups.reduce((a, g) => a + g.questions.length, 0), 0);
+      expect(totalListeningQs).toBe(55);
+
+      // Reading: 2 parts, 5 groups (passages), 40 questions total
+      const rParts = parts.slice(4, 6);
+      expect(rParts[0].part_title).toBe('Kỹ năng Đọc - Phần 1');
+      expect(rParts[0].question_groups).toHaveLength(2);
+      expect(rParts[0].question_groups[0].questions).toHaveLength(10);
+      expect(rParts[0].question_groups[1].questions).toHaveLength(6);
+
+      expect(rParts[1].part_title).toBe('Kỹ năng Đọc - Phần 2');
+      expect(rParts[1].question_groups).toHaveLength(3);
+      expect(rParts[1].question_groups[0].questions).toHaveLength(8);
+      expect(rParts[1].question_groups[1].questions).toHaveLength(8);
+      expect(rParts[1].question_groups[2].questions).toHaveLength(8);
+
+      const totalReadingQs = rParts.reduce((acc, p) => acc + p.question_groups.reduce((a, g) => a + g.questions.length, 0), 0);
+      expect(totalReadingQs).toBe(40);
+
+      // Writing: 3 parts
+      const wParts = parts.slice(6, 9);
+      expect(wParts[0].part_title).toBe('Kỹ năng Viết - Phần 1');
+      expect(wParts[0].shared_audio).toBeDefined();
+      expect(wParts[0].question_groups).toHaveLength(1);
+      expect(wParts[0].question_groups[0].questions).toHaveLength(10);
+      expect(wParts[0].question_groups[0].questions[0].type).toBe('FILL_IN_THE_BLANK');
+      expect(wParts[0].question_groups[0].questions[0].question_id).toBe('q_001');
+      expect(wParts[0].question_groups[0].questions[9].question_id).toBe('q_010');
+      expect(wParts[0].question_groups[0].questions[0].question_text).toBe('Chỗ trống (1)');
+      expect(wParts[0].question_groups[0].questions[9].question_text).toBe('Chỗ trống (10)');
+
+      expect(wParts[1].part_title).toBe('Kỹ năng Viết - Phần 2');
+      expect(wParts[1].question_groups[0].questions[0].type).toBe('WRITING_ESSAY');
+
+      expect(wParts[2].part_title).toBe('Kỹ năng Viết - Phần 3');
+      expect(wParts[2].question_groups[0].questions[0].type).toBe('WRITING_ESSAY');
+    });
+
+    it('getQuestionNumLabel correctly formats question numbers and prevents showing "nltv"', () => {
+      // Standard IDs
+      expect(getQuestionNumLabel('q_001', 1)).toBe('1');
+      expect(getQuestionNumLabel('q_015', 15)).toBe('15');
+      expect(getQuestionNumLabel('q_100', 100)).toBe('100');
+
+      // Regression: former prefix with "nltv"
+      expect(getQuestionNumLabel('q_nltv_001', 1)).toBe('1');
+      expect(getQuestionNumLabel('q_nltv_015', 15)).toBe('15');
+      expect(getQuestionNumLabel('q_nltv_w_005', 5)).toBe('5');
+
+      // Writing IDs
+      expect(getQuestionNumLabel('q_w_001', 1)).toBe('1');
+      expect(getQuestionNumLabel('q_w_002', 2)).toBe('2');
+
+      // Fallbacks and arbitrary text
+      expect(getQuestionNumLabel('câu 7', 1)).toBe('7');
+      expect(getQuestionNumLabel('no-numbers', 4)).toBe('4');
+      expect(getQuestionNumLabel('', 3)).toBe('3');
+      expect(getQuestionNumLabel(undefined, 8)).toBe('8');
+    });
+
+    it('getMaxGroupsForPart accurately enforces group limits for NLTV parts', () => {
+      expect(getMaxGroupsForPart('Kỹ năng Nghe - Phần 1', 'NLTV')).toBe(1);
+      expect(getMaxGroupsForPart('Kỹ năng Nghe - Phần 2', 'NLTV')).toBe(5);
+      expect(getMaxGroupsForPart('Kỹ năng Nghe - Phần 3', 'NLTV')).toBe(7);
+      expect(getMaxGroupsForPart('Kỹ năng Nghe - Phần 4', 'NLTV')).toBe(6);
+      expect(getMaxGroupsForPart('Kỹ năng Đọc - Phần 1', 'NLTV')).toBe(2);
+      expect(getMaxGroupsForPart('Kỹ năng Đọc - Phần 2', 'NLTV')).toBe(3);
+      expect(getMaxGroupsForPart('Kỹ năng Viết - Phần 1', 'NLTV')).toBe(1);
+      expect(getMaxGroupsForPart('Kỹ năng Viết - Phần 2', 'NLTV')).toBe(1);
+      expect(getMaxGroupsForPart('Kỹ năng Viết - Phần 3', 'NLTV')).toBe(1);
     });
 
     it('QUESTION_TYPES includes canonical FILL_IN_THE_BLANK and IELTS-relevant types', () => {
