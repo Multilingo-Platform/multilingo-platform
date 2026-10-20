@@ -23,6 +23,7 @@
 - `test_attempts`: Quản lý phiên làm bài (`test_mode`: `MOCK_TEST`, `PRACTICE`; `test_scope`: `FULL_EXAM`, `SINGLE_SKILL`, `SINGLE_PART`), `exam_snapshot` bất biến, thời gian bắt đầu/kết thúc, trạng thái, tổng điểm và `result_summary`.
 - `attempt_answers`: Chứa `user_answers` (JSONB), `is_correct_flags` (JSONB), `earned_score`, và `ai_feedback` (JSONB - kết quả AI chấm bài, diff và gợi ý sửa lỗi).
 - `writing_hint_requests`: Ledger idempotency/quota cho Writing Hints (xem mục 6.3).
+- `dictionary_lookup_requests`: Ledger idempotency, lease, replay và reservation/refund cho Tra từ AI trong Practice; chỉ lưu kết quả định nghĩa, không lưu passage.
 - `writing_grading_jobs`: Hàng đợi chấm Writing bền vững, gồm snapshot ngữ cảnh, trạng thái job, lease, quota và kết quả đã validate.
 - `attempt_listening_playback`: Một phiên playback server-authoritative cho mỗi attempt TOEIC Mock.
 
@@ -308,8 +309,17 @@ Nhằm bảo vệ connection pool của cơ sở dữ liệu khỏi việc bị 
 | `testing.image-fetch.enabled` | `IMAGE_FETCH_ENABLED` | `false` | Fetcher ảnh độc lập. |
 | `testing.image-fetch.allowed-url-prefixes` | `IMAGE_FETCH_ALLOWED_URL_PREFIXES` | *(rỗng)* | Danh sách prefix HTTPS, phân tách bằng dấu phẩy. |
 | `testing.writing-hints.enabled` | `WRITING_HINTS_ENABLED` | `false` | Hints vẫn text-only. |
+| `testing.dictionary-lookup.enabled` | `DICTIONARY_LOOKUP_ENABLED` | `false` | Bật Tra từ AI chỉ trong Reading Practice; cần Gemini được cấu hình riêng. |
+| `testing.dictionary-lookup.recovery-interval-ms` | `DICTIONARY_LOOKUP_RECOVERY_INTERVAL_MS` | `60000` | Chu kỳ thu hồi lease tra từ hết hạn. |
 
 Khi bật visual grading, startup fail-fast nếu `IMAGE_FETCH_ENABLED=false` hoặc cấu hình fetch không hợp lệ. Không bật `GEMINI_ENABLED`/`IMAGE_FETCH_ENABLED` trong unit test; dùng fake boundary.
+
+### 8.4. Tra từ AI trong Reading Practice
+
+- `POST /api/v1/attempts/{attemptId}/dictionary-lookups` chỉ nhận từ/cụm và ngữ cảnh được xác minh lại từ snapshot của đúng Part/group Reading; Mock, attempt không thuộc người gọi, section khóa hoặc attempt đã kết thúc bị chặn.
+- Prompt gửi một lần tới `GeminiClient` hiện có. Không ghi passage/từ chọn vào ledger hoặc log; kết quả chỉ lưu các trường định nghĩa để hỗ trợ idempotent replay.
+- Hạn mức dùng feature `DICTIONARY_LOOKUP`: FREE mặc định 20/ngày, PREMIUM còn hạn mặc định 500/ngày, có thể điều chỉnh qua template quota admin; ngày reset theo `Asia/Ho_Chi_Minh`.
+- Bật `DICTIONARY_LOOKUP_ENABLED=true` chỉ sau khi Gemini và migration đã sẵn sàng. Mặc định tắt.
 
 ---
 

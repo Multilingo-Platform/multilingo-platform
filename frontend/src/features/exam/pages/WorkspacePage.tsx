@@ -17,21 +17,20 @@ import AudioPlayer from '../components/AudioPlayer';
 import HtmlContent from '../components/content/HtmlContent';
 import MediaDisplay from '../components/content/MediaDisplay';
 import { lockSection } from '../api/attemptApi';
-import { setAnswer, lockAnswers, toggleFlag, addHighlightRecord, removeHighlightRecord, selectHighlights } from '../store/answerSlice';
-import { useTextSelection, resolveHighlightScopeElement, type SelectionState } from '../hooks/useTextSelection';
+import { setAnswer, lockAnswers, toggleFlag, addHighlightRecord, removeHighlightRecord } from '../store/answerSlice';
+import { useTextSelection, type SelectionState } from '../hooks/useTextSelection';
 import { SelectionToolbar } from '../components/content/SelectionToolbar';
-import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
-import { applyHighlights } from '../utils/htmlHighlight';
-import { buildHighlightNamespace } from '../utils/highlightUtils';
+import { useReadingHighlights } from '../hooks/useReadingHighlights';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
-import { formatHtmlContent } from '../../../utils/htmlUtils';
 import { usePracticeFeedback } from '../hooks/usePracticeFeedback';
 import { usePracticeRetry } from '../hooks/usePracticeRetry';
 import { PracticeQuestionFeedback } from '../components/practice/PracticeQuestionFeedback';
 import { PracticeRetryToolbar } from '../components/practice/PracticeRetryToolbar';
 import { useWritingHints } from '../hooks/useWritingHints';
 import { WritingHintsPanel } from '../components/practice/WritingHintsPanel';
+import { PracticeDictionaryPopover } from '../components/practice/PracticeDictionaryPopover';
+import { usePracticeDictionary } from '../hooks/usePracticeDictionary';
 import { selectRetryQuestionIds, filterRetryGroups } from '../utils/practiceRetry';
 import { isToeicExamSnapshot, buildToeicWorkspaceModel } from '../utils/toeicWorkspaceModel';
 import ToeicWorkspace from '../components/workspace/ToeicWorkspace';
@@ -58,15 +57,6 @@ function isRecordedId(value: unknown): value is number {
 }
 
 /** Stable content hash used to scope highlights to the document version they were made on. */
-function hashContent(value: string): string {
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    hash = ((hash << 5) - hash) + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return String(hash);
-}
-
 const TOEIC_READING_SPLIT_MIN = 30;
 const TOEIC_READING_SPLIT_MAX = 70;
 const TOEIC_READING_SPLIT_STEP = 5;
@@ -79,13 +69,11 @@ const DEFAULT_SPLIT_BOUNDS = { min: 25, max: 75 };
  * answer-derived lookup affordance next to the reading text.
  */
 export function shouldShowAiLookup(selection: SelectionState | null, isPractice: boolean): boolean {
-  return Boolean(
-    isPractice &&
-      selection !== null &&
-      selection.text.length > 1 &&
-      selection.text.length < 35 &&
-      /^[a-zA-Z\s-]+$/.test(selection.text)
-  );
+  if (!isPractice || !selection) return false;
+  const selected = selection.text.trim();
+  const length = Array.from(selected).length;
+  return length >= 2 && length <= 80 && selected.split(/\s+/u).length <= 5 &&
+    /[\p{L}\p{M}]/u.test(selected) && /^[\p{L}\p{M}'’\-\s]+$/u.test(selected);
 }
 
 interface ToeicReadingDividerProps {
@@ -274,10 +262,14 @@ const WorkspacePage: React.FC = () => {
   const [isMobileViewport, setIsMobileViewport] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
   );
+  const [isDesktopReadingViewport, setIsDesktopReadingViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  );
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobileViewport(window.innerWidth < 768);
+      setIsDesktopReadingViewport(window.innerWidth >= 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -305,10 +297,9 @@ const WorkspacePage: React.FC = () => {
     };
   }, [isDraggingSplit]);
 
-  // Floating AI Dictionary Tooltip state
+  // Practice-only dictionary result; lookup state is owned by its request controller.
   const [dictTooltip, setDictTooltip] = useState<DictTooltip | null>(null);
-  const [savedFlashcard, setSavedFlashcard] = useState(false);
-  const readingContainerRef = useRef<HTMLDivElement>(null);
+  const readingContainerRef = workspaceContainerRef;
 
   const sections = useMemo(() => {
     return activeWorkspace?.exam_snapshot?.sections ?? [];
@@ -529,7 +520,7 @@ const WorkspacePage: React.FC = () => {
 
   // Hints use recorded canonical IDs, never the answer editor's compatibility fallback.
   const writingPartId = currentPart?.id ?? null;
-  const writingSection = currentPart ? sections.find(section => section.parts?.includes(currentPart)) : undefined;
+  const writingSection = currentPart ? (sections.find(section => section.parts?.some(p => ((p as any).id === writingPartId || (p as any).part_id === writingPartId))) ?? sections.find(section => section.parts?.includes(currentPart))) : undefined;
   const writingQuestionIds: (string | null)[] = currentPartQuestions.map((question: any) => {
     const id = question.question_id ?? question.questionId ?? question.id;
     return typeof id === 'string' && id.length > 0 ? id : isRecordedId(id) ? String(id) : null;
@@ -538,7 +529,7 @@ const WorkspacePage: React.FC = () => {
     isPracticeMode && activeWorkspace?.status === 'IN_PROGRESS'
       && isRecordedId(writingPartId)
       && sections.flatMap(section => section.parts ?? []).filter(part => part.id === writingPartId).length === 1
-      && writingSection?.skill_type === 'WRITING'
+      && writingSection != null && (writingSection.skill_type === 'WRITING' || (writingSection as any).name?.toUpperCase() === 'WRITING')
       && isRecordedId(writingSection.id)
       && sections.filter(section => section.id === writingSection.id).length === 1
       && writingQuestionIds.every(id => id !== null)
@@ -619,9 +610,6 @@ const WorkspacePage: React.FC = () => {
 
   useEffect(() => {
     if (!submission.result || submission.result.attempt_id !== attemptId) return;
-    try {
-      localStorage.setItem(`exam_highlights_${attemptId}`, JSON.stringify(store.getState().answers.highlights));
-    } catch { /* highlights are best-effort local metadata */ }
     if (!showTimeUp && !isExpired) navigate(submission.result.redirect_url);
   }, [submission.result, attemptId, showTimeUp, isExpired, navigate, store]);
 
@@ -674,19 +662,76 @@ const WorkspacePage: React.FC = () => {
   const partSharedMedia = (currentPart as any)?.sharedMedia
     || (currentPart as any)?.shared_media
     || currentPart?.content?.shared_media;
-  const passageId = String((currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1);
-  const passageHash = useMemo(() => hashContent(passageHtml), [passageHtml]);
-
-  const highlightsData = useSelector((state: RootState) => selectHighlights(state, passageId));
-  const highlights = highlightsData?.contentHash === passageHash ? highlightsData.items : [];
-
-  const highlightEnabled = currentSkill === 'READING' && (activeWorkspace?.test_mode === 'PRACTICE' || activeWorkspace?.test_mode === 'MOCK_TEST');
-  const { selection, setSelection } = useTextSelection(readingContainerRef, !!highlightEnabled);
-  const [deleteTooltip, setDeleteTooltip] = useState<{ offset: number; top: number; left: number; namespace: string } | null>(null);
-
-  // --- TOEIC Reading (TW-08): reference documents in the left pane, questions in the right pane ---
+  const ownerId = useSelector((state: RootState) => state.auth?.user?.id ?? null);
+  const dictionaryOwnerId = isRecordedId(Number(ownerId)) ? Number(ownerId) : null;
+  const currentSectionId = (currentSection as any)?.section_id ?? currentSection?.id;
+  const isCurrentSectionLocked = Boolean(
+    activeWorkspace?.test_mode === 'MOCK_TEST' &&
+    currentSectionId != null &&
+    lockedSections.includes(currentSectionId)
+  );
+  const dictionary = usePracticeDictionary({
+    workspace: activeWorkspace,
+    partId: isPracticeMode && currentSkill === 'READING' ? partId : null,
+    isLocked: () => submission.isLocked() || isCurrentSectionLocked,
+  });
   const isToeicExam = isToeicExamSnapshot((activeWorkspace as any)?.exam_snapshot);
   const isToeicReading = currentSkill === 'READING' && isToeicExam;
+  const highlightEnabled = currentSkill === 'READING' &&
+    (activeWorkspace?.test_mode === 'PRACTICE' || activeWorkspace?.test_mode === 'MOCK_TEST');
+
+  // TOEIC reference panes and IELTS passages share one prepared-document/highlight pipeline.
+  const referenceDocs = useMemo<ReferenceDoc[]>(
+    () => (currentSkill === 'READING' ? readReferenceDocs(currentPart, partQuestionGroups) : []),
+    [currentSkill, currentPart, partQuestionGroups]
+  );
+  const useReferenceDocuments = currentSkill === 'READING' && referenceDocs.length > 0;
+  const readingHighlights = useReadingHighlights({
+    ownerId,
+    attemptId,
+    partId,
+    contextRevision: answersState.contextRevision,
+    enabled: !!highlightEnabled && !!activeWorkspace && !loading && !error,
+    partHtml: passageHtml,
+    referenceDocs,
+    useReferenceDocs: useReferenceDocuments,
+  });
+  const highlightContextKey = `${ownerId ?? 'anonymous'}:${attemptId}:${partId}:${answersState.contextRevision}`;
+  const { selection, setSelection } = useTextSelection(
+    readingContainerRef,
+    !!highlightEnabled && !submission.isLocked() && !isCurrentSectionLocked,
+    answersState.contextRevision,
+    highlightContextKey
+  );
+  const [deleteTooltip, setDeleteTooltip] = useState<{
+    highlightId: string; top: number; left: number; namespace: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!highlightEnabled || submission.isLocked() || isCurrentSectionLocked) {
+      setDeleteTooltip(null);
+      setSelection(null);
+    }
+  }, [highlightEnabled, submission, isCurrentSectionLocked, setSelection]);
+
+  useEffect(() => {
+    setDeleteTooltip(null);
+  }, [partId, answersState.contextRevision, ownerId, attemptId]);
+
+  useEffect(() => {
+    if (!deleteTooltip) return;
+    const close = () => setDeleteTooltip(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [deleteTooltip]);
 
   const toeicNumberByQuestion = useMemo(() => {
     const map = new Map<string, number>();
@@ -700,11 +745,6 @@ const WorkspacePage: React.FC = () => {
     return map;
   }, [isToeicReading, activeWorkspace, partId]);
 
-  const referenceDocs = useMemo<ReferenceDoc[]>(
-    () => (isToeicReading ? readReferenceDocs(currentPart, partQuestionGroups) : []),
-    [isToeicReading, currentPart, partQuestionGroups]
-  );
-
   // Layout follows the content shape: a Part with reference documents splits, Part 5 stays one column.
   const showToeicReference = isToeicReading && referenceDocs.length > 0;
   splitBoundsRef.current = showToeicReference
@@ -713,31 +753,7 @@ const WorkspacePage: React.FC = () => {
     ? { min: WRITING_SPLIT_MIN, max: WRITING_SPLIT_MAX }
     : DEFAULT_SPLIT_BOUNDS;
 
-  const highlightsByNamespace = useSelector((state: RootState) => state.answers.highlights);
-
-  const referenceNamespaceByGroup = useMemo(() => {
-    const map = new Map<string, { namespace: string; contentHash: string }>();
-    for (const doc of referenceDocs) {
-      const contentHash = hashContent(doc.html ?? '');
-      map.set(doc.groupId, {
-        namespace: buildHighlightNamespace({ attemptId, partId, groupId: doc.groupId, contentHash }),
-        contentHash,
-      });
-    }
-    return map;
-  }, [referenceDocs, attemptId, partId]);
-
-  // Highlight-applied reference documents, one bucket per document (never per whole Part).
-  const referenceDocsRendered = useMemo<ReferenceDoc[]>(
-    () =>
-      referenceDocs.map(doc => {
-        const target = referenceNamespaceByGroup.get(doc.groupId);
-        const stored = target ? highlightsByNamespace?.[target.namespace] : undefined;
-        const items = target && stored?.contentHash === target.contentHash ? stored.items : [];
-        return { ...doc, html: doc.html ? applyHighlights(doc.html, items) : null };
-      }),
-    [referenceDocs, referenceNamespaceByGroup, highlightsByNamespace]
-  );
+  const referenceDocsRendered = readingHighlights.renderedReferences;
 
   const adjustSplitRatio = (delta: number) => {
     setSplitRatio(prev => Math.min(TOEIC_READING_SPLIT_MAX, Math.max(TOEIC_READING_SPLIT_MIN, prev + delta)));
@@ -779,59 +795,46 @@ const WorkspacePage: React.FC = () => {
     [displayQuestionGroups, toeicNumberByQuestion, answersState.answers, answersState.flags, partId]
   );
 
-  /** Namespace + offset base of the reference document a selection belongs to (or the Part default). */
-  /** Namespace + offset base of the reference document a selection belongs to (or the Part default). */
-  const resolveHighlightTarget = (range: Range) => {
-    const scopeEl = resolveHighlightScopeElement(range, readingContainerRef.current);
-    const scopeId = scopeEl?.getAttribute('data-highlight-scope') ?? null;
-    const target = scopeId ? referenceNamespaceByGroup.get(scopeId) : undefined;
-    return {
-      scopeEl,
-      scopeId,
-      target,
-      namespace: target?.namespace ?? passageId,
-      contentHash: target?.contentHash ?? passageHash,
-      offsetBase: scopeEl ?? readingContainerRef.current,
-    };
-  };
-
   const handleHighlight = () => {
-    if (submission.isLocked()) return;
-    if (!selection || !readingContainerRef.current) return;
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      const rawText = sel.toString();
-      const target = resolveHighlightTarget(range);
-      if (isToeicReading && (!target.scopeId || !target.target)) {
-        sel.removeAllRanges();
-        setSelection(null);
-        return;
-      }
-      const base = target.offsetBase ?? readingContainerRef.current;
-      const rawOffsets = rangeToOffsets(base, range);
-      const { start, end } = trimOffsets(rawText, rawOffsets);
-      if (start < end) {
-        dispatch(addHighlightRecord({
-          passageId: target.namespace,
-          contentHash: target.contentHash,
-          highlight: { id: Date.now().toString(), start, end, text: selection.text.substring(0, 50) }
-        }));
-      }
-      sel.removeAllRanges();
-      setSelection(null);
+    if (submission.isLocked() || isCurrentSectionLocked || !selection) return;
+    if (selection.contextRevision !== answersState.contextRevision || selection.contextKey !== highlightContextKey) {
+      return setSelection(null);
     }
+    const doc = readingHighlights.documents.find((item) =>
+      item.partId === partId && item.documentId === selection.documentId &&
+      item.contentHash === selection.contentHash
+    );
+    const namespace = readingHighlights.namespaceFor(selection.documentId, selection.contentHash);
+    if (!doc || !namespace || selection.start >= selection.end) return setSelection(null);
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    dispatch(addHighlightRecord({
+      attemptId,
+      contextRevision: answersState.contextRevision,
+      passageId: namespace,
+      contentHash: doc.contentHash,
+      documentText: doc.text,
+      highlight: { id, start: selection.start, end: selection.end, text: selection.text.slice(0, 50) },
+    }));
+    window.getSelection()?.removeAllRanges();
+    setSelection(null);
   };
 
   const handleAiLookup = () => {
-    if (!selection) return;
+    if (!selection || !shouldShowAiLookup(selection, isPracticeMode) || submission.isLocked() || isCurrentSectionLocked) return;
+    void dictionary.lookup(selection);
     setDictTooltip({
       word: selection.text,
       x: Math.max(16, selection.rect.left + selection.rect.width / 2 - 140),
       y: Math.max(70, selection.rect.bottom + 8),
     });
-    setSavedFlashcard(false);
     setSelection(null);
+  };
+
+  const closeDictionary = () => {
+    dictionary.cancel();
+    setDictTooltip(null);
   };
 
   const handlePassageClick = (e: React.MouseEvent) => {
@@ -839,38 +842,14 @@ const WorkspacePage: React.FC = () => {
     const mark = target.closest('mark[data-hl-id]');
 
     if (mark && window.getSelection()?.isCollapsed) {
-      let range: Range | null = null;
-      if (document.caretRangeFromPoint) {
-        range = document.caretRangeFromPoint(e.clientX, e.clientY);
-      } else if ((document as any).caretPositionFromPoint) {
-        const pos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
-        if (pos) {
-          range = document.createRange();
-          range.setStart(pos.offsetNode, pos.offset);
-          range.setEnd(pos.offsetNode, pos.offset);
-        }
-      }
-      const scopeEl =
-        (mark.closest('[data-highlight-scope]') as HTMLElement | null) ??
-        (range && readingContainerRef.current ? resolveHighlightScopeElement(range, readingContainerRef.current) : null);
-      if (isToeicReading && !scopeEl) {
-        setDeleteTooltip(null);
-        return;
-      }
-      const scopeId = scopeEl?.getAttribute('data-highlight-scope') ?? null;
-      const targetGroup = scopeId ? referenceNamespaceByGroup.get(scopeId) : undefined;
-      if (isToeicReading && !targetGroup) {
-        setDeleteTooltip(null);
-        return;
-      }
-      if (range && readingContainerRef.current) {
-        const { start } = rangeToOffsets(scopeEl ?? readingContainerRef.current, range);
-        setDeleteTooltip({
-          offset: start,
-          top: e.clientY + window.scrollY + 8,
-          left: e.clientX + window.scrollX,
-          namespace: targetGroup?.namespace ?? passageId,
-        });
+      const scopeEl = mark.closest('[data-highlight-scope]') as HTMLElement | null;
+      const documentId = scopeEl?.getAttribute('data-highlight-scope') ?? 'part';
+      const contentHash = scopeEl?.getAttribute('data-highlight-hash') ?? null;
+      const namespace = readingHighlights.namespaceFor(documentId, contentHash);
+      const highlightId = mark.getAttribute('data-hl-id');
+      if (namespace && highlightId) {
+        setSelection(null);
+        setDeleteTooltip({ highlightId, top: e.clientY + 8, left: e.clientX, namespace });
         return;
       }
     }
@@ -878,14 +857,25 @@ const WorkspacePage: React.FC = () => {
   };
 
   const handleDeleteHighlight = () => {
-    if (submission.isLocked()) return;
+    if (submission.isLocked() || isCurrentSectionLocked) return;
     if (deleteTooltip) {
-      dispatch(removeHighlightRecord({ passageId: deleteTooltip.namespace, offset: deleteTooltip.offset }));
+      dispatch(removeHighlightRecord({
+        attemptId, contextRevision: answersState.contextRevision,
+        passageId: deleteTooltip.namespace, highlightId: deleteTooltip.highlightId,
+      }));
       setDeleteTooltip(null);
     }
   };
 
-  const finalHtml = useMemo(() => applyHighlights(passageHtml, highlights), [passageHtml, highlights]);
+  const selectionNamespace = selection
+    ? readingHighlights.namespaceFor(selection.documentId, selection.contentHash)
+    : null;
+  const selectionHighlightRecord = selectionNamespace
+    ? answersState.highlights[selectionNamespace]
+    : undefined;
+  const showHighlightAction = !selection || !selectionHighlightRecord?.items.some((item) =>
+    item.start <= selection.start && item.end >= selection.end
+  );
 
   if (loading) {
     return (
@@ -934,12 +924,6 @@ const WorkspacePage: React.FC = () => {
     || currentPart?.content?.part_title
     || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
   const isMockFull = activeWorkspace.test_mode === 'MOCK_TEST' && activeWorkspace.test_scope === 'FULL_EXAM';
-  const currentSectionId = (currentSection as any)?.section_id ?? currentSection?.id;
-  const isCurrentSectionLocked = Boolean(
-    activeWorkspace.test_mode === 'MOCK_TEST'
-      && currentSectionId != null
-      && lockedSections.includes(currentSectionId)
-  );
 
   const handleReload = () => {
     if (isSubmitting || store.getState().answers.saveStatus === 'saving') return;
@@ -1139,12 +1123,10 @@ const WorkspacePage: React.FC = () => {
   ) : null;
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-800 select-text" onClick={() => {
-      // Dismiss tooltip when clicking away without active selection
-      const selection = window.getSelection();
-      if (!selection || !selection.toString().trim()) {
-        setDictTooltip(null);
-      }
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden text-slate-800 select-text" onClick={(event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('[data-dictionary-popover], [role="toolbar"]')) return;
+      if (dictTooltip) closeDictionary();
     }}>
       {/* 1. STICKY TOP HEADER */}
       <header className="h-16 shrink-0 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shadow-xs z-30">
@@ -1186,6 +1168,11 @@ const WorkspacePage: React.FC = () => {
 
       {/* Notice Banners */}
       {draftWarning && <div role="alert" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">{draftWarning}</div>}
+      {readingHighlights.warning && highlightEnabled && (
+        <div role="alert" data-testid="highlight-storage-warning" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">
+          {readingHighlights.warning}
+        </div>
+      )}
       {(refreshError || pendingLockError) && (
         <div role="alert" className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between text-xs text-red-800 shrink-0">
           <span>{refreshError || pendingLockError}</span>
@@ -1259,13 +1246,17 @@ const WorkspacePage: React.FC = () => {
 
               {/* Passage / Prompt Text Content */}
               <div
-                ref={readingContainerRef}
                 className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
               >
                 {showToeicReference ? (
-                  <div onClick={handlePassageClick}>
+                  isDesktopReadingViewport ? <div onClick={handlePassageClick}>
                     <ReferencePane docs={referenceDocsRendered} />
-                  </div>
+                  </div> : null
+                ) : currentSkill === 'READING' && useReferenceDocuments ? (
+                  isDesktopReadingViewport ? <div onClick={handlePassageClick} data-testid="reading-reference-pane">
+                    {partInstruction && <div className="mb-4 p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-sm text-slate-700">{partInstruction}</div>}
+                    <ReferencePane docs={referenceDocsRendered} testId="reading-reference-documents" />
+                  </div> : null
                 ) : currentSkill === 'WRITING' ? (
                   <div data-testid="desktop-writing-prompt">
                     <WritingPromptContent
@@ -1282,9 +1273,14 @@ const WorkspacePage: React.FC = () => {
                   {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
                   {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
                   {passageHtml ? (
-                    <div onClick={handlePassageClick}>
+                    <div
+                      onClick={handlePassageClick}
+                      data-highlight-scope="part"
+                      data-highlight-hash={readingHighlights.preparedPart?.contentHash}
+                    >
                       <HtmlContent
-                        html={finalHtml}
+                        html={readingHighlights.renderedPartHtml}
+                        prepared
                         className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h2]:mb-3 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700"
                       />
                     </div>
@@ -1357,6 +1353,17 @@ const WorkspacePage: React.FC = () => {
         >
           {/* Scrollable Questions Container */}
           <div className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 w-full ${currentSkill === 'LISTENING' ? 'max-w-4xl' : ''}`}>
+            {showToeicReference && !isDesktopReadingViewport && (
+              <div data-testid="mobile-reading-reference" onClick={handlePassageClick}>
+                <ReferencePane docs={referenceDocsRendered} />
+              </div>
+            )}
+            {!isToeicReading && currentSkill === 'READING' && useReferenceDocuments && !isDesktopReadingViewport && (
+              <div data-testid="mobile-reading-reference" onClick={handlePassageClick}>
+                {partInstruction && <div className="mb-4 p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-sm text-slate-700">{partInstruction}</div>}
+                <ReferencePane docs={referenceDocsRendered} testId="reading-reference-documents" />
+              </div>
+            )}
             {isPracticeMode && writingHints.blockedError && (
               <div role="alert" className="flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-950">
                 <span>{writingHints.blockedError.message}</span>
@@ -1465,14 +1472,14 @@ const WorkspacePage: React.FC = () => {
                     data-group-id={group.group_id}
                     className="space-y-4"
                   >
-                    {currentSkill !== 'WRITING' && group.instruction && group.instruction.trim() !== (partInstruction || '').trim() && (
+                    {currentSkill !== 'WRITING' && currentSkill !== 'READING' && group.instruction && group.instruction.trim() !== (partInstruction || '').trim() && (
                       <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
                         {group.instruction}
                       </div>
                     )}
-                    {currentSkill !== 'WRITING' && group.shared_audio?.url && <AudioPlayer url={group.shared_audio.url} isActive={true} />}
-                    {currentSkill !== 'WRITING' && group.shared_media && <MediaDisplay media={group.shared_media} alt={`${group.group_id} media`} />}
-                    {currentSkill !== 'WRITING' && (group.content_html || group.context_html) && (
+                    {currentSkill !== 'WRITING' && currentSkill !== 'READING' && group.shared_audio?.url && <AudioPlayer url={group.shared_audio.url} isActive={true} />}
+                    {currentSkill !== 'WRITING' && currentSkill !== 'READING' && group.shared_media && <MediaDisplay media={group.shared_media} alt={`${group.group_id} media`} />}
+                    {currentSkill !== 'WRITING' && currentSkill !== 'READING' && (group.content_html || group.context_html) && (
                       <HtmlContent
                         html={group.content_html || group.context_html}
                         className="prose prose-slate max-w-none"
@@ -1795,62 +1802,39 @@ const WorkspacePage: React.FC = () => {
 
       {/* 4. FLOATING AI DICTIONARY POPUP */}
       {dictTooltip && (
-        <div
-          style={{ top: `${dictTooltip.y}px`, left: `${dictTooltip.x}px` }}
-          className="fixed z-50 w-72 bg-white rounded-xl shadow-xl border border-amber-300 p-4 space-y-3 animate-in fade-in zoom-in-95 duration-150"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="font-heading font-bold text-slate-900 text-base">{dictTooltip.word}</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                AI Vocab
-              </span>
-            </div>
-            <button
-              onClick={() => setDictTooltip(null)}
-              className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1 rounded hover:bg-slate-100"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="text-xs text-slate-600 space-y-1">
-            <p className="font-mono text-amber-700">/{dictTooltip.word.toLowerCase()}/</p>
-            <p className="text-slate-800 font-medium">
-              Từ vựng quan trọng xuất hiện trong ngữ cảnh bài đọc.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setSavedFlashcard(true)}
-            className={`w-full py-1.5 px-3 rounded-lg text-xs font-heading font-bold transition-all flex items-center justify-center gap-1.5 ${
-              savedFlashcard
-                ? 'bg-emerald-600 text-white'
-                : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-            }`}
-          >
-            {savedFlashcard ? '✓ Đã lưu vào Flashcards' : '+ Lưu Flashcard'}
-          </button>
-        </div>
+        <PracticeDictionaryPopover
+          {...dictTooltip}
+          ownerId={dictionaryOwnerId}
+          phase={dictionary.phase}
+          data={dictionary.data}
+          error={dictionary.error}
+          onClose={closeDictionary}
+          onRetry={() => void dictionary.retry()}
+        />
       )}
 
       {/* 4b. SELECTION TOOLBAR & DELETE TOOLTIP */}
       <SelectionToolbar
         selection={selection}
         showAi={shouldShowAiLookup(selection, isPracticeMode)}
+        showHighlight={showHighlightAction}
         onHighlight={handleHighlight}
         onAiLookup={handleAiLookup}
       />
 
       {deleteTooltip && createPortal(
-        <div
-          className="absolute z-50 flex items-center bg-white border border-gray-200 shadow-lg rounded-md px-3 py-1 cursor-pointer hover:bg-gray-50"
-          style={{ top: deleteTooltip.top, left: deleteTooltip.left }}
+        <button
+          type="button"
+          aria-label="Xóa highlight"
+          className="fixed z-50 min-h-11 flex items-center bg-white border border-gray-200 shadow-lg rounded-md px-3 py-1 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
+          style={{
+            top: Math.max(8, Math.min(window.innerHeight - 52, deleteTooltip.top)),
+            left: Math.max(8, Math.min(window.innerWidth - 180, deleteTooltip.left)),
+          }}
           onClick={handleDeleteHighlight}
         >
           <span className="text-sm font-medium text-red-600">Xóa highlight</span>
-        </div>,
+        </button>,
         document.body
       )}
 

@@ -6,6 +6,10 @@ import * as resultHook from '../../hooks/useAttemptResult';
 import * as reviewHook from '../../hooks/useExamReview';
 import { attemptReviewFixture } from '../../__tests__/fixtures/attemptReview';
 import '@testing-library/jest-dom';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from '../../../auth/store/authSlice';
+import answerReducer from '../../store/answerSlice';
 
 vi.mock('../../hooks/useAttemptResult');
 vi.mock('../../hooks/useExamReview', async () => {
@@ -65,13 +69,16 @@ describe('ExamReviewPage', () => {
   });
 
   function renderPage(initialEntry = '/attempts/42/review') {
+    const store = configureStore({ reducer: { auth: authReducer, answers: answerReducer } });
     return render(
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/attempts/:attemptId/review" element={<ExamReviewPage />} />
-          <Route path="/attempts/:attemptId/result" element={<h1>Kết quả bài làm</h1>} />
-        </Routes>
-      </MemoryRouter>
+      <Provider store={store}>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route path="/attempts/:attemptId/review" element={<ExamReviewPage />} />
+            <Route path="/attempts/:attemptId/result" element={<h1>Kết quả bài làm</h1>} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
     );
   }
 

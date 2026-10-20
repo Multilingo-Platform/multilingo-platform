@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../app/store';
 import { useAttemptResult } from '../hooks/useAttemptResult';
 import { useExamReview } from '../hooks/useExamReview';
 import { parseResultAttemptId } from '../api/resultContract';
@@ -9,6 +11,7 @@ import { ReviewPalette } from '../components/review/ReviewPalette';
 const ExamReviewPage: React.FC = () => {
   const params = useParams<{ attemptId: string }>();
   const attemptId = parseResultAttemptId(params.attemptId);
+  const ownerId = useSelector((state: RootState) => state.auth?.user?.id ?? null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | number | null>(null);
 
@@ -252,6 +255,7 @@ const ExamReviewPage: React.FC = () => {
         <div className="lg:col-span-8">
           <PartReviewContent
             reviewData={reviewData}
+          ownerId={ownerId}
             resultSummary={result.data?.resultSummary}
             selectedQuestionId={selectedQuestionId}
             onSelectQuestion={scrollToQuestion}

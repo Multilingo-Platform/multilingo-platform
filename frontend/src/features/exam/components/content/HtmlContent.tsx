@@ -12,6 +12,8 @@ export interface HtmlContentProps {
    * inline frame; images and text are preserved.
    */
   stripMedia?: boolean;
+  /** Input has already passed the shared reading-document formatter; still sanitize it. */
+  prepared?: boolean;
 }
 
 /**
@@ -26,6 +28,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({
   className,
   forbidAutoplay = true,
   stripMedia = false,
+  prepared = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +59,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({
   }, [html, forbidAutoplay, stripMedia]);
 
   if (!html) return null;
-  const formatted = formatHtmlContent(html);
+  const formatted = prepared ? html : formatHtmlContent(html);
   const clean = DOMPurify.sanitize(formatted, {
     USE_PROFILES: { html: true },
     FORBID_ATTR: forbidAutoplay ? ['autoplay'] : [],

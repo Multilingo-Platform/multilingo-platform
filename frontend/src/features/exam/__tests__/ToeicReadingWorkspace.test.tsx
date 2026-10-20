@@ -325,12 +325,16 @@ describe('TW-08 reading helpers', () => {
   });
 
   it('TC_TW_RD_00h: AI lookup is only offered inside Practice', () => {
-    const selection: SelectionState = { rect: { width: 10, height: 10 } as DOMRect, text: 'vocabulary' };
+    const selection: SelectionState = {
+      rect: { width: 10, height: 10 } as DOMRect, text: 'vocabulary', start: 0, end: 10,
+      documentId: 'g1', contentHash: 'h1', contextRevision: 0, contextKey: 'attempt-1:part-1',
+    };
 
     expect(shouldShowAiLookup(selection, true)).toBe(true);
     expect(shouldShowAiLookup(selection, false)).toBe(false);
     expect(shouldShowAiLookup(null, true)).toBe(false);
-    expect(shouldShowAiLookup({ ...selection, text: 'x'.repeat(40) }, true)).toBe(false);
+    expect(shouldShowAiLookup({ ...selection, text: 'x'.repeat(81) }, true)).toBe(false);
+    expect(shouldShowAiLookup({ ...selection, text: "l’arbre" }, true)).toBe(true);
   });
 
   it('TC_TW_RD_00i: readReferenceDocs retains part-level media without part HTML while gathering all group HTML documents', () => {
@@ -697,13 +701,8 @@ describe('WorkspacePage TOEIC reading branch', () => {
         document.dispatchEvent(new Event('selectionchange'));
       });
 
-      await vi.waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Highlight' })).toBeDefined();
-      });
-
-      act(() => {
-        fireEvent.click(screen.getByRole('button', { name: 'Highlight' }));
-      });
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 120)); });
+      expect(screen.queryByRole('button', { name: 'Highlight' })).toBeNull();
 
       // Highlights must remain empty because cross-group highlight was rejected
       expect(Object.keys(store.getState().answers.highlights)).toHaveLength(0);
@@ -722,9 +721,8 @@ describe('WorkspacePage TOEIC reading branch', () => {
         document.dispatchEvent(new Event('selectionchange'));
       });
 
-      await vi.waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Highlight' })).toBeDefined();
-      });
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 120)); });
+      expect(screen.getByRole('button', { name: 'Highlight' })).toBeDefined();
 
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: 'Highlight' }));

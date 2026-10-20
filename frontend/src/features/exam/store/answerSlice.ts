@@ -1,6 +1,6 @@
 import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import type { AnswerValue, PartAnswers } from '../types/answer.types';
-import { normalize, removeAt, type Highlight } from '../utils/highlightUtils';
+import { normalizeAgainstText, type Highlight } from '../utils/highlightUtils';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'conflict' | 'stopped';
 
@@ -194,31 +194,49 @@ const answerSlice = createSlice({
 
     addHighlightRecord(
       state,
-      action: PayloadAction<{ passageId: string; contentHash: string; highlight: Highlight }>
+      action: PayloadAction<{
+        attemptId: number; contextRevision: number; passageId: string; contentHash: string;
+        documentText: string; highlight: Highlight;
+      }>
     ) {
-      if (state.isLocked) return;
-      const { passageId, contentHash, highlight } = action.payload;
+      if (state.isLocked || !matchesContext(state, action.payload)) return;
+      const { passageId, contentHash, documentText, highlight } = action.payload;
       if (!state.highlights) state.highlights = {};
-      if (!state.highlights[passageId] || state.highlights[passageId].contentHash !== contentHash) {
-        state.highlights[passageId] = { contentHash, items: [] };
-      }
-      state.highlights[passageId].items.push(highlight);
-      state.highlights[passageId].items = normalize(state.highlights[passageId].items);
-      state.isDirty = true;
-      state.pendingVersion += 1;
+      const previousItems = state.highlights[passageId]?.contentHash === contentHash
+        ? state.highlights[passageId].items
+        : [];
+      const mergedItems = normalizeAgainstText([...previousItems, highlight], documentText);
+      state.highlights[passageId] = {
+        contentHash,
+        items: mergedItems.map((merged) => {
+          const firstExisting = previousItems
+            .filter((item) => item.start <= merged.end && item.end >= merged.start)
+            .sort((a, b) => a.start - b.start || a.end - b.end)[0];
+          return firstExisting ? { ...merged, id: firstExisting.id } : merged;
+        }),
+      };
     },
 
     removeHighlightRecord(
       state,
-      action: PayloadAction<{ passageId: string; offset: number }>
+      action: PayloadAction<{ attemptId: number; contextRevision: number; passageId: string; highlightId: string }>
     ) {
-      if (state.isLocked) return;
-      const { passageId, offset } = action.payload;
+      if (state.isLocked || !matchesContext(state, action.payload)) return;
+      const { passageId, highlightId } = action.payload;
       if (state.highlights?.[passageId]) {
-        state.highlights[passageId].items = removeAt(state.highlights[passageId].items, offset);
-        state.isDirty = true;
-        state.pendingVersion += 1;
+        state.highlights[passageId].items = state.highlights[passageId].items.filter(item => item.id !== highlightId);
       }
+    },
+
+    restoreHighlightRecords(
+      state,
+      action: PayloadAction<{
+        attemptId: number; contextRevision: number;
+        highlights: Record<string, { contentHash: string; items: Highlight[] }>;
+      }>
+    ) {
+      if (state.isLocked || !matchesContext(state, action.payload)) return;
+      state.highlights = { ...state.highlights, ...action.payload.highlights };
     },
   },
 });
@@ -240,6 +258,7 @@ export const {
   clearAnswers,
   addHighlightRecord,
   removeHighlightRecord,
+  restoreHighlightRecords,
 } = answerSlice.actions;
 
 type RootLike = { answers: AnswerState };

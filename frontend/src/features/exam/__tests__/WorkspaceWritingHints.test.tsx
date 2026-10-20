@@ -249,4 +249,11 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Thử lại ngay' }));
     expect(events).toEqual(['suspend', 'retry']);
   });
+
+  it('renders WritingHintsPanel when section has name="WRITING" without skill_type (real DB snapshot compatibility)', () => {
+    delete (workspace.exam_snapshot.sections[0] as any).skill_type;
+    (workspace.exam_snapshot.sections[0] as any).name = 'WRITING';
+    setup();
+    expect(screen.getByRole('button', { name: 'Gợi ý Writing — Task 1' })).toBeInTheDocument();
+  });
 });

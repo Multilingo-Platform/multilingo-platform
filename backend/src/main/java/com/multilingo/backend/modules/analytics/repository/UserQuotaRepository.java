@@ -27,6 +27,18 @@ public interface UserQuotaRepository extends JpaRepository<UserQuota, Integer> {
     );
 
     List<UserQuota> findByFeatureCode(String featureCode);
+
+    /** Atomic first-use provisioning; the partial unique index is installed by the dictionary migration. */
+    @Modifying
+    @Query(value = "INSERT INTO user_quotas (user_id, feature_code, used_count, max_limit, reset_date, created_at, updated_at) " +
+            "VALUES (:userId, 'DICTIONARY_LOOKUP', 0, :maxLimit, :resetDate, :now, :now) " +
+            "ON CONFLICT (user_id, feature_code) WHERE feature_code = 'DICTIONARY_LOOKUP' DO NOTHING", nativeQuery = true)
+    int insertDictionaryLookupQuotaIfAbsent(
+            @Param("userId") Integer userId,
+            @Param("maxLimit") Integer maxLimit,
+            @Param("now") Instant now,
+            @Param("resetDate") Instant resetDate
+    );
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT q FROM UserQuota q WHERE q.id = :id")
     Optional<UserQuota> findByIdForUpdate(@Param("id") Integer id);

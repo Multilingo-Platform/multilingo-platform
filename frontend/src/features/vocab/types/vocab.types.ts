@@ -23,6 +23,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
 
 export interface DeckSummary {
   id: number;
+  userId?: number;
   name: string;
   description?: string;
   targetLanguage: string;

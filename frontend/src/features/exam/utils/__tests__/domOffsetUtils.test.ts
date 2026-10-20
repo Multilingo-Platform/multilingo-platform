@@ -22,4 +22,15 @@ describe('domOffsetUtils', () => {
     const adjusted = trimOffsets('  hello world   ', { start: 10, end: 26 });
     expect(adjusted).toEqual({ start: 12, end: 23 });
   });
+
+  it('resolves element-node range boundaries without falling back to the whole passage', () => {
+    document.body.innerHTML = '<div id="container"><p>alpha <b>bravo</b> charlie</p></div>';
+    const container = document.getElementById('container')!;
+    const paragraph = container.querySelector('p')!;
+    const range = document.createRange();
+    range.setStart(paragraph, 1);
+    range.setEnd(paragraph, 2);
+
+    expect(rangeToOffsets(container, range)).toEqual({ start: 6, end: 11 });
+  });
 });
