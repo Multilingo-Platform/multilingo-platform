@@ -1,5 +1,7 @@
 package com.multilingo.backend.modules.testing.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /** Client selection plus a passage locator; the server always re-verifies both against the attempt snapshot. */
 public record DictionaryLookupRequest(
         String requestId,
@@ -7,8 +9,8 @@ public record DictionaryLookupRequest(
         String documentId,
         String selectedText,
         String contextText,
-        int contractVersion,
-        String meaningLanguage
+        @JsonIgnore int contractVersion,
+        @JsonIgnore String meaningLanguage
 ) {
     public DictionaryLookupRequest(String requestId, Integer partId, String documentId, String selectedText, String contextText) {
         this(requestId, partId, documentId, selectedText, contextText, 1, null);

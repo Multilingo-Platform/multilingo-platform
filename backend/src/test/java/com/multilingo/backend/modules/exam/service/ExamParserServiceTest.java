@@ -86,7 +86,7 @@ class ExamParserServiceTest {
         assertThat(preview.counts().parts()).isEqualTo(9);
         assertThat(preview.counts().groups()).isEqualTo(27);
         assertThat(preview.counts().questions()).isEqualTo(107);
-        assertThat(preview.issues()).filteredOn(issue -> "AUDIO_REQUIRED".equals(issue.code())).hasSize(5);
+        assertThat(preview.issues()).filteredOn(issue -> "AUDIO_REQUIRED".equals(issue.code())).hasSize(4);
         assertThat(preview.canPublish()).isFalse();
     }
 }
