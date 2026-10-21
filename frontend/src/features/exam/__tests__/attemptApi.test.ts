@@ -359,6 +359,77 @@ describe('getWorkspace and createAttempt contracts', () => {
     expect(question.id).toBe(555);
   });
 
+  it('normalizes snapshot language aliases and treats conflicting tags as unavailable metadata', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(2000);
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { ...validWorkspaceData.examSnapshot, exam_language: 'zho-Hans-CN', sections: [] },
+      exam_snapshot: { ...validWorkspaceData.examSnapshot, exam_language: 'zho-Hans-CN', sections: [] },
+      language_context: { policyVersion: 'TV3_LANG_V1', examLanguage: 'zh-Hans-CN',
+        defaultExplanationLanguage: 'vie', supportedExplanationLanguages: ['en', 'vie', 'ja'] },
+    } });
+    const normalized = await getWorkspace(42);
+    expect(normalized.exam_snapshot.examLanguage).toBe('zh-Hans-CN');
+    expect(normalized.languageContext).toEqual({ policyVersion: 'TV3_LANG_V1', examLanguage: 'zh-Hans-CN',
+      defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'ja'] });
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { id: 1, examLanguage: 'zh', exam_language: 'ja', sections: [] },
+      exam_snapshot: { id: 1, examLanguage: 'zh', exam_language: 'ja', sections: [] },
+    } });
+    const conflicting = await getWorkspace(42);
+    expect(conflicting.exam_snapshot.examLanguage).toBeNull();
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { id: 1, examLanguage: 'en', exam_language: 'it', sections: [] },
+      exam_snapshot: { id: 1, examLanguage: 'en', exam_language: 'it', sections: [] },
+    } });
+    const validPlusInvalid = await getWorkspace(42);
+    expect(validPlusInvalid.exam_snapshot.examLanguage).toBeNull();
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { id: 1, examLanguage: 'en', exam_language: 'en_US', sections: [] },
+      exam_snapshot: { id: 1, examLanguage: 'en', exam_language: 'en_US', sections: [] },
+    } });
+    const underscore = await getWorkspace(42);
+    expect(underscore.exam_snapshot.examLanguage).toBeNull();
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { id: 1, examLanguage: 'en', exam_language: 'en-US-Latn', sections: [] },
+      exam_snapshot: { id: 1, examLanguage: 'en', exam_language: 'en-US-Latn', sections: [] },
+    } });
+    const wrongOrder = await getWorkspace(42);
+    expect(wrongOrder.exam_snapshot.examLanguage).toBeNull();
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { id: 1, examLanguage: 'en', exam_language: 123 as any, sections: [] },
+      exam_snapshot: { id: 1, examLanguage: 'en', exam_language: 123 as any, sections: [] },
+    } });
+    const wrongType = await getWorkspace(42);
+    expect(wrongType.exam_snapshot.examLanguage).toBeNull();
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { id: 1, examLanguage: 'en', exam_language: 'eng', sections: [] },
+      exam_snapshot: { id: 1, examLanguage: 'en', exam_language: 'eng', sections: [] },
+    } });
+    const equivalent = await getWorkspace(42);
+    expect(equivalent.exam_snapshot.examLanguage).toBe('en');
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { id: 1, examLanguage: 'english', sections: [] },
+      exam_snapshot: { id: 1, examLanguage: 'english', sections: [] },
+    } });
+    const humanName = await getWorkspace(42);
+    expect(humanName.exam_snapshot.examLanguage).toBeNull();
+  });
+
   it('validates MOCK_TEST deadline must not be before startTime', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1000);
     // Invalid mock: deadline before startTime

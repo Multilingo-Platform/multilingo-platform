@@ -58,7 +58,7 @@ public class MockDataSeeder implements CommandLineRunner {
                             .title(examNode.path("title").asText())
                             .type(examNode.path("type").asText())
                             .examLanguage(examNode.path("examLanguage").asText("en"))
-                            .isPublished(examNode.path("isPublished").asBoolean(true))
+                            .isPublished(examNode.path("isPublished").asBoolean(false))
                             .isVipOnly(examNode.path("isVipOnly").asBoolean(false))
                             .durationMinutes(examNode.path("durationMinutes").asInt(120))
                             .thumbnailUrl(examNode.hasNonNull("thumbnailUrl") ? examNode.get("thumbnailUrl").asText() : null)

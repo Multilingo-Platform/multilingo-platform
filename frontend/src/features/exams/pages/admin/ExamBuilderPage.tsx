@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ExamBuilder from './ExamBuilder';
 import axiosClient from '../../../../core/api/axiosClient';
 import Swal from 'sweetalert2';
-import { toOfficialExamRequest } from '../../utils/examContentMapping';
+import { toLanguagePracticeRequest, toOfficialExamRequest } from '../../utils/examContentMapping';
 
 const ExamBuilderPage = () => {
   const navigate = useNavigate();
@@ -94,16 +94,18 @@ const ExamBuilderPage = () => {
           });
       });
 
-      const payload = ['TOEIC_LR', 'IELTS_ACADEMIC'].includes(data.exam_type)
-        ? toOfficialExamRequest(data.exam_title, data.exam_type, data.parts, data.is_published !== false)
-        : {
+      const payload = data.exam_type === 'LANGUAGE_PRACTICE'
+        ? toLanguagePracticeRequest(data.exam_title, data.exam_language, data.parts, data.is_published !== false)
+        : ['TOEIC_LR', 'IELTS_ACADEMIC', 'NLTV'].includes(data.exam_type)
+          ? toOfficialExamRequest(data.exam_title, data.exam_type, data.parts, data.is_published !== false)
+          : {
         title: data.exam_title,
         type: data.exam_type,
-        examLanguage: "ENGLISH", 
+        examLanguage: data.exam_language || 'en',
         published: data.is_published !== false,
         isPublished: data.is_published !== false, // sending both just in case
         sections: Object.values(sectionsMap)
-      };
+          };
 
       if (id) {
         await axiosClient.put(`/v1/admin/exams/${id}`, payload);

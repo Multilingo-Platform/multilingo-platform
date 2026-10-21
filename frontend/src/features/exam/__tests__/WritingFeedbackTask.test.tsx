@@ -111,7 +111,7 @@ describe('WritingFeedbackTask Component (AC-04, AC-05, AC-08, AC-09)', () => {
 
     expect(screen.getAllByText(/Chưa có nhận xét/i).length).toBeGreaterThanOrEqual(1);
     // UNSUPPORTED_LANGUAGE mapped message
-    expect(screen.getByText('Ngôn ngữ bài viết chưa được hỗ trợ chấm điểm.')).toBeInTheDocument();
+    expect(screen.getByText('Chưa hỗ trợ chấm Writing tiếng Việt.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'So sánh' })).not.toBeInTheDocument();
 
     const failedResponse = normalizeWritingFeedback(validFailedWire, 101, 202);
@@ -123,6 +123,16 @@ describe('WritingFeedbackTask Component (AC-04, AC-05, AC-08, AC-09)', () => {
     // BLOCKED is unknown reason code -> maps to default safe message
     expect(screen.getByText('Không có nhận xét chi tiết cho bài viết này.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'So sánh' })).not.toBeInTheDocument();
+  });
+
+  it('shows a truthful Vietnamese-specific message for unsupported NLTV writing', () => {
+    const response = normalizeWritingFeedback(validUnavailableWire, 101, 202);
+    const task = { ...response.tasks[0], language: 'vi' };
+
+    render(<WritingFeedbackTask task={task} />);
+
+    expect(screen.getByText('Chưa hỗ trợ chấm Writing tiếng Việt.')).toBeInTheDocument();
+    expect(screen.queryByText(/Điểm Overall/i)).not.toBeInTheDocument();
   });
 
   it('TC_TASK_06: safely renders HTML-like content as inert text nodes without DOM injection', () => {

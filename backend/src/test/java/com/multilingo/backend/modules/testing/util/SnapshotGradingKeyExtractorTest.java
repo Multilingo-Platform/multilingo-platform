@@ -13,6 +13,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SnapshotGradingKeyExtractorTest {
 
     @Test
+    void enablesNfcComparisonOnlyForSnapshotsWithTheLanguagePolicyStamp() {
+        Map<String, Object> question = Map.of("question_id", "q", "type", "FILL_IN_THE_BLANK", "correct_answer", "café");
+        Map<String, Object> part = Map.of("id", 1, "questions", List.of(question));
+        Map<String, Object> section = Map.of("name", "READING", "parts", List.of(part));
+        Map<String, Object> legacy = Map.of("sections", List.of(section));
+        Map<String, Object> current = Map.of("languagePolicyVersion", "TV3_LANG_V1", "sections", List.of(section));
+
+        assertThat(SnapshotGradingKeyExtractor.extractFromSnapshot(legacy).get(1).getAnswers().get("q").isNormalizeNfc()).isFalse();
+        assertThat(SnapshotGradingKeyExtractor.extractFromSnapshot(current).get(1).getAnswers().get("q").isNormalizeNfc()).isTrue();
+    }
+
+    @Test
     void extractFromSnapshot_extractsGradingKeysDirectlyFromSnapshot() {
         Map<String, Object> q1 = new LinkedHashMap<>();
         q1.put("question_id", "q_1");

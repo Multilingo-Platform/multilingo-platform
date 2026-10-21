@@ -17,4 +17,16 @@ public interface ExamRepository extends JpaRepository<Exam, Integer> {
            "AND LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')) " +
            "AND (:hasTypes = false OR e.type IN :types)")
     Page<Exam> findPublishedExams(@Param("title") String title, @Param("types") List<String> types, @Param("hasTypes") boolean hasTypes, Pageable pageable);
+
+    @Query("SELECT e FROM Exam e WHERE e.isPublished = true " +
+            "AND LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')) " +
+            "AND (:hasTypes = false OR e.type IN :types) " +
+            "AND (:hasLanguage = false OR LOWER(e.examLanguage) = :languageBase " +
+            "OR LOWER(e.examLanguage) LIKE CONCAT(:languageBase, '-%'))")
+    Page<Exam> findPublishedExamsByLanguage(@Param("title") String title,
+                                            @Param("types") List<String> types,
+                                            @Param("hasTypes") boolean hasTypes,
+                                            @Param("hasLanguage") boolean hasLanguage,
+                                            @Param("languageBase") String languageBase,
+                                            Pageable pageable);
 }

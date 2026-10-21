@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WritingHintsPropertiesTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
-            .withUserConfiguration(TestConfig.class, WritingHintsConfiguration.class);
+            .withUserConfiguration(TestConfig.class, WritingHintsConfiguration.class, TestingLanguageConfiguration.class);
 
     @Test
     @DisplayName("Giá trị mặc định của WritingHintsProperties chính xác và an toàn")
@@ -69,6 +69,20 @@ class WritingHintsPropertiesTest {
             assertThat(catalog.isSupported("vi")).isTrue();
             assertThat(catalog.isSupported("it")).isTrue();
             assertThat(catalog.isSupported("ko")).isFalse();
+        });
+    }
+
+    @Test
+    @DisplayName("Danh mục ngôn ngữ dùng cấu hình dùng chung khi được khai báo")
+    void sharedLanguageCatalogConfigurationTakesPrecedence() {
+        runner.withPropertyValues(
+                "testing.writing-hints.supported-languages=en,vi",
+                "testing.languages.supported=en,ja,zh"
+        ).run(context -> {
+            LearningLanguageCatalog catalog = context.getBean(LearningLanguageCatalog.class);
+            assertThat(catalog.isSupported("ja-JP")).isTrue();
+            assertThat(catalog.isSupported("zh-Hant-TW")).isTrue();
+            assertThat(catalog.isSupported("vi")).isFalse();
         });
     }
 

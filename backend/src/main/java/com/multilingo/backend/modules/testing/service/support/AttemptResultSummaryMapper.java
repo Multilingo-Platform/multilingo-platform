@@ -329,11 +329,14 @@ public class AttemptResultSummaryMapper {
             // Build Writing summary
             List<WritingTaskSummary> writingTasks = new ArrayList<>();
             String writingStatus = resolveWritingStatus(attempt.getStatus());
+            String examLanguage = extractExamLanguage(attempt.getExamSnapshot());
+            com.multilingo.backend.modules.testing.util.WritingLengthCounter lengthCounter = new com.multilingo.backend.modules.testing.util.WritingLengthCounter();
 
             for (ScopedPart sp : scopedParts) {
                 for (ScopedQuestion sq : sp.getQuestions()) {
                     if ("ESSAY".equals(sq.getType())) {
-                        int wordCount = calculateWordCount(savedAnswers, sp.getPartId(), sq.getQuestionId());
+                        String rawText = extractRawAnswer(savedAnswers, sp.getPartId(), sq.getQuestionId());
+                        com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric = lengthCounter.count(rawText, examLanguage);
                         String taskLabel = (sq.getLabel() != null && !sq.getLabel().isBlank())
                                 ? sq.getLabel()
                                 : sp.getLabel();
@@ -343,7 +346,8 @@ public class AttemptResultSummaryMapper {
                                 .questionId(sq.getQuestionId())
                                 .label(taskLabel)
                                 .status(writingStatus)
-                                .wordCount(wordCount)
+                                .wordCount(lengthMetric.value())
+                                .lengthMetric(lengthMetric)
                                 .score(null)
                                 .maxScore(null)
                                 .build());
@@ -433,6 +437,31 @@ public class AttemptResultSummaryMapper {
             case GRADING_FAILED -> "FAILED";
             default -> "UNAVAILABLE";
         };
+    }
+
+    private String extractRawAnswer(List<AttemptAnswer> savedAnswers, Integer partId, String questionId) {
+        if (savedAnswers == null || partId == null || questionId == null) {
+            return "";
+        }
+        for (AttemptAnswer ans : savedAnswers) {
+            if (partId.equals(ans.getPartId()) && ans.getUserAnswers() != null) {
+                Object raw = ans.getUserAnswers().get(questionId);
+                if (raw instanceof String text) {
+                    return text;
+                }
+            }
+        }
+        return "";
+    }
+
+    private String extractExamLanguage(Map<String, Object> snapshot) {
+        if (snapshot == null) return null;
+        Object lang = snapshot.get("examLanguage");
+        if (lang == null) lang = snapshot.get("exam_language");
+        if (lang instanceof String s && !s.isBlank()) {
+            return s.trim().toLowerCase(Locale.ROOT);
+        }
+        return null;
     }
 
     private int calculateWordCount(List<AttemptAnswer> savedAnswers, Integer partId, String questionId) {

@@ -1,6 +1,5 @@
 package com.multilingo.backend.modules.testing.config;
 
-import com.multilingo.backend.common.i18n.LearningLanguageCatalog;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,11 +17,4 @@ public class WritingHintsConfiguration {
         return Clock.systemUTC();
     }
 
-    @Bean
-    public LearningLanguageCatalog learningLanguageCatalog(WritingHintsProperties properties) {
-        if (properties.getSupportedLanguages() != null && !properties.getSupportedLanguages().isEmpty()) {
-            return new LearningLanguageCatalog(properties.getSupportedLanguages());
-        }
-        return new LearningLanguageCatalog();
-    }
 }

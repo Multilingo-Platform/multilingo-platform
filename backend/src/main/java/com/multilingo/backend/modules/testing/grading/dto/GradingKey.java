@@ -65,4 +65,7 @@ public class GradingKey {
 
     /** Present only for canonical two-slot IELTS questions. */
     private AnswerGroup answerGroup;
+
+    /** Enables NFC on a comparison copy for attempts created under TV3_LANG_V1. */
+    private boolean normalizeNfc;
 }

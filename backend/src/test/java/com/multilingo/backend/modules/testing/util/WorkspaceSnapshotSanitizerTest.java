@@ -156,4 +156,60 @@ class WorkspaceSnapshotSanitizerTest {
                 .isEqualTo("Please write an explanation and give feedback on correct_answer");
         assertThat(sanitizedQ).doesNotContainKey("correct_answer");
     }
+
+    @Test
+    void sanitize_removesAlternatesAndAllAlternateVariantsAtAllLevels() {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("alternates", List.of("alternate-key-in-meta", "alt2"));
+        metadata.put("correct_option_index", 2);
+        metadata.put("answer_key", "secret");
+
+        Map<String, Object> question = new LinkedHashMap<>();
+        question.put("question_id", "q_fill_1");
+        question.put("type", "FILL_IN_THE_BLANK");
+        question.put("question_text", "Complete the sentence: ___");
+        question.put("correct_answer", "primary-key");
+        question.put("alternates", List.of("alternate-key-1", "alternate-key-2"));
+        question.put("Alternates", List.of("casing-variant"));
+        question.put("alternate_answers", List.of("alt-ans"));
+        question.put("metadata", metadata);
+
+        Map<String, Object> part = new LinkedHashMap<>();
+        part.put("part_number", 1);
+        part.put("questions", List.of(question));
+
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("id", 101);
+        snapshot.put("exam_language", "en");
+        snapshot.put("parts", List.of(part));
+
+        Map<String, Object> sanitized = WorkspaceSnapshotSanitizer.sanitize(snapshot);
+
+        assertThat(sanitized.get("exam_language")).isEqualTo("en");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sanitizedParts = (List<Map<String, Object>>) sanitized.get("parts");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> questions = (List<Map<String, Object>>) sanitizedParts.getFirst().get("questions");
+        Map<String, Object> q = questions.getFirst();
+
+        assertThat(q.get("question_id")).isEqualTo("q_fill_1");
+        assertThat(q.get("type")).isEqualTo("FILL_IN_THE_BLANK");
+        assertThat(q.get("question_text")).isEqualTo("Complete the sentence: ___");
+
+        assertThat(q).doesNotContainKeys(
+                "correct_answer",
+                "alternates",
+                "Alternates",
+                "alternate_answers",
+                "alternateAnswers"
+        );
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> sanitizedMeta = (Map<String, Object>) q.get("metadata");
+        assertThat(sanitizedMeta).doesNotContainKeys("alternates", "correct_option_index", "answer_key");
+
+        // Verify original snapshot still keeps alternates intact for grading
+        assertThat(question).containsKey("alternates");
+        assertThat(metadata).containsKey("alternates");
+    }
 }

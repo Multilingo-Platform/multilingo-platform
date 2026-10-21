@@ -176,19 +176,26 @@ class WritingGradingDispatcherTest {
     @Test
     @DisplayName("tick - khi due jobs ít hơn capacity: query thêm waiting jobs cho số slots còn lại")
     void tick_whenCapacityRemainsAfterDueJobs_dispatchesWaitingJobs() throws Exception {
-        when(coordinator.recoverExpired(10)).thenReturn(0);
-        when(jobRepository.findDueJobIds(eq(clock.instant()), eq(PageRequest.of(0, 2))))
-                .thenReturn(List.of(101));
-        when(jobRepository.findWaitingJobIds(eq(clock.instant()), eq(PageRequest.of(0, 1))))
-                .thenReturn(List.of(201));
-
+        CountDownLatch blocker = new CountDownLatch(1);
         CountDownLatch latch = new CountDownLatch(2);
+
         doAnswer(invocation -> {
+            int jobId = invocation.getArgument(0);
+            if (jobId == 101) {
+                blocker.await(5, TimeUnit.SECONDS);
+            }
             latch.countDown();
             return null;
         }).when(worker).process(anyInt());
 
+        when(coordinator.recoverExpired(10)).thenReturn(0);
+        when(jobRepository.findDueJobIds(eq(clock.instant()), any(PageRequest.class)))
+                .thenReturn(List.of(101));
+        when(jobRepository.findWaitingJobIds(eq(clock.instant()), any(PageRequest.class)))
+                .thenReturn(List.of(201));
+
         dispatcher.tick();
+        blocker.countDown();
 
         boolean completed = latch.await(3, TimeUnit.SECONDS);
         assertThat(completed).isTrue();

@@ -1111,4 +1111,56 @@ class AttemptResultSummaryMapperTest {
                 .doesNotContain("SECRET_SKILL_OBJ")
                 .doesNotContain("SECRET_PROMPT_OBJ");
     }
+
+    @Test
+    @DisplayName("map: WritingTaskSummary populates lengthMetric according to language policy (CJK characters vs Latin words)")
+    void map_writingTasks_populatesLengthMetricAccordingToLanguagePolicy() throws Exception {
+        Map<String, Object> snapshotZh = Map.of(
+                "examLanguage", "zh",
+                "sections", List.of(
+                        Map.of(
+                                "name", "Writing",
+                                "parts", List.of(
+                                        Map.of(
+                                                "id", 30,
+                                                "title", "Chinese Writing",
+                                                "questions", List.of(
+                                                        Map.of("id", "essay_zh", "type", "ESSAY", "title", "Task Zh")
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+        String json = """
+                {
+                  "totalObjectiveCount": 0,
+                  "correctCount": 0,
+                  "totalScore": 0.0,
+                  "sectionScores": {},
+                  "partResults": {}
+                }
+                """;
+
+        TestAttempt attemptZh = buildAttempt(70, AttemptStatus.SUBMITTED, BigDecimal.ZERO, snapshotZh, json);
+        AttemptAnswer answerZh = AttemptAnswer.builder()
+                .partId(30)
+                .userAnswers(Map.of("essay_zh", "漢①Ⅷ 測試")) // 5 CJK characters/numbers
+                .build();
+
+        ResultSummaryResponse resZh = mapper.map(attemptZh, List.of(answerZh));
+        assertThat(resZh).isNotNull();
+        assertThat(resZh.getWriting()).isNotNull();
+        WritingTaskSummary taskZh = resZh.getWriting().getTasks().get(0);
+        assertThat(taskZh.getWordCount()).isEqualTo(5);
+        assertThat(taskZh.getLengthMetric()).isNotNull();
+        assertThat(taskZh.getLengthMetric().value()).isEqualTo(5);
+        assertThat(taskZh.getLengthMetric().unit()).isEqualTo(com.multilingo.backend.modules.testing.util.WritingLengthCounter.Unit.CHARACTERS);
+        assertThat(taskZh.getLengthMetric().policyVersion()).isEqualTo("TV3_LENGTH_V1");
+
+        String serializedZh = objectMapper.writeValueAsString(resZh);
+        assertThat(serializedZh).contains("\"unit\":\"CHARACTERS\"");
+        assertThat(serializedZh).contains("\"policyVersion\":\"TV3_LENGTH_V1\"");
+    }
 }

@@ -17,6 +17,7 @@ public class LearnerExamStructureResponse {
     private String code;
     private String title;
     private String type;
+    private String examLanguage;
     private Integer durationMinutes;
     private List<Section> sections;
 

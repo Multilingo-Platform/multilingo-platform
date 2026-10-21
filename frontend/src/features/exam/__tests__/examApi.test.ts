@@ -112,4 +112,36 @@ describe('getExamStructure', () => {
 
     await expect(getExamStructure(42)).rejects.toThrow('Access Denied');
   });
+
+  it('normalizes the generic exam language and rejects conflicting aliases without failing structure load', async () => {
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      id: 12, code: 'LANG-JA', title: '日本語', type: 'LANGUAGE_PRACTICE',
+      exam_language: 'jpn-JP', durationMinutes: 20, sections: [],
+    } });
+    await expect(getExamStructure(12)).resolves.toMatchObject({ examLanguage: 'ja-JP' });
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      id: 13, code: 'LANG-ZH', title: '中文', type: 'LANGUAGE_PRACTICE',
+      examLanguage: 'zh', exam_language: 'ja', durationMinutes: 20, sections: [],
+    } });
+    await expect(getExamStructure(13)).resolves.toMatchObject({ examLanguage: null });
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      id: 14, code: 'LANG-EN-IT', title: 'English with invalid Italian alias', type: 'LANGUAGE_PRACTICE',
+      examLanguage: 'en', exam_language: 'it', durationMinutes: 20, sections: [],
+    } });
+    await expect(getExamStructure(14)).resolves.toMatchObject({ examLanguage: null });
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      id: 15, code: 'LANG-EN-ENG', title: 'English equivalent', type: 'LANGUAGE_PRACTICE',
+      examLanguage: 'en', exam_language: 'eng', durationMinutes: 20, sections: [],
+    } });
+    await expect(getExamStructure(15)).resolves.toMatchObject({ examLanguage: 'en' });
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      id: 16, code: 'LANG-HUMAN', title: 'English with human name', type: 'LANGUAGE_PRACTICE',
+      examLanguage: 'english', durationMinutes: 20, sections: [],
+    } });
+    await expect(getExamStructure(16)).resolves.toMatchObject({ examLanguage: null });
+  });
 });

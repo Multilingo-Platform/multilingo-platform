@@ -23,9 +23,10 @@ public class StudentExamController {
             @RequestParam(required = false) List<String> types,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sort
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(required = false) String examLanguage
     ) {
-        PageResponse<StudentExamSummaryResponse> response = studentExamService.searchExams(search, types, page, size, sort);
+        PageResponse<StudentExamSummaryResponse> response = studentExamService.searchExams(search, types, page, size, sort, examLanguage);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

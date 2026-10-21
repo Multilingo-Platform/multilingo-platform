@@ -22,4 +22,13 @@ public class DbLearningLanguageAdapter implements LearningLanguageAdapter {
         return userRepository.findById(userId)
                 .map(User::getTargetLanguage);
     }
+
+    @Override
+    public Optional<String> findNativeLanguage(Integer userId) {
+        if (userId == null) {
+            return Optional.empty();
+        }
+        return userRepository.findById(userId)
+                .map(User::getNativeLanguage);
+    }
 }

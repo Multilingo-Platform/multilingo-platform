@@ -136,6 +136,9 @@ export interface ExamSnapshot {
   code: string;
   title: string;
   type: string;
+  /** Canonical BCP-47 learning language captured in this attempt snapshot. */
+  examLanguage?: string | null;
+  exam_language?: string | null;
   sections: ExamSection[];
   // Wire aliases used to detect the TOEIC exam family.
   exam_code?: string;

@@ -29,6 +29,7 @@ public record WritingFeedbackResponse(
             @JsonProperty("label") String label,
             @JsonProperty("status") String status,
             @JsonProperty("wordCount") int wordCount,
+            @JsonProperty("lengthMetric") com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric,
             @JsonProperty("language") String language,
             @JsonProperty("source") String source,
             @JsonProperty("scoreUnit") String scoreUnit,
@@ -49,6 +50,23 @@ public record WritingFeedbackResponse(
             criteria = (criteria == null) ? List.of() : List.copyOf(criteria);
             corrections = (corrections == null) ? List.of() : List.copyOf(corrections);
             diff = (diff == null) ? List.of() : List.copyOf(diff);
+        }
+
+        public TaskFeedback(
+                String questionId, String label, String status, int wordCount,
+                String language, String source, String scoreUnit,
+                BigDecimal overall, BigDecimal maxScore,
+                List<WritingGrade.CriterionGrade> criteria,
+                String originalText, String overallFeedback,
+                String correctedEssay, List<WritingGrade.Correction> corrections,
+                List<WritingGrade.DiffSegment> diff,
+                String reasonCode, String displayMessage,
+                boolean hasVisualContext, String visualObservations
+        ) {
+            this(questionId, label, status, wordCount, null, language, source, scoreUnit,
+                    overall, maxScore, criteria, originalText, overallFeedback,
+                    correctedEssay, corrections, diff, reasonCode, displayMessage,
+                    hasVisualContext, visualObservations);
         }
 
         @Override

@@ -40,6 +40,9 @@ public class ExamParserService {
                 OfficialExamSourceProfile sourceProfile = OfficialExamSourceProfile.forSha256(hash);
                 if ("TOEIC_LR".equals(parsed.request().getType()))
                     issues.addAll(new ExamPublicationValidator().issues(parsed.request()));
+                else if ("NLTV".equals(parsed.request().getType()))
+                    issues.addAll(new NltvPublicationValidator().issues(parsed.request()).stream()
+                            .filter(issue -> !"AUDIO_REQUIRED".equals(issue.code())).toList());
                 else if ("IELTS_ACADEMIC".equals(parsed.request().getType())
                         && sourceProfile.isCambridgeIelts20()) {
                     issues.addAll(new IeltsAcademicPublicationValidator()
@@ -243,6 +246,8 @@ public class ExamParserService {
     }
 
     private ExamImportPreviewResponse parseWorkbook(Workbook workbook, String sha256) {
+        NltvExcelV2ExamParser nltvParser = new NltvExcelV2ExamParser();
+        if (nltvParser.supports(workbook)) return nltvParser.parse(workbook, sha256);
         IeltsExcelV2ExamParser ieltsParser = new IeltsExcelV2ExamParser();
         if (ieltsParser.supports(workbook)) return ieltsParser.parse(workbook, sha256);
         ExcelV2ExamParser toeicParser = new ExcelV2ExamParser();

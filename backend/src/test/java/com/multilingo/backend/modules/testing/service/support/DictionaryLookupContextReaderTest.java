@@ -24,6 +24,20 @@ class DictionaryLookupContextReaderTest {
     }
 
     @Test
+    void rejectsLegacyEnglishToVietnameseLookupForVietnamesePassage() {
+        Map<String, Object> part = new LinkedHashMap<>();
+        part.put("id", 7);
+        part.put("content_html", "<p>Nước sạch rất quan trọng.</p>");
+        Map<String, Object> snapshot = new LinkedHashMap<>(Map.of(
+                "sections", List.of(Map.of("name", "READING", "parts", List.of(part)))));
+        snapshot.put("examLanguage", "vi");
+
+        assertThatThrownBy(() -> reader.read(snapshot,
+                request(7, "part", "Nước", "Nước sạch rất quan trọng.")))
+                .isInstanceOf(AppException.class);
+    }
+
+    @Test
     void readsToeicGroupPassageAndDoesNotReadOtherGroups() {
         var snapshot = snapshot("READING", 5, List.of(
                 Map.of("group_id", "passage-a", "content_html", "<p>The elms grow in Britain.</p>"),
@@ -51,6 +65,26 @@ class DictionaryLookupContextReaderTest {
         assertRejected(snapshot, request(4, "part", "kākāpō", "A client invented passage."));
     }
 
+    @Test
+    void acceptsCjkSubstringWithinUnspacedSentenceInSnapshot() {
+        Map<String, Object> part = new LinkedHashMap<>();
+        part.put("id", 1);
+        part.put("content_html", "<p>水は必要です。</p>");
+        Map<String, Object> snapshot = Map.of(
+                "examLanguage", "ja",
+                "sections", List.of(Map.of("name", "READING", "parts", List.of(part))));
+
+        var request = new DictionaryLookupRequest(UUID.randomUUID().toString(), 1, "part", "水", "水は必要です。", 2, "vi");
+        var result = reader.read(snapshot, request);
+        assertThat(result.sourceContext()).isEqualTo("水は必要です。");
+        assertThat(result.selectedText()).isEqualTo("水");
+
+        // But context outside snapshot is still rejected
+        assertRejected(snapshot, request(1, "part", "水", "お茶は美味しい。"));
+        // And term not in context is rejected
+        assertRejected(snapshot, request(1, "part", "火", "水は必要です。"));
+    }
+
     private void assertRejected(Map<String, Object> snapshot, DictionaryLookupRequest request) {
         assertThatThrownBy(() -> reader.read(snapshot, request)).isInstanceOf(AppException.class);
     }
@@ -68,6 +102,9 @@ class DictionaryLookupContextReaderTest {
         part.put("id", partId);
         part.put("content_html", "<p>The rare kākāpō lives on the island.</p>");
         if (!groups.isEmpty()) part.put("question_groups", groups);
-        return Map.of("sections", List.of(Map.of("name", skill, "parts", List.of(part))));
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("examLanguage", "en");
+        snapshot.put("sections", List.of(Map.of("name", skill, "parts", List.of(part))));
+        return snapshot;
     }
 }

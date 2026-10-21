@@ -29,7 +29,7 @@ const baseWorkspace: WorkspaceResponse = {
   serverTime: new Date().toISOString(),
   gracePeriodSeconds: 15,
   lockedSections: [],
-  exam_snapshot: { exam_id: 1, code: 'T', title: 'Test Exam', type: 'IELTS', sections: [] },
+  exam_snapshot: { exam_id: 1, code: 'T', title: 'Test Exam', type: 'IELTS', examLanguage: 'en', sections: [] },
   version: 1,
   saved_answers: [],
   serverTimeOffset: 0,
