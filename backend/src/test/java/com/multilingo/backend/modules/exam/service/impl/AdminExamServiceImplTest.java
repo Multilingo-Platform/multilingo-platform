@@ -37,6 +37,9 @@ class AdminExamServiceImplTest {
     @Mock
     private ExamPartRepository partRepository;
 
+    @Mock
+    private com.multilingo.backend.modules.testing.repository.TestAttemptRepository testAttemptRepository;
+
     @InjectMocks
     private AdminExamServiceImpl examService;
 
@@ -167,6 +170,7 @@ class AdminExamServiceImplTest {
         when(examRepository.findAll()).thenReturn(List.of(exam));
         when(sectionRepository.findByExam_Id(1)).thenReturn(List.of(section));
         when(partRepository.findBySection_Id(10)).thenReturn(List.of(part1, part2));
+        when(testAttemptRepository.countAttemptsGroupByExamId()).thenReturn(List.<Object[]>of(new Object[]{1, 15L}));
 
         List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse> results = examService.getAllExams();
 
@@ -174,5 +178,6 @@ class AdminExamServiceImplTest {
         com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse summary = results.get(0);
         assertThat(summary.getParts()).isEqualTo(2);
         assertThat(summary.getQuestions()).isEqualTo(5);
+        assertThat(summary.getJoins()).isEqualTo(15);
     }
 }

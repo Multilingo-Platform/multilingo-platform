@@ -1472,7 +1472,7 @@ const WorkspacePage: React.FC = () => {
                     data-group-id={group.group_id}
                     className="space-y-4"
                   >
-                    {currentSkill !== 'WRITING' && currentSkill !== 'READING' && group.instruction && group.instruction.trim() !== (partInstruction || '').trim() && (
+                    {currentSkill !== 'WRITING' && group.instruction && group.instruction.trim() !== (partInstruction || '').trim() && (
                       <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
                         {group.instruction}
                       </div>
