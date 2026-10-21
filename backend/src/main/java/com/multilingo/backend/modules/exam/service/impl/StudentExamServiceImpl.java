@@ -8,13 +8,16 @@ import com.multilingo.backend.modules.exam.dto.response.StudentExamSummaryRespon
 import com.multilingo.backend.modules.exam.entity.Exam;
 import com.multilingo.backend.modules.exam.repository.ExamRepository;
 import com.multilingo.backend.modules.exam.service.StudentExamService;
+import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,15 +25,25 @@ public class StudentExamServiceImpl implements StudentExamService {
 
     private final ExamRepository examRepository;
     private final LearningLanguageCatalog languageCatalog;
+    private final TestAttemptRepository testAttemptRepository;
 
     public StudentExamServiceImpl(ExamRepository examRepository) {
-        this(examRepository, new LearningLanguageCatalog());
+        this(examRepository, new LearningLanguageCatalog(), null);
+    }
+
+    public StudentExamServiceImpl(ExamRepository examRepository, LearningLanguageCatalog languageCatalog) {
+        this(examRepository, languageCatalog, null);
+    }
+
+    public StudentExamServiceImpl(ExamRepository examRepository, TestAttemptRepository testAttemptRepository) {
+        this(examRepository, new LearningLanguageCatalog(), testAttemptRepository);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
-    public StudentExamServiceImpl(ExamRepository examRepository, LearningLanguageCatalog languageCatalog) {
+    public StudentExamServiceImpl(ExamRepository examRepository, LearningLanguageCatalog languageCatalog, TestAttemptRepository testAttemptRepository) {
         this.examRepository = examRepository;
-        this.languageCatalog = languageCatalog;
+        this.languageCatalog = languageCatalog != null ? languageCatalog : new LearningLanguageCatalog();
+        this.testAttemptRepository = testAttemptRepository;
     }
 
     @Override
@@ -58,17 +71,23 @@ public class StudentExamServiceImpl implements StudentExamService {
         }
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         
-        Page<Exam> examPage = examRepository.findPublishedExamsByLanguage(searchTitle,
-                types, hasTypes, hasLanguage, languageBase, pageRequest);
+        Page<Exam> examPage;
+        if (hasLanguage) {
+            examPage = examRepository.findPublishedExamsByLanguage(searchTitle,
+                    types, hasTypes, hasLanguage, languageBase, pageRequest);
+        } else {
+            examPage = examRepository.findPublishedExams(searchTitle, types, hasTypes, pageRequest);
+        }
+        Map<Integer, Long> attemptCountMap = getAttemptCountMap();
         
         List<StudentExamSummaryResponse> items = examPage.getContent().stream()
-                .map(this::mapToSummaryResponse)
+                .map(exam -> mapToSummaryResponse(exam, attemptCountMap.getOrDefault(exam.getId(), 0L).intValue()))
                 .collect(Collectors.toList());
                 
         return new PageResponse<>(items, examPage.getNumber(), examPage.getSize(), examPage.getTotalElements(), examPage.getTotalPages(), examPage.isLast());
     }
 
-    private StudentExamSummaryResponse mapToSummaryResponse(Exam exam) {
+    private StudentExamSummaryResponse mapToSummaryResponse(Exam exam, int joins) {
         // Map type to level string
         String level = "N/A";
         if (exam.getType().startsWith("IELTS")) level = "Academic";
@@ -97,9 +116,26 @@ public class StudentExamServiceImpl implements StudentExamService {
                 .examLanguage(exam.getExamLanguage())
                 .level(level)
                 .durationMinutes(exam.getDurationMinutes())
-                .joins(0) // Dummy joins
+                .joins(joins)
                 .tags(tags)
                 .thumbnailUrl(exam.getThumbnailUrl())
                 .build();
+    }
+
+    private Map<Integer, Long> getAttemptCountMap() {
+        if (testAttemptRepository == null) {
+            return Collections.emptyMap();
+        }
+        List<Object[]> counts = testAttemptRepository.countAttemptsGroupByExamId();
+        if (counts == null || counts.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return counts.stream()
+                .filter(row -> row != null && row.length >= 2 && row[0] instanceof Integer && row[1] instanceof Number)
+                .collect(Collectors.toMap(
+                        row -> (Integer) row[0],
+                        row -> ((Number) row[1]).longValue(),
+                        (existing, replacement) -> existing
+                ));
     }
 }

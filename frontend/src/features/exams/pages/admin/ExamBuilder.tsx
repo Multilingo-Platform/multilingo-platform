@@ -395,9 +395,7 @@ export const EXAM_TYPE_OPTIONS: Record<string, string> = {
   'IELTS_GENERAL': 'IELTS General',
   'TOEIC_LR': 'TOEIC (Listening & Reading)',
   'TOEIC_WRITING': 'TOEIC Writing',
-  'NLTV': 'NLTV — Đề mẫu tổng hợp',
-  'NLTV_B1_C1': 'NLTV (B1 - C1)',
-  'NLTV_A1_A2': 'NLTV (A1 - A2)',
+  'NLTV': 'Đánh giá Năng lực Tiếng Việt (NLTV)',
   'LANGUAGE_PRACTICE': 'Luyện ngôn ngữ',
   'OTHER': 'Khác (Other)'
 };
@@ -424,12 +422,19 @@ export const normalizeExamType = (raw: string): string => {
   if (clean === 'IELTS' || clean === 'IELTS_ACADEMIC' || clean.includes('ACADEMIC')) {
     return 'IELTS_ACADEMIC';
   }
-  if (clean === 'NLTV') return 'NLTV';
-  if (clean === 'NLTV_B1_C1' || clean.includes('B1 - C1') || clean.includes('B1_C1')) {
-    return 'NLTV_B1_C1';
-  }
-  if (clean === 'NLTV_A1_A2' || clean.includes('A1 - A2') || clean.includes('A1_A2')) {
-    return 'NLTV_A1_A2';
+  if (
+    clean === 'NLTV' ||
+    clean === 'NLTV_B1_C1' ||
+    clean === 'NLTV_A1_A2' ||
+    clean.includes('NLTV') ||
+    clean.includes('B1 - C1') ||
+    clean.includes('B1_C1') ||
+    clean.includes('A1 - A2') ||
+    clean.includes('A1_A2') ||
+    clean.includes('TIẾNG VIỆT') ||
+    clean.includes('TIENG VIET')
+  ) {
+    return 'NLTV';
   }
   if (clean === 'LANGUAGE_PRACTICE') return 'LANGUAGE_PRACTICE';
   if (clean === 'OTHER') return 'OTHER';
@@ -459,15 +464,283 @@ export const getPartBounds = (partTitle: string, examType: string) => {
     if (partTitle.includes('Part 7')) return { start: 147, end: 200 };
   }
   if (examType.startsWith('NLTV')) {
-    if (partTitle.includes('Nghe - Phần 1')) return { start: 1, end: 8 };
-    if (partTitle.includes('Nghe - Phần 2')) return { start: 9, end: 20 };
-    if (partTitle.includes('Nghe - Phần 3')) return { start: 21, end: 35 };
-    if (partTitle.includes('Đọc - Phần 1')) return { start: 1, end: 10 };
-    if (partTitle.includes('Đọc - Phần 2')) return { start: 11, end: 20 };
-    if (partTitle.includes('Đọc - Phần 3')) return { start: 21, end: 30 };
-    if (partTitle.includes('Đọc - Phần 4')) return { start: 31, end: 40 };
+    const lower = (partTitle || '').toLowerCase();
+    if (lower.includes('nghe - phần 1') || lower.includes('nghe phần 1') || lower.includes('listening part 1')) return { start: 1, end: 15 };
+    if (lower.includes('nghe - phần 2') || lower.includes('nghe phần 2') || lower.includes('listening part 2')) return { start: 16, end: 29 };
+    if (lower.includes('nghe - phần 3') || lower.includes('nghe phần 3') || lower.includes('listening part 3')) return { start: 30, end: 43 };
+    if (lower.includes('nghe - phần 4') || lower.includes('nghe phần 4') || lower.includes('listening part 4')) return { start: 44, end: 55 };
+    if (lower.includes('đọc - phần 1') || lower.includes('đọc phần 1') || lower.includes('reading part 1')) return { start: 1, end: 16 };
+    if (lower.includes('đọc - phần 2') || lower.includes('đọc phần 2') || lower.includes('reading part 2')) return { start: 17, end: 40 };
+    if (lower.includes('viết - phần 1') || lower.includes('viết phần 1') || lower.includes('writing part 1') || lower.includes('chính tả')) return { start: 1, end: 10 };
+    if (lower.includes('viết - phần 2') || lower.includes('viết phần 2') || lower.includes('writing part 2') || lower.includes('viết thư')) return { start: 1, end: 1 };
+    if (lower.includes('viết - phần 3') || lower.includes('viết phần 3') || lower.includes('writing part 3') || lower.includes('viết luận')) return { start: 1, end: 1 };
   }
   return null;
+};
+
+// Sườn đề thi Năng Lực Tiếng Việt (NLTV) chuẩn theo ĐH Hà Nội / Bộ GD&ĐT:
+// 3 Kỹ năng (Nghe - 4 phần, Đọc - 2 phần, Viết - 3 phần), 97 câu hỏi/yêu cầu, 180 phút
+export const getNltvTemplateParts = (
+  generateIdFn: (prefix: string) => string = (prefix) => `${prefix}_${Math.random().toString(36).substr(2, 6)}`
+): ExamPart[] => {
+  const createMcQuestions = (start: number, count: number, optionsCount: number = 4) => {
+    return Array.from({ length: count }, (_, i) => {
+      const qNum = start + i;
+      return {
+        question_id: `q_${String(qNum).padStart(3, '0')}`,
+        type: 'MULTIPLE_CHOICE',
+        question_text: `Câu hỏi ${qNum}`,
+        metadata: {
+          options: Array(optionsCount).fill(''),
+          correct_answer: '',
+          explanation: ''
+        }
+      };
+    });
+  };
+
+  return [
+    // --- KỸ NĂNG NGHE (4 Phần - 55 câu trắc nghiệm) ---
+    // Nghe - Phần 1: 15 câu (Câu 1-15), 1 group duy nhất, 3 lựa chọn (A, B, C)
+    {
+      part_title: 'Kỹ năng Nghe - Phần 1',
+      instruction: 'Thí sinh nghe 15 câu hỏi hoặc câu nói và chọn câu trả lời phù hợp nhất (A, B hoặc C).',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_l1'),
+          instruction: 'Các câu hỏi 1 - 15',
+          content_html: '',
+          questions: createMcQuestions(1, 15, 3)
+        }
+      ]
+    },
+
+    // Nghe - Phần 2: 14 câu (Câu 16-29), 5 groups, 4 lựa chọn (A, B, C, D)
+    {
+      part_title: 'Kỹ năng Nghe - Phần 2',
+      instruction: 'Thí sinh nghe các thông báo, tình huống, hội thoại ngắn và chọn câu trả lời đúng nhất (A, B, C hoặc D).',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_l2'),
+          instruction: 'Thông báo & Tình huống (Câu hỏi 16-21)',
+          content_html: '',
+          questions: createMcQuestions(16, 6, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l2'),
+          instruction: 'Hội thoại 1 (Câu hỏi 22-23)',
+          content_html: '',
+          questions: createMcQuestions(22, 2, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l2'),
+          instruction: 'Hội thoại 2 (Câu hỏi 24-25)',
+          content_html: '',
+          questions: createMcQuestions(24, 2, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l2'),
+          instruction: 'Hội thoại 3 (Câu hỏi 26-27)',
+          content_html: '',
+          questions: createMcQuestions(26, 2, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l2'),
+          instruction: 'Hội thoại 4 (Câu hỏi 28-29)',
+          content_html: '',
+          questions: createMcQuestions(28, 2, 4)
+        }
+      ]
+    },
+
+    // Nghe - Phần 3: 14 câu (Câu 30-43), 7 groups
+    {
+      part_title: 'Kỹ năng Nghe - Phần 3',
+      instruction: 'Thí sinh nghe các cuộc trao đổi, phỏng vấn, thảo luận và chọn câu trả lời đúng nhất (A, B, C hoặc D).',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_l3'),
+          instruction: 'Bài nghe 1 (Câu hỏi 30-31)',
+          content_html: '',
+          questions: createMcQuestions(30, 2, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l3'),
+          instruction: 'Bài nghe 2 (Câu hỏi 32-34)',
+          content_html: '',
+          questions: createMcQuestions(32, 3, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l3'),
+          instruction: 'Bài nghe 3 (Câu hỏi 35)',
+          content_html: '',
+          questions: createMcQuestions(35, 1, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l3'),
+          instruction: 'Bài nghe 4 (Câu hỏi 36-37)',
+          content_html: '',
+          questions: createMcQuestions(36, 2, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l3'),
+          instruction: 'Bài nghe 5 (Câu hỏi 38-39)',
+          content_html: '',
+          questions: createMcQuestions(38, 2, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l3'),
+          instruction: 'Bài nghe 6 (Câu hỏi 40-41)',
+          content_html: '',
+          questions: createMcQuestions(40, 2, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_l3'),
+          instruction: 'Bài nghe 7 (Câu hỏi 42-43)',
+          content_html: '',
+          questions: createMcQuestions(42, 2, 4)
+        }
+      ]
+    },
+
+    // Nghe - Phần 4: 12 câu (Câu 44-55), 6 groups bản tin (mỗi bản tin 2 câu)
+    {
+      part_title: 'Kỹ năng Nghe - Phần 4',
+      instruction: 'Thí sinh nghe các bản tin, bài thuyết trình, bài giảng và chọn câu trả lời đúng nhất (A, B, C hoặc D).',
+      shared_audio: { url: '' },
+      question_groups: Array.from({ length: 6 }, (_, i) => {
+        const startQ = 44 + i * 2;
+        return {
+          group_id: generateIdFn('g_nltv_l4'),
+          instruction: `Bản tin ${i + 1} (Câu hỏi ${startQ}-${startQ + 1})`,
+          content_html: '',
+          questions: createMcQuestions(startQ, 2, 4)
+        };
+      })
+    },
+
+    // --- KỸ NĂNG ĐỌC (2 Phần - 40 câu trắc nghiệm) ---
+    // Đọc - Phần 1: 16 câu (Câu 1-16), 2 groups bài đọc
+    {
+      part_title: 'Kỹ năng Đọc - Phần 1',
+      instruction: 'Đọc văn bản và chọn câu trả lời đúng nhất (A, B, C hoặc D) cho các câu hỏi 1-16.',
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_r1'),
+          instruction: 'Bài đọc 1 (Câu hỏi 1-10)',
+          content_html: '',
+          questions: createMcQuestions(1, 10, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_r1'),
+          instruction: 'Bài đọc 2 (Câu hỏi 11-16)',
+          content_html: '',
+          questions: createMcQuestions(11, 6, 4)
+        }
+      ]
+    },
+
+    // Đọc - Phần 2: 24 câu (Câu 17-40), 3 groups bài đọc (mỗi bài 8 câu)
+    {
+      part_title: 'Kỹ năng Đọc - Phần 2',
+      instruction: 'Đọc các bài đọc và chọn câu trả lời đúng nhất (A, B, C hoặc D) cho các câu hỏi 17-40.',
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_r2'),
+          instruction: 'Bài đọc 1 (Câu hỏi 17-24)',
+          content_html: '',
+          questions: createMcQuestions(17, 8, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_r2'),
+          instruction: 'Bài đọc 2 (Câu hỏi 25-32)',
+          content_html: '',
+          questions: createMcQuestions(25, 8, 4)
+        },
+        {
+          group_id: generateIdFn('g_nltv_r2'),
+          instruction: 'Bài đọc 3 (Câu hỏi 33-40)',
+          content_html: '',
+          questions: createMcQuestions(33, 8, 4)
+        }
+      ]
+    },
+
+    // --- KỸ NĂNG VIẾT (3 Phần) ---
+    // Viết - Phần 1: Viết chính tả (10 câu FILL_IN_THE_BLANK, Chỗ trống 1-10)
+    {
+      part_title: 'Kỹ năng Viết - Phần 1',
+      instruction: 'Viết chính tả (Nghe đoạn văn và điền từ vào chỗ trống).',
+      shared_audio: { url: '' },
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_w1'),
+          instruction: 'Nghe đoạn văn và điền từ thích hợp vào các chỗ trống từ 1 đến 10.',
+          content_html: '',
+          questions: Array.from({ length: 10 }, (_, i) => ({
+            question_id: `q_${String(i + 1).padStart(3, '0')}`,
+            type: 'FILL_IN_THE_BLANK',
+            question_text: `Chỗ trống (${i + 1})`,
+            metadata: {
+              correct_answer: '',
+              explanation: ''
+            }
+          }))
+        }
+      ]
+    },
+
+    // Viết - Phần 2: Viết thư / email (1 câu WRITING_ESSAY, tối thiểu 120 từ)
+    {
+      part_title: 'Kỹ năng Viết - Phần 2',
+      instruction: 'Viết thư / email (Tối thiểu 120 từ).',
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_w2'),
+          instruction: 'Thí sinh viết một bức thư hoặc thư điện tử có độ dài tối thiểu 120 từ.',
+          content_html: '',
+          questions: [
+            {
+              question_id: 'q_001',
+              type: 'WRITING_ESSAY',
+              question_text: 'Viết thư/email theo yêu cầu của đề bài (tối thiểu 120 từ).',
+              metadata: {
+                correct_answer: '',
+                explanation: ''
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    // Viết - Phần 3: Viết bài văn / luận (1 câu WRITING_ESSAY, tối thiểu 200 từ)
+    {
+      part_title: 'Kỹ năng Viết - Phần 3',
+      instruction: 'Viết bài văn / luận (Tối thiểu 200 từ).',
+      question_groups: [
+        {
+          group_id: generateIdFn('g_nltv_w3'),
+          instruction: 'Thí sinh viết một bài văn / bài luận có độ dài tối thiểu 200 từ.',
+          content_html: '',
+          questions: [
+            {
+              question_id: 'q_001',
+              type: 'WRITING_ESSAY',
+              question_text: 'Viết bài luận bày tỏ quan điểm về chủ đề được nêu (tối thiểu 200 từ).',
+              metadata: {
+                correct_answer: '',
+                explanation: ''
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ];
 };
 
 // Sườn đề IELTS chuẩn: Listening (4 Parts) và Reading (3 Passages) để trống question_groups
@@ -736,7 +1009,22 @@ export const getIeltsSampleExcelParts = (): ExamPart[] => {
   ];
 };
 
-const getMaxGroupsForPart = (partTitle: string, examType: string) => {
+export const getQuestionNumLabel = (questionId: string | undefined | null, fallbackIndex: number): string => {
+  if (!questionId) return String(fallbackIndex);
+  const parts = questionId.split('_');
+  const lastPart = parts[parts.length - 1];
+  const parsed = parseInt(lastPart, 10);
+  if (!isNaN(parsed)) {
+    return String(parsed);
+  }
+  const match = questionId.match(/\d+/);
+  if (match) {
+    return String(parseInt(match[0], 10));
+  }
+  return String(fallbackIndex);
+};
+
+export const getMaxGroupsForPart = (partTitle: string, examType: string) => {
   if (examType.startsWith('TOEIC') && !examType.includes('WRITING')) {
     if (partTitle.includes('Part 1')) return 6;
     if (partTitle.includes('Part 2')) return 1;
@@ -752,15 +1040,16 @@ const getMaxGroupsForPart = (partTitle: string, examType: string) => {
     if (partTitle.includes('Part 3')) return 1;
   }
   if (examType.startsWith('NLTV')) {
-    if (partTitle.includes('Nghe - Phần 1')) return 8;
-    if (partTitle.includes('Nghe - Phần 2')) return 3;
-    if (partTitle.includes('Nghe - Phần 3')) return 3;
-    if (partTitle.includes('Đọc - Phần 1')) return 1;
-    if (partTitle.includes('Đọc - Phần 2')) return 1;
-    if (partTitle.includes('Đọc - Phần 3')) return 1;
-    if (partTitle.includes('Đọc - Phần 4')) return 1;
-    if (partTitle.includes('Viết - Bài 1')) return 1;
-    if (partTitle.includes('Viết - Bài 2')) return 1;
+    const lower = (partTitle || '').toLowerCase();
+    if (lower.includes('nghe - phần 1')) return 1;
+    if (lower.includes('nghe - phần 2')) return 5;
+    if (lower.includes('nghe - phần 3')) return 7;
+    if (lower.includes('nghe - phần 4')) return 6;
+    if (lower.includes('đọc - phần 1')) return 2;
+    if (lower.includes('đọc - phần 2')) return 3;
+    if (lower.includes('viết - phần 1')) return 1;
+    if (lower.includes('viết - phần 2')) return 1;
+    if (lower.includes('viết - phần 3')) return 1;
   }
   return null;
 }
@@ -959,13 +1248,22 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       case 'TOEIC_P7': newPart = { part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [] }; break;
       case 'TW_P1': newPart = { part_title: 'Part 1: Write a Sentence Based on a Picture', instruction: 'Questions 1-5', question_groups: createToeicWritPart1Groups() }; break;
       case 'TW_P2': newPart = { part_title: 'Part 2: Respond to a Written Request', instruction: 'Questions 6-7', question_groups: createToeicWritPart2Groups() }; break;
-      case 'NLTV_L': newPart = { part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: [] }; break;
-      case 'NLTV_R': newPart = { part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc', question_groups: [] }; break;
-      case 'NLTV_W': newPart = { part_title: 'Kỹ năng Viết - Bài 1', instruction: 'Viết thư/email', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Viết luận.', metadata: { correct_answer: '', explanation: '' } }] }] }; break;
+      case 'NLTV_L1': newPart = getNltvTemplateParts(generateId)[0]; break;
+      case 'NLTV_L2': newPart = getNltvTemplateParts(generateId)[1]; break;
+      case 'NLTV_L3': newPart = getNltvTemplateParts(generateId)[2]; break;
+      case 'NLTV_L4': newPart = getNltvTemplateParts(generateId)[3]; break;
+      case 'NLTV_R1': newPart = getNltvTemplateParts(generateId)[4]; break;
+      case 'NLTV_R2': newPart = getNltvTemplateParts(generateId)[5]; break;
+      case 'NLTV_W1': newPart = getNltvTemplateParts(generateId)[6]; break;
+      case 'NLTV_W2': newPart = getNltvTemplateParts(generateId)[7]; break;
+      case 'NLTV_W3': newPart = getNltvTemplateParts(generateId)[8]; break;
+      case 'NLTV_L': newPart = getNltvTemplateParts(generateId)[0]; break;
+      case 'NLTV_R': newPart = getNltvTemplateParts(generateId)[4]; break;
+      case 'NLTV_W': newPart = getNltvTemplateParts(generateId)[6]; break;
     }
     if (newPart) {
       if (parts.length === 0) {
-        setExamType(partKey);
+        setExamType(partKey.startsWith('NLTV') ? 'NLTV' : partKey);
       }
       setParts([...parts, newPart]);
       setActivePartIndex(parts.length);
@@ -1006,26 +1304,26 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           ...createToeicGroups(176, 5, 5, 4)
         ] });
         break;
-      case 'NLTV_LISTENING':
-        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn phần nghe', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
+      case 'NLTV_LISTENING': {
+        const nltvParts = getNltvTemplateParts(generateId);
+        newPartsToAdd.push(...nltvParts.slice(0, 4));
         break;
-      case 'NLTV_READING':
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(1, 1, 10, 4) });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(11, 1, 10, 4) });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(21, 1, 10, 4) });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn phần đọc', question_groups: createToeicGroups(31, 1, 10, 4) });
+      }
+      case 'NLTV_READING': {
+        const nltvParts = getNltvTemplateParts(generateId);
+        newPartsToAdd.push(...nltvParts.slice(4, 6));
         break;
-      case 'NLTV_WRITING':
-        newPartsToAdd.push({ part_title: 'Kỹ năng Viết - Bài 1', instruction: 'Viết thư/email', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Viết thư/email.', metadata: { correct_answer: '', explanation: '' } }] }] });
-        newPartsToAdd.push({ part_title: 'Kỹ năng Viết - Bài 2', instruction: 'Viết bài luận', question_groups: [{ group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: generateId('q'), type: 'WRITING_ESSAY', question_text: 'Viết luận.', metadata: { correct_answer: '', explanation: '' } }] }] });
+      }
+      case 'NLTV_WRITING': {
+        const nltvParts = getNltvTemplateParts(generateId);
+        newPartsToAdd.push(...nltvParts.slice(6, 9));
         break;
+      }
     }
     
     if (newPartsToAdd.length > 0) {
       if (parts.length === 0) {
-        setExamType(skillKey);
+        setExamType(skillKey.startsWith('NLTV') ? 'NLTV' : skillKey);
       }
       setParts([...parts, ...newPartsToAdd]);
       setActivePartIndex(parts.length);
@@ -1075,36 +1373,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       ] });
     }
     else if (type === 'NLTV') {
-      setExamType('NLTV_B1_C1');
+      setExamType('NLTV');
       setExamLanguage('vi');
       setExamTitle('Đánh giá Năng lực Tiếng Việt (NLTV)');
-      
-      // Listening
-      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần 1', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
-      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn phần 2', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
-      newParts.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn phần 3', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
-      
-      // Reading
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn phần đọc 1', question_groups: createToeicGroups(1, 1, 10, 4) });
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn phần đọc 2', question_groups: createToeicGroups(11, 1, 10, 4) });
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn phần đọc 3', question_groups: createToeicGroups(21, 1, 10, 4) });
-      newParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn phần đọc 4', question_groups: createToeicGroups(31, 1, 10, 4) });
-      
-      // Writing
-      newParts.push({ 
-        part_title: 'Kỹ năng Viết - Bài 1', 
-        instruction: 'Viết thư/email', 
-        question_groups: [
-          { group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_w_001', type: 'WRITING_ESSAY', question_text: 'Viết thư.', metadata: { correct_answer: '', explanation: '' } }] }
-        ] 
-      });
-      newParts.push({ 
-        part_title: 'Kỹ năng Viết - Bài 2', 
-        instruction: 'Viết bài luận', 
-        question_groups: [
-          { group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_w_002', type: 'WRITING_ESSAY', question_text: 'Viết luận.', metadata: { correct_answer: '', explanation: '' } }] }
-        ] 
-      });
+      setParts(getNltvTemplateParts(generateId));
+      setActivePartIndex(0);
+      return;
     }
 
     setParts(newParts);
@@ -1390,7 +1664,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       {
         field: 'Mã loại chứng chỉ',
         value: normalizedType,
-        notes: 'Mã định danh hệ thống (IELTS_ACADEMIC, TOEIC_LR, TOEIC_WRITING, NLTV_B1_C1...).'
+        notes: 'Mã định danh hệ thống (IELTS_ACADEMIC, TOEIC_LR, TOEIC_WRITING, NLTV...).'
       },
       {
         field: 'Tổng số phần thi (Parts)',
@@ -1660,7 +1934,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           'CUSTOM_EMPTY': 'Sườn trống tùy chỉnh (Custom)',
           'IELTS': 'Full IELTS Academic',
           'TOEIC': 'Full TOEIC Listening & Reading',
-          'NLTV': 'Full Năng Lực Tiếng Việt',
+          'NLTV': 'Full Đánh giá Năng lực Tiếng Việt (NLTV)',
           'TOEIC_WRITING': 'Full TOEIC Writing'
         },
         'Từng Kỹ Năng (Skills)': {
@@ -1668,8 +1942,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           'SKILL_IELTS_READING': 'IELTS Reading (3 Passages)',
           'SKILL_TOEIC_LISTENING': 'TOEIC Listening (Part 1-4)',
           'SKILL_TOEIC_READING': 'TOEIC Reading (Part 5-7)',
-          'SKILL_NLTV_LISTENING': 'NLTV Kỹ năng Nghe',
-          'SKILL_NLTV_READING': 'NLTV Kỹ năng Đọc'
+          'SKILL_NLTV_LISTENING': 'NLTV Kỹ năng Nghe (4 Phần)',
+          'SKILL_NLTV_READING': 'NLTV Kỹ năng Đọc (2 Phần)',
+          'SKILL_NLTV_WRITING': 'NLTV Kỹ năng Viết (3 Phần)'
         },
         'Từng Part (Parts)': {
           'PART_IELTS_L1': 'IELTS Listening Part 1',
@@ -1680,7 +1955,16 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           'PART_TOEIC_4': 'TOEIC Part 4 (Talks)',
           'PART_TOEIC_5': 'TOEIC Part 5 (Incomplete Sentences)',
           'PART_TOEIC_6': 'TOEIC Part 6 (Text Completion)',
-          'PART_TOEIC_7': 'TOEIC Part 7 (Reading Comp.)'
+          'PART_TOEIC_7': 'TOEIC Part 7 (Reading Comp.)',
+          'PART_NLTV_L1': 'NLTV Nghe - Phần 1',
+          'PART_NLTV_L2': 'NLTV Nghe - Phần 2',
+          'PART_NLTV_L3': 'NLTV Nghe - Phần 3',
+          'PART_NLTV_L4': 'NLTV Nghe - Phần 4',
+          'PART_NLTV_R1': 'NLTV Đọc - Phần 1',
+          'PART_NLTV_R2': 'NLTV Đọc - Phần 2',
+          'PART_NLTV_W1': 'NLTV Viết - Phần 1 (Chính tả)',
+          'PART_NLTV_W2': 'NLTV Viết - Phần 2 (Thư/Email)',
+          'PART_NLTV_W3': 'NLTV Viết - Phần 3 (Bài luận)'
         }
       },
       inputPlaceholder: 'Chọn một loại...',
@@ -1706,15 +1990,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) });
           tempParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [...createToeicGroups(147, 4, 2, 4), ...createToeicGroups(155, 3, 3, 4), ...createToeicGroups(164, 3, 4, 4), ...createToeicGroups(176, 5, 5, 4)] });
         } else if (type === 'NLTV') {
-          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn', question_groups: createToeicGroups(1, 1, 10, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn', question_groups: createToeicGroups(11, 1, 10, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn', question_groups: createToeicGroups(21, 1, 10, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn', question_groups: createToeicGroups(31, 1, 10, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Viết - Bài 1', instruction: 'Viết thư', question_groups: [{ group_id: 'g1', instruction: '', content_html: '', questions: [{ question_id: 'q1', type: 'WRITING_ESSAY', question_text: 'Viết', metadata: { correct_answer: '' } }] }] });
-          tempParts.push({ part_title: 'Kỹ năng Viết - Bài 2', instruction: 'Viết luận', question_groups: [{ group_id: 'g2', instruction: '', content_html: '', questions: [{ question_id: 'q2', type: 'WRITING_ESSAY', question_text: 'Viết', metadata: { correct_answer: '' } }] }] });
+          tempParts.push(...getNltvTemplateParts());
         } else if (type === 'TOEIC_WRITING') {
           tempParts.push({ part_title: 'Part 1: Write a Sentence Based on a Picture', instruction: 'Questions 1-5', question_groups: createToeicWritPart1Groups() });
           tempParts.push({ part_title: 'Part 2: Respond to a Written Request', instruction: 'Questions 6-7', question_groups: createToeicWritPart2Groups() });
@@ -1735,14 +2011,11 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) });
           tempParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [...createToeicGroups(147, 4, 2, 4), ...createToeicGroups(155, 3, 3, 4), ...createToeicGroups(164, 3, 4, 4), ...createToeicGroups(176, 5, 5, 4)] });
         } else if (type === 'SKILL_NLTV_LISTENING') {
-          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 8, 1, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 2', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(9, 3, 4, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Nghe - Phần 3', instruction: 'Hướng dẫn', shared_audio: { url: '' }, question_groups: createToeicGroups(21, 3, 5, 4) });
+          tempParts.push(...getNltvTemplateParts().slice(0, 4));
         } else if (type === 'SKILL_NLTV_READING') {
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 1', instruction: 'Hướng dẫn', question_groups: createToeicGroups(1, 1, 10, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 2', instruction: 'Hướng dẫn', question_groups: createToeicGroups(11, 1, 10, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 3', instruction: 'Hướng dẫn', question_groups: createToeicGroups(21, 1, 10, 4) });
-          tempParts.push({ part_title: 'Kỹ năng Đọc - Phần 4', instruction: 'Hướng dẫn', question_groups: createToeicGroups(31, 1, 10, 4) });
+          tempParts.push(...getNltvTemplateParts().slice(4, 6));
+        } else if (type === 'SKILL_NLTV_WRITING') {
+          tempParts.push(...getNltvTemplateParts().slice(6, 9));
         } else if (type === 'PART_IELTS_L1') {
           const sampleIelts = getIeltsSampleExcelParts();
           tempParts.push(sampleIelts[0]);
@@ -1763,6 +2036,24 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           tempParts.push({ part_title: 'Part 6: Text Completion', instruction: 'Questions 131-146', question_groups: createToeicGroups(131, 4, 4, 4) });
         } else if (type === 'PART_TOEIC_7') {
           tempParts.push({ part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [...createToeicGroups(147, 4, 2, 4), ...createToeicGroups(155, 3, 3, 4), ...createToeicGroups(164, 3, 4, 4), ...createToeicGroups(176, 5, 5, 4)] });
+        } else if (type === 'PART_NLTV_L1') {
+          tempParts.push(getNltvTemplateParts()[0]);
+        } else if (type === 'PART_NLTV_L2') {
+          tempParts.push(getNltvTemplateParts()[1]);
+        } else if (type === 'PART_NLTV_L3') {
+          tempParts.push(getNltvTemplateParts()[2]);
+        } else if (type === 'PART_NLTV_L4') {
+          tempParts.push(getNltvTemplateParts()[3]);
+        } else if (type === 'PART_NLTV_R1') {
+          tempParts.push(getNltvTemplateParts()[4]);
+        } else if (type === 'PART_NLTV_R2') {
+          tempParts.push(getNltvTemplateParts()[5]);
+        } else if (type === 'PART_NLTV_W1') {
+          tempParts.push(getNltvTemplateParts()[6]);
+        } else if (type === 'PART_NLTV_W2') {
+          tempParts.push(getNltvTemplateParts()[7]);
+        } else if (type === 'PART_NLTV_W3') {
+          tempParts.push(getNltvTemplateParts()[8]);
         }
         
         let targetType = 'IELTS_ACADEMIC';
@@ -1777,8 +2068,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           targetType = 'TOEIC_WRITING';
           defaultTitle = 'Đề thi TOEIC Writing Mẫu';
         } else if (type === 'NLTV') {
-          targetType = 'NLTV_B1_C1';
-          defaultTitle = 'Đề thi Năng Lực Tiếng Việt Mẫu';
+          targetType = 'NLTV';
+          defaultTitle = 'Đề thi Đánh giá Năng lực Tiếng Việt (NLTV) Mẫu';
         } else if (type.includes('TOEIC_WRIT')) {
           targetType = 'TOEIC_WRITING';
           defaultTitle = `Mẫu TOEIC Writing - ${type.replace(/_/g, ' ')}`;
@@ -1786,7 +2077,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           targetType = 'TOEIC_LR';
           defaultTitle = `Mẫu TOEIC - ${type.replace(/_/g, ' ')}`;
         } else if (type.includes('NLTV')) {
-          targetType = 'NLTV_B1_C1';
+          targetType = 'NLTV';
           defaultTitle = `Mẫu NLTV - ${type.replace(/_/g, ' ')}`;
         } else {
           targetType = 'IELTS_ACADEMIC';
@@ -2257,11 +2548,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         } else if (
           fileNameLower.includes('nltv') ||
           fileNameLower.includes('vstep') ||
+          fileNameLower.includes('tieng viet') ||
+          fileNameLower.includes('tiếng việt') ||
           allTitlesLower.includes('nltv') ||
           allTitlesLower.includes('tiếng việt') ||
           (allTitlesLower.includes('kỹ năng') && (allTitlesLower.includes('nghe') || allTitlesLower.includes('đọc') || allTitlesLower.includes('viết')))
         ) {
-          detectedType = 'NLTV_B1_C1';
+          detectedType = 'NLTV';
         } else if (fileNameLower.includes('general') || allTitlesLower.includes('general')) {
           detectedType = 'IELTS_GENERAL';
         } else {
@@ -2276,7 +2569,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         : (detectedType.startsWith('TOEIC')
             ? (detectedType === 'TOEIC_WRITING' ? 'TOEIC Writing Test' : 'TOEIC L&R Test')
             : (detectedType.startsWith('NLTV')
-                ? 'Năng Lực Tiếng Việt Test'
+                ? 'Đánh giá Năng lực Tiếng Việt (NLTV)'
                 : (detectedType.includes('GENERAL') ? 'IELTS General Training Test' : 'IELTS Academic Mock Test')));
 
       setExamTitle(finalExamTitle);
@@ -2441,7 +2734,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: '400px' }}>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('IELTS'); setWizardMode('BUILDER'); }}>Full IELTS Academic</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('TOEIC'); setWizardMode('BUILDER'); }}>Full TOEIC L&R</button>
-          <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('NLTV'); setWizardMode('BUILDER'); }}>Full NLTV B1-C1</button>
+          <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('NLTV'); setWizardMode('BUILDER'); }}>Full NLTV</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('TOEIC_WRITING'); setWizardMode('BUILDER'); }}>Full TOEIC Writing</button>
         </div>
         <button className="btn" style={{ marginTop: '2rem' }} onClick={() => setWizardMode('START')}>Quay lại</button>
@@ -2460,9 +2753,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <option value="IELTS_WRITING">IELTS - Writing (2 Tasks)</option>
             <option value="TOEIC_LISTENING">TOEIC - Listening (Part 1-4)</option>
             <option value="TOEIC_READING">TOEIC - Reading (Part 5-7)</option>
-            <option value="NLTV_LISTENING">NLTV - Listening (3 Phần)</option>
-            <option value="NLTV_READING">NLTV - Reading (4 Phần)</option>
-            <option value="NLTV_WRITING">NLTV - Writing (2 Bài)</option>
+            <option value="NLTV_LISTENING">NLTV - Nghe hiểu (4 Phần)</option>
+            <option value="NLTV_READING">NLTV - Đọc hiểu (2 Phần)</option>
+            <option value="NLTV_WRITING">NLTV - Viết (3 Phần)</option>
           </select>
           <button className="btn btn-primary flex-center" style={{ padding: '0.75rem 1rem', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { addSkillTemplate(selectedSkill); setWizardMode('BUILDER'); }}>
             <Plus size={18} /> Thêm Kỹ Năng Này
@@ -2503,10 +2796,16 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               <option value="TW_P1">TOEIC Writing Part 1: Write a Sentence</option>
               <option value="TW_P2">TOEIC Writing Part 2: Respond to Request</option>
             </optgroup>
-            <optgroup label="NLTV">
-              <option value="NLTV_L">NLTV Kỹ năng Nghe (1 Phần)</option>
-              <option value="NLTV_R">NLTV Kỹ năng Đọc (1 Phần)</option>
-              <option value="NLTV_W">NLTV Kỹ năng Viết (1 Bài)</option>
+            <optgroup label="Năng Lực Tiếng Việt (NLTV)">
+              <option value="NLTV_L1">NLTV Nghe - Phần 1</option>
+              <option value="NLTV_L2">NLTV Nghe - Phần 2</option>
+              <option value="NLTV_L3">NLTV Nghe - Phần 3</option>
+              <option value="NLTV_L4">NLTV Nghe - Phần 4</option>
+              <option value="NLTV_R1">NLTV Đọc - Phần 1</option>
+              <option value="NLTV_R2">NLTV Đọc - Phần 2</option>
+              <option value="NLTV_W1">NLTV Viết - Phần 1 (Chính tả)</option>
+              <option value="NLTV_W2">NLTV Viết - Phần 2 (Thư/Email)</option>
+              <option value="NLTV_W3">NLTV Viết - Phần 3 (Bài luận)</option>
             </optgroup>
           </select>
           <button className="btn btn-primary flex-center" style={{ padding: '0.75rem 1rem', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { addSpecificPart(selectedSpecificPart); setWizardMode('BUILDER'); }}>
@@ -2554,10 +2853,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                 <option value="TOEIC_LR">TOEIC (Listening & Reading)</option>
                 <option value="TOEIC_WRITING">TOEIC Writing</option>
               </optgroup>
-              <optgroup label="Năng Lực Tiếng Việt (VSTEP)">
-                <option value="NLTV">NLTV — Đề mẫu tổng hợp</option>
-                <option value="NLTV_B1_C1">NLTV (B1 - C1)</option>
-                <option value="NLTV_A1_A2">NLTV (A1 - A2)</option>
+              <optgroup label="Năng Lực Tiếng Việt">
+                <option value="NLTV">Đánh giá Năng lực Tiếng Việt (NLTV)</option>
               </optgroup>
               <optgroup label="Luyện ngôn ngữ">
                 <option value="LANGUAGE_PRACTICE">Luyện ngôn ngữ</option>
@@ -2718,6 +3015,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                       titleLower.includes('listen') ||
                       titleLower.includes('nghe') ||
                       titleLower.includes('audio') ||
+                      titleLower.includes('chính tả') ||
                       /part\s*[1-4]\b/i.test(titleLower) ||
                       titleLower.includes('photographs') ||
                       titleLower.includes('question-response') ||
@@ -2817,8 +3115,11 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
                   {/* Question Groups */}
                   {part.question_groups.map((group, gIndex) => {
-                    const isWriting = part.part_title.toLowerCase().includes('writ') || part.part_title.toLowerCase().includes('viết') || part.part_title.toLowerCase().includes('write');
-                    const isFixedWriting = part.part_title.toLowerCase().includes('writing task') || part.part_title.toLowerCase().includes('kỹ năng viết');
+                    const isWriting = !part.part_title.toLowerCase().includes('phần 1') &&
+                      !part.part_title.toLowerCase().includes('chính tả') &&
+                      (part.part_title.toLowerCase().includes('writ') || part.part_title.toLowerCase().includes('viết') || part.part_title.toLowerCase().includes('write'));
+                    const isFixedWriting = part.part_title.toLowerCase().includes('writing task') ||
+                      (part.part_title.toLowerCase().includes('kỹ năng viết') && !part.part_title.toLowerCase().includes('phần 1') && !part.part_title.toLowerCase().includes('chính tả'));
                     const isFixedStructure = isFixedWriting;
                     
                     const boundsForGroup = getPartBounds(part.part_title, examType);
@@ -2955,9 +3256,11 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                               group.questions[qIndex + 1]?.type === 'MULTIPLE_CHOICE_MULTI';
                             const nextQ = isPrimaryMulti ? group.questions[qIndex + 1] : null;
 
+                            const isEssay = isWriting || q.type === 'WRITING_ESSAY' || q.type === 'ESSAY';
+
                             return (
                             <div key={qIndex} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', background: 'white', padding: '1rem', borderRadius: 'var(--radius-sm)', border: isPrimaryMulti ? '1px solid #f59e0b' : '1px solid var(--border-light)', marginBottom: '0.75rem' }}>
-                              {!isWriting && (
+                              {!isEssay && (
                                 <div style={{
                                   background: isPrimaryMulti ? '#d97706' : 'var(--primary)',
                                   color: 'white',
@@ -2973,12 +3276,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                   flexShrink: 0
                                 }}>
                                   {isPrimaryMulti && nextQ
-                                    ? `${q.question_id.split('_')[1] || (qIndex + 1)} - ${nextQ.question_id.split('_')[1] || (qIndex + 2)}`
-                                    : (q.question_id.split('_')[1] || (qIndex + 1))}
+                                    ? `${getQuestionNumLabel(q.question_id, qIndex + 1)} - ${getQuestionNumLabel(nextQ.question_id, qIndex + 2)}`
+                                    : getQuestionNumLabel(q.question_id, qIndex + 1)}
                                 </div>
                               )}
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                {!isWriting && (
+                                {!isEssay && (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
                                     <select className="input-field" style={{ padding: '0.2rem', fontSize: '0.75rem', width: '220px' }} value={q.type} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'type', e.target.value)}>
                                       {QUESTION_TYPES.map(qt => <option key={qt.value} value={qt.value}>{qt.label}</option>)}
@@ -2990,7 +3293,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                     )}
                                   </div>
                                 )}
-                                {!isWriting ? (
+                                {!isEssay ? (
                                   <input type="text" className="input-field" value={q.question_text} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'question_text', e.target.value)} placeholder="Nội dung câu hỏi..." style={{ marginBottom: '0.5rem', padding: '0.4rem 0.75rem' }} />
                                 ) : (
                                   <div style={{ padding: '1rem', background: 'var(--bg-secondary)', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-sm)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
@@ -2998,7 +3301,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                   </div>
                                 )}
                                 
-                                {!isWriting && q.metadata.options !== undefined && (
+                                {!isEssay && q.metadata.options !== undefined && (
                                   <div style={{ marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                       <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Các lựa chọn (Options):</span>
@@ -3101,7 +3404,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                   </div>
                                 )}
 
-                                {!isWriting && (!q.metadata.options || q.metadata.options.length === 0) && (
+                                {!isEssay && (!q.metadata.options || q.metadata.options.length === 0) && (
                                   <div className="flex-center" style={{ justifyContent: 'flex-start', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
                                     <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>Đáp án đúng:</span>
                                     <input type="text" className="input-field" value={typeof q.metadata.correct_answer === 'string' ? q.metadata.correct_answer : (q.metadata.correct_answer || []).join(', ')} onChange={(e) => {
@@ -3112,7 +3415,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                       }} style={{ padding: '0.25rem 0.5rem', flex: 1, borderColor: 'var(--success)' }} placeholder="Nhập đáp án đúng..." />
                                   </div>
                                 )}
-                                {!isWriting && (
+                                {!isEssay && (
                                   <div style={{ marginTop: '0.75rem' }}>
                                     <RichTextEditor
                                       label="Lời giải thích (Explanation)"
