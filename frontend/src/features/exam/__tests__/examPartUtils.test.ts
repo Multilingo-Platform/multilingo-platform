@@ -40,6 +40,11 @@ describe('extractMinWords', () => {
     expect(extractMinWords({ question_text: 'Describe the chart.' }, { title: 'Writing Task 1' })).toBe(150);
     expect(extractMinWords(null, null)).toBe(150);
   });
+
+  it('does not invent a certification minimum for generic language-practice tasks', () => {
+    expect(extractMinWords({ question_text: '日本語で書いてください。' }, {}, 'LANGUAGE_PRACTICE')).toBe(0);
+    expect(extractMinWords({ min_words: 20 }, {}, 'LANGUAGE_PRACTICE')).toBe(20);
+  });
 });
 
 describe('getPartHeaderInfo', () => {

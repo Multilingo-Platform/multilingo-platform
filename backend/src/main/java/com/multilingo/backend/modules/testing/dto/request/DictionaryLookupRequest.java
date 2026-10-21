@@ -6,11 +6,18 @@ public record DictionaryLookupRequest(
         Integer partId,
         String documentId,
         String selectedText,
-        String contextText
+        String contextText,
+        int contractVersion,
+        String meaningLanguage
 ) {
+    public DictionaryLookupRequest(String requestId, Integer partId, String documentId, String selectedText, String contextText) {
+        this(requestId, partId, documentId, selectedText, contextText, 1, null);
+    }
+
     @Override
     public String toString() {
         return "DictionaryLookupRequest[requestId=" + requestId + ", partId=" + partId
-                + ", documentId=" + documentId + ", selectedText=<redacted>, contextText=<redacted>]";
+                + ", documentId=" + documentId + ", contractVersion=" + contractVersion
+                + ", selectedText=<redacted>, contextText=<redacted>]";
     }
 }

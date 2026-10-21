@@ -955,4 +955,33 @@ class PracticeFeedbackEvaluatorTest {
         assertThat(res2.getListeningDetail()).isNull();
         assertThat(res2.getExplanation()).isEqualTo("Giải thích này KHÔNG được biến thành transcript");
     }
+
+    @Test
+    @DisplayName("Practice feedback NFC comparison is active under TV3_LANG_V1 and consistent with submit grading")
+    void evaluate_nfcComparisonConsistentWithLanguagePolicy() {
+        Map<String, Object> qFitb = new LinkedHashMap<>();
+        qFitb.put("question_id", "q_nfc");
+        qFitb.put("type", "FILL_IN_THE_BLANK");
+        qFitb.put("correct_answer", "café");
+
+        Map<String, Object> part = Map.of("id", 12, "questions", List.of(qFitb));
+
+        // 1. Snapshot with TV3_LANG_V1 -> decomposed matches composed
+        Map<String, Object> snapshotV1 = Map.of(
+                "languagePolicyVersion", "TV3_LANG_V1",
+                "sections", List.of(Map.of("name", "READING", "parts", List.of(part)))
+        );
+        String decomposed = "cafe\u0301";
+        PracticeFeedbackResponse resV1 = evaluator.evaluate(
+                57, snapshotV1, new ValidatedFeedbackInput(12, "q_nfc", decomposed));
+        assertThat(resV1.getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+
+        // 2. Legacy snapshot without TV3_LANG_V1 -> decomposed does NOT match composed
+        Map<String, Object> snapshotLegacy = Map.of(
+                "sections", List.of(Map.of("name", "READING", "parts", List.of(part)))
+        );
+        PracticeFeedbackResponse resLegacy = evaluator.evaluate(
+                57, snapshotLegacy, new ValidatedFeedbackInput(12, "q_nfc", decomposed));
+        assertThat(resLegacy.getVerdict()).isEqualTo(GradingVerdict.WRONG);
+    }
 }

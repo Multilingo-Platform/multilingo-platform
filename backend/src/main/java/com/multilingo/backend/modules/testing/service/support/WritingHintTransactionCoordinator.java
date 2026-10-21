@@ -284,8 +284,9 @@ public class WritingHintTransactionCoordinator {
         // 8. Phân giải ngôn ngữ nếu chưa có từ frozen context (P1-01: chuyển AppException thành Denied để lazy recovery commit)
         if (languages == null) {
             try {
-                languages = languageResolver.resolve(
-                        userId, request.learningLanguage(), request.hintLanguage()
+                languages = languageResolver.resolveForAttempt(
+                        userId, request.learningLanguage(), request.hintLanguage(),
+                        readSnapshotExamLanguage(attempt.getExamSnapshot())
                 );
             } catch (AppException e) {
                 return BeginDecision.denied(e.getErrorCode(), e.getMessage());
@@ -327,6 +328,8 @@ public class WritingHintTransactionCoordinator {
 
         ledger.setRequestFingerprint(reqFingerprint);
         ledger.setContextJson(Map.of(
+                "languagePolicyVersion", "TV3_LANG_V1",
+                "sourceLanguage", languages.learningLanguage(),
                 "requestedLearningLanguage", request.learningLanguage() != null ? request.learningLanguage() : "",
                 "requestedHintLanguage", request.hintLanguage() != null ? request.hintLanguage() : "",
                 "learningLanguage", languages.learningLanguage(),
@@ -360,6 +363,27 @@ public class WritingHintTransactionCoordinator {
         );
 
         return BeginDecision.reserved(reservation);
+    }
+
+    private String readSnapshotExamLanguage(Map<String, Object> snapshot) {
+        if (snapshot == null) return null;
+        com.multilingo.backend.common.i18n.LearningLanguageCatalog catalog =
+                new com.multilingo.backend.common.i18n.LearningLanguageCatalog();
+        Object camel = snapshot.get("examLanguage");
+        Object snake = snapshot.get("exam_language");
+        if (camel != null && snake != null) {
+            if (!(camel instanceof String camelValue) || !(snake instanceof String snakeValue)) {
+                return null;
+            }
+            var normalizedCamel = catalog.findNormalized(camelValue);
+            var normalizedSnake = catalog.findNormalized(snakeValue);
+            if (normalizedCamel.isEmpty() || !normalizedCamel.equals(normalizedSnake)) {
+                return null;
+            }
+            return normalizedCamel.get();
+        }
+        Object value = camel != null ? camel : snake;
+        return value instanceof String text ? catalog.findNormalized(text).orElse(null) : null;
     }
 
     /**

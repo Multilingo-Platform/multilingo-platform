@@ -97,6 +97,7 @@ class WritingHintTransactionCoordinatorTest {
                 .status(AttemptStatus.IN_PROGRESS)
                 .startTime(fixedNow.minusSeconds(600))
                 .examSnapshot(Map.of(
+                        "examLanguage", "en",
                         "sections", List.of(
                                 Map.of(
                                         "id", 10,
@@ -334,7 +335,7 @@ class WritingHintTransactionCoordinatorTest {
 
         WritingHintLanguageResolver.ResolvedLanguages languages =
                 new WritingHintLanguageResolver.ResolvedLanguages("en", "vi");
-        when(languageResolver.resolve(1, "en", "vi")).thenReturn(languages);
+        when(languageResolver.resolveForAttempt(1, "en", "vi", "en")).thenReturn(languages);
 
         when(requestRepository.findByUserIdAndRequestIdForUpdate(1, "req-1"))
                 .thenReturn(Optional.empty());
@@ -746,7 +747,7 @@ class WritingHintTransactionCoordinatorTest {
         TestAttempt attempt = createValidAttempt(1);
         when(attemptRepository.findByIdForUpdate(10)).thenReturn(Optional.of(attempt));
 
-        when(languageResolver.resolve(1, "bad-lang", "vi"))
+        when(languageResolver.resolveForAttempt(1, "bad-lang", "vi", "en"))
                 .thenThrow(new AppException(ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED, "Ngôn ngữ không hỗ trợ"));
 
         WritingHintsRequest req = new WritingHintsRequest(30, "q-1", "req-bad-lang", "bad-lang", "vi");
@@ -767,7 +768,7 @@ class WritingHintTransactionCoordinatorTest {
 
         WritingHintLanguageResolver.ResolvedLanguages languages =
                 new WritingHintLanguageResolver.ResolvedLanguages("en", "vi");
-        when(languageResolver.resolve(1, "en", "vi")).thenReturn(languages);
+        when(languageResolver.resolveForAttempt(1, "en", "vi", "en")).thenReturn(languages);
 
         when(contextReader.read(attempt, 30, "q-1"))
                 .thenThrow(new AppException(ErrorCode.WRITING_HINTS_CONTEXT_UNAVAILABLE, "Ngữ cảnh không khả dụng"));

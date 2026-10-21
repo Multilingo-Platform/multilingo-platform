@@ -277,6 +277,10 @@ class WritingFeedbackServiceTest {
         assertThat(task.criteria()).hasSize(4);
         assertThat(task.reasonCode()).isNull();
         assertThat(task.displayMessage()).isEqualTo("Chấm điểm hoàn tất.");
+        assertThat(task.lengthMetric()).isNotNull();
+        assertThat(task.lengthMetric().value()).isEqualTo(task.wordCount());
+        assertThat(task.lengthMetric().unit()).isEqualTo(com.multilingo.backend.modules.testing.util.WritingLengthCounter.Unit.WORDS);
+        assertThat(task.lengthMetric().policyVersion()).isEqualTo("TV3_LENGTH_V1");
     }
 
     @Test

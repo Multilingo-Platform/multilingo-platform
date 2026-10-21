@@ -312,6 +312,8 @@ public record ExamDatasetBundle(int schemaVersion, String datasetKey, int versio
         if (OfficialExamDatasetRegistry.CAMBRIDGE_IELTS_KEY.equals(definition.datasetKey()))
             new IeltsAcademicPublicationValidator().requirePublishable(request,
                     "COMPLETE".equals(definition.explanationStatus()));
+        else if (OfficialExamDatasetRegistry.NLTV_SAMPLE_KEY.equals(definition.datasetKey()))
+            new com.multilingo.backend.modules.exam.service.NltvPublicationValidator().requirePublishable(request);
         else new ExamPublicationValidator().requirePublishable(request);
     }
 

@@ -15,6 +15,7 @@ public class StudentExamSummaryResponse {
     private String code;
     private String title;
     private String type;
+    private String examLanguage;
     private String level;
     private Integer durationMinutes;
     private Integer joins;

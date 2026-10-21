@@ -141,10 +141,12 @@ class WritingHintsContractIT {
                     .passwordHash("secret123")
                     .fullName("Learner Test")
                     .role(role)
+                    .nativeLanguage("vi")
                     .targetLanguage("en")
                     .build());
         });
         testUser.setTargetLanguage("en");
+        testUser.setNativeLanguage("vi");
         userRepository.save(testUser);
 
         // Ensure UserQuota for AI_WRITING_HINTS exists with maxLimit = 10
@@ -193,6 +195,7 @@ class WritingHintsContractIT {
                 .code(code)
                 .title("Writing Contract Exam " + code)
                 .type("IELTS")
+                .examLanguage("en")
                 .durationMinutes(60)
                 .isPublished(true)
                 .build();
@@ -488,7 +491,7 @@ class WritingHintsContractIT {
     }
 
     @Test
-    void persistedTargetLanguageFallbackAndExplicitLearningOverride() throws Exception {
+    void snapshotLearningLanguageAndNativeExplanationFallback() throws Exception {
         var fixture = createPracticeFixture("EXAM-LANG-FALLBACK");
         testUser.setTargetLanguage("fr");
         userRepository.saveAndFlush(testUser);
@@ -503,33 +506,39 @@ class WritingHintsContractIT {
         var fallback = mockMvc.perform(post("/api/v1/attempts/" + fixture.attemptId() + "/writing-hints")
                         .contentType(MediaType.APPLICATION_JSON).content(payload(fixture, Map.of())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.learningLanguage").value("fr"))
-                .andExpect(jsonPath("$.data.hintLanguage").value("fr")).andReturn();
-        assertLocalizedContent(fallback.getResponse().getContentAsString(StandardCharsets.UTF_8), "fr");
-        assertPromptLanguageAndOriginalTask(prompts.getFirst(), "fr", "fr");
+                .andExpect(jsonPath("$.data.learningLanguage").value("en"))
+                .andExpect(jsonPath("$.data.hintLanguage").value("vi")).andReturn();
+        assertLocalizedContent(fallback.getResponse().getContentAsString(StandardCharsets.UTF_8), "vi");
+        assertPromptLanguageAndOriginalTask(prompts.getFirst(), "en", "vi");
 
         var override = mockMvc.perform(post("/api/v1/attempts/" + fixture.attemptId() + "/writing-hints")
-                        .contentType(MediaType.APPLICATION_JSON).content(payload(fixture, Map.of("learningLanguage", "vie"))))
+                        .contentType(MediaType.APPLICATION_JSON).content(payload(fixture, Map.of("learningLanguage", "en", "hintLanguage", "fr"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.learningLanguage").value("vi"))
-                .andExpect(jsonPath("$.data.hintLanguage").value("vi")).andReturn();
-        assertLocalizedContent(override.getResponse().getContentAsString(StandardCharsets.UTF_8), "vi");
-        assertPromptLanguageAndOriginalTask(prompts.getLast(), "vi", "vi");
+                .andExpect(jsonPath("$.data.learningLanguage").value("en"))
+                .andExpect(jsonPath("$.data.hintLanguage").value("fr")).andReturn();
+        assertLocalizedContent(override.getResponse().getContentAsString(StandardCharsets.UTF_8), "fr");
+        assertPromptLanguageAndOriginalTask(prompts.getLast(), "en", "fr");
         assertThat(userQuotaRepository.findById(testQuota.getId()).orElseThrow().getUsedCount()).isEqualTo(2);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"missing-target", "invalid-target", "invalid-learning", "invalid-hint"})
+    @ValueSource(strings = {"missing-source", "invalid-source", "invalid-learning", "mismatched-learning", "invalid-hint"})
     void missingOrInvalidLanguageFailsWithoutEnglishFallback(String scenario) throws Exception {
         var fixture = createPracticeFixture("EXAM-LANG-" + scenario);
         Map<String, String> languages = switch (scenario) {
             case "invalid-learning" -> Map.of("learningLanguage", "xx");
+            case "mismatched-learning" -> Map.of("learningLanguage", "fr");
             case "invalid-hint" -> Map.of("hintLanguage", "xx");
             default -> Map.of();
         };
-        if (scenario.equals("missing-target") || scenario.equals("invalid-target")) {
-            testUser.setTargetLanguage(scenario.equals("missing-target") ? "" : "xx");
-            userRepository.saveAndFlush(testUser);
+        if (scenario.equals("missing-source") || scenario.equals("invalid-source")) {
+            TestAttempt attempt = testAttemptRepository.findById(fixture.attemptId()).orElseThrow();
+            Map<String, Object> snapshot = new LinkedHashMap<>(attempt.getExamSnapshot());
+            snapshot.remove("examLanguage");
+            snapshot.remove("exam_language");
+            if (scenario.equals("invalid-source")) snapshot.put("examLanguage", "xx");
+            attempt.setExamSnapshot(snapshot);
+            testAttemptRepository.saveAndFlush(attempt);
         }
         mockMvc.perform(post("/api/v1/attempts/" + fixture.attemptId() + "/writing-hints")
                         .contentType(MediaType.APPLICATION_JSON).content(payload(fixture, languages)))
@@ -652,7 +661,7 @@ class WritingHintsContractIT {
         Integer partId = part.getId();
 
         String reqIdReplay = "b0000000-0000-0000-0000-000000000001";
-        String validResponseJson = createValidGeminiJsonResponse("en");
+        String validResponseJson = createValidGeminiJsonResponse("vi");
         when(geminiClient.generate(any())).thenReturn(
                 new GeminiGenerationResult(validResponseJson, new GeminiGenerationResult.Usage(100, 150, 250))
         );
@@ -754,7 +763,7 @@ class WritingHintsContractIT {
         ExamPart part = examPartRepository.findBySection_Id(section.getId()).getFirst();
         Integer partId = part.getId();
 
-        String validResponseJson = createValidGeminiJsonResponse("en");
+        String validResponseJson = createValidGeminiJsonResponse("vi");
         String reqId = "c0000000-0000-0000-0000-000000000001";
         var submittedState = new java.util.concurrent.atomic.AtomicReference<JsonNode>();
 

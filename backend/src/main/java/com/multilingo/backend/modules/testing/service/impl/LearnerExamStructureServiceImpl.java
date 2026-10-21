@@ -43,6 +43,7 @@ public class LearnerExamStructureServiceImpl implements LearnerExamStructureServ
                 .code(exam.getCode())
                 .title(exam.getTitle())
                 .type(exam.getType())
+                .examLanguage(exam.getExamLanguage())
                 .durationMinutes(exam.getDurationMinutes())
                 .sections(sections)
                 .build();

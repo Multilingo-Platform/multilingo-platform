@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.multilingo.backend.modules.testing.adapter.ExamAdapter;
 import com.multilingo.backend.modules.testing.adapter.GradingAdapter;
 import com.multilingo.backend.modules.testing.adapter.IdentityAdapter;
+import com.multilingo.backend.modules.testing.adapter.LearningLanguageAdapter;
 import com.multilingo.backend.modules.testing.adapter.dto.ExamFixture;
 import com.multilingo.backend.modules.testing.adapter.entity.AttemptListeningPlayback;
 import com.multilingo.backend.modules.testing.adapter.repository.AttemptListeningPlaybackRepository;
@@ -20,6 +21,9 @@ import com.multilingo.backend.modules.testing.repository.AttemptAnswerRepository
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.testing.service.impl.TestAttemptServiceImpl;
 import com.multilingo.backend.modules.testing.service.support.ToeicListeningMediaProfile;
+import com.multilingo.backend.modules.testing.service.support.AttemptLanguageResolver;
+import com.multilingo.backend.modules.testing.config.TestingLanguageProperties;
+import com.multilingo.backend.common.i18n.LearningLanguageCatalog;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +55,7 @@ class TestAttemptWorkspaceResponseTest {
     @Mock AttemptAnswerRepository attemptAnswerRepository;
     @Mock ExamAdapter examAdapter;
     @Mock IdentityAdapter identityAdapter;
+    @Mock LearningLanguageAdapter learningLanguageAdapter;
     @Mock GradingAdapter gradingAdapter;
     @Mock ObjectiveGradingService gradingService;
     @Mock PlatformTransactionManager transactionManager;
@@ -71,8 +76,12 @@ class TestAttemptWorkspaceResponseTest {
                 gradingService,
                 transactionManager,
                 entityManager,
+                new com.multilingo.backend.modules.testing.service.support.AttemptGradingInputFactory(),
+                new com.multilingo.backend.modules.testing.service.support.AttemptResultSummaryMapper(new ObjectMapper()),
+                new com.multilingo.backend.modules.testing.service.support.AttemptReviewMapper(new ObjectMapper()),
                 mock(com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer.class),
-                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver());
+                new com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver(),
+                new AttemptLanguageResolver(new LearningLanguageCatalog(), learningLanguageAdapter, new TestingLanguageProperties()));
         service.setListeningPlaybackService(new ListeningPlaybackService(
                 testAttemptRepository, playbackRepository, identityAdapter, new ObjectMapper()));
         when(identityAdapter.getCurrentUserId()).thenReturn(7);
@@ -93,12 +102,47 @@ class TestAttemptWorkspaceResponseTest {
             return saved;
         });
         when(attemptAnswerRepository.findByAttemptId(101)).thenReturn(List.of());
+        when(learningLanguageAdapter.findNativeLanguage(7)).thenReturn(Optional.of("vi"));
 
         WorkspaceResponse response = service.createAttempt(createRequest());
 
         assertThat(response.getVersion()).isEqualTo(1);
         assertThat(response.getSavedAnswers()).isEmpty();
         assertThat(response.getExamSnapshot()).containsEntry("examLanguage", "en");
+        assertThat(response.getExamSnapshot()).containsEntry("languagePolicyVersion", "TV3_LANG_V1");
+        assertThat(response.getLanguageContext()).satisfies(context -> {
+            assertThat(context.examLanguage()).isEqualTo("en");
+            assertThat(context.defaultExplanationLanguage()).isEqualTo("vi");
+            assertThat(context.policyVersion()).isEqualTo("TV3_LANG_V1");
+        });
+    }
+
+    @Test
+    void createsAttemptForPublishedLanguagePracticeUsingSnapshotLanguage() {
+        ExamFixture exam = new ExamFixture();
+        exam.setId(19);
+        exam.setType("LANGUAGE_PRACTICE");
+        exam.setTitle("日本語 読解練習");
+        exam.setExamLanguage("ja-JP");
+        exam.setDurationMinutes(25);
+        exam.setSections(List.of());
+        when(examAdapter.findPublishedSnapshotById(19)).thenReturn(Optional.of(exam));
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(invocation -> {
+            TestAttempt saved = invocation.getArgument(0);
+            saved.setId(119);
+            return saved;
+        });
+        when(attemptAnswerRepository.findByAttemptId(119)).thenReturn(List.of());
+        when(learningLanguageAdapter.findNativeLanguage(7)).thenReturn(Optional.of("vi"));
+        CreateAttemptRequest request = createRequest();
+        request.setExamId(19);
+
+        WorkspaceResponse response = service.createAttempt(request);
+
+        assertThat(response.getExamSnapshot()).containsEntry("type", "LANGUAGE_PRACTICE")
+                .containsEntry("examLanguage", "ja-JP");
+        assertThat(response.getLanguageContext().examLanguage()).isEqualTo("ja-JP");
+        assertThat(response.getLanguageContext().defaultExplanationLanguage()).isEqualTo("vi");
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.multilingo.backend.modules.testing.service.support;
 import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.testing.dto.request.DictionaryLookupRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.swing.text.MutableAttributeSet;
@@ -26,15 +27,25 @@ public class DictionaryLookupContextReader {
             "content", "context", "passage"
     );
     private final DictionaryLookupRequestValidator requestValidator;
+    private final DictionaryLookupV2RequestValidator v2RequestValidator;
 
     public DictionaryLookupContextReader(DictionaryLookupRequestValidator requestValidator) {
         this.requestValidator = requestValidator;
+        this.v2RequestValidator = null;
+    }
+
+    @Autowired
+    public DictionaryLookupContextReader(DictionaryLookupRequestValidator requestValidator,
+                                         DictionaryLookupV2RequestValidator v2RequestValidator) {
+        this.requestValidator = requestValidator;
+        this.v2RequestValidator = v2RequestValidator;
     }
 
     public record VerifiedContext(String sourceContext, String selectedText) { }
 
     public VerifiedContext read(Map<String, Object> snapshot, DictionaryLookupRequest input) {
-        DictionaryLookupRequest request = requestValidator.validate(input);
+        DictionaryLookupRequest request = input != null && input.contractVersion() == 2
+                ? validateV2(input) : requestValidator.validate(input);
         if (snapshot == null || !(snapshot.get("sections") instanceof List<?> sections)) throw invalid();
         Map<?, ?> targetPart = null;
         String skill = null;
@@ -64,8 +75,19 @@ public class DictionaryLookupContextReader {
         String passage = toPlainText(passageHtml);
         String candidateContext = normalizeWhitespace(request.contextText());
         String canonicalContext = findCanonicalContext(passage, candidateContext);
-        if (canonicalContext == null || !containsTerm(canonicalContext, request.selectedText())) throw invalid();
+        String language = extractLanguage(snapshot);
+        if (request.contractVersion() == 1 && !isEnglish(language)) {
+            throw new AppException(ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED);
+        }
+        if (canonicalContext == null || !containsTerm(canonicalContext, request.selectedText(), language)) throw invalid();
         return new VerifiedContext(canonicalContext, request.selectedText());
+    }
+
+    private DictionaryLookupRequest validateV2(DictionaryLookupRequest input) {
+        if (v2RequestValidator == null) return input;
+        v2RequestValidator.validate(new com.multilingo.backend.modules.testing.dto.request.DictionaryLookupV2Request(
+                input.requestId(), input.partId(), input.documentId(), input.selectedText(), input.contextText(), input.meaningLanguage()), null);
+        return input;
     }
 
     private String findGroupPassage(Map<?, ?> part, String documentId) {
@@ -148,9 +170,14 @@ public class DictionaryLookupContextReader {
         return null;
     }
 
-    private static boolean containsTerm(String context, String selectedText) {
+    private static boolean containsTerm(String context, String selectedText, String language) {
+        boolean cjkPolicy = isCjkLanguage(language)
+                || selectedText.codePoints().anyMatch(DictionaryLookupContextReader::isCjkCodePoint);
         for (int from = 0; from <= context.length() - selectedText.length(); from++) {
             if (!context.regionMatches(true, from, selectedText, 0, selectedText.length())) continue;
+            if (cjkPolicy) {
+                return true;
+            }
             int before = from - 1;
             int after = from + selectedText.length();
             boolean leftBoundary = before < 0 || !isWord(context.codePointBefore(from));
@@ -158,6 +185,31 @@ public class DictionaryLookupContextReader {
             if (leftBoundary && rightBoundary) return true;
         }
         return false;
+    }
+
+    private static String extractLanguage(Map<String, Object> snapshot) {
+        if (snapshot == null) return null;
+        Object lang = snapshot.get("examLanguage");
+        if (lang == null) lang = snapshot.get("exam_language");
+        return lang instanceof String text ? text.trim().toLowerCase(Locale.ROOT) : null;
+    }
+
+    private static boolean isCjkLanguage(String language) {
+        if (language == null) return false;
+        String lang = language.trim().toLowerCase(Locale.ROOT);
+        return lang.startsWith("zh") || lang.startsWith("ja");
+    }
+
+    private static boolean isEnglish(String language) {
+        return language != null && (language.equals("en") || language.startsWith("en-"));
+    }
+
+    private static boolean isCjkCodePoint(int cp) {
+        Character.UnicodeScript script = Character.UnicodeScript.of(cp);
+        return script == Character.UnicodeScript.HAN
+                || script == Character.UnicodeScript.HIRAGANA
+                || script == Character.UnicodeScript.KATAKANA
+                || script == Character.UnicodeScript.BOPOMOFO;
     }
 
     private static boolean isWord(int codePoint) {

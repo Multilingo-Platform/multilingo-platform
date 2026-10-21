@@ -17,11 +17,12 @@ interface QuestionRendererProps {
   currentAnswer: AnswerValue;
   onChange: (value: AnswerValue) => void;
   minWords?: number;
+  learningLanguage?: string | null;
   showPrompt?: boolean;
 }
 
 const QuestionRenderer: React.FC<QuestionRendererProps> = ({
-  question, currentAnswer, onChange, minWords, showPrompt = true,
+  question, currentAnswer, onChange, minWords, learningLanguage, showPrompt = true,
 }) => {
   const { type, question_text, options, media } = question;
 
@@ -102,6 +103,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           questionText={question_text}
           media={media}
           minWords={minWords}
+          learningLanguage={learningLanguage}
           showPrompt={showPrompt}
         />
       );

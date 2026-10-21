@@ -290,7 +290,7 @@ public class AdminExamServiceImpl implements AdminExamService {
                 .isPresent();
     }
     private void setDuration(Exam exam,ExamBuilderRequest request) {
-        if (java.util.Set.of("TOEIC_LR", "IELTS_ACADEMIC").contains(request.getType()))
+        if (java.util.Set.of("TOEIC_LR", "IELTS_ACADEMIC", "LANGUAGE_PRACTICE", "NLTV").contains(request.getType()))
             exam.setDurationMinutes(request.getSections().stream().mapToInt(s -> s.getDurationMinutes()).sum());
     }
 

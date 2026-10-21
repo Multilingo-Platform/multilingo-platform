@@ -237,6 +237,13 @@ public class WritingGradingEnqueuer {
         map.put("originalText", context.originalText() != null ? context.originalText() : "");
         map.put("learningLanguage", context.learningLanguage());
         map.put("wordCount", context.wordCount());
+        com.multilingo.backend.modules.testing.util.WritingLengthCounter lengthCounter = new com.multilingo.backend.modules.testing.util.WritingLengthCounter();
+        var lengthMetric = lengthCounter.count(context.originalText(), context.learningLanguage());
+        Map<String, Object> metricMap = new LinkedHashMap<>();
+        metricMap.put("value", lengthMetric.value());
+        metricMap.put("unit", lengthMetric.unit().name());
+        metricMap.put("policyVersion", lengthMetric.policyVersion());
+        map.put("lengthMetric", metricMap);
         map.put("rubricCode", WritingGrade.DEFAULT_RUBRIC);
         map.put("promptVersion", "v2");
         if (context.images() != null && !context.images().isEmpty()) {

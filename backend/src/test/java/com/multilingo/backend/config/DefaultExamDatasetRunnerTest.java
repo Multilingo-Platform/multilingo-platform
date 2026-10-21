@@ -41,6 +41,19 @@ class DefaultExamDatasetRunnerTest {
     }
 
     @Test
+    void canSeedAndPublishOnlyTheExplicitlySelectedNltvBundle() throws Exception {
+        DefaultExamDatasetService service = mock(DefaultExamDatasetService.class);
+
+        new DefaultExamDatasetRunner(service, true, "nltv-sample-test-1")
+                .run(mock(ApplicationArguments.class));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(Resource[].class);
+        verify(service).seedClasspath(captor.capture(), eq(true));
+        assertThat(captor.getValue()).extracting(Resource::getFilename)
+                .containsExactly("nltv-sample-test-1.v2.json");
+    }
+
+    @Test
     void rejectsAnyDatasetOutsideTheCodeOwnedAllowlist() {
         DefaultExamDatasetService service = mock(DefaultExamDatasetService.class);
 

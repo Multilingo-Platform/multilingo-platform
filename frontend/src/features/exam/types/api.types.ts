@@ -71,12 +71,20 @@ export interface WorkspaceResponse {
    * normalized to canonical keys by `normalizeWorkspace` before the response is returned.
    */
   exam_snapshot: ExamSnapshot;
+  languageContext?: AttemptLanguageContext | null;
   version: number;
   saved_answers: PartAnswers[];
   /** ms: serverClock - clientClock at workspace fetch time. */
   serverTimeOffset: number;
   /** TOEIC Mock playback summary; absent for Practice/IELTS. */
   listeningPlayback?: WorkspaceListeningPlaybackSummary;
+}
+
+export interface AttemptLanguageContext {
+  policyVersion: 'TV3_LANG_V1' | string;
+  examLanguage: string | null;
+  defaultExplanationLanguage: string | null;
+  supportedExplanationLanguages: string[];
 }
 
 export interface ApiResponse<T> {
@@ -263,6 +271,7 @@ export interface LearnerExamStructure {
   code: string;
   title: string;
   type: string;
+  examLanguage?: string | null;
   durationMinutes: number | null;
   sections: LearnerExamStructureSection[];
 }

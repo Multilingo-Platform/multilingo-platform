@@ -133,4 +133,53 @@ class WritingHintLanguageResolverTest {
                 .extracting(ex -> ((AppException) ex).getErrorCode())
                 .isEqualTo(ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED);
     }
+
+    @Test
+    void resolvesNewHintsFromAttemptLanguageAndNativeExplanationPreference() {
+        when(learningLanguageAdapter.findNativeLanguage(100)).thenReturn(Optional.of("vie"));
+        var result = resolver.resolveForAttempt(100, null, null, "jpn-JP");
+        assertThat(result).isEqualTo(new WritingHintLanguageResolver.ResolvedLanguages("ja-JP", "vi"));
+        verify(learningLanguageAdapter).findNativeLanguage(100);
+        verifyNoMoreInteractions(learningLanguageAdapter);
+    }
+
+    @Test
+    void rejectsRequestLearningLanguageThatDoesNotMatchAttemptSnapshot() {
+        assertThatThrownBy(() -> resolver.resolveForAttempt(100, "en", "vi", "ja"))
+                .isInstanceOf(AppException.class)
+                .extracting(ex -> ((AppException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED);
+        verifyNoInteractions(learningLanguageAdapter);
+    }
+
+    @Test
+    void defaultsExplanationToSourceWhenNativePreferenceIsUnsupported() {
+        when(learningLanguageAdapter.findNativeLanguage(100)).thenReturn(Optional.of("xx"));
+        var result = resolver.resolveForAttempt(100, "ja-JP", null, "jpn-JP");
+        assertThat(result).isEqualTo(new WritingHintLanguageResolver.ResolvedLanguages("ja-JP", "ja-JP"));
+    }
+    @Test
+    void resolvesSnapshotExamLanguageCanonicalAliasesAndDetectsConflicts() {
+        // Equivalent aliases (en / eng) resolve to canonical en
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("examLanguage", "en", "exam_language", "eng")))
+                .isEqualTo("en");
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("examLanguage", "ja-JP", "exam_language", "jpn-JP")))
+                .isEqualTo("ja-JP");
+
+        // Conflicting or invalid aliases return null
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("examLanguage", "en", "exam_language", "it")))
+                .isNull();
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("examLanguage", "en", "exam_language", "fr")))
+                .isNull();
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("examLanguage", "en", "exam_language", "en_US")))
+                .isNull();
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("examLanguage", 123, "exam_language", "en")))
+                .isNull();
+
+        // Single valid alias
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("examLanguage", "eng"))).isEqualTo("en");
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of("exam_language", "jpn"))).isEqualTo("ja");
+        assertThat(resolver.resolveSnapshotExamLanguage(java.util.Map.of())).isNull();
+        assertThat(resolver.resolveSnapshotExamLanguage(null)).isNull();
+    }
 }

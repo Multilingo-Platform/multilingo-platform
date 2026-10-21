@@ -16,6 +16,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,6 +84,72 @@ class AdminExamServiceImplTest {
         verify(examRepository, times(1)).save(any(Exam.class));
         verify(sectionRepository, times(1)).save(any(ExamSection.class));
         verify(partRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createExam_publishesValidatedLanguagePracticeAndUsesSectionDuration() {
+        request = ExamBuilderRequest.builder()
+                .title("日本語 読解練習")
+                .type("LANGUAGE_PRACTICE")
+                .examLanguage("ja-JP")
+                .isPublished(true)
+                .sections(List.of(SectionBuilderRequest.builder()
+                        .skillType("READING")
+                        .durationMinutes(25)
+                        .parts(List.of(PartBuilderRequest.builder()
+                                .partNumber(1)
+                                .contentData(Map.of("question_groups", List.of(Map.of(
+                                        "group_id", "reading-1",
+                                        "content_html", "短い文章です。",
+                                        "questions", List.of(Map.of(
+                                                "question_id", "ja_001",
+                                                "type", "SINGLE_CHOICE",
+                                                "question_text", "正しいものはどれですか。",
+                                                "options", List.of(Map.of("id", "A", "text", "答え"), Map.of("id", "B", "text", "別の答え")),
+                                                "correct_answer", "A"))))))
+                                .build()))
+                        .build()))
+                .build();
+        when(examRepository.save(any(Exam.class))).thenAnswer(invocation -> {
+            Exam exam = invocation.getArgument(0);
+            exam.setId(42);
+            assertThat(exam.getType()).isEqualTo("LANGUAGE_PRACTICE");
+            assertThat(exam.getExamLanguage()).isEqualTo("ja-JP");
+            assertThat(exam.getIsPublished()).isTrue();
+            assertThat(exam.getDurationMinutes()).isEqualTo(25);
+            return exam;
+        });
+        when(sectionRepository.save(any(ExamSection.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(examService.createExam(request)).isEqualTo(42);
+        verify(partRepository).save(any());
+    }
+
+    @Test
+    void createNltvDraftUsesThreeSectionDurationTotal() throws Exception {
+        byte[] bytes;
+        try (InputStream input = getClass().getResourceAsStream(
+                "/datasets/official-source/nltv-sample-test-1.xlsx")) {
+            bytes = input.readAllBytes();
+        }
+        String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        try (var workbook = org.apache.poi.ss.usermodel.WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
+            request = new com.multilingo.backend.modules.exam.service.NltvExcelV2ExamParser()
+                    .parse(workbook, hash).request();
+        }
+        request.setPublished(false);
+        when(examRepository.save(any(Exam.class))).thenAnswer(invocation -> {
+            Exam exam = invocation.getArgument(0);
+            exam.setId(43);
+            assertThat(exam.getType()).isEqualTo("NLTV");
+            assertThat(exam.getExamLanguage()).isEqualTo("vi");
+            assertThat(exam.getDurationMinutes()).isEqualTo(180);
+            return exam;
+        });
+        when(sectionRepository.save(any(ExamSection.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(examService.createExamWithCode(request, "NLTV-SAMPLE-T1-V1")).isEqualTo(43);
+        verify(sectionRepository, times(3)).save(any(ExamSection.class));
     }
 
     @Test

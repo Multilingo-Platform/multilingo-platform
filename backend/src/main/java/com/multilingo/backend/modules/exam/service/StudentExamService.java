@@ -7,4 +7,9 @@ import java.util.List;
 
 public interface StudentExamService {
     PageResponse<StudentExamSummaryResponse> searchExams(String title, List<String> types, int page, int size, String sortParam);
+
+    default PageResponse<StudentExamSummaryResponse> searchExams(
+            String title, List<String> types, int page, int size, String sortParam, String examLanguage) {
+        return searchExams(title, types, page, size, sortParam);
+    }
 }

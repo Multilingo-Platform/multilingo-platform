@@ -19,7 +19,8 @@ import java.util.Set;
 public class DefaultExamDatasetRunner implements ApplicationRunner {
     private static final Map<String, String> APPROVED_BUNDLE_PATHS = Map.of(
             "cambridge-ielts-20-test-1", "datasets/exams/cambridge-ielts-20-test-1.v2.json",
-            "ets-2024-test-1", "datasets/exams/ets-2024-test-1.v2.json");
+            "ets-2024-test-1", "datasets/exams/ets-2024-test-1.v2.json",
+            "nltv-sample-test-1", "datasets/exams/nltv-sample-test-1.v2.json");
 
     private final DefaultExamDatasetService service;
     private final boolean publishApproved;

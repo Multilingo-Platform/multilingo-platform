@@ -47,6 +47,7 @@ class LearnerExamStructureServiceTest {
                 .code("IELTS-1")
                 .title("IELTS Mock")
                 .type("IELTS")
+                .examLanguage("en")
                 .durationMinutes(120)
                 .isPublished(true)
                 .isVipOnly(true)
@@ -77,6 +78,7 @@ class LearnerExamStructureServiceTest {
         assertThat(response.getCode()).isEqualTo("IELTS-1");
         assertThat(response.getTitle()).isEqualTo("IELTS Mock");
         assertThat(response.getType()).isEqualTo("IELTS");
+        assertThat(response.getExamLanguage()).isEqualTo("en");
         assertThat(response.getDurationMinutes()).isEqualTo(120);
 
         // Then: Sections sorted by orderIndex asc, tie-break by id asc

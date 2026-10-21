@@ -24,7 +24,7 @@ const workspace: WorkspaceResponse = {
   attempt_id: 42, status: 'IN_PROGRESS', test_scope: 'FULL_EXAM', test_mode: 'PRACTICE',
   startTime: '2026-10-20T07:00:00Z', serverTime: '2026-10-20T07:00:00Z', deadline: null,
   gracePeriodSeconds: 15, lockedSections: [], version: 7, saved_answers: [], serverTimeOffset: 0,
-  exam_snapshot: { exam_id: 1, code: 'READING', title: 'Reading', type: 'IELTS', sections: [{
+  exam_snapshot: { exam_id: 1, code: 'READING', title: 'Reading', type: 'IELTS', examLanguage: 'en', sections: [{
     id: 2, skill_type: 'READING', title: 'Reading', duration_minutes: 60,
     parts: [{ id: 7, question_groups: [{ group_id: 'g1', instruction: null, context_html: 'The elms grow beside the river.', shared_audio: null, shared_media: null, questions: [] }], questions: [] }],
   }] },

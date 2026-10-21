@@ -11,6 +11,7 @@ const FillInBlankRenderer: React.FC<Props> = ({ value, onChange, questionText })
     <p>{questionText}</p>
     <input
       type="text"
+      aria-label={questionText || 'Nhập đáp án'}
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       style={{ width: '200px', padding: '4px 8px', border: '1px solid #ccc', borderRadius: '4px' }}

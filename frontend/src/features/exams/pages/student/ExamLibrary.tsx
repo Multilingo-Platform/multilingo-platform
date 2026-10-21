@@ -7,8 +7,14 @@ import axiosClient from '../../../../core/api/axiosClient';
 const CERTIFICATES = [
   { value: 'IELTS', labelKey: 'library.filters.cert.ielts', labelDefault: 'IELTS' },
   { value: 'TOEIC', labelKey: 'library.filters.cert.toeic', labelDefault: 'TOEIC' },
-  { value: 'NLTV', labelKey: 'library.filters.cert.nltv', labelDefault: 'Năng Lực Tiếng Việt (NLTV)' }
+  { value: 'NLTV', labelKey: 'library.filters.cert.nltv', labelDefault: 'Năng Lực Tiếng Việt (NLTV)' },
+  { value: 'LANGUAGE_PRACTICE', labelKey: 'library.filters.cert.languagePractice', labelDefault: 'Luyện ngôn ngữ' },
 ];
+
+const LEARNING_LANGUAGES = [
+  ['en', 'English'], ['vi', 'Tiếng Việt'], ['ko', '한국어'], ['zh', '中文'],
+  ['ja', '日本語'], ['fr', 'Français'], ['de', 'Deutsch'], ['es', 'Español'],
+] as const;
 
 const SKILLS_MAP: Record<string, any[]> = {
   'IELTS': [
@@ -57,6 +63,7 @@ const ExamLibrary = () => {
   const [selectedCert, setSelectedCert] = useState<string>('');
   const [selectedSkill, setSelectedSkill] = useState<string>('');
   const [selectedPart, setSelectedPart] = useState<string>('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -67,16 +74,19 @@ const ExamLibrary = () => {
       setLoading(true);
       const params: any = { page: currentPage, size: 12, sort: sortParam };
       if (searchTerm) params.search = searchTerm;
+      if (selectedLanguage) params.examLanguage = selectedLanguage;
       let typesToFetch: string[] = [];
 
       if (selectedCert) {
-        if (selectedSkill) {
+        if (selectedCert === 'LANGUAGE_PRACTICE') {
+          typesToFetch = ['LANGUAGE_PRACTICE'];
+        } else if (selectedSkill) {
           const skillObj = SKILLS_MAP[selectedCert].find(s => s.value === selectedSkill);
           if (selectedPart) {
             if (selectedCert === 'TOEIC' && selectedSkill === 'WRITING') {
               typesToFetch = [selectedPart];
             } else if (selectedCert === 'NLTV') {
-              typesToFetch = [selectedPart];
+              typesToFetch = ['NLTV', selectedPart];
             } else {
               typesToFetch = [`${selectedCert}_${selectedPart}`];
             }
@@ -90,7 +100,7 @@ const ExamLibrary = () => {
                 typesToFetch = [`TOEIC_${selectedSkill}`, ...skillObj.parts.map((p: any) => `TOEIC_${p.id}`)];
               }
             } else if (selectedCert === 'NLTV') {
-              typesToFetch = [`NLTV_${selectedSkill}`, ...skillObj.parts.map((p: any) => p.id)];
+              typesToFetch = ['NLTV', `NLTV_${selectedSkill}`, ...skillObj.parts.map((p: any) => p.id)];
             }
           }
         } else {
@@ -99,7 +109,7 @@ const ExamLibrary = () => {
           } else if (selectedCert === 'TOEIC') {
             typesToFetch = ['TOEIC_LR', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2'];
           } else if (selectedCert === 'NLTV') {
-            typesToFetch = ['NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_READING', 'NLTV_WRITING', 'NLTV_L', 'NLTV_R', 'NLTV_W'];
+            typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_READING', 'NLTV_WRITING', 'NLTV_L', 'NLTV_R', 'NLTV_W'];
           }
         }
       }
@@ -123,7 +133,7 @@ const ExamLibrary = () => {
 
   useEffect(() => {
     fetchExams(0);
-  }, [selectedCert, selectedSkill, selectedPart, sortParam]);
+  }, [selectedCert, selectedSkill, selectedPart, selectedLanguage, sortParam]);
 
   const handleApplyFilter = () => {
     setPage(0);
@@ -189,7 +199,7 @@ const ExamLibrary = () => {
               </select>
             </div>
 
-            {selectedCert && (
+            {selectedCert && selectedCert !== 'LANGUAGE_PRACTICE' && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
                   {t('library.filters.skill_title', '2. CHỌN KỸ NĂNG')}
@@ -203,7 +213,7 @@ const ExamLibrary = () => {
               </div>
             )}
 
-            {selectedCert && selectedSkill && (
+            {selectedCert && selectedCert !== 'LANGUAGE_PRACTICE' && selectedSkill && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
                   {t('library.filters.part_title', '3. CHỌN PHẦN THI (PART)')}
@@ -217,11 +227,23 @@ const ExamLibrary = () => {
               </div>
             )}
 
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
+                {t('library.filters.language', 'NGÔN NGỮ ĐỀ')}
+              </label>
+              <select aria-label={t('library.filters.language', 'Ngôn ngữ đề')} className="input-field" value={selectedLanguage}
+                onChange={event => setSelectedLanguage(event.target.value)} style={{ borderRadius: 'var(--radius-md)', width: '100%', padding: '0.75rem' }}>
+                <option value="">{t('library.filters.allLanguages', 'Tất cả ngôn ngữ')}</option>
+                {LEARNING_LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+              </select>
+            </div>
+
             <button className="btn btn-outline" onClick={() => {
               setSearchTerm('');
               setSelectedCert('');
               setSelectedSkill('');
               setSelectedPart('');
+              setSelectedLanguage('');
               setPage(0);
             }} style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: 'var(--radius-full)', color: 'var(--text-secondary)', borderColor: 'var(--border-light)' }}>
               {t('library.filters.clear', 'Xoá bộ lọc')}
@@ -250,7 +272,8 @@ const ExamLibrary = () => {
               {exams.map((exam) => {
                 const isIelts = exam.type.startsWith('IELTS');
                 const isToeic = exam.type.startsWith('TOEIC');
-                const displayType = isIelts ? 'IELTS' : isToeic ? 'TOEIC' : 'NLTV';
+                const isLanguagePractice = exam.type === 'LANGUAGE_PRACTICE';
+                const displayType = isIelts ? 'IELTS' : isToeic ? 'TOEIC' : isLanguagePractice ? 'LANGUAGE' : exam.type.startsWith('NLTV') ? 'NLTV' : 'EXAM';
                 
                 return (
                   <div
@@ -277,7 +300,7 @@ const ExamLibrary = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: exam.thumbnailUrl ? `url(${exam.thumbnailUrl}) center/cover no-repeat` : (exam.type.startsWith('IELTS') ? 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)' : exam.type.startsWith('TOEIC') ? 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)')
+                  background: exam.thumbnailUrl ? `url(${exam.thumbnailUrl}) center/cover no-repeat` : (exam.type.startsWith('IELTS') ? 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)' : exam.type.startsWith('TOEIC') ? 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' : isLanguagePractice ? 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' : exam.type.startsWith('NLTV') ? 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)' : 'linear-gradient(135deg, #64748b 0%, #334155 100%)')
                 }}>
                   {!exam.thumbnailUrl && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Cg/%3E%3C/svg%3E")' }}></div>}
                   {!exam.thumbnailUrl && <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'white', letterSpacing: '2px', zIndex: 1, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>{displayType}</h2>}

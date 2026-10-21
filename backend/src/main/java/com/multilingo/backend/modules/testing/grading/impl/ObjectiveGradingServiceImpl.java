@@ -5,6 +5,7 @@ import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.grading.GradingVerdict;
 import com.multilingo.backend.modules.testing.grading.IeltsAnswerGroupEvaluator;
+import com.multilingo.backend.modules.testing.grading.AnswerTextNormalizer;
 import com.multilingo.backend.modules.testing.grading.ObjectiveGradingService;
 import com.multilingo.backend.modules.testing.grading.dto.*;
 import org.springframework.stereotype.Service;
@@ -192,18 +193,19 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
 
     private QuestionGradingResult gradeFillIn(
             String questionId, GradingKey key, Object rawAnswer) {
-        String userAns = normalize(rawAnswer);
+        boolean nfc = key.isNormalizeNfc();
+        String userAns = normalize(rawAnswer, nfc);
         if (userAns == null) return QuestionGradingResult.blank(questionId);
 
         Object correctObj = key.getCorrect();
         if (correctObj instanceof Collection<?> coll) {
             for (Object opt : coll) {
-                if (userAns.equals(normalize(opt))) {
+                if (userAns.equals(normalize(opt, nfc))) {
                     return QuestionGradingResult.correct(questionId);
                 }
             }
         } else if (correctObj != null) {
-            if (userAns.equals(normalize(correctObj))) {
+            if (userAns.equals(normalize(correctObj, nfc))) {
                 return QuestionGradingResult.correct(questionId);
             }
         }
@@ -211,7 +213,7 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
         List<String> alternates = key.getAlternates();
         if (alternates != null) {
             for (String alt : alternates) {
-                if (userAns.equals(normalize(alt))) {
+                if (userAns.equals(normalize(alt, nfc))) {
                     return QuestionGradingResult.correct(questionId);
                 }
             }
@@ -338,9 +340,11 @@ public class ObjectiveGradingServiceImpl implements ObjectiveGradingService {
 
     /** Chuẩn hóa chung: trim + toLowerCase(Locale.ROOT) + collapse spaces. Trả null nếu blank. */
     private String normalize(Object raw) {
-        if (raw == null) return null;
-        String s = raw.toString().trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
-        return s.isEmpty() ? null : s;
+        return normalize(raw, false);
+    }
+
+    private String normalize(Object raw, boolean nfc) {
+        return AnswerTextNormalizer.normalize(raw == null ? null : raw.toString(), nfc);
     }
 
     /** Chuẩn hóa TRUE_FALSE_NOT_GIVEN: "not given" → "not_given", hỗ trợ viết tắt t, f, ng. */

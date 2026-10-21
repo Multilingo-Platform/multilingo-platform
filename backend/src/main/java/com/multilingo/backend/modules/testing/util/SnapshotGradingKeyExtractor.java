@@ -121,6 +121,11 @@ public final class SnapshotGradingKeyExtractor {
             }
         }
 
+        boolean normalizeNfc = "TV3_LANG_V1".equals(snapshot.get("languagePolicyVersion"));
+        if (normalizeNfc) {
+            result.values().stream().map(PartGradingKey::getAnswers).filter(Objects::nonNull)
+                    .forEach(keys -> keys.values().forEach(key -> key.setNormalizeNfc(true)));
+        }
         return result;
     }
 
