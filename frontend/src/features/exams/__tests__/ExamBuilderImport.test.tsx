@@ -29,7 +29,7 @@ describe('server-backed Excel import', () => {
     const onSave = vi.fn();
     const { container } = render(<ExamBuilder initialData={null} onSave={onSave} onCancel={vi.fn()} />);
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
-    fireEvent.click(await screen.findByRole('button', { name: /lưu nháp/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(JSON.parse(onSave.mock.calls[0][0]).exam_type).toBe('IELTS_ACADEMIC');
     expect(axiosClient.post).toHaveBeenCalledWith('/v1/admin/exams/import/preview', expect.any(FormData), expect.any(Object));
@@ -51,7 +51,7 @@ describe('server-backed Excel import', () => {
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [new File(['bytes'], 'ETS.xlsx')] } });
     expect(await screen.findByRole('alert')).toHaveTextContent('K102');
     expect(screen.getByRole('alert')).toHaveTextContent('q_101');
-    fireEvent.click(screen.getByRole('button', { name: /lưu nháp/i }));
+    fireEvent.click(screen.getByRole('button', { name: /lưu đề thi/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(JSON.parse(onSave.mock.calls[0][0]).is_published).toBe(false);
   });
@@ -75,6 +75,90 @@ describe('server-backed Excel import', () => {
     const { container } = render(<ExamBuilder onSave={vi.fn()} onCancel={vi.fn()} />);
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
     await waitFor(() => expect(axiosClient.post).toHaveBeenCalledWith('/v1/admin/exams/import/preview', expect.any(FormData), expect.any(Object)));
-    expect(screen.queryByRole('button', { name: /lưu nháp/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /lưu đề thi/i })).not.toBeInTheDocument();
+  });
+  it('correctly imports TOEIC_WRITING Excel without calling backend preview and enforces fixed 8 questions', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const info = workbook.addWorksheet('Thông Tin Đề Thi');
+    info.addRow(['Tên đề thi', 'TOEIC Writing Test 11']);
+    info.addRow(['Loại chứng chỉ', 'TOEIC Writing']);
+    info.addRow(['Mã loại chứng chỉ', 'TOEIC_WRITING']);
+    const sheet = workbook.addWorksheet('Exam Template');
+    sheet.addRow([
+      'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+      'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+      'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G', 'Lựa chọn H',
+      'Đáp án đúng', 'Giải thích', 'File âm thanh/hình ảnh phần', 'Đính kèm chung nhóm', 'Đính kèm riêng câu'
+    ]);
+    for (let i = 1; i <= 5; i++) {
+      sheet.addRow([
+        'Part 1: Write a Sentence Based on a Picture', 'Questions 1-5', `Group ${i}`, 'WRITING_ESSAY',
+        '', '', `Question ${i}: CONTRACT / PEN`,
+        '', '', '', '', '', '', '', '',
+        '', '', '', '', `/images/toeic_writing_11/part1_q${i}.png`
+      ]);
+    }
+    for (let i = 6; i <= 7; i++) {
+      sheet.addRow([
+        'Part 2: Respond to a Written Request', 'Questions 6-7', `Group ${i - 5}`, 'WRITING_ESSAY',
+        '', '', `Question ${i}: Respond to email`,
+        '', '', '', '', '', '', '', '',
+        '', '', '', '', `/images/toeic_writing_11/part2_q${i}.png`
+      ]);
+    }
+    sheet.addRow([
+      'Part 3: Write an Opinion Essay', 'Question 8', 'Group 1', 'WRITING_ESSAY',
+      '', '', 'Question 8: Do you agree or disagree?',
+      '', '', '', '', '', '', '', '',
+      '', '', '', '', ''
+    ]);
+
+    const bytes = await workbook.xlsx.writeBuffer();
+    const file = new File([bytes], 'TOEIC_Writing_Test_11.xlsx');
+    Object.defineProperty(file, 'arrayBuffer', { value: async () => bytes });
+    const onSave = vi.fn();
+    const { container } = render(<ExamBuilder initialData={null} onSave={onSave} onCancel={vi.fn()} />);
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    expect(axiosClient.post).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const saved = JSON.parse(onSave.mock.calls[0][0]);
+    expect(saved.exam_type).toBe('TOEIC_WRITING');
+    expect(saved.exam_title).toBe('TOEIC Writing Test 11');
+    expect(saved.parts).toHaveLength(3);
+    expect(saved.parts[0].question_groups).toHaveLength(5);
+    expect(saved.parts[1].question_groups).toHaveLength(2);
+    expect(saved.parts[2].question_groups).toHaveLength(1);
+    expect(saved.parts[0].question_groups[0].questions[0].question_text).toBe('Question 1: CONTRACT / PEN');
+  });
+
+  it('blocks saving TOEIC_WRITING if question structure is incomplete', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const info = workbook.addWorksheet('Thông Tin Đề Thi');
+    info.addRow(['Tên đề thi', 'Incomplete TOEIC Writing']);
+    info.addRow(['Loại chứng chỉ', 'TOEIC Writing']);
+    info.addRow(['Mã loại chứng chỉ', 'TOEIC_WRITING']);
+    const sheet = workbook.addWorksheet('Exam Template');
+    sheet.addRow([
+      'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+      'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+      'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G', 'Lựa chọn H',
+      'Đáp án đúng', 'Giải thích', 'File âm thanh/hình ảnh phần', 'Đính kèm chung nhóm', 'Đính kèm riêng câu'
+    ]);
+    sheet.addRow([
+      'Part 1: Write a Sentence Based on a Picture', 'Questions 1-5', 'Group 1', 'WRITING_ESSAY',
+      '', '', 'Question 1: CONTRACT / PEN',
+      '', '', '', '', '', '', '', '',
+      '', '', '', '', ''
+    ]);
+    const bytes = await workbook.xlsx.writeBuffer();
+    const file = new File([bytes], 'Incomplete.xlsx');
+    Object.defineProperty(file, 'arrayBuffer', { value: async () => bytes });
+    const onSave = vi.fn();
+    const { container } = render(<ExamBuilder initialData={null} onSave={onSave} onCancel={vi.fn()} />);
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
+    expect(onSave).not.toHaveBeenCalled();
   });
 });
+

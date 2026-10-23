@@ -35,7 +35,7 @@ describe('builder canonical persistence boundary', () => {
     fireEvent.change(await screen.findByDisplayValue('Second'), { target: { value: 'Second edited' } });
     fireEvent.click(screen.getAllByTitle('Chọn làm đáp án đúng')[2]);
     fireEvent.change(screen.getByDisplayValue('Old explanation'), { target: { value: 'Giải thích cập nhật' } });
-    const save = screen.getByRole('button', { name: /lưu nháp/i });
+    const save = screen.getByRole('button', { name: /lưu đề thi/i });
     fireEvent.click(save); fireEvent.click(save);
     await screen.findByRole('link', { name: 'Mở lại' });
     expect(axiosClient.put).toHaveBeenCalledTimes(1);

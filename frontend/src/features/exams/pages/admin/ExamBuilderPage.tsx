@@ -41,13 +41,16 @@ const ExamBuilderPage = () => {
       data.parts.forEach((p: any, index: number) => {
           let skill = "MIXED";
           const lowerTitle = (p.part_title || '').toLowerCase();
-          const isToeic = (data.exam_type || '').includes('TOEIC');
+          const isToeicLr = ((data.exam_type || '').includes('TOEIC') || (data.exam_type || '').includes('LR')) && !(data.exam_type || '').includes('WRITING');
+          const isWritingSkill = (data.exam_type || '').includes('WRITING') || lowerTitle.includes('writ') || lowerTitle.includes('viết');
 
-          if (
+          if (isWritingSkill) {
+            skill = "WRITING";
+          } else if (
             lowerTitle.includes('listen') || 
             lowerTitle.includes('nghe') ||
             Boolean(p.shared_audio?.url) ||
-            (/part\s*[1-4]\b/i.test(lowerTitle) && (isToeic || !lowerTitle.includes('task'))) ||
+            (/part\s*[1-4]\b/i.test(lowerTitle) && (isToeicLr || !lowerTitle.includes('task'))) ||
             lowerTitle.includes('photographs') ||
             lowerTitle.includes('question-response') ||
             lowerTitle.includes('conversations') ||
@@ -57,21 +60,19 @@ const ExamBuilderPage = () => {
           } else if (
             lowerTitle.includes('read') || 
             lowerTitle.includes('đọc') ||
-            (/part\s*[5-7]\b/i.test(lowerTitle) && isToeic) ||
+            (/part\s*[5-7]\b/i.test(lowerTitle) && isToeicLr) ||
             lowerTitle.includes('incomplete sentences') ||
             lowerTitle.includes('text completion') ||
             lowerTitle.includes('reading comprehension')
           ) {
             skill = "READING";
-          } else if (lowerTitle.includes('writ') || lowerTitle.includes('viết')) {
-            skill = "WRITING";
           } else if (lowerTitle.includes('speak') || lowerTitle.includes('nói')) {
             skill = "SPEAKING";
           }
           
           if (!sectionsMap[skill]) {
               let duration = 60;
-              if (isToeic) {
+              if (isToeicLr) {
                 if (skill === 'LISTENING') duration = 45;
                 else if (skill === 'READING') duration = 75;
               }
@@ -94,7 +95,7 @@ const ExamBuilderPage = () => {
           });
       });
 
-      const payload = ['TOEIC_LR', 'IELTS_ACADEMIC'].includes(data.exam_type)
+      const payload = ['TOEIC_LR', 'TOEIC_WRITING', 'IELTS_ACADEMIC'].includes(data.exam_type)
         ? toOfficialExamRequest(data.exam_title, data.exam_type, data.parts, data.is_published !== false)
         : {
         title: data.exam_title,
