@@ -54,7 +54,7 @@ export const AuditLogPage = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Nhật Ký Kiểm Toán An Ninh (UC15.4 / A_Audit)
+          Nhật Ký Kiểm Toán An Ninh
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           Theo dõi mọi thao tác nhạy cảm của Admin kèm bản chụp JSON dữ liệu cũ và mới để phục vụ điều tra an ninh và đối soát.

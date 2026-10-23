@@ -9,8 +9,13 @@ import {
   Laptop,
   Calendar,
   AlertTriangle,
+  Smartphone,
+  Globe,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
+import { parseUserAgent, formatIpAddress } from '../utils/sessionFormatters';
 
 interface UserDetailDrawerProps {
   userId: number | null;
@@ -34,7 +39,7 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
   if (!isOpen || !userId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
+    <div className="fixed inset-0 z-[1050] overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
       <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-200">
         {/* Header */}
         <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
@@ -163,37 +168,75 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
                   Lịch Sử 10 Phiên Đăng Nhập Gần Nhất
                 </h5>
                 {user.recentLoginHistory?.length > 0 ? (
-                  <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 text-xs">
-                    {user.recentLoginHistory.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-3 hover:bg-gray-50 transition-colors flex items-center justify-between"
-                      >
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-gray-800 flex items-center gap-1.5">
-                            <span>{item.ipAddress || 'Không rõ IP'}</span>
-                            <span
-                              className={`text-[9px] px-1.5 py-0.2 rounded font-medium ${
-                                item.status === 'SUCCESS'
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-red-50 text-red-700'
+                  <div className="space-y-2 text-xs">
+                    {user.recentLoginHistory.map((item) => {
+                      const device = parseUserAgent(item.deviceInfo);
+                      const ip = formatIpAddress(item.ipAddress);
+                      const isSuccess = item.status === 'SUCCESS';
+
+                      return (
+                        <div
+                          key={item.id}
+                          title={`Địa chỉ IP: ${item.ipAddress || 'Không rõ'}\nUser-Agent: ${item.deviceInfo || 'Không rõ'}`}
+                          className="p-3 bg-white hover:bg-gray-50/80 transition-all border border-gray-200/80 rounded-xl flex items-center justify-between gap-3 shadow-2xs group"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                device.deviceType === 'mobile'
+                                  ? 'bg-purple-50 text-purple-600'
+                                  : 'bg-blue-50 text-blue-600'
                               }`}
                             >
-                              {item.status}
-                            </span>
+                              {device.deviceType === 'mobile' ? (
+                                <Smartphone size={16} />
+                              ) : (
+                                <Laptop size={16} />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-gray-900 truncate text-xs">
+                                {device.friendlyName}
+                              </p>
+                              <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-0.5">
+                                <Globe size={11} className="text-gray-400 shrink-0" />
+                                <span className="truncate">{ip.displayIp}</span>
+                              </div>
+                            </div>
                           </div>
-                          <p className="text-[11px] text-gray-500">
-                            {item.deviceInfo || 'Thiết bị mặc định'}
-                          </p>
+
+                          <div className="text-right shrink-0">
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                isSuccess
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                                  : 'bg-rose-50 text-rose-700 border-rose-200/60'
+                              }`}
+                            >
+                              {isSuccess ? (
+                                <>
+                                  <CheckCircle2 size={10} className="text-emerald-600" />
+                                  <span>Thành công</span>
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle size={10} className="text-rose-600" />
+                                  <span>Thất bại</span>
+                                </>
+                              )}
+                            </span>
+                            <p className="text-[10px] text-gray-400 mt-1">
+                              {new Date(item.loginTime).toLocaleDateString('vi-VN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                day: '2-digit',
+                                month: '2-digit',
+                              })}
+                            </p>
+                          </div>
                         </div>
-                        <span className="text-[11px] text-gray-400">
-                          {new Date(item.loginTime).toLocaleDateString('vi-VN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-gray-400 italic">

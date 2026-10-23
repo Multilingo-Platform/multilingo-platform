@@ -103,7 +103,7 @@ export const TransactionReconciliationPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Đối Soát Giao Dịch VNPAY & Báo Cáo Tài Chính (UC16.2 & UC16.3)
+            Đối Soát Giao Dịch VNPAY & Báo Cáo Tài Chính
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Tra cứu đơn hàng, đối soát mã giao dịch cổng VNPAY, theo dõi trạng thái thanh toán và xuất file Excel định kỳ.
