@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS test_attempts (
     updated_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 
+-- Ensure columns exist if table was created in V1
+ALTER TABLE test_attempts ADD COLUMN IF NOT EXISTS deadline TIMESTAMPTZ;
+ALTER TABLE test_attempts ADD COLUMN IF NOT EXISTS exam_snapshot JSONB;
+ALTER TABLE test_attempts ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1;
+
 COMMENT ON COLUMN test_attempts.exam_snapshot IS 'Server-side snapshot of exam at attempt creation. Immutable after create — edits to source exam do NOT affect this snapshot.';
 COMMENT ON COLUMN test_attempts.deadline IS 'NULL for PRACTICE mode. For MOCK_TEST: startTime + sum of relevant section/part durations.';
 COMMENT ON COLUMN test_attempts.version IS 'Reserved for optimistic locking in Sprint 03. Default 1, incremented on answer save.';
@@ -39,6 +44,17 @@ CREATE TABLE IF NOT EXISTS attempt_answers (
     updated_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     UNIQUE (attempt_id, part_id)
 );
+
+ALTER TABLE attempt_answers ALTER COLUMN user_answers SET DEFAULT '{}';
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'attempt_answers_attempt_id_part_id_key'
+    ) THEN
+        ALTER TABLE attempt_answers ADD CONSTRAINT attempt_answers_attempt_id_part_id_key UNIQUE (attempt_id, part_id);
+    END IF;
+END $$;
 
 COMMENT ON COLUMN attempt_answers.user_answers IS 'Map of questionId -> answer value. Supports MCQ, fill-in, matching, essay types.';
 COMMENT ON COLUMN attempt_answers.is_correct_flags IS 'Map of questionId -> boolean correct flag. Populated after grading.';
