@@ -349,6 +349,12 @@ describe('ExamBuilder utils', () => {
       expect(getPartBounds('Kỹ năng Viết - Phần 3', 'NLTV')).toEqual({ start: 1, end: 1 });
     });
 
+    it('getPartBounds returns accurate bounds for TOEIC Writing parts', () => {
+      expect(getPartBounds('Part 1: Write a Sentence Based on a Picture', 'TOEIC_WRITING')).toEqual({ start: 1, end: 5 });
+      expect(getPartBounds('Part 2: Respond to a Written Request', 'TOEIC_WRITING')).toEqual({ start: 6, end: 7 });
+      expect(getPartBounds('Part 3: Write an Opinion Essay', 'TOEIC_WRITING')).toEqual({ start: 8, end: 8 });
+    });
+
     it('getNltvTemplateParts generates standard 9 parts with correct group and question structures', () => {
       const parts = getNltvTemplateParts();
       expect(parts).toHaveLength(9);

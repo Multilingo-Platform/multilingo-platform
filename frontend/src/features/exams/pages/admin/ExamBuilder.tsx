@@ -463,6 +463,12 @@ export const getPartBounds = (partTitle: string, examType: string) => {
     if (partTitle.includes('Part 6')) return { start: 131, end: 146 };
     if (partTitle.includes('Part 7')) return { start: 147, end: 200 };
   }
+  if (examType.includes('TOEIC_WRITING') || examType.startsWith('TW_')) {
+    const lower = (partTitle || '').toLowerCase();
+    if (lower.includes('part 1') || lower.includes('phần 1')) return { start: 1, end: 5 };
+    if (lower.includes('part 2') || lower.includes('phần 2')) return { start: 6, end: 7 };
+    if (lower.includes('part 3') || lower.includes('phần 3')) return { start: 8, end: 8 };
+  }
   if (examType.startsWith('NLTV')) {
     const lower = (partTitle || '').toLowerCase();
     if (lower.includes('nghe - phần 1') || lower.includes('nghe phần 1') || lower.includes('listening part 1')) return { start: 1, end: 15 };
@@ -1034,10 +1040,11 @@ export const getMaxGroupsForPart = (partTitle: string, examType: string) => {
     if (partTitle.includes('Part 6')) return 4;
     if (partTitle.includes('Part 7')) return 15;
   }
-  if (examType.startsWith('TOEIC_WRITING')) {
-    if (partTitle.includes('Part 1')) return 5;
-    if (partTitle.includes('Part 2')) return 2;
-    if (partTitle.includes('Part 3')) return 1;
+  if (examType.startsWith('TOEIC_WRITING') || examType.startsWith('TW_')) {
+    const lower = (partTitle || '').toLowerCase();
+    if (lower.includes('part 1') || lower.includes('phần 1') || lower.includes('picture')) return 5;
+    if (lower.includes('part 2') || lower.includes('phần 2') || lower.includes('request') || lower.includes('email')) return 2;
+    if (lower.includes('part 3') || lower.includes('phần 3') || lower.includes('essay') || lower.includes('opinion')) return 1;
   }
   if (examType.startsWith('NLTV')) {
     const lower = (partTitle || '').toLowerCase();
@@ -1071,6 +1078,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   const [examTitle, setExamTitle] = useState('Đề thi Mới');
   const [examType, setExamType] = useState('IELTS_ACADEMIC');
   const [examLanguage, setExamLanguage] = useState('en');
+  const isToeicWriting = examType.includes('TOEIC_WRITING') || examType.startsWith('TW_');
   const [isPublished, setIsPublished] = useState(true);
   const [parts, setParts] = useState<ExamPart[]>([]);
   const [activePartIndex, setActivePartIndex] = useState(0);
@@ -1248,6 +1256,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       case 'TOEIC_P7': newPart = { part_title: 'Part 7: Reading Comprehension', instruction: 'Questions 147-200', question_groups: [] }; break;
       case 'TW_P1': newPart = { part_title: 'Part 1: Write a Sentence Based on a Picture', instruction: 'Questions 1-5', question_groups: createToeicWritPart1Groups() }; break;
       case 'TW_P2': newPart = { part_title: 'Part 2: Respond to a Written Request', instruction: 'Questions 6-7', question_groups: createToeicWritPart2Groups() }; break;
+      case 'TW_P3': newPart = { part_title: 'Part 3: Write an Opinion Essay', instruction: 'Question 8', question_groups: [
+        { group_id: generateId('group'), instruction: 'Write an opinion essay with a minimum of 300 words.', content_html: '', questions: [{ question_id: 'q_tw_008', type: 'WRITING_ESSAY', question_text: 'Do you agree or disagree with the following statement?', metadata: { correct_answer: '', explanation: '' } }] }
+      ] }; break;
       case 'NLTV_L1': newPart = getNltvTemplateParts(generateId)[0]; break;
       case 'NLTV_L2': newPart = getNltvTemplateParts(generateId)[1]; break;
       case 'NLTV_L3': newPart = getNltvTemplateParts(generateId)[2]; break;
@@ -1302,6 +1313,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           ...createToeicGroups(155, 3, 3, 4),
           ...createToeicGroups(164, 3, 4, 4),
           ...createToeicGroups(176, 5, 5, 4)
+        ] });
+        break;
+      case 'TOEIC_WRITING':
+        newPartsToAdd.push({ part_title: 'Part 1: Write a Sentence Based on a Picture', instruction: 'Questions 1-5', question_groups: createToeicWritPart1Groups() });
+        newPartsToAdd.push({ part_title: 'Part 2: Respond to a Written Request', instruction: 'Questions 6-7', question_groups: createToeicWritPart2Groups() });
+        newPartsToAdd.push({ part_title: 'Part 3: Write an Opinion Essay', instruction: 'Question 8', question_groups: [
+          { group_id: generateId('group'), instruction: 'Write an opinion essay with a minimum of 300 words.', content_html: '', questions: [{ question_id: 'q_tw_008', type: 'WRITING_ESSAY', question_text: 'Do you agree or disagree with the following statement?', metadata: { correct_answer: '', explanation: '' } }] }
         ] });
         break;
       case 'NLTV_LISTENING': {
@@ -1791,7 +1809,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           const optH = getOptText(rawOpts[7]);
           
           let correct = '';
-          if (q.metadata) {
+          const isEssayQ = qType === 'WRITING_ESSAY' || qType === 'ESSAY';
+          if (!isEssayQ && q.metadata) {
             if (q.metadata.correct_option_index !== undefined && q.metadata.correct_option_index !== null) {
               correct = String.fromCharCode(65 + q.metadata.correct_option_index);
             } else if (q.metadata.correct_option_indices !== undefined && Array.isArray(q.metadata.correct_option_indices) && q.metadata.correct_option_indices.length > 0) {
@@ -1835,7 +1854,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             question: qText,
             optA: optA, optB: optB, optC: optC, optD: optD, optE: optE, optF: optF, optG: optG, optH: optH,
             correct: correct,
-            explanation: q.metadata?.explanation || '',
+            explanation: isEssayQ ? '' : (q.metadata?.explanation || ''),
             partMedia: part.shared_audio?.url || '',
             groupMedia: (group.shared_images && group.shared_images.length > 0)
               ? group.shared_images.join(', ')
@@ -1902,7 +1921,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     guideSheet.addRow({ item: '1. GOM NHÓM BÀI ĐỌC/NGHE', desc: 'Các dòng (câu hỏi) có CÙNG tên ở cột "Phần (Part)" và CÙNG tên ở cột "Nhóm (Group)" sẽ tự động được gộp chung vào 1 bài đọc/nghe duy nhất.\n-> Bạn chỉ cần dán đoạn văn/bài đọc vào cột "Nội dung nhóm" của 1 dòng bất kỳ trong nhóm (hoặc dán cho tất cả các dòng thuộc nhóm đó đều được, hệ thống sẽ không bị lặp).' });
     guideSheet.addRow({ item: '2. CÂU TRẮC NGHIỆM & NỐI (CỘT H ĐẾN O)', desc: 'Áp dụng cho MULTIPLE_CHOICE, MULTIPLE_CHOICE_MULTI, MATCHING_SENTENCE_ENDINGS, MATCHING_FEATURES...\n-> Điền nội dung vào cột Lựa chọn A đến H (Cột H đến O tương ứng optA -> optH).\n-> Trắc nghiệm 4 lựa chọn: điền A-D (bỏ trống E-H).\n-> Trắc nghiệm 2 đáp án (A-E): điền A-E.\n-> Matching sentence endings: điền A-G hoặc A-H.\n-> Cột "Đáp án đúng" (Cột P): Bấm chọn A, B, C, D, E, F, G, H từ danh sách thả xuống (nhiều đáp án thì cách nhau bằng dấu phẩy, ví dụ: A,C).' });
     guideSheet.addRow({ item: '3. CÂU ĐÚNG / SAI / NOT GIVEN', desc: 'Áp dụng cho: TRUE_FALSE_NOT_GIVEN hoặc YES_NO_NOT_GIVEN.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A đến H.\n-> Cột "Đáp án đúng" (Cột P): Bấm chọn TRUE, FALSE, hoặc NOT GIVEN từ danh sách thả xuống.' });
-    guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A đến H.\n-> Cột "Đáp án đúng" (Cột P): GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple). Mặc dù cột này có icon danh sách thả xuống của Excel, nhưng bạn vẫn gõ được bình thường mà không bị báo lỗi.' });
+    guideSheet.addRow({ item: '4. CÂU ĐIỀN TỪ / TỰ LUẬN', desc: 'Áp dụng cho: FILL_IN_THE_BLANK, SHORT_ANSWER, WRITING_ESSAY.\n-> BỎ TRỐNG hoàn toàn các cột Lựa chọn A đến H.\n-> Cột "Đáp án đúng" (Cột P):\n   + FILL_IN_THE_BLANK, SHORT_ANSWER: GÕ TRỰC TIẾP chữ/từ cần điền (Ví dụ: apple).\n   + WRITING_ESSAY: BỎ TRỐNG hoàn toàn (bài viết tự luận của thí sinh sẽ được chấm sau).' });
     guideSheet.addRow({ item: '5. HƯỚNG DẪN (INSTRUCTION)', desc: 'Cột "Hướng dẫn chung (Phần)": Điền hướng dẫn áp dụng cho toàn bộ Part (ví dụ: Listen and answer questions 1-10).\nCột "Hướng dẫn riêng (Nhóm)": Chỉ điền nếu nhóm câu hỏi đó có hướng dẫn đặc thù riêng (ví dụ: Questions 1-4: Choose the correct letter...). Nếu không có thì để trống, hệ thống sẽ tự động dùng hướng dẫn chung của phần.' });
     guideSheet.addRow({ item: '6. CÁC CỘT MERGE (TRỘN DÒNG)', desc: 'Hệ thống tự động merge các cột chung của Phần (Cột A: Phần, B: Hướng dẫn chung, R: Audio chung) và Nhóm (Cột C: Nhóm, E: Hướng dẫn riêng, F: Đoạn văn, S: Đính kèm chung nhóm).\n-> Cột H đến O (Lựa chọn A-H), Cột G (Câu hỏi), Cột P (Đáp án đúng) là dữ liệu riêng từng câu, KHÔNG bị merge.' });
 
@@ -2133,9 +2152,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           if (col1.includes('tên đề') || col1.includes('exam title') || col1.includes('tiêu đề')) {
             importedTitle = col2;
           }
-          if (col1.includes('mã loại') || col1.includes('type code')) {
+          if (col1.includes('mã loại') || col1.includes('mã hệ thống') || col1.includes('type code') || col1.includes('system code')) {
             importedType = col2;
-          } else if (!importedType && (col1.includes('loại chứng chỉ') || col1.includes('exam type'))) {
+          } else if (!importedType && (col1.includes('loại chứng chỉ') || col1.includes('loại bài thi') || col1.includes('exam type'))) {
             importedType = col2;
           }
         });
@@ -2609,14 +2628,31 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       try {
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(await file.arrayBuffer());
-        const info = workbook.getWorksheet('Thông Tin Đề Thi');
+        const info = workbook.getWorksheet('Thông Tin Đề Thi')
+          || workbook.getWorksheet('Thông tin đề thi')
+          || workbook.getWorksheet('ExamInfo')
+          || workbook.getWorksheet('Exam Info');
         info?.eachRow(row => {
-          const rawType = row.getCell(2).text.trim();
-          if (row.getCell(1).text.trim() === 'Mã loại chứng chỉ' && rawType) legacyType = normalizeExamType(rawType);
+          const col1 = (row.getCell(1).text || '').trim().toLowerCase();
+          const rawType = (row.getCell(2).text || '').trim();
+          if (!rawType) return;
+          if (col1 === 'mã loại chứng chỉ' || col1.includes('mã loại') || col1.includes('mã hệ thống') || col1.includes('type code') || col1.includes('system code')) {
+            legacyType = normalizeExamType(rawType);
+          } else if (!legacyType && (col1.includes('loại chứng chỉ') || col1.includes('loại bài thi') || col1.includes('exam type'))) {
+            legacyType = normalizeExamType(rawType);
+          }
         });
+        if (!legacyType && workbook.subject && workbook.subject.trim()) {
+          legacyType = normalizeExamType(workbook.subject.trim());
+        }
       } catch { /* Malformed files remain the backend preview's responsibility. */ }
       if (controller.signal.aborted) return;
-      if (['IELTS_GENERAL', 'TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)) {
+      const fileNameLower = (file.name || '').toLowerCase();
+      const isClientImport = ['IELTS_GENERAL', 'TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)
+        || legacyType.includes('WRITING')
+        || legacyType.startsWith('TW_')
+        || (fileNameLower.includes('writing') && !fileNameLower.includes('ielts_academic'));
+      if (isClientImport) {
         await handleImportOtherExcel(file);
         setIsPublished(false);
         return;
@@ -2645,6 +2681,34 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   };
   const handleSave = async (draft = false) => {
     if (saveMutex.current || importing) return;
+
+    if (isToeicWriting) {
+      if (parts.length !== 3) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Cấu trúc chưa đúng chuẩn',
+          text: 'Đề thi TOEIC Writing bắt buộc phải có đúng 3 phần thi: Part 1 (5 câu ảnh), Part 2 (2 câu email), Part 3 (1 bài luận).'
+        });
+        return;
+      }
+      const p1Count = (parts[0]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+      const p2Count = (parts[1]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+      const p3Count = (parts[2]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+      const total = p1Count + p2Count + p3Count;
+      if (p1Count !== 5 || p2Count !== 2 || p3Count !== 1) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Số lượng câu hỏi chưa chuẩn',
+          html: `Đề thi TOEIC Writing bắt buộc phải có đúng <b>8 câu hỏi</b> cố định:<br/>
+          • Part 1 (Write a Sentence): đúng <b>5 câu</b> (hiện có: ${p1Count})<br/>
+          • Part 2 (Respond to Request): đúng <b>2 câu</b> (hiện có: ${p2Count})<br/>
+          • Part 3 (Opinion Essay): đúng <b>1 câu</b> (hiện có: ${p3Count})<br/>
+          Tổng cộng hiện tại: <b>${total}/8 câu</b>.`
+        });
+        return;
+      }
+    }
+
     saveMutex.current = true;
     setSaving(true);
     const finalJson = {
@@ -2753,6 +2817,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <option value="IELTS_WRITING">IELTS - Writing (2 Tasks)</option>
             <option value="TOEIC_LISTENING">TOEIC - Listening (Part 1-4)</option>
             <option value="TOEIC_READING">TOEIC - Reading (Part 5-7)</option>
+            <option value="TOEIC_WRITING">TOEIC - Writing (3 Parts / 8 Questions)</option>
             <option value="NLTV_LISTENING">NLTV - Nghe hiểu (4 Phần)</option>
             <option value="NLTV_READING">NLTV - Đọc hiểu (2 Phần)</option>
             <option value="NLTV_WRITING">NLTV - Viết (3 Phần)</option>
@@ -2795,6 +2860,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <optgroup label="TOEIC Writing">
               <option value="TW_P1">TOEIC Writing Part 1: Write a Sentence</option>
               <option value="TW_P2">TOEIC Writing Part 2: Respond to Request</option>
+              <option value="TW_P3">TOEIC Writing Part 3: Write an Opinion Essay</option>
             </optgroup>
             <optgroup label="Năng Lực Tiếng Việt (NLTV)">
               <option value="NLTV_L1">NLTV Nghe - Phần 1</option>
@@ -2922,15 +2988,32 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         <div>
           {/* TABS */}
           <div className="eb-tabs-container">
-            {parts.map((tabPart, tabIndex) => (
-              <button 
-                key={tabIndex} 
-                onClick={() => setActivePartIndex(tabIndex)}
-                className={`eb-tab-btn ${activePartIndex === tabIndex ? 'active' : ''}`}
-              >
-                {tabPart.part_title || `Part ${tabIndex + 1}`}
-              </button>
-            ))}
+            {parts.map((tabPart, tabIndex) => {
+              const qCount = (tabPart.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+              return (
+                <button 
+                  key={tabIndex} 
+                  onClick={() => setActivePartIndex(tabIndex)}
+                  className={`eb-tab-btn ${activePartIndex === tabIndex ? 'active' : ''}`}
+                >
+                  <span>{tabPart.part_title || `Part ${tabIndex + 1}`}</span>
+                  {qCount > 0 && (
+                    <span style={{
+                      fontSize: '0.75rem',
+                      padding: '2px 7px',
+                      borderRadius: '10px',
+                      background: activePartIndex === tabIndex ? 'var(--primary, #2563eb)' : 'var(--bg-tertiary, #e2e8f0)',
+                      color: activePartIndex === tabIndex ? '#fff' : 'var(--text-secondary, #475569)',
+                      marginLeft: '6px',
+                      fontWeight: 600
+                    }}>
+                      {qCount} {isToeicWriting ? (qCount > 1 ? 'questions' : 'question') : 'câu'}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {!isToeicWriting && (
             <button
               onClick={() => {
                 const newParts = [...parts, { part_title: `Part ${parts.length + 1}`, instruction: '', question_groups: [] }];
@@ -2953,6 +3036,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             >
               <Plus size={18} /> Thêm Part
             </button>
+          )}
           </div>
 
           {/* ACTIVE TAB CONTENT */}
@@ -2974,6 +3058,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                     </div>
                   </div>
                   <div>
+                    {!isToeicWriting && (
                     <button className="btn" style={{ padding: '0.5rem 0.75rem', color: 'var(--danger)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-light)', whiteSpace: 'nowrap' }} onClick={() => {
                       if (window.confirm('Bạn có chắc muốn xóa Part này?')) {
                         const newParts = [...parts];
@@ -2984,6 +3069,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                     }}>
                       <Trash2 size={16} /> Xóa Part
                     </button>
+                    )}
                   </div>
                 </div>
 
@@ -3011,6 +3097,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                   {/* AUDIO CHO PART */}
                   {(() => {
                     const titleLower = (part.part_title || '').toLowerCase();
+                    const isWritingSkill = examType.includes('WRITING') || titleLower.includes('writ') || titleLower.includes('viết');
+                    if (isWritingSkill) {
+                      return null; // Bỏ hoàn toàn phần upload audio cho bài thi Writing
+                    }
                     const isDefaultListening =
                       titleLower.includes('listen') ||
                       titleLower.includes('nghe') ||
@@ -3021,7 +3111,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                       titleLower.includes('question-response') ||
                       titleLower.includes('conversations') ||
                       titleLower.includes('talks') ||
-                      (examType.includes('TOEIC') && pIndex < 4);
+                      (examType.includes('TOEIC') && !examType.includes('WRITING') && pIndex < 4);
 
                     const showAudioBox = isDefaultListening || part.shared_audio !== undefined;
 
@@ -3119,7 +3209,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                       !part.part_title.toLowerCase().includes('chính tả') &&
                       (part.part_title.toLowerCase().includes('writ') || part.part_title.toLowerCase().includes('viết') || part.part_title.toLowerCase().includes('write'));
                     const isFixedWriting = part.part_title.toLowerCase().includes('writing task') ||
-                      (part.part_title.toLowerCase().includes('kỹ năng viết') && !part.part_title.toLowerCase().includes('phần 1') && !part.part_title.toLowerCase().includes('chính tả'));
+                      (part.part_title.toLowerCase().includes('kỹ năng viết') && !part.part_title.toLowerCase().includes('phần 1') && !part.part_title.toLowerCase().includes('chính tả')) ||
+                      isToeicWriting;
                     const isFixedStructure = isFixedWriting;
                     
                     const boundsForGroup = getPartBounds(part.part_title, examType);
@@ -3128,7 +3219,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                     
                     return (
                     <div key={group.group_id} className={`eb-group-card ${isWriting ? 'no-border' : ''}`}>
-                      {!isWriting && <span className="eb-group-header-badge">GROUP {gIndex + 1} ({group.questions.length} CÂU)</span>}
+                      <span className="eb-group-header-badge">
+                        {isWriting
+                          ? (group.questions.length === 1 && group.questions[0]?.question_id
+                              ? (isToeicWriting ? `QUESTION ${getQuestionNumLabel(group.questions[0].question_id, gIndex + 1)}` : `CÂU ${getQuestionNumLabel(group.questions[0].question_id, gIndex + 1)}`)
+                              : `NHÓM ${gIndex + 1} (${group.questions.length} CÂU)`)
+                          : (isToeicWriting ? `GROUP ${gIndex + 1} (${group.questions.length} QUESTIONS)` : `GROUP ${gIndex + 1} (${group.questions.length} CÂU)`)}
+                      </span>
                       
                       <div className="eb-group-row">
                         <div className="eb-group-col">
@@ -3260,26 +3357,24 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
                             return (
                             <div key={qIndex} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', background: 'white', padding: '1rem', borderRadius: 'var(--radius-sm)', border: isPrimaryMulti ? '1px solid #f59e0b' : '1px solid var(--border-light)', marginBottom: '0.75rem' }}>
-                              {!isEssay && (
-                                <div style={{
-                                  background: isPrimaryMulti ? '#d97706' : 'var(--primary)',
-                                  color: 'white',
-                                  minWidth: isPrimaryMulti ? '56px' : '32px',
-                                  height: '24px',
-                                  padding: isPrimaryMulti ? '0 8px' : '0',
-                                  borderRadius: '12px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 'bold',
-                                  flexShrink: 0
-                                }}>
-                                  {isPrimaryMulti && nextQ
-                                    ? `${getQuestionNumLabel(q.question_id, qIndex + 1)} - ${getQuestionNumLabel(nextQ.question_id, qIndex + 2)}`
-                                    : getQuestionNumLabel(q.question_id, qIndex + 1)}
-                                </div>
-                              )}
+                              <div style={{
+                                background: isPrimaryMulti ? '#d97706' : (isEssay ? '#7c3aed' : 'var(--primary)'),
+                                color: 'white',
+                                minWidth: isPrimaryMulti ? '56px' : (isToeicWriting ? '78px' : '40px'),
+                                height: '24px',
+                                padding: '0 8px',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                flexShrink: 0
+                              }}>
+                                {isPrimaryMulti && nextQ
+                                  ? `${getQuestionNumLabel(q.question_id, qIndex + 1)} - ${getQuestionNumLabel(nextQ.question_id, qIndex + 2)}`
+                                  : (isToeicWriting ? `Question ${getQuestionNumLabel(q.question_id, qIndex + 1)}` : `Câu ${getQuestionNumLabel(q.question_id, qIndex + 1)}`)}
+                              </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 {!isEssay && (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
@@ -3296,8 +3391,18 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                 {!isEssay ? (
                                   <input type="text" className="input-field" value={q.question_text} onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'question_text', e.target.value)} placeholder="Nội dung câu hỏi..." style={{ marginBottom: '0.5rem', padding: '0.4rem 0.75rem' }} />
                                 ) : (
-                                  <div style={{ padding: '1rem', background: 'var(--bg-secondary)', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-sm)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                    <em>Khung nhập bài làm (văn bản) của thí sinh sẽ hiển thị tại đây. Đề bài đã được thiết lập ở phần trên.</em>
+                                  <div style={{ marginBottom: '0.75rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                                      {isToeicWriting ? 'Prompt / Target Words / Essay Question:' : 'Yêu cầu đề bài / Từ gợi ý / Đề bài luận (Prompt):'}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="input-field"
+                                      value={q.question_text}
+                                      onChange={e => updateQuestion(pIndex, gIndex, qIndex, 'question_text', e.target.value)}
+                                      placeholder={isToeicWriting ? "e.g., CONTRACT / PEN or Essay Question..." : "VD: CONTRACT / PEN hoặc Đề bài luận..."}
+                                      style={{ padding: '0.4rem 0.75rem' }}
+                                    />
                                   </div>
                                 )}
                                 
@@ -3404,6 +3509,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                   </div>
                                 )}
 
+
+
                                 {!isEssay && (!q.metadata.options || q.metadata.options.length === 0) && (
                                   <div className="flex-center" style={{ justifyContent: 'flex-start', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
                                     <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>Đáp án đúng:</span>
@@ -3418,7 +3525,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                                 {!isEssay && (
                                   <div style={{ marginTop: '0.75rem' }}>
                                     <RichTextEditor
-                                      label="Lời giải thích (Explanation)"
+                                      label="Lời giải thích / Hướng dẫn chấm (Explanation)"
                                       value={q.metadata.explanation || ''}
                                       onChange={val => updateQuestionMetadata(pIndex, gIndex, qIndex, 'explanation', val)}
                                       placeholder="Nhập lời giải thích chi tiết cho câu hỏi (hỗ trợ văn bản thường, định dạng in đậm, dịch nghĩa, hình ảnh)..."
@@ -3515,7 +3622,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                   })}
 
 
-                  {(!part.part_title.toLowerCase().includes('writing task') && !part.part_title.toLowerCase().includes('kỹ năng viết')) && (
+                  {(!part.part_title.toLowerCase().includes('writing task') && !part.part_title.toLowerCase().includes('kỹ năng viết') && !isToeicWriting) && (
                     (() => {
                       const boundsForPart = getPartBounds(part.part_title, examType);
                       const nextStartForPart = getNextStartForPart(part, boundsForPart);
@@ -3561,7 +3668,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             });
           }}>Hủy</button>
           {importNotice}
-          <button className="btn btn-outline" disabled={saving || importing} onClick={() => handleSave(true)}>Lưu nháp</button>
+          {!isToeicWriting && (
+            <button className="btn btn-outline" disabled={saving || importing} onClick={() => handleSave(true)}>Lưu nháp</button>
+          )}
           <button className="btn btn-primary" disabled={saving || importing} style={{ justifyContent: 'center' }} onClick={() => handleSave()}><Save size={18} /> Lưu Đề Thi</button>
         </div>
       </div>

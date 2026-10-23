@@ -86,6 +86,7 @@ export function toEditorParts(request: any): ExamPart[] {
 
 function inferOfficialSkill(type: string, partNumber: number, partTitle: string): string {
   if (type === 'TOEIC_LR') return partNumber <= 4 ? 'LISTENING' : 'READING';
+  if (type === 'TOEIC_WRITING') return 'WRITING';
   if (type === 'NLTV') return partNumber <= 4 ? 'LISTENING' : partNumber <= 6 ? 'READING' : 'WRITING';
   if (type === 'IELTS_ACADEMIC') {
     if (partNumber <= 4) return 'LISTENING';
@@ -101,6 +102,7 @@ function inferOfficialSkill(type: string, partNumber: number, partTitle: string)
 
 function defaultOfficialDuration(type: string, skillType: string): number {
   if (type === 'TOEIC_LR') return skillType === 'LISTENING' ? 45 : 75;
+  if (type === 'TOEIC_WRITING') return 60;
   if (type === 'IELTS_ACADEMIC') return skillType === 'LISTENING' ? 30 : 60;
   return 60;
 }
