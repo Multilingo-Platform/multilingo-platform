@@ -60,7 +60,6 @@ class AuthenControllerGoogleLoginTest {
                 .build();
 
         when(authenService.loginWithGoogle(any(GoogleLoginRequest.class), any(), any())).thenReturn(response);
-        when(authenService.loginWithGoogle(any(GoogleLoginRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/google")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,8 +90,6 @@ class AuthenControllerGoogleLoginTest {
 
         when(authenService.loginWithGoogle(any(GoogleLoginRequest.class), any(), any()))
                 .thenThrow(new AppException(ErrorCode.INVALID_GOOGLE_TOKEN));
-        when(authenService.loginWithGoogle(any(GoogleLoginRequest.class)))
-                .thenThrow(new AppException(ErrorCode.INVALID_GOOGLE_TOKEN));
 
         mockMvc.perform(post("/api/auth/google")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -107,8 +104,6 @@ class AuthenControllerGoogleLoginTest {
         GoogleLoginRequest request = new GoogleLoginRequest("locked.token");
 
         when(authenService.loginWithGoogle(any(GoogleLoginRequest.class), any(), any()))
-                .thenThrow(new AppException(ErrorCode.ACCOUNT_INACTIVE));
-        when(authenService.loginWithGoogle(any(GoogleLoginRequest.class)))
                 .thenThrow(new AppException(ErrorCode.ACCOUNT_INACTIVE));
 
         mockMvc.perform(post("/api/auth/google")

@@ -62,7 +62,6 @@ class AuthenControllerTest {
                 .build();
 
         when(authenService.login(any(LoginRequest.class), any(), any())).thenReturn(response);
-        when(authenService.login(any(LoginRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -92,8 +91,6 @@ class AuthenControllerTest {
         LoginRequest request = new LoginRequest("notfound@gmail.com", "password");
 
         when(authenService.login(any(LoginRequest.class), any(), any()))
-                .thenThrow(new AppException(ErrorCode.USER_NOT_FOUND));
-        when(authenService.login(any(LoginRequest.class)))
                 .thenThrow(new AppException(ErrorCode.USER_NOT_FOUND));
 
         mockMvc.perform(post("/api/auth/login")
