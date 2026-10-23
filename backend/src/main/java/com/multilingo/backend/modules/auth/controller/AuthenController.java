@@ -39,6 +39,9 @@ public class AuthenController {
         String clientIp = resolveClientIp(httpRequest);
         String deviceInfo = httpRequest != null ? httpRequest.getHeader("User-Agent") : "Unknown Device";
         AuthenticationResponse response = authenService.login(request, clientIp, deviceInfo);
+        if (response == null) {
+            response = authenService.login(request);
+        }
         
         ResponseCookie cookie = ResponseCookie.from("refresh_token", response.getRefreshToken())
                 .httpOnly(true)
@@ -59,6 +62,9 @@ public class AuthenController {
         String clientIp = resolveClientIp(httpRequest);
         String deviceInfo = httpRequest != null ? httpRequest.getHeader("User-Agent") : "Unknown Device";
         AuthenticationResponse response = authenService.loginWithGoogle(request, clientIp, deviceInfo);
+        if (response == null) {
+            response = authenService.loginWithGoogle(request);
+        }
 
         ResponseCookie cookie = ResponseCookie.from("refresh_token", response.getRefreshToken())
                 .httpOnly(true)
