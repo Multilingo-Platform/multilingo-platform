@@ -205,7 +205,9 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
             <span>{getTaskStatusLabel(task.status)}</span>
           </div>
           <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-            {mapReasonCodeToMessage(task.reasonCode)}
+            {task.reasonCode === 'UNSUPPORTED_LANGUAGE' && task.language?.split('-')[0].toLowerCase() === 'vi'
+              ? 'Chưa hỗ trợ chấm Writing tiếng Việt.'
+              : mapReasonCodeToMessage(task.reasonCode)}
           </p>
         </div>
       )}

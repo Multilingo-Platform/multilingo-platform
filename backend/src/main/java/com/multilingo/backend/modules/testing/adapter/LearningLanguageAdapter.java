@@ -4,4 +4,8 @@ import java.util.Optional;
 
 public interface LearningLanguageAdapter {
     Optional<String> findTargetLanguage(Integer userId);
+
+    default Optional<String> findNativeLanguage(Integer userId) {
+        return Optional.empty();
+    }
 }

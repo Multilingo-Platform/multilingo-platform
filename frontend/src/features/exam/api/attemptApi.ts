@@ -106,6 +106,28 @@ function fillCanonicalAliases(node: Record<string, unknown>): Record<string, unk
 function normalizeSnapshotAliases(snapshot: unknown): unknown {
   if (!isRecord(snapshot) || !Array.isArray(snapshot.sections)) return snapshot;
 
+  const hasCamel = snapshot.examLanguage !== undefined;
+  const hasSnake = snapshot.exam_language !== undefined;
+
+  let resolvedLanguage: string | null = null;
+  if (hasCamel && hasSnake) {
+    if (typeof snapshot.examLanguage === 'string' && typeof snapshot.exam_language === 'string') {
+      const normCamel = normalizeSnapshotLanguage(snapshot.examLanguage);
+      const normSnake = normalizeSnapshotLanguage(snapshot.exam_language);
+      if (normCamel !== null && normCamel === normSnake) {
+        resolvedLanguage = normCamel;
+      } else {
+        resolvedLanguage = null;
+      }
+    } else {
+      resolvedLanguage = null;
+    }
+  } else if (hasCamel) {
+    resolvedLanguage = normalizeSnapshotLanguage(snapshot.examLanguage);
+  } else if (hasSnake) {
+    resolvedLanguage = normalizeSnapshotLanguage(snapshot.exam_language);
+  }
+
   const sections = snapshot.sections.map(sectionRaw => {
     if (!isRecord(sectionRaw)) return sectionRaw;
     let section = fillCanonicalAliases(sectionRaw);
@@ -136,7 +158,59 @@ function normalizeSnapshotAliases(snapshot: unknown): unknown {
     return { ...section, parts };
   });
 
-  return { ...snapshot, sections };
+  return {
+    ...snapshot,
+    sections,
+    ...((hasCamel || hasSnake)
+      ? { examLanguage: resolvedLanguage }
+      : {}),
+  };
+}
+
+const LANGUAGE_ALIASES: Record<string, string> = {
+  eng: 'en', vie: 'vi', kor: 'ko', zho: 'zh', jpn: 'ja', fra: 'fr', deu: 'de', spa: 'es',
+};
+const SUPPORTED_LANGUAGE_BASES = new Set(['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es']);
+
+function normalizeSnapshotLanguage(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes('_') || trimmed.includes('*') || trimmed.includes('--') || trimmed.startsWith('-') || trimmed.endsWith('-')) {
+    return null;
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower === 'und' || lower.startsWith('und-') || lower.startsWith('x-') || lower.includes('-x-')) {
+    return null;
+  }
+  const subtags = trimmed.split('-');
+  if (subtags.length > 3) return null;
+  const rawBase = subtags[0];
+  const base = LANGUAGE_ALIASES[rawBase.toLowerCase()] ?? rawBase.toLowerCase();
+  if (!SUPPORTED_LANGUAGE_BASES.has(base)) return null;
+
+  let script = '';
+  let region = '';
+
+  if (subtags.length === 2) {
+    const sub = subtags[1];
+    if (/^[A-Za-z]{4}$/.test(sub)) {
+      script = sub[0].toUpperCase() + sub.slice(1).toLowerCase();
+    } else if (/^[A-Za-z]{2}$/.test(sub) || /^\d{3}$/.test(sub)) {
+      region = /^\d/.test(sub) ? sub : sub.toUpperCase();
+    } else {
+      return null;
+    }
+  } else if (subtags.length === 3) {
+    const sub1 = subtags[1];
+    const sub2 = subtags[2];
+    if (!/^[A-Za-z]{4}$/.test(sub1)) return null;
+    script = sub1[0].toUpperCase() + sub1.slice(1).toLowerCase();
+    if (!/^[A-Za-z]{2}$/.test(sub2) && !/^\d{3}$/.test(sub2)) return null;
+    region = /^\d/.test(sub2) ? sub2 : sub2.toUpperCase();
+  }
+
+  return [base, script, region].filter(Boolean).join('-');
 }
 
 function isValidIsoInstant(val: unknown): val is string {
@@ -351,6 +425,17 @@ function normalizeWorkspace(
 
   const playbackRaw = pickField(raw, 'listeningPlayback', 'listening_playback');
   const listeningPlayback = normalizeListeningPlaybackSummary(playbackRaw);
+  const languageContextRaw = pickField(raw, 'languageContext', 'language_context');
+  const languageContext = isRecord(languageContextRaw)
+    ? {
+        policyVersion: typeof languageContextRaw.policyVersion === 'string' ? languageContextRaw.policyVersion : '',
+        examLanguage: normalizeSnapshotLanguage(languageContextRaw.examLanguage),
+        defaultExplanationLanguage: normalizeSnapshotLanguage(languageContextRaw.defaultExplanationLanguage),
+        supportedExplanationLanguages: Array.isArray(languageContextRaw.supportedExplanationLanguages)
+          ? languageContextRaw.supportedExplanationLanguages.map(normalizeSnapshotLanguage).filter((tag): tag is string => tag !== null)
+          : [],
+      }
+    : null;
 
   return {
     attempt_id: attemptId,
@@ -363,6 +448,7 @@ function normalizeWorkspace(
     gracePeriodSeconds: gracePeriod,
     lockedSections,
     exam_snapshot: normalizeSnapshotAliases(snapshotRaw) as WorkspaceResponse['exam_snapshot'],
+    languageContext,
     version,
     saved_answers,
     serverTimeOffset: Number.isFinite(safeOffset) ? safeOffset : 0,

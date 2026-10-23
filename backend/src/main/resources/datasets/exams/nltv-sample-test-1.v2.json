@@ -1,0 +1,2198 @@
+{
+  "schemaVersion" : 2,
+  "datasetKey" : "nltv-sample-test-1",
+  "version" : 1,
+  "examCode" : "NLTV-SAMPLE-T1-V1",
+  "source" : {
+    "fileName" : "Đề_thi_Đánh_giá_Năng_lực_Tiếng_Việt_(NLTV)_Mẫu (1).xlsx",
+    "sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13",
+    "approvalReference" : "OWNER_REQUESTED_PUBLICATION_CHAT_2026-10-21"
+  },
+  "checksum" : "23512faa7c9d70bec7b7c7f7b8d8ba721282373cc74059897545d9a09e84f989",
+  "request" : {
+    "title" : "Đề thi Đánh giá Năng lực Tiếng Việt (NLTV) Mẫu",
+    "type" : "NLTV",
+    "examLanguage" : "vi",
+    "sections" : [ {
+      "skillType" : "LISTENING",
+      "durationMinutes" : 60,
+      "parts" : [ {
+        "partNumber" : 1,
+        "contentData" : {
+          "part_title" : "Kỹ năng Nghe - Phần 1",
+          "instruction" : "Thí sinh nghe 15 câu hỏi hoặc câu nói và chọn câu trả lời phù hợp nhất (A, B hoặc C).",
+          "question_groups" : [ {
+            "group_id" : "nltv-p1-g1",
+            "instruction" : "Các câu hỏi 1 - 15",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 1,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 1: Các sinh viên đến từ những quốc gia nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Nhật Bản và Hàn Quốc."
+              }, {
+                "id" : "B",
+                "text" : "Trung Quốc và Việt Nam."
+              }, {
+                "id" : "C",
+                "text" : "Trung Quốc và Nhật Bản."
+              } ],
+              "explanation" : "[VI] Trong đoạn băng nghe, sinh viên Makoto giới thiệu là người Nhật Bản, còn bạn nam Vương Cương là sinh viên Trung Quốc. Do đó các sinh viên đến từ Trung Quốc và Nhật Bản.\n[EN] In the listening audio, student Makoto introduces himself as Japanese, while the male student Vuong Cuong introduces himself as Chinese. Therefore, the students are from China and Japan.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_002",
+              "question_number" : 2,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 2: Bạn An thích làm nghề gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Bác sĩ."
+              }, {
+                "id" : "B",
+                "text" : "Hướng dẫn viên du lịch."
+              }, {
+                "id" : "C",
+                "text" : "Giống nghề của mẹ."
+              } ],
+              "explanation" : "[VI] An nói với bạn rằng mình thích làm hướng dẫn viên du lịch, mặc dù mẹ bạn là bác sĩ và muốn An làm nghề giống mẹ.\n[EN] An tells his friend that he wants to become a tour guide, even though his mother is a doctor and wishes him to follow her medical career.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_003",
+              "question_number" : 3,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 3: Ea-Ra đang sống và học tập tại đâu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Việt Nam."
+              }, {
+                "id" : "B",
+                "text" : "Hàn Quốc."
+              }, {
+                "id" : "C",
+                "text" : "Anh."
+              } ],
+              "explanation" : "[VI] Bài nghe cho biết gia đình Ea-Ra ở Hàn Quốc nhưng vì rất thích tiếng Việt nên bạn ấy đã quyết định sang Việt Nam để sinh sống và học tập.\n[EN] The audio mentions that Ea-Ra's family lives in South Korea, but because she loves Vietnamese, she moved to Vietnam to live and study.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_004",
+              "question_number" : 4,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 4: Chị Linda đã ăn bánh tôm ở đâu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Hồ Hoàn Kiếm."
+              }, {
+                "id" : "B",
+                "text" : "Hồ Tây."
+              }, {
+                "id" : "C",
+                "text" : "Hồ Giảng Võ."
+              } ],
+              "explanation" : "[VI] Linda kể: 'Tôi đã đến hồ Hoàn Kiếm để ăn kem, đến Hồ Tây ăn bánh tôm, Hồ Bảy Mẫu tập thể dục và hồ Giảng Võ uống cà phê'.\n[EN] Linda states: 'I went to Hoan Kiem Lake to eat ice cream, West Lake to eat shrimp cakes, Bay Mau Lake to exercise, and Giang Vo Lake to drink coffee'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_005",
+              "question_number" : 5,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 5: Trong các anh chị em An, ai là người cao nhất?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Anh trai An."
+              }, {
+                "id" : "B",
+                "text" : "Chị gái An."
+              }, {
+                "id" : "C",
+                "text" : "An."
+              } ],
+              "explanation" : "[VI] An cho biết: anh trai cao 1m80, chị gái cao 1m69, còn An cao 1m82. Vì vậy An là người cao nhất trong các anh chị em.\n[EN] An specifies: his brother is 1.80m, his sister is 1.69m, and An himself is 1.82m tall. Therefore, An is the tallest among the siblings.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_006",
+              "question_number" : 6,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 6: Bạn có thể ăn phở vào thời gian nào trong ngày?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Buổi sáng."
+              }, {
+                "id" : "B",
+                "text" : "Buổi tối."
+              }, {
+                "id" : "C",
+                "text" : "Bất cứ lúc nào."
+              } ],
+              "explanation" : "[VI] Bài nghe nêu rõ: 'Các quán phở thường bán hàng cả ngày nên bạn có thể ăn phở lúc nào bạn muốn' (bất cứ lúc nào).\n[EN] The recording explicitly states: 'Pho restaurants usually sell all day, so you can eat pho whenever you want' (at any time).",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_007",
+              "question_number" : 7,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 7: Siêu thị giảm giá các mặt hàng trong mấy ngày?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "1 ngày."
+              }, {
+                "id" : "B",
+                "text" : "2 ngày."
+              }, {
+                "id" : "C",
+                "text" : "3 ngày."
+              } ],
+              "explanation" : "[VI] Đoạn đối thoại nói rõ: 'người ta chỉ giảm giá từ thứ Sáu đến Chủ nhật thôi' (tổng cộng gồm 3 ngày: thứ Sáu, thứ Bảy, Chủ nhật).\n[EN] The dialogue points out: 'they only offer discounts from Friday to Sunday' (a total of 3 days: Friday, Saturday, and Sunday).",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_008",
+              "question_number" : 8,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 8: Chuyến bay từ Hà Nội đến Nha Trang sẽ khởi hành muộn so với thời gian đã thông báo bao lâu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "10 phút."
+              }, {
+                "id" : "B",
+                "text" : "15 phút."
+              }, {
+                "id" : "C",
+                "text" : "20 phút."
+              } ],
+              "explanation" : "[VI] Thông báo sân bay nêu: chuyến bay VN223 khởi hành lúc 15:20 sẽ chuyển xuống khởi hành lúc 15:30 (muộn 10 phút) do máy bay đến trễ.\n[EN] The airport announcement states: flight VN223 departing at 15:20 is delayed until 15:30 (10 minutes late) due to late aircraft arrival.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_009",
+              "question_number" : 9,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 9: Học sinh sẽ thi môn tiếng Anh vào thời gian nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Sáng thứ 4."
+              }, {
+                "id" : "B",
+                "text" : "Chiều thứ 4."
+              }, {
+                "id" : "C",
+                "text" : "Sáng thứ 5."
+              } ],
+              "explanation" : "[VI] Giáo viên thông báo lịch thi: 'thứ Tư: sáng thi Toán, chiều thi Tiếng Anh'. Do đó môn Tiếng Anh thi vào chiều thứ 4.\n[EN] The teacher announces the exam schedule: 'Wednesday: Math in the morning, English in the afternoon'. Hence English is taken on Wednesday afternoon.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_010",
+              "question_number" : 10,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 10: Câu nói trên có ý nghĩa gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Tất cả mọi người tôi đều không quen."
+              }, {
+                "id" : "B",
+                "text" : "Tôi biết tất cả mọi người."
+              }, {
+                "id" : "C",
+                "text" : "Tất cả mọi người đều biết tôi."
+              } ],
+              "explanation" : "[VI] Câu nói 'Tôi không quen bất cứ người nào ở đây' đồng nghĩa với 'Tất cả mọi người tôi đều không quen'.\n[EN] The statement 'I don't know anyone here' is semantically identical to 'I don't know any of the people here'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_011",
+              "question_number" : 11,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 11: Câu nói trên có nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Không có ai gọi điện cho Nam."
+              }, {
+                "id" : "B",
+                "text" : "Có một người đã gọi điện cho Nam."
+              }, {
+                "id" : "C",
+                "text" : "Một người bạn thân gọi điện cho Nam."
+              } ],
+              "explanation" : "[VI] Câu nói 'Nam ơi lúc cậu ra ngoài có ai đó gọi điện cho cậu đấy': Cụm từ 'có ai đó' chỉ một đối tượng cụ thể nhưng chưa biết tên, nghĩa là đã có một người gọi điện cho Nam.\n[EN] The statement 'Nam, someone called you while you were out': The phrase 'có ai đó' (someone) denotes a specific person whose identity is unknown, meaning a person did call Nam.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_012",
+              "question_number" : 12,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 12: Câu nói trên có ý nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Hoa này bao nhiêu tiền?"
+              }, {
+                "id" : "B",
+                "text" : "Nhiều hoa quá!"
+              }, {
+                "id" : "C",
+                "text" : "Chẳng có bông hoa nào."
+              } ],
+              "explanation" : "[VI] Câu nói 'Ôi ở đây có bao nhiêu là hoa!': Cụm từ cảm thán 'có bao nhiêu là...' trong tiếng Việt dùng để nhấn mạnh số lượng rất nhiều: 'Nhiều hoa quá!'.\n[EN] The statement 'Oh, there are so many flowers here!': The exclamatory pattern 'có bao nhiêu là...' in Vietnamese expresses an abundant quantity: 'So many flowers!'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_013",
+              "question_number" : 13,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 13: Câu trên có mấy thanh “sắc”?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "2 thanh sắc."
+              }, {
+                "id" : "B",
+                "text" : "3 thanh sắc."
+              }, {
+                "id" : "C",
+                "text" : "4 thanh sắc."
+              } ],
+              "explanation" : "[VI] Câu 'Đi bộ rất có lợi cho sức khỏe': Các từ mang thanh sắc gồm có 'rất', 'có', 'sức'. Tổng cộng có 3 thanh sắc.\n[EN] In 'Đi bộ rất có lợi cho sức khỏe', the words bearing the high-rising tone (thanh sắc) are 'rất', 'có', 'sức' (total of 3).",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_014",
+              "question_number" : 14,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 14: Câu trên có mấy thanh điệu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "3 thanh điệu."
+              }, {
+                "id" : "B",
+                "text" : "4 thanh điệu."
+              }, {
+                "id" : "C",
+                "text" : "5 thanh điệu."
+              } ],
+              "explanation" : "[VI] Câu 'Tình yêu là con đường dẫn đến hạnh phúc' xuất hiện 5 loại thanh điệu khác nhau: Thanh Ngang ('yêu', 'con'), Thanh Huyền ('Tình', 'là', 'đường'), Thanh Ngã ('dẫn'), Thanh Sắc ('đến', 'phúc'), Thanh Nặng ('hạnh').\n[EN] The sentence 'Tình yêu là con đường dẫn đến hạnh phúc' contains 5 distinct tones: Flat tone ('yêu', 'con'), Falling tone ('Tình', 'là', 'đường'), High-broken tone ('dẫn'), High-rising tone ('đến', 'phúc'), and Heavy tone ('hạnh').",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_015",
+              "question_number" : 15,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 15: Câu nói trên có ý nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Chắc chắn họ đã kết hôn rồi."
+              }, {
+                "id" : "B",
+                "text" : "Hình như họ đã kết hôn."
+              }, {
+                "id" : "C",
+                "text" : "Có thể họ đã chia tay."
+              } ],
+              "explanation" : "[VI] Câu nói 'Anh chị ấy chẳng kết hôn rồi là gì': Cấu trúc phủ định tu từ 'chẳng... rồi là gì' dùng để khẳng định mạnh mẽ sự việc chắc chắn đã diễn ra: 'Chắc chắn họ đã kết hôn rồi'.\n[EN] The statement 'Haven't they already gotten married?': The rhetorical negative pattern 'chẳng... rồi là gì' emphatically affirms that an event has definitely occurred: 'They have certainly already gotten married'.",
+              "correct_answer" : "A"
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13",
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792517080/wllcoeiywngqxiir9zhr.mp4",
+            "type" : "audio"
+          }
+        }
+      }, {
+        "partNumber" : 2,
+        "contentData" : {
+          "part_title" : "Kỹ năng Nghe - Phần 2",
+          "instruction" : "Thí sinh nghe các thông báo, tình huống, hội thoại ngắn và chọn câu trả lời đúng nhất (A, B, C hoặc D).",
+          "question_groups" : [ {
+            "group_id" : "nltv-p2-g1",
+            "instruction" : "Thông báo & Tình huống (Câu hỏi 16-21)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 16,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 16: Mấy giờ bạn Chi sẽ học xong?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "3 giờ."
+              }, {
+                "id" : "B",
+                "text" : "3 giờ 30 phút."
+              }, {
+                "id" : "C",
+                "text" : "4 giờ."
+              }, {
+                "id" : "D",
+                "text" : "4 giờ 30 phút."
+              } ],
+              "explanation" : "[VI] Chi nói: 'chiều nay tớ có lớp học làm bánh online lúc 3 giờ... chỉ học một tiếng thôi'. 3 giờ học 1 tiếng thì 4 giờ sẽ học xong.\n[EN] Chi says: 'I have an online baking class this afternoon at 3 PM... it only lasts one hour'. Starting at 3 PM for 1 hour means she finishes at 4 PM.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_002",
+              "question_number" : 17,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 17: Họ mua chiếc ti vi với giá bao nhiêu tiền?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "13.000.000đ."
+              }, {
+                "id" : "B",
+                "text" : "13.500.000đ."
+              }, {
+                "id" : "C",
+                "text" : "15.500.000đ."
+              }, {
+                "id" : "D",
+                "text" : "2.500.000đ."
+              } ],
+              "explanation" : "[VI] Người bán hàng giới thiệu: ti-vi giá niêm yết 15.500.000đ, hiện đang giảm 2.500.000đ. Giá mua thực tế là 15.500.000 - 2.500.000 = 13.000.000đ.\n[EN] The salesperson explains: listed price is 15,500,000 VND with a 2,500,000 VND discount. The actual purchase price is 15,500,000 - 2,500,000 = 13,000,000 VND.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_003",
+              "question_number" : 18,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 18: (Tình huống 1)",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Đã bảo chăm chỉ học đi thì không nghe."
+              }, {
+                "id" : "B",
+                "text" : "Trượt cũng tốt mà."
+              }, {
+                "id" : "C",
+                "text" : "Đừng buồn nữa, lần sau cố gắng hơn."
+              }, {
+                "id" : "D",
+                "text" : "Vui quá, chúc mừng cậu."
+              } ],
+              "explanation" : "[VI] Khi bạn mình thi trượt và đang buồn bã, lời an ủi phù hợp và tế nhị nhất trong giao tiếp là: 'Đừng buồn nữa, lần sau cố gắng hơn'.\n[EN] When a friend fails an exam and feels down, the most empathetic and encouraging remark is: 'Don't be sad, try harder next time'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_004",
+              "question_number" : 19,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 19: (Tình huống 2)",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Cụ làm ơn dẫn cháu sang đường với."
+              }, {
+                "id" : "B",
+                "text" : "Cụ cứ đứng đây đợi nhé."
+              }, {
+                "id" : "C",
+                "text" : "Cụ cứ sang đường đi, sợ gì."
+              }, {
+                "id" : "D",
+                "text" : "Để cháu dẫn cụ sang đường ạ."
+              } ],
+              "explanation" : "[VI] Khi muốn chủ động giúp đỡ cụ già sang đường, câu nói lịch sự và lễ phép chuẩn mực là: 'Để cháu dẫn cụ sang đường ạ'.\n[EN] When offering polite assistance to an elderly person crossing the street, the proper respectful offer is: 'Let me help you across the street'.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_005",
+              "question_number" : 20,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 20: (Tình huống 3)",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Đành phải đi xe buýt vậy."
+              }, {
+                "id" : "B",
+                "text" : "Được đi xe buýt rồi."
+              }, {
+                "id" : "C",
+                "text" : "Thế nào tôi cũng đi xe buýt."
+              }, {
+                "id" : "D",
+                "text" : "Đợi mãi mới có xe buýt để đi."
+              } ],
+              "explanation" : "[VI] Khi xe bị hỏng và không còn lựa chọn nào khác, người nói dùng cấu trúc 'đành phải... vậy' để diễn tả sự chấp nhận miễn cưỡng: 'Đành phải đi xe buýt vậy'.\n[EN] When facing a broken motorbike with no other choice, Vietnamese speakers use 'đành phải... vậy' to express reluctant acceptance: 'I'll just have to take the bus'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_006",
+              "question_number" : 21,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 21: (Tình huống 4)",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Xin mời quý khách vào."
+              }, {
+                "id" : "B",
+                "text" : "Cấm vào siêu thị nếu không đeo khẩu trang."
+              }, {
+                "id" : "C",
+                "text" : "Đừng vào, nguy hiểm lắm."
+              }, {
+                "id" : "D",
+                "text" : "Xin vui lòng làm theo quy định."
+              } ],
+              "explanation" : "[VI] Với tư cách nhân viên siêu thị nhắc nhở khách hàng chấp hành quy định y tế, cách nói lịch sự, chuẩn mực là: 'Xin vui lòng làm theo quy định'.\n[EN] As a supermarket employee reminding customers to adhere to sanitary guidelines, the professional and polite response is: 'Please comply with the regulations'.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "nltv-p2-g2",
+            "instruction" : "Hội thoại 1 (Câu hỏi 22-23)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_007",
+              "question_number" : 22,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 22: Họ sẽ đi Sa Pa bằng phương tiện gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Tàu hỏa."
+              }, {
+                "id" : "B",
+                "text" : "Máy bay."
+              }, {
+                "id" : "C",
+                "text" : "Ô tô khách."
+              }, {
+                "id" : "D",
+                "text" : "Ô tô tự lái."
+              } ],
+              "explanation" : "[VI] Sau khi nghe phân tích thời gian đi tàu mất 8-9 tiếng trong khi ô tô khách cao tốc chỉ mất 4 tiếng rưỡi, người bạn quyết định: 'Vậy mình và các bạn sẽ đi ô tô khách vừa nhanh lại vừa tiện nhỉ'.\n[EN] After hearing that trains take 8-9 hours while express buses take only 4.5 hours, the speaker decides: 'So my friends and I will take the coach, it's both fast and convenient'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_008",
+              "question_number" : 23,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 23: Theo Liên, nếu đi bằng tàu hỏa thì bạn sẽ được trải nghiệm điều gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Ngủ một đêm trên tàu."
+              }, {
+                "id" : "B",
+                "text" : "Ngắm cảnh đêm trên tàu."
+              }, {
+                "id" : "C",
+                "text" : "Ăn uống thỏa thích trên tàu."
+              }, {
+                "id" : "D",
+                "text" : "Được làm quen với nhiều du khách khác."
+              } ],
+              "explanation" : "[VI] Liên chia sẻ: 'Nếu đi bằng tàu thì cậu sẽ mất khoảng 8 đến 9 tiếng... cậu sẽ có một đêm ngủ trên tàu cũng rất thú vị lại đỡ mệt'.\n[EN] Lien explains: 'If you travel by train, you'll spend about 8 to 9 hours... you will have a night sleeping on the train, which is very interesting and less tiring'.",
+              "correct_answer" : "A"
+            } ]
+          }, {
+            "group_id" : "nltv-p2-g3",
+            "instruction" : "Hội thoại 2 (Câu hỏi 24-25)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_009",
+              "question_number" : 24,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 24: Bài nghe nói về phương pháp chữa bệnh bằng hoạt động gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Hát."
+              }, {
+                "id" : "B",
+                "text" : "Nghe nhạc."
+              }, {
+                "id" : "C",
+                "text" : "Xem ti vi."
+              }, {
+                "id" : "D",
+                "text" : "Đọc sách."
+              } ],
+              "explanation" : "[VI] Bài nghe nói về liệu pháp âm nhạc giúp cải thiện sức khỏe và giấc ngủ: 'thói quen nghe nhạc... trước khi ngủ'.\n[EN] The listening passage discusses music therapy to improve sleep and health: 'the habit of listening to music... before bedtime'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_010",
+              "question_number" : 25,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 25: Loại nhạc nào sẽ giúp  giấc ngủ được ngon hơn?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Nhạc nhẹ."
+              }, {
+                "id" : "B",
+                "text" : "Nhạc Rock."
+              }, {
+                "id" : "C",
+                "text" : "Nhạc trữ tình."
+              }, {
+                "id" : "D",
+                "text" : "Nhạc cổ điển."
+              } ],
+              "explanation" : "[VI] Bài nghe chỉ ra: những người có thói quen nghe nhạc cổ điển 45 phút trước khi ngủ sẽ ngủ ngon hơn những người nghe sách nói hoặc không nghe gì.\n[EN] The passage notes: people who listen to classical music for 45 minutes before bedtime sleep significantly better than those listening to audiobooks or nothing.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "nltv-p2-g4",
+            "instruction" : "Hội thoại 3 (Câu hỏi 26-27)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_011",
+              "question_number" : 26,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 26: Bài nghe giới thiệu về khu chợ nào của Hà Nội?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Chợ Hôm."
+              }, {
+                "id" : "B",
+                "text" : "Chợ Hàng Da."
+              }, {
+                "id" : "C",
+                "text" : "Chợ Đồng Xuân."
+              }, {
+                "id" : "D",
+                "text" : "Chợ Hàng Bè."
+              } ],
+              "explanation" : "[VI] Bài nghe giới thiệu chi tiết về chợ Đồng Xuân: 'chợ Đồng Xuân là một trong những chợ lâu năm nhất của Hà Nội bên trong chợ được chia làm ba tầng...'.\n[EN] The recording details Dong Xuan Market: 'Dong Xuan Market is one of Hanoi's oldest markets, divided inside into three floors...'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_012",
+              "question_number" : 27,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 27: Khách hàng đến chợ có thể tìm những cửa hàng bán đồ ăn uống ở đâu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Từ tầng 1 đến tầng 3."
+              }, {
+                "id" : "B",
+                "text" : "Chỉ ở dưới tầng 1."
+              }, {
+                "id" : "C",
+                "text" : "Phía sau chợ."
+              }, {
+                "id" : "D",
+                "text" : "Bên ngoài chợ."
+              } ],
+              "explanation" : "[VI] Bài nghe nêu rõ vị trí các quán ăn uống: 'bên ngoài chợ là các hàng ăn uống phục vụ khách cả ngày lẫn đêm'.\n[EN] The recording clearly specifies: 'outside the market are food stalls serving customers both day and night'.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "nltv-p2-g5",
+            "instruction" : "Hội thoại 4 (Câu hỏi 28-29)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_013",
+              "question_number" : 28,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 28: Tại sao lại gọi là “Kem Tràng Tiền”?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Vì chủ cửa hàng tên là Tràng Tiền."
+              }, {
+                "id" : "B",
+                "text" : "Vì được sản xuất trên phố Tràng Tiền."
+              }, {
+                "id" : "C",
+                "text" : "Vì phải trả nhiều tiền để ăn kem."
+              }, {
+                "id" : "D",
+                "text" : "Vì có nhiều hương vị khác nhau."
+              } ],
+              "explanation" : "[VI] Bài nghe giải thích: 'Sở dĩ kem có tên là Tràng Tiền là bởi vì kem được bán và sản xuất ở con phố Tràng Tiền lần đầu tiên là tại số nhà 35 Tràng Tiền'.\n[EN] The audio explains: 'The reason it is named Trang Tien ice cream is that it was first produced and sold on Trang Tien Street at number 35 Trang Tien'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_014",
+              "question_number" : 29,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 29: Hương vị kem nào KHÔNG CÓ trong bài nghe?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Cốm"
+              }, {
+                "id" : "B",
+                "text" : "Sô cô la"
+              }, {
+                "id" : "C",
+                "text" : "Vani"
+              }, {
+                "id" : "D",
+                "text" : "Dâu tây"
+              } ],
+              "explanation" : "[VI] Bài nghe kể tên các hương vị kem Tràng Tiền: sô-cô-la, vani, cốm, sữa dừa... Không hề nhắc đến hương vị dâu tây.\n[EN] The audio lists Trang Tien ice cream flavors: chocolate, vanilla, green young sticky rice (cốm), coconut milk... Strawberry is NOT mentioned.",
+              "correct_answer" : "D"
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13",
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792517164/mg8mtmpfkx6cw89duheq.mp4",
+            "type" : "audio"
+          }
+        }
+      }, {
+        "partNumber" : 3,
+        "contentData" : {
+          "part_title" : "Kỹ năng Nghe - Phần 3",
+          "instruction" : "Thí sinh nghe các cuộc trao đổi, phỏng vấn, thảo luận và chọn câu trả lời đúng nhất (A, B, C hoặc D).",
+          "question_groups" : [ {
+            "group_id" : "nltv-p3-g1",
+            "instruction" : "Bài nghe 1 (Câu hỏi 30-31)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 30,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 30: Côn Đảo nằm ở đâu trên bản đồ Việt Nam?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Miền Bắc."
+              }, {
+                "id" : "B",
+                "text" : "Miền Trung."
+              }, {
+                "id" : "C",
+                "text" : "Miền Nam."
+              }, {
+                "id" : "D",
+                "text" : "Miền Tây Nam bộ."
+              } ],
+              "explanation" : "[VI] Bài nghe giới thiệu: 'Côn Đảo là một hòn đảo đẹp nằm ở ngoài khơi bờ biển Nam Bộ Việt Nam trực thuộc tỉnh Bà Rịa Vũng Tàu' (thuộc miền Nam).\n[EN] The recording introduces: 'Con Dao is a beautiful island offshore the Southern coast of Vietnam, belonging to Ba Ria - Vung Tau province' (Southern Vietnam).",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_002",
+              "question_number" : 31,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 31: Côn Đảo hấp dẫn du khách ở điểm gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Có nhiều di tích lịch sử."
+              }, {
+                "id" : "B",
+                "text" : "Có nhiều bãi tắm đẹp."
+              }, {
+                "id" : "C",
+                "text" : "Hải sản ngon và rẻ."
+              }, {
+                "id" : "D",
+                "text" : "Cả 3 đáp án trên đều đúng."
+              } ],
+              "explanation" : "[VI] Côn Đảo hấp dẫn du khách bởi cả 3 yếu tố: lưu giữ nhiều di tích lịch sử, có bãi tắm thơ mộng (An Hải, Đầm Trầu, Lò Vôi) và hải sản vừa ngon vừa rẻ.\n[EN] Con Dao attracts tourists for all 3 reasons: rich historical relics, picturesque beaches (An Hai, Dam Trau, Lo Voi), and delicious, affordable seafood.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "nltv-p3-g2",
+            "instruction" : "Bài nghe 2 (Câu hỏi 32-34)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_003",
+              "question_number" : 32,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 32: Họ đang nói chuyện với nhau vào khoảng thời điểm nào trong năm?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Đầu tháng 11 âm lịch."
+              }, {
+                "id" : "B",
+                "text" : "Giữa tháng 11 âm lịch."
+              }, {
+                "id" : "C",
+                "text" : "Cuối tháng 11 âm lịch."
+              }, {
+                "id" : "D",
+                "text" : "Đầu tháng 12 âm lịch."
+              } ],
+              "explanation" : "[VI] Đoạn thoại nói: 'còn đúng một tháng rưỡi nữa là đến Tết Nguyên Đán' (ngày 1/1 âm lịch). 1,5 tháng trước Tết là vào khoảng giữa tháng 11 âm lịch.\n[EN] The speaker mentions: 'it's exactly one and a half months until Lunar New Year' (1st of 1st lunar month). 1.5 months prior corresponds to mid-November on the lunar calendar.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_004",
+              "question_number" : 33,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 33: Hai người bạn dự định làm gì trong mấy ngày Tết?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Đi thăm họ hàng."
+              }, {
+                "id" : "B",
+                "text" : "Về nước."
+              }, {
+                "id" : "C",
+                "text" : "Đi dạo phố mua sắm."
+              }, {
+                "id" : "D",
+                "text" : "Đi du lịch khám phá."
+              } ],
+              "explanation" : "[VI] Người bạn rủ: 'nếu cậu không có nơi nào để đi trong mấy ngày Tết thì đi khám phá những vùng đất mới với mình nhé' -> Đi du lịch khám phá.\n[EN] The friend proposes: 'if you have nowhere to go during Tet, join me to explore new lands' -> Traveling and exploring.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_005",
+              "question_number" : 34,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 34: Tại sao bạn ấy không muốn đi cùng công ty du lịch?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Vì không muốn mất tiền cho công ty du lịch."
+              }, {
+                "id" : "B",
+                "text" : "Vì muốn thoải mái đi chơi với bạn bè."
+              }, {
+                "id" : "C",
+                "text" : "Vì muốn tự chuẩn bị mọi thứ cho chuyến đi."
+              }, {
+                "id" : "D",
+                "text" : "Vì không muốn đi với người lạ."
+              } ],
+              "explanation" : "[VI] Người nói giải thích: 'thực ra mình muốn tự đi hơn vì có mấy người bạn đang học bên Thái nên mình muốn đi chơi cùng các bạn ấy cho thoải mái'.\n[EN] The speaker explains: 'actually I prefer traveling independently because I have some friends studying in Thailand and want to hang out comfortably with them'.",
+              "correct_answer" : "B"
+            } ]
+          }, {
+            "group_id" : "nltv-p3-g3",
+            "instruction" : "Bài nghe 3 (Câu hỏi 35)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_006",
+              "question_number" : 35,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 35: Người Việt đi du lịch Thái Lan sẽ có thuận lợi gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Được miễn thị thực."
+              }, {
+                "id" : "B",
+                "text" : "Được giảm giá vé máy bay."
+              }, {
+                "id" : "C",
+                "text" : "Được tham quan với giá ưu đãi."
+              }, {
+                "id" : "D",
+                "text" : "Có thể sử dụng tiền Việt ở Thái Lan."
+              } ],
+              "explanation" : "[VI] Đoạn thoại nhắc: 'người Việt có hộ chiếu sẽ được miễn thị thực Thái Lan và được lưu trú 30 ngày nếu đi bằng đường hàng không'.\n[EN] The audio points out: 'Vietnamese passport holders are exempt from Thai visas and allowed a 30-day stay if traveling by air'.",
+              "correct_answer" : "A"
+            } ]
+          }, {
+            "group_id" : "nltv-p3-g4",
+            "instruction" : "Bài nghe 4 (Câu hỏi 36-37)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_007",
+              "question_number" : 36,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 36: Tại sao các bạn học việc khác lại cười nhạo cậu bé?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Vì cho rằng cậu bé làm việc vô ích."
+              }, {
+                "id" : "B",
+                "text" : "Vì cậu bé quá cẩn thận."
+              }, {
+                "id" : "C",
+                "text" : "Vì cậu bé không biết sửa xe."
+              }, {
+                "id" : "D",
+                "text" : "Vì cậu bé học mãi không thuộc bài."
+              } ],
+              "explanation" : "[VI] Những người học việc khác cười nhạo cậu bé dại dột vì cho rằng cậu làm việc vô ích: 'chẳng được thêm chút tiền công nào lại còn tốn sức mệt người'.\n[EN] The other apprentices mocked the boy, deeming his effort useless: 'earning no extra wage while exhausting himself'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_008",
+              "question_number" : 37,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 37: Theo anh/chị, vì sao cậu bé nhận được kết thúc tốt đẹp?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Vì cậu không cười nhạo bạn mình."
+              }, {
+                "id" : "B",
+                "text" : "Vì cậu là người làm việc tận tâm."
+              }, {
+                "id" : "C",
+                "text" : "Vì cậu quá nghèo khổ."
+              }, {
+                "id" : "D",
+                "text" : "Vì cậu quen biết với người khách."
+              } ],
+              "explanation" : "[VI] Cậu bé nhận được công việc với mức lương cao từ người khách vì cậu luôn làm việc tận tâm, chu đáo (không chỉ sửa tốt mà còn lau chùi xe sạch đẹp).\n[EN] The boy was offered a well-paying job because he was dedicated and thorough (not only repairing the bicycle well but also polishing it clean).",
+              "correct_answer" : "B"
+            } ]
+          }, {
+            "group_id" : "nltv-p3-g5",
+            "instruction" : "Bài nghe 5 (Câu hỏi 38-39)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_009",
+              "question_number" : 38,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 38: Ứng dụng Youtube Kids phù hợp với đối tượng nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Trẻ từ 0 đến 3 tuổi."
+              }, {
+                "id" : "B",
+                "text" : "Trẻ từ 3 tuổi trở lên."
+              }, {
+                "id" : "C",
+                "text" : "Trẻ từ 13 tuổi trở xuống."
+              }, {
+                "id" : "D",
+                "text" : "Trẻ từ 13 tuổi trở lên."
+              } ],
+              "explanation" : "[VI] Bài nghe nêu rõ: 'YouTube Kids là ứng dụng xem video dành riêng cho trẻ từ 13 tuổi trở xuống do Google phát triển'.\n[EN] The passage explicitly notes: 'YouTube Kids is a video app developed by Google specifically for children aged 13 and under'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_010",
+              "question_number" : 39,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 39: Ưu điểm của ứng dụng Youtube Kids là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Nội dung và giao diện thân thiện với trẻ nhỏ."
+              }, {
+                "id" : "B",
+                "text" : "Có thể kiểm soát nội dung và thời gian.."
+              }, {
+                "id" : "C",
+                "text" : "Hạn chế quảng cáo."
+              }, {
+                "id" : "D",
+                "text" : "Cả 3 đáp án trên đều đúng."
+              } ],
+              "explanation" : "[VI] Ưu điểm của YouTube Kids bao gồm tất cả các ý: giao diện thân thiện với trẻ nhỏ, tính năng cho cha mẹ kiểm soát nội dung/thời gian, và hạn chế tối đa quảng cáo.\n[EN] Advantages of YouTube Kids include all of the above: child-friendly UI, parental controls over content and time, and heavily restricted advertisements.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "nltv-p3-g6",
+            "instruction" : "Bài nghe 6 (Câu hỏi 40-41)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_011",
+              "question_number" : 40,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 40: Vào những buổi tối mùa thu bạn có thể trải nghiệm điều gì khi đi trên đường phố Hà Nội?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Phố xá yên tĩnh."
+              }, {
+                "id" : "B",
+                "text" : "Những cơn mưa rào mát mẻ."
+              }, {
+                "id" : "C",
+                "text" : "Hương hoa sữa nồng nàn trong gió."
+              }, {
+                "id" : "D",
+                "text" : "Ngắm bầu trời đầy sao."
+              } ],
+              "explanation" : "[VI] Bài nghe tả buổi tối mùa thu Hà Nội: 'những buổi tối mùa thu se lạnh... thưởng thức hương hoa sữa nồng nàn quyến rũ'.\n[EN] The recording describes autumn evenings in Hanoi: 'chilly autumn evenings... savoring the intoxicating, alluring aroma of milk flowers'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_012",
+              "question_number" : 41,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 41: Món ăn nào của Hà Nội được nhắc đến trong bài nghe?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Trà sen."
+              }, {
+                "id" : "B",
+                "text" : "Cốm."
+              }, {
+                "id" : "C",
+                "text" : "Kem."
+              }, {
+                "id" : "D",
+                "text" : "Đồ nướng."
+              } ],
+              "explanation" : "[VI] Món ăn mùa thu được nhắc đến trong bài là: 'mua cho mình một vài lạng cốm xanh non được ướp trong những chiếc lá sen ngào ngạt'.\n[EN] The autumn specialty highlighted in the recording is: 'buying a few ounces of fresh green young sticky rice (cốm) wrapped in fragrant lotus leaves'.",
+              "correct_answer" : "B"
+            } ]
+          }, {
+            "group_id" : "nltv-p3-g7",
+            "instruction" : "Bài nghe 7 (Câu hỏi 42-43)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_013",
+              "question_number" : 42,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 42: Theo cậu con trai, người nghèo thực sự là ai?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Là hai bố con."
+              }, {
+                "id" : "B",
+                "text" : "Là những người ở trong ngôi làng."
+              }, {
+                "id" : "C",
+                "text" : "Là những người không hạnh phúc."
+              }, {
+                "id" : "D",
+                "text" : "Là những người tham lam."
+              } ],
+              "explanation" : "[VI] Cậu con trai nhận xét: 'Con cảm ơn bố đã cho con thấy chúng ta nghèo như thế nào' -> cậu nhận thấy chính hai bố con mình mới là người nghèo.\n[EN] The son concludes: 'Thank you Dad for showing me how poor we are' -> he perceives that he and his father are the truly poor ones.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_014",
+              "question_number" : 43,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 43: Câu chuyện muốn nói với chúng ta điều gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Cần phải chăm chỉ lao động để có nhiều của cải."
+              }, {
+                "id" : "B",
+                "text" : "Đi nhiều nơi để học hỏi nhiều điều."
+              }, {
+                "id" : "C",
+                "text" : "Giàu nghèo không phải là vấn đề quan trọng."
+              }, {
+                "id" : "D",
+                "text" : "Mọi thứ phụ thuộc vào cách nhìn của chúng ta với cuộc sống."
+              } ],
+              "explanation" : "[VI] Ý nghĩa câu chuyện: Hạnh phúc và sự giàu có đích thực không nằm ở của cải vật chất mà phụ thuộc vào cách nhìn nhận và thái độ của chúng ta với cuộc sống.\n[EN] The message of the fable: True wealth and happiness lie not in material possessions, but depend entirely on our perspective and attitude toward life.",
+              "correct_answer" : "D"
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13",
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792517246/udsrmwcm8ww15stzz0ph.mp4",
+            "type" : "audio"
+          }
+        }
+      }, {
+        "partNumber" : 4,
+        "contentData" : {
+          "part_title" : "Kỹ năng Nghe - Phần 4",
+          "instruction" : "Thí sinh nghe các bản tin, bài thuyết trình, bài giảng và chọn câu trả lời đúng nhất (A, B, C hoặc D).",
+          "question_groups" : [ {
+            "group_id" : "nltv-p4-g1",
+            "instruction" : "Bản tin 1 (Câu hỏi 44-45)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 44,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 44: Từ ngày mai, khu vực nào bắt đầu có mưa lớn do chịu ảnh hưởng của bão?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Quảng Bình, Quảng Ngãi và Kon Tum."
+              }, {
+                "id" : "B",
+                "text" : "Bắc miền Trung và Bắc bộ."
+              }, {
+                "id" : "C",
+                "text" : "Miền Trung và Đông Bắc bộ."
+              }, {
+                "id" : "D",
+                "text" : "Nam miền Trung và Tây Bắc bộ."
+              } ],
+              "explanation" : "[VI] Bản tin dự báo thời tiết nêu: 'từ ngày mai đến ngày 12 tháng 10 hoàn lưu bão sẽ bắt đầu gây mưa cho khu vực Bắc miền Trung và Bắc Bộ'.\n[EN] The weather forecast announces: 'from tomorrow until October 12, storm circulation will begin causing heavy rains in North Central and Northern Vietnam'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_002",
+              "question_number" : 45,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 45: Lực lượng cắm chốt trên đường Hồ Chí Minh đã thực hiện tốt nhiệm vụ gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Chống dịch và điều tiết phương tiện giao thông."
+              }, {
+                "id" : "B",
+                "text" : "Dự báo tình hình thời tiết."
+              }, {
+                "id" : "C",
+                "text" : "Giúp người dân tránh bão."
+              }, {
+                "id" : "D",
+                "text" : "Đưa người dân đi qua tuyến đường nguy hiểm."
+              } ],
+              "explanation" : "[VI] Bản tin khen ngợi: 'các lực lượng chủ chốt đã thực hiện nhiệm vụ chống dịch và vẫn đảm bảo các hoạt động điều tiết các phương tiện qua lại cung đường nguy hiểm này'.\n[EN] The report commends: 'the stationed forces fulfilled disease control tasks while simultaneously regulating vehicular traffic through this hazardous route'.",
+              "correct_answer" : "A"
+            } ]
+          }, {
+            "group_id" : "nltv-p4-g2",
+            "instruction" : "Bản tin 2 (Câu hỏi 46-47)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_003",
+              "question_number" : 46,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 46: Theo bài nghe, sau bao lâu áp dụng Chỉ thị 18, thành phố Hồ Chí Minh đã khôi phục được sản xuất, kinh doanh?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Một tuần."
+              }, {
+                "id" : "B",
+                "text" : "Hai tuần."
+              }, {
+                "id" : "C",
+                "text" : "Từ ngày hôm qua."
+              }, {
+                "id" : "D",
+                "text" : "Từ ngày 15/10."
+              } ],
+              "explanation" : "[VI] Bản tin khẳng định: 'thành phố Hồ Chí Minh đã đạt một số thành quả về kiểm soát dịch bệnh và khôi phục hoạt động sản xuất kinh doanh sau một tuần thực hiện chỉ thị số 18'.\n[EN] The news report confirms: 'Ho Chi Minh City achieved significant progress in epidemic containment and economic recovery after one week of implementing Directive 18'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_004",
+              "question_number" : 47,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 47: Thông tin nào đúng với nội dung bài nghe?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Số ca nhập viện nhiều hơn số ca khỏi bệnh."
+              }, {
+                "id" : "B",
+                "text" : "Số ca nhập viện nhiều hơn số ca mắc mới."
+              }, {
+                "id" : "C",
+                "text" : "Số ca khỏi bệnh nhiều hơn số ca nhập viện."
+              }, {
+                "id" : "D",
+                "text" : "Số ca khỏi bệnh nhiều hơn số ca tử vong."
+              } ],
+              "explanation" : "[VI] Bản tin cung cấp số liệu: 'suốt 1 tuần qua thì số bệnh nhân khỏi bệnh được xuất viện nhiều hơn số ca nhập viện'.\n[EN] The newscast provides figures: 'throughout the past week, discharged/recovered patients outnumbered hospital admissions'.",
+              "correct_answer" : "C"
+            } ]
+          }, {
+            "group_id" : "nltv-p4-g3",
+            "instruction" : "Bản tin 3 (Câu hỏi 48-49)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_005",
+              "question_number" : 48,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 48: Theo PGS. TS Phùng Hòa Bình, nguyên nhân nào dẫn đến tình trạng mất ngủ?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Do áp lực của công việc và cuộc sống."
+              }, {
+                "id" : "B",
+                "text" : "Do mắc chứng mất ngủ kinh niên."
+              }, {
+                "id" : "C",
+                "text" : "Do chữa mất ngủ bằng thuốc tây y."
+              }, {
+                "id" : "D",
+                "text" : "Do cuộc sống quá tẻ nhạt."
+              } ],
+              "explanation" : "[VI] PGS. TS Phùng Hòa Bình phân tích: mất ngủ do nhiều nguyên nhân nhưng phổ biến nhất hiện nay là do áp lực công việc quá căng thẳng và sức ép cuộc sống.\n[EN] Assoc. Prof. Dr. Phung Hoa Binh explains: insomnia arises from diverse factors, but predominantly today from work-related stress and pressures of daily life.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_006",
+              "question_number" : 49,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 49: Biểu hiện của những người mắc bệnh mất ngủ do thể hàn thế nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Thần kinh hưng phấn, khó vào giấc ngủ, giấc ngủ ngắn."
+              }, {
+                "id" : "B",
+                "text" : "Lúc nào cũng buồn ngủ, ngủ lơ mơ, càng ngủ càng mệt."
+              }, {
+                "id" : "C",
+                "text" : "Giấc ngủ không sinh lý, bị áp đặt."
+              }, {
+                "id" : "D",
+                "text" : "Ngủ hay mê sảng hoặc mộng du."
+              } ],
+              "explanation" : "[VI] Chuyên gia mô tả thể hàn: 'lúc nào cũng buồn ngủ và nằm xuống cảm giác là ngủ nhưng giấc ngủ rất nông và ngủ lơ mơ, càng ngủ càng mệt'.\n[EN] The specialist describes cold-pattern insomnia: 'feeling constantly drowsy, sleeping shallowly and fitfully, becoming increasingly fatigued the longer one sleeps'.",
+              "correct_answer" : "B"
+            } ]
+          }, {
+            "group_id" : "nltv-p4-g4",
+            "instruction" : "Bản tin 4 (Câu hỏi 50-51)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_007",
+              "question_number" : 50,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 50: Kết quả thử nghiệm vắc xin cho trẻ thế nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Còn nhiều biến chứng nguy hiểm."
+              }, {
+                "id" : "B",
+                "text" : "An toàn và tạo cơ chế bảo vệ hiệu quả."
+              }, {
+                "id" : "C",
+                "text" : "Cơ chế bảo vệ chưa hiệu quả."
+              }, {
+                "id" : "D",
+                "text" : "An toàn với những trẻ có cơ địa khỏe mạnh."
+              } ],
+              "explanation" : "[VI] Kết quả thử nghiệm lâm sàng toàn cầu cho thấy vắc xin Pfizer BioNTech: 'an toàn và tạo ra phản ứng mạnh với những kháng thể trung hòa' (tạo cơ chế bảo vệ hiệu quả).\n[EN] Global clinical trials revealed that the Pfizer BioNTech vaccine is 'safe and induces robust neutralizing antibody responses' (effective protective mechanism).",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_008",
+              "question_number" : 51,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 51: Đối tượng nào đang được Pfizer BioNTech thử nghiệm vắc xin ngừa  Covid?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Trẻ từ 6 tháng tuổi đến 5 tuổi."
+              }, {
+                "id" : "B",
+                "text" : "Trẻ từ 5 tuổi đến 11 tuổi."
+              }, {
+                "id" : "C",
+                "text" : "Trẻ sơ sinh từ 6 tháng đến 2 tuổi."
+              }, {
+                "id" : "D",
+                "text" : "Trẻ em từ 2 tuổi đến 5 tuổi."
+              } ],
+              "explanation" : "[VI] Bản tin nêu đối tượng xin cấp phép khẩn cấp: 'cho trẻ em từ 5 đến 11 tuổi tại Mỹ'.\n[EN] The report specifies the emergency authorization target: 'for children aged 5 to 11 in the United States'.",
+              "correct_answer" : "B"
+            } ]
+          }, {
+            "group_id" : "nltv-p4-g5",
+            "instruction" : "Bản tin 5 (Câu hỏi 52-53)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_009",
+              "question_number" : 52,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 52: Trong trận đấu giữa đội Việt Nam và Trung Quốc, đội Việt Nam bị dẫn trước mấy bàn?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "1 bàn."
+              }, {
+                "id" : "B",
+                "text" : "2 bàn."
+              }, {
+                "id" : "C",
+                "text" : "3 bàn."
+              }, {
+                "id" : "D",
+                "text" : "4 bàn."
+              } ],
+              "explanation" : "[VI] Bình luận viên tường thuật: 'đội tuyển hôm nay thi đấu tốt và không từ bỏ dù bị dẫn trước 2 bàn'.\n[EN] The commentator reports: 'the national team played valiantly today and never gave up despite falling 2 goals behind'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_010",
+              "question_number" : 53,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 53: Thái độ của huấn luyện viên Park thế nào sau trận đấu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Không hài lòng với kết quả của trận đấu."
+              }, {
+                "id" : "B",
+                "text" : "Tiếc nuối vì Việt Nam thiếu may mắn."
+              }, {
+                "id" : "C",
+                "text" : "Thất vọng với cách thi đấu của các cầu thủ."
+              }, {
+                "id" : "D",
+                "text" : "Cảm thấy có lỗi trong cách chỉ đạo."
+              } ],
+              "explanation" : "[VI] HLV Park Hang-seo thẳng thắn nhận lỗi về mình: 'Có lẽ tôi đã thay vị trí hậu vệ vội quá. Đó là lỗi của tôi, sai sót của cầu thủ là lỗi trách nhiệm của huấn luyện viên'.\n[EN] Coach Park Hang-seo candidly took responsibility: 'Perhaps I rushed substitutions in defence. That was my mistake; player errors are the responsibility of the head coach'.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "nltv-p4-g6",
+            "instruction" : "Bản tin 6 (Câu hỏi 54-55)",
+            "content_html" : "",
+            "questions" : [ {
+              "question_id" : "q_011",
+              "question_number" : 54,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 54: Bài nghe nói về nội dung gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Phương pháp sản xuất điện năng mới."
+              }, {
+                "id" : "B",
+                "text" : "Thế giới áp dụng biện pháp tiết kiệm nhiên liệu."
+              }, {
+                "id" : "C",
+                "text" : "Thiếu hụt nhiên liệu sau cuộc hồi phục kinh tế thế giới."
+              }, {
+                "id" : "D",
+                "text" : "Nghiên cứu khai thác năng lượng Xanh."
+              } ],
+              "explanation" : "[VI] Bản tin tài chính - kinh tế phản ánh về tình trạng khan hiếm than nhiệt, khí đốt và cuộc khủng hoảng thiếu hụt năng lượng/điện khi kinh tế thế giới phục hồi.\n[EN] The economic broadcast reports on thermal coal and natural gas shortages leading to an energy crunch as global economic recovery rebounds.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_012",
+              "question_number" : 55,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 55: Người phụ nữ được phỏng vấn cho biết trong năm nay cô ấy đã chi trả bao nhiêu phần trăm doanh thu của cửa hàng mình cho hóa đơn tiền điện?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Gấp 2 lần doanh thu."
+              }, {
+                "id" : "B",
+                "text" : "1/3 doanh thu."
+              }, {
+                "id" : "C",
+                "text" : "1/10 doanh thu."
+              }, {
+                "id" : "D",
+                "text" : "40% doanh thu."
+              } ],
+              "explanation" : "[VI] Chủ cửa hàng được phỏng vấn cho biết: 'trung bình hóa đơn tiền điện chỉ chiếm 1/10 doanh thu, còn năm nay tiền điện đã chiếm 1/3 doanh thu'.\n[EN] The interviewed shop owner stated: 'ordinarily electricity bills accounted for only 1/10 of revenue, but this year power costs consumed 1/3 of total revenue'.",
+              "correct_answer" : "B"
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13",
+          "shared_audio" : {
+            "url" : "https://res.cloudinary.com/j5on4xwq/video/upload/v1792517317/go4zqbdhp2gecp2cim7v.mp4",
+            "type" : "audio"
+          }
+        }
+      } ]
+    }, {
+      "skillType" : "READING",
+      "durationMinutes" : 60,
+      "parts" : [ {
+        "partNumber" : 5,
+        "contentData" : {
+          "part_title" : "Kỹ năng Đọc - Phần 1",
+          "instruction" : "Đọc văn bản và chọn câu trả lời đúng nhất (A, B, C hoặc D) cho các câu hỏi 1-16.",
+          "question_groups" : [ {
+            "group_id" : "nltv-p5-g1",
+            "instruction" : "Bài đọc 1 (Câu hỏi 1-10)",
+            "content_html" : "Tôi tên là Tuệ Lâm, năm nay 35 tuổi. Tôi là nhân viên phòng kế toán công ty ABC. Chồng tôi là Minh Đức, anh ấy nhiều hơn tôi 4 tuổi, là kiến trúc sư. Chúng tôi có ba con: hai con gái và một con trai út. Minh Anh 10 tuổi, Minh Thu 7 tuổi và Minh Nhật 4 tuổi. Hàng ngày, tôi và chồng tôi đều thức dậy lúc 6 giờ. Sau khi tập thể dục, đánh răng, rửa mặt, tôi chuẩn bị đồ ăn sáng cho gia đình, còn chồng tôi sẽ gọi các con dậy. Chúng tôi thường ăn sáng từ 7 giờ kém 10 đến 7 giờ 15 phút, sau đó tôi đi làm. Buổi sáng, chồng tôi sẽ đưa con út đến trường mẫu giáo, còn con thứ hai và con cả đi đến trường cùng tôi. Nhà tôi xa cơ quan và đường đi làm hay tắc đường nên thỉnh thoảng tôi đến cơ quan muộn. Tôi làm việc từ 8 giờ đến 12 giờ trưa. Sau đó là thời gian nghỉ để ăn trưa. Đúng 13 giờ tôi bắt đầu làm việc buổi chiều. Tôi thường rời cơ quan lúc 17 giờ. Trên đường về nhà, tôi sẽ đi đón con cả và đi siêu thị mua thức ăn. Chồng tôi đón hai đứa còn lại và về nhà lúc 18 giờ. Gia đình tôi thường ăn tối từ 19 giờ kém 10 đến 19 giờ rưỡi. Các con tôi được chơi cùng nhau nửa tiếng rồi về phòng học bài. Khoảng 20 giờ rưỡi, khi tôi chuẩn bị tài liệu cho ngày làm việc hôm sau thì chồng tôi cho con út đi ngủ. Sau đó anh ấy ra phòng khách xem ti-vi hoặc đọc báo. Gia đình tôi thường đi ngủ lúc 22 giờ rưỡi. Thứ 7 cuối tuần, gia đình chúng tôi thường cùng nhau đi chơi công viên, đi mua sách hoặc đi xem phim và ăn trưa ở nhà hàng. Chiều thứ Bảy, vợ chồng tôi dành thời gian đưa các con về chơi với ông bà nội. Còn ngày Chủ nhật, gia đình tôi về chơi và ăn cơm cùng ông bà ngoại.\n\nNgày mai là thứ Ba, tôi phải vào Vũng Tàu công tác. Tôi sẽ đi bằng máy bay vào thành phố Hồ Chí Minh và đi ô tô về Vũng Tàu. Chuyến bay mất 2 tiếng 15 phút. Tôi phải đến sân bay làm thủ tục lúc 6 giờ sáng, vì 2 tiếng sau máy bay sẽ cất cánh. Từ sân bay Tân Sơn Nhất, thành phố Hồ Chí Minh, tôi phải mất thêm 2 giờ đồng hồ ngồi ô tô nữa mới về đến Vũng Tàu. Tôi sẽ ở Vũng Tàu làm việc 3 ngày và làm việc ở thành phố Hồ Chí Minh thêm 1 ngày. Tôi hi vọng chuyến công tác của tôi sẽ thuận lợi và tôi sẽ sớm được trở về với gia đình.",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 1,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 1: Gia đình của Tuệ Lâm có mấy người?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "3."
+              }, {
+                "id" : "B",
+                "text" : "4."
+              }, {
+                "id" : "C",
+                "text" : "5."
+              }, {
+                "id" : "D",
+                "text" : "6."
+              } ],
+              "explanation" : "[VI] Tuệ Lâm giới thiệu: có chồng (Minh Đức), hai con gái (Minh Anh, Minh Thu) và một con trai út (Minh Nhật). Tổng cộng gia đình gồm 5 người.\n[EN] Tue Lam mentions: husband (Minh Duc), two daughters (Minh Anh, Minh Thu), and one youngest son (Minh Nhat). The family consists of 5 members in total.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_002",
+              "question_number" : 2,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 2: Minh Thu là con thứ mấy trong gia đình?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Con cả."
+              }, {
+                "id" : "B",
+                "text" : "Con một."
+              }, {
+                "id" : "C",
+                "text" : "Con út."
+              }, {
+                "id" : "D",
+                "text" : "Con thứ hai."
+              } ],
+              "explanation" : "[VI] Bài đọc nêu: 'hai con gái và một con trai út. Minh Anh 10 tuổi, Minh Thu 7 tuổi và Minh Nhật 4 tuổi... con thứ hai và con cả đi đến trường cùng tôi' -> Minh Thu là con thứ hai.\n[EN] The passage notes: 'Minh Anh 10, Minh Thu 7, Minh Nhat 4... the second child and eldest go to school with me' -> Minh Thu is the second child.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_003",
+              "question_number" : 3,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 3: Chồng của Tuệ Lâm năm nay bao nhiêu tuổi?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "31 tuổi."
+              }, {
+                "id" : "B",
+                "text" : "35 tuổi."
+              }, {
+                "id" : "C",
+                "text" : "39 tuổi."
+              }, {
+                "id" : "D",
+                "text" : "40 tuổi."
+              } ],
+              "explanation" : "[VI] Tuệ Lâm 35 tuổi, chồng nhiều hơn 4 tuổi -> 35 + 4 = 39 tuổi.\n[EN] Tue Lam is 35 years old; her husband is 4 years older -> 35 + 4 = 39 years old.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_004",
+              "question_number" : 4,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 4: Buổi sáng, Tuệ Lâm sẽ đưa ai đến trường?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Minh Thu và Minh Anh."
+              }, {
+                "id" : "B",
+                "text" : "Minh Thu và Minh Nhật."
+              }, {
+                "id" : "C",
+                "text" : "Minh Nhật và Minh Anh."
+              }, {
+                "id" : "D",
+                "text" : "Minh Anh, Minh Thu và Minh Nhật."
+              } ],
+              "explanation" : "[VI] Bài đọc nêu: 'chồng tôi sẽ đưa con út đến trường mẫu giáo, còn con thứ hai và con cả đi đến trường cùng tôi' (con cả Minh Anh, con thứ hai Minh Thu).\n[EN] The text states: 'my husband takes our youngest to kindergarten, while the second child and eldest go to school with me' (Minh Thu and Minh Anh).",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_005",
+              "question_number" : 5,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 5: Gia đình Tuệ Lâm thường ăn tối trong bao lâu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "30 phút"
+              }, {
+                "id" : "B",
+                "text" : "40 phút."
+              }, {
+                "id" : "C",
+                "text" : "50 phút."
+              }, {
+                "id" : "D",
+                "text" : "60 phút."
+              } ],
+              "explanation" : "[VI] Bài đọc nêu: 'Gia đình tôi thường ăn tối từ 19 giờ kém 10 đến 19 giờ rưỡi' (từ 18:50 đến 19:30 = 40 phút).\n[EN] The text specifies: 'My family usually has dinner from 10 to 7:00 PM until 7:30 PM' (18:50 to 19:30 = 40 minutes).",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_006",
+              "question_number" : 6,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 6: Sau khi ăn tối xong, các con của Tuệ Lâm thường làm gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Về phòng học bài."
+              }, {
+                "id" : "B",
+                "text" : "Đọc sách."
+              }, {
+                "id" : "C",
+                "text" : "Xem ti vi."
+              }, {
+                "id" : "D",
+                "text" : "Chơi cùng với nhau."
+              } ],
+              "explanation" : "[VI] Bài đọc nêu rõ: 'Các con tôi được chơi cùng nhau nửa tiếng rồi về phòng học bài' (hoạt động chơi cùng nhau diễn ra ngay sau khi ăn tối).\n[EN] The passage clearly states: 'My children play together for half an hour, then return to their rooms to study' (playing together happens right after dinner).",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_007",
+              "question_number" : 7,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 7: Lúc 8 rưỡi tối, chồng Tuệ Lâm thường làm gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Cho Minh Nhật đi ngủ."
+              }, {
+                "id" : "B",
+                "text" : "Chuẩn bị tài liệu cho ngày làm việc hôm sau."
+              }, {
+                "id" : "C",
+                "text" : "Đọc báo hoặc xem ti-vi."
+              }, {
+                "id" : "D",
+                "text" : "Chơi cùng các con."
+              } ],
+              "explanation" : "[VI] Bài đọc ghi: 'Khoảng 20 giờ rưỡi, khi tôi chuẩn bị tài liệu cho ngày làm việc hôm sau thì chồng tôi cho con út đi ngủ' (Minh Nhật là con út).\n[EN] The text reads: 'Around 8:30 PM, while I prepare documents for the next workday, my husband puts our youngest child (Minh Nhat) to bed'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_008",
+              "question_number" : 8,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 8: Trưa thứ 7, gia đình Tuệ Lâm thường ăn cơm ở đâu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Ăn cơm ở nhà."
+              }, {
+                "id" : "B",
+                "text" : "Ăn cơm ở nhà hàng."
+              }, {
+                "id" : "C",
+                "text" : "Ăn cơm ở nhà ông bà nội."
+              }, {
+                "id" : "D",
+                "text" : "Ăn cơm ở nhà ông bà ngoại."
+              } ],
+              "explanation" : "[VI] Đoạn văn cho biết: 'Thứ 7 cuối tuần, gia đình chúng tôi thường cùng nhau đi chơi công viên, đi mua sách hoặc đi xem phim và ăn trưa ở nhà hàng'.\n[EN] The passage states: 'On Saturdays, our family often visits the park, bookstores, or cinemas together, and has lunch at a restaurant'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_009",
+              "question_number" : 9,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 9: Máy bay của Tuệ Lâm sẽ hạ cánh xuống sân bay Tân Sơn Nhất lúc mấy giờ ?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "2 giờ 15 phút."
+              }, {
+                "id" : "B",
+                "text" : "6 giờ 15 phút"
+              }, {
+                "id" : "C",
+                "text" : "8 giờ 15 phút."
+              }, {
+                "id" : "D",
+                "text" : "10 giờ 15 phút."
+              } ],
+              "explanation" : "[VI] Tuệ Lâm đến sân bay lúc 6h sáng, 2 tiếng sau cất cánh (8h00), chuyến bay mất 2h15p -> Máy bay hạ cánh xuống Tân Sơn Nhất lúc 10 giờ 15 phút.\n[EN] She arrives at the airport at 6:00 AM; flight departs 2 hours later (8:00 AM) and takes 2h15m -> Lands at Tan Son Nhat at 10:15 AM.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_010",
+              "question_number" : 10,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 10: Tuệ Lâm sẽ kết thúc chuyến công tác vào thứ mấy?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Thứ Tư."
+              }, {
+                "id" : "B",
+                "text" : "Thứ Năm."
+              }, {
+                "id" : "C",
+                "text" : "Thứ Sáu."
+              }, {
+                "id" : "D",
+                "text" : "Thứ Bảy."
+              } ],
+              "explanation" : "[VI] Chuyến đi bắt đầu vào thứ Ba, làm việc 3 ngày ở Vũng Tàu (thứ Ba, thứ Tư, thứ Năm) và thêm 1 ngày ở TP.HCM (thứ Sáu) -> Kết thúc vào thứ Sáu.\n[EN] The trip starts on Tuesday; she works 3 days in Vung Tau (Tue, Wed, Thu) and 1 extra day in HCM City (Fri) -> Finishes on Friday.",
+              "correct_answer" : "C"
+            } ]
+          }, {
+            "group_id" : "nltv-p5-g2",
+            "instruction" : "Bài đọc 2 (Câu hỏi 11-16)",
+            "content_html" : "Cùng với sự phát triển của Internet, các nền tảng mạng xã hội đang ngày càng phổ biến và trở thành một phần không thể thiếu của nhiều người. Dưới đây là những mạng xã hội phổ biến nhất thế giới hiện nay.\n\n1. Pinterest: 425 triệu người dùng tích cực (NDTC) - Pinterest là nền tảng mạng xã hội cho phép người dùng chia sẻ và tìm kiếm các nội dung đa phương tiện (thường là hình ảnh). Người dùng có thể tạo ra những bộ sưu tập nội dung theo từng chủ đề và sở thích trên Pinterest. Được chính thức hoạt động vào năm 2010, Pinterest là trang web đạt cột mốc 10 triệu người dùng nhanh nhất trong lịch sử, chỉ sau 2 năm.\n\n2. Instagram: 1,16 tỷ người dùng tích cực (NDTC) - Ban đầu chỉ là một ứng dụng xử lý và tạo bộ lọc màu sắc cho hình ảnh, Instagram sau đó đã phát triển thành một ứng dụng chia sẻ ảnh và video. Instagram có bước tiến nhanh chóng về lượng người dùng sau khi Facebook chi ra 1 tỷ USD để mua lại ứng dụng này vào năm 2014.\n\n3. Youtube: Hơn 2 tỷ NDTC - Video đầu tiên được đăng tải lên Youtube vào ngày 25/4/2005 bởi Jawed Karim, một trong ba nhà đồng sáng lập của Youtube. Từ đó đến nay, Youtube đã vươn lên trở thành trang web chia sẻ video lớn nhất thế giới và là mạng xã hội lớn thứ hai thế giới về số người dùng tích cực. Trung bình mỗi ngày, người dùng trên toàn cầu đã xem hàng tỷ giờ video trên Youtube.\n\n4. TikTok: 850 triệu NDTC - Là mạng xã hội \"sinh sau đẻ muộn\" khi mới được ra đời vào năm 2016, TikTok đã nhanh chóng vươn lên trở thành một trong những mạng xã hội lớn nhất thế giới. Ưu điểm của TikTok là các hiệu ứng video vui nhộn và lượng người dùng trẻ tuổi, giúp tạo ra các xu hướng trên toàn cầu để thu hút thêm ngày càng nhiều người dùng.\n\n5. Facebook: 2,7 tỷ NDTC - Được thành lập vào năm 2004 bởi CEO đương nhiệm Mark Zuckerberg, nhưng phải đến 2006, mạng xã hội này mới được mở cửa công khai cho người dùng toàn cầu. Từ đó đến nay, Facebook đã có bước phát triển vượt bậc để trở thành mạng xã hội lớn nhất thế giới. Nếu là một quốc gia, Facebook sẽ là quốc gia có dân số đông nhất thế giới.\n\n(Theo viettimes.vn)",
+            "questions" : [ {
+              "question_id" : "q_011",
+              "question_number" : 11,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 11: Năm 2006 có ý nghĩa như thế nào đối với mạng xã hội Facebook?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Là thời gian mạng xã hội này được thành lập."
+              }, {
+                "id" : "B",
+                "text" : "Là thời gian mạng xã hội này chính thức hoạt động."
+              }, {
+                "id" : "C",
+                "text" : "Là thời gian mạng xã hội này đạt mốc 10 triệu người sử dụng."
+              }, {
+                "id" : "D",
+                "text" : "Là thời gian mạng xã hội này được mở công khai cho người dùng."
+              } ],
+              "explanation" : "[VI] Bài đọc nêu: 'Được thành lập vào năm 2004... nhưng phải đến 2006, mạng xã hội này mới được mở cửa công khai cho người dùng toàn cầu'.\n[EN] The text states: 'Founded in 2004... but not until 2006 was this social network publicly opened to global users'.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_012",
+              "question_number" : 12,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 12: Mạng xã hội Youtube đã phát triển như thế nào sau khi video đầu tiên được đăng tải lên?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Trở thành mạng xã hội lớn nhất thế giới."
+              }, {
+                "id" : "B",
+                "text" : "Trở thành mạng xã hội lớn thứ hai thế giới."
+              }, {
+                "id" : "C",
+                "text" : "Trở thành ứng dụng có lượng người dùng trẻ tuổi nhất."
+              }, {
+                "id" : "D",
+                "text" : "Trở thành trang web đạt cột mốc về lượng người dùng nhanh nhất."
+              } ],
+              "explanation" : "[VI] Bài đọc nêu: 'Từ đó đến nay, Youtube đã vươn lên trở thành trang web chia sẻ video lớn nhất thế giới và là mạng xã hội lớn thứ hai thế giới về số người dùng tích cực'.\n[EN] The text states: 'Since then, YouTube has grown into the world's largest video sharing site and the second largest social network in active users'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_013",
+              "question_number" : 13,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 13: Trước khi trở thành ứng dụng chia sẻ ảnh và video, Instagram chuyên cung cấp dịch vụ về lĩnh vực nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Xử lý và tạo bộ lọc màu sắc cho hình ảnh."
+              }, {
+                "id" : "B",
+                "text" : "Tạo hiệu ứng vui nhộn cho các video được đăng tải."
+              }, {
+                "id" : "C",
+                "text" : "Tìm kiếm các nội dung đa phương tiện."
+              }, {
+                "id" : "D",
+                "text" : "Tạo ra những xu hướng mới để thu hút người dùng."
+              } ],
+              "explanation" : "[VI] Đoạn 2 viết: 'Ban đầu chỉ là một ứng dụng xử lý và tạo bộ lọc màu sắc cho hình ảnh, Instagram sau đó đã phát triển thành một ứng dụng chia sẻ ảnh và video'.\n[EN] Paragraph 2 states: 'Initially an app for processing and creating color filters for images, Instagram subsequently developed into a photo and video sharing platform'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_014",
+              "question_number" : 14,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 14: Năm 2014, Facebook đã đưa ra quyết định gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Mở cửa công khai cho người dùng toàn cầu."
+              }, {
+                "id" : "B",
+                "text" : "Chi tiền để mua lại ứng dụng Instagram."
+              }, {
+                "id" : "C",
+                "text" : "Vươn lên trở thành một trong những trang mạng lớn nhất."
+              }, {
+                "id" : "D",
+                "text" : "Lập kỷ lục 10 triệu người sử dụng sớm nhất."
+              } ],
+              "explanation" : "[VI] Đoạn 2 nêu: 'Instagram có bước tiến nhanh chóng về lượng người dùng sau khi Facebook chi ra 1 tỷ USD để mua lại ứng dụng này vào năm 2014'.\n[EN] Paragraph 2 notes: 'Instagram surged in user base after Facebook spent $1 billion to acquire the app in 2014'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_015",
+              "question_number" : 15,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 15: Thông tin nào dưới đây KHÔNG ĐÚNG?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Mạng xã hội Youtube do ba nhà sáng lập cùng tạo ra."
+              }, {
+                "id" : "B",
+                "text" : "Mạng Facebook được sử dụng công khai sau hai năm sau khi thành lập."
+              }, {
+                "id" : "C",
+                "text" : "Lượng người dùng Pinterest gấp đôi lượng người dùng Tiktok."
+              }, {
+                "id" : "D",
+                "text" : "Những bộ sưu tập theo chủ đề sẽ được tạo ra nhờ nền tảng Pinterest."
+              } ],
+              "explanation" : "[VI] Pinterest có 425 triệu NDTC, TikTok có 850 triệu NDTC (lượng người dùng TikTok gấp đôi Pinterest, không phải Pinterest gấp đôi TikTok). Vì vậy thông tin C là SAI.\n[EN] Pinterest has 425M active users while TikTok has 850M (TikTok has double Pinterest's users, not the reverse). Therefore statement C is FALSE.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_016",
+              "question_number" : 16,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 16: Từ “đương nhiệm” trong đoạn (5) được hiểu như thế nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Mark Zuckerberg trước đây là CEO của Facebook."
+              }, {
+                "id" : "B",
+                "text" : "Mark Zuckerberg là CEO tạm thời của Facebook."
+              }, {
+                "id" : "C",
+                "text" : "Mark Zuckerberg sắp trở thành CEO của Facebook."
+              }, {
+                "id" : "D",
+                "text" : "Mark Zuckerberg hiện đang là CEO của Facebook. Phần 2:"
+              } ],
+              "explanation" : "[VI] 'CEO đương nhiệm' nghĩa là người hiện nay đang giữ chức vụ CEO (Mark Zuckerberg hiện đang là CEO của Facebook).\n[EN] 'Incumbent CEO' (CEO đương nhiệm) means the person currently serving in that executive role (Mark Zuckerberg is currently the CEO of Facebook).",
+              "correct_answer" : "D"
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13"
+        }
+      }, {
+        "partNumber" : 6,
+        "contentData" : {
+          "part_title" : "Kỹ năng Đọc - Phần 2",
+          "instruction" : "Đọc các bài đọc và chọn câu trả lời đúng nhất (A, B, C hoặc D) cho các câu hỏi 17-40.",
+          "question_groups" : [ {
+            "group_id" : "nltv-p6-g1",
+            "instruction" : "Bài đọc 1 (Câu hỏi 17-24)",
+            "content_html" : "(1) Lúc tôi lên 8 hay 9 tuổi gì đó, tôi nhớ thỉnh thoảng mẹ mình vẫn nướng bánh mì cháy khét. Điều đó khiến tôi phải xị mặt vì không được ăn ngon khi đã quá đói. Tôi còn nhớ, một hôm mẹ tôi trở về sau một ngày làm việc dài. Và bữa tối hôm đó lại là những mẩu bánh mì nướng cháy đen như than. Tôi khá bất ngờ, chỉ biết ngồi nhìn những lát bánh mì, rồi đợi xem có ai nhận ra điều bất thường này và lên tiếng hay không.\n\n(2) Ngạc nhiên thay, cha tôi vẫn ăn miếng bánh của mình một cách bình thường và hỏi han về việc học của tôi như mọi ngày. Chẳng nhớ mình đã nói gì, nhưng điều tôi nghe được từ cuộc nói chuyện hôm đó của cha với mẹ đã khiến bản thân tôi có được một bài học khắc sâu mãi không quên. Tôi nhớ mang máng mẹ đã xin lỗi cha về mẩu bánh mì cháy. Và trái ngược với những gì tôi lo sợ, ông chỉ nhẹ nhàng nói rằng: “Em à, anh thích bánh mì cháy mà.”\n\n(3) Đêm đó, tôi và cha có ngồi cùng nhau một lúc trước giờ ngủ. Khi tôi hỏi ông có thực sự thích bánh mì cháy không, cha nhẹ nhàng khoác vai tôi và bảo: “Mẹ con làm việc rất vất cả cả ngày rồi, bà ấy đã rất mệt. Một miếng bánh mì cháy chẳng thể làm hại ai con ạ. Nhưng những trách móc cay nghiệt, dù vô tình cũng có thể khiến người khác tổn thương rất nhiều đấy. Con biết không, cuộc đời luôn đầy rẫy những điều mình không mong muốn. Con người cũng không thể nào trọn vẹn được. Bản thân cha cũng có lỗi lầm, cũng khá tệ trong nhiều việc. Ví dụ như cha chẳng thể nhớ được ngày sinh nhật hay kỉ niệm của một số người khác… Nhiều năm sống, cha học được cách chấp nhận sai sót của người khác và ủng hộ những khác biệt của họ. Chìa khoá quan trọng nhất để xây dựng một mối quan hệ bền vững chính là luôn sẵn sàng tha thứ cho những lỗi lầm không đáng có của họ.”\n\n(4) Cảm thông chính là một trong những bài học đầu đời mà cha đã dạy tôi. “Yêu quý những người đã đối tốt với con. Cảm thông cho những người chưa làm được điều đó. Hãy nghĩ rằng đơn giản là họ chưa có cơ hội thôi….” Đó là cách cha tôi luôn duy trì một cuộc sống đơn giản và nhiều niềm vui, do ông tự mang đến cho mình.\n\n(Theo vtc.vn)",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 17,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 17: Từ “xị mặt” trong đoạn (1) được hiểu là cảm xúc như thế nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Hồi hộp."
+              }, {
+                "id" : "B",
+                "text" : "Phấn khởi."
+              }, {
+                "id" : "C",
+                "text" : "Thất vọng."
+              }, {
+                "id" : "D",
+                "text" : "Ngạc nhiên."
+              } ],
+              "explanation" : "[VI] 'Xị mặt' miêu tả nét mặt xị xuống, biểu lộ sự thất vọng, không vui khi đói bụng mà lại phải ăn mẩu bánh mì cháy khét.\n[EN] 'Xị mặt' (pulling a long face/frowning) reflects disappointment and dissatisfaction at receiving burnt bread when famished.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_002",
+              "question_number" : 18,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 18: Cụm từ “Tôi nhớ mang máng” trong đoạn (2) nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Tôi nhớ rất chính xác sự việc."
+              }, {
+                "id" : "B",
+                "text" : "Tôi không nhớ chính xác sự việc."
+              }, {
+                "id" : "C",
+                "text" : "Tôi đã hoàn toàn quên sự việc."
+              }, {
+                "id" : "D",
+                "text" : "Tôi lúc nhớ, lúc quên sự việc."
+              } ],
+              "explanation" : "[VI] 'Nhớ mang máng' nghĩa là chỉ nhớ một cách đại khái, mơ hồ, không còn nhớ chính xác từng chi tiết của sự việc.\n[EN] 'Nhớ mang máng' means having a vague, general recollection without remembering precise details.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_003",
+              "question_number" : 19,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 19: Thái độ của “cha” khi nói “Em à, anh thích bánh mì cháy mà” với “mẹ” là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Cha khen ngợi việc mẹ làm."
+              }, {
+                "id" : "B",
+                "text" : "Cha thất vọng vì việc mẹ làm."
+              }, {
+                "id" : "C",
+                "text" : "Cha cảm thông với việc mẹ làm."
+              }, {
+                "id" : "D",
+                "text" : "Cha tự hào với việc mẹ làm."
+              } ],
+              "explanation" : "[VI] Câu nói 'Em à, anh thích bánh mì cháy mà' là lời nói dối thiện chí thể hiện sự thấu hiểu và cảm thông sâu sắc với sự vất vả, mệt mỏi của người vợ sau ngày dài làm việc.\n[EN] Saying 'Honey, I like burnt bread' is a white lie showing profound empathy and understanding for his wife's exhausting workday.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_004",
+              "question_number" : 20,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 20: Theo người cha giải thích, vì sao “mẹ” thỉnh thoảng nướng bánh mỳ cháy?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Vì bố rất thích ăn bánh mỳ cháy."
+              }, {
+                "id" : "B",
+                "text" : "Vì mẹ thường quên không tắt lò nướng."
+              }, {
+                "id" : "C",
+                "text" : "Vì mẹ rất mệt sau mỗi ngày làm việc."
+              }, {
+                "id" : "D",
+                "text" : "Vì mẹ không giỏi làm bánh mỳ."
+              } ],
+              "explanation" : "[VI] Người cha giải thích: 'Mẹ con làm việc rất vất vả cả ngày rồi, bà ấy đã rất mệt. Một miếng bánh mì cháy chẳng thể làm hại ai con ạ'.\n[EN] The father explains: 'Your mother worked tirelessly all day and was exhausted. A piece of burnt bread never hurt anyone, son'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_005",
+              "question_number" : 21,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 21: Từ “trọn vẹn” trong đoạn (3) được hiểu với nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Thông minh."
+              }, {
+                "id" : "B",
+                "text" : "Giàu có."
+              }, {
+                "id" : "C",
+                "text" : "Giỏi giang."
+              }, {
+                "id" : "D",
+                "text" : "Hoàn hảo."
+              } ],
+              "explanation" : "[VI] 'Con người cũng không thể nào trọn vẹn được' mang nghĩa không ai là hoàn hảo, ai cũng có những thiếu sót và lỗi lầm.\n[EN] 'Humans can never be complete (trọn vẹn)' conveys that nobody is perfect; everyone possesses flaws and makes mistakes.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_006",
+              "question_number" : 22,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 22: Theo lời người cha, ông ấy có những nhược điểm gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Cha thường quên những ngày kỷ niệm quan trọng của người khác."
+              }, {
+                "id" : "B",
+                "text" : "Cha hay trách móc, làm tổn thương người khác."
+              }, {
+                "id" : "C",
+                "text" : "Cha không chấp nhận sai sót của người khác."
+              }, {
+                "id" : "D",
+                "text" : "Cha không cảm thông với vất vả của người khác."
+              } ],
+              "explanation" : "[VI] Người cha thành thật thừa nhận nhược điểm của mình: 'Ví dụ như cha chẳng thể nhớ được ngày sinh nhật hay kỉ niệm của một số người khác…'.\n[EN] The father candidly admits his own shortcomings: 'For instance, I can never remember birthdays or anniversaries of some people...'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_007",
+              "question_number" : 23,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 23: Nội dung đoạn (3), điều mấu chốt để có được mối quan hệ bền vững với những người sống quanh mình là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Thay đổi cách sống và thói quen của mình"
+              }, {
+                "id" : "B",
+                "text" : "Bỏ qua những thiếu sót không đáng có của người khác"
+              }, {
+                "id" : "C",
+                "text" : "Quan tâm đến suy nghĩ và thái độ của mọi người"
+              }, {
+                "id" : "D",
+                "text" : "Yêu quý những người đã đối xử tốt với mình"
+              } ],
+              "explanation" : "[VI] Đoạn 3 khẳng định: 'Chìa khoá quan trọng nhất để xây dựng một mối quan hệ bền vững chính là luôn sẵn sàng tha thứ cho những lỗi lầm không đáng có của họ'.\n[EN] Paragraph 3 highlights: 'The single most vital key to forging an enduring relationship is being willing to forgive others for unintended mistakes'.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_008",
+              "question_number" : 24,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 24: Bài học nào KHÔNG được truyền tải qua câu chuyện trên?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Đừng vội trách móc ai trong cuộc sống."
+              }, {
+                "id" : "B",
+                "text" : "Lời nói dối không phải lúc nào cũng xấu."
+              }, {
+                "id" : "C",
+                "text" : "Biết cảm thông với những người sống quanh bạn."
+              }, {
+                "id" : "D",
+                "text" : "Biết phê phán những việc làm không đúng."
+              } ],
+              "explanation" : "[VI] Toàn bộ câu chuyện ca ngợi lòng bao dung, sự cảm thông và thấu hiểu thay vì chỉ trích, phê phán. Do đó 'Biết phê phán những việc làm không đúng' KHÔNG PHẢI bài học được truyền tải.\n[EN] The entire narrative encourages tolerance, empathy, and forgiveness rather than criticism. Hence 'criticizing wrongful deeds' is NOT a takeaway of the story.",
+              "correct_answer" : "D"
+            } ]
+          }, {
+            "group_id" : "nltv-p6-g2",
+            "instruction" : "Bài đọc 2 (Câu hỏi 25-32)",
+            "content_html" : "Sự phong phú và đa dạng của ẩm thực Hà Nội được thể hiện qua từng mùa, “Hà Nội mùa nào thức ấy”. Cùng khám phá các món ngon Hà Nội, bạn nhé!\n\n(1) Mùa xuân\nVào ngày đầu xuân, bún thang được xem là lựa chọn số một của người Hà Nội. Món ăn này vừa có cách nấu cầu kì, vừa đòi hỏi sự tỉ mỉ, công phu của người nấu. Bún thang là món ăn để tận dụng những thực phẩm còn dư ngày Tết. Một bát bún thang gồm có tôm hấp đã lột vỏ đỏ au, giò lụa thơm dẻo, củ cải muối giòn tan, lườn gà xé nhỏ, trứng gà rán mỏng, mùi tàu, rau răm, nấm hương và nước dùng được ninh từ xương gà.\n\n(2) Mùa hè\nĐến Hà Nội vào mùa hè, bạn sẽ thấy cơ man những loại trái cây như: mận, đào, vải, chuối, bưởi,... Bên cạnh đó, còn có một thứ quả rất đặc trưng cho Hà Nội, đó là quả sấu. Người ta coi mùa sấu cũng là một trong những mùa của Hà Nội. Sẽ thật tuyệt nếu sau một ngày làm việc mệt mỏi, bạn được thưởng thức một ly nước sấu ngâm gừng mát lạnh, hay trong bữa cơm của hầu hết người Hà Nội không thể thiếu nước rau luộc dầm sấu. Đây là món ăn đạm bạc nhưng làm cho bữa cơm của cả nhà ngon miệng hơn bao giờ hết.\n\n(3) Mùa thu\nMón ăn đặc trưng nhất của mùa thu Hà Nội chính là chả rươi. Chả rươi là món ngon nổi tiếng tự bao đời nay, không chỉ du khách trong nước mà du khách nước ngoài khi được thưởng thức cũng hết lòng khen ngợi. Chả rươi được làm từ các nguyên liệu: con rươi, thịt xay, trứng gà, hành lá, gia vị,... trộn lẫn với nhau rồi viên thành từng miếng và rán cho vàng đều hai mặt. Những miếng chả rươi vàng thơm sẽ khiến cho thực khách nhớ mãi không quên.\n\n(4) Mùa đông\nMột chén bánh trôi tàu nóng hổi, thơm mùi gừng tươi là món ngon không thể nào bỏ lỡ vào mùa đông Hà Nội. Nguyên liệu làm bánh rất đơn giản, gồm gạo nếp, đỗ xanh, vừng đen, dừa tươi, đường, lạc,… Mỗi chén thường gồm 2 viên bánh to, đầy ắp nhân, vừa có lạc vừa có dừa. Viên hình tròn là nhân đậu xanh, viên hình bầu dục là nhân vừng đen. Khi ăn, người ta sẽ cho thêm lạc, vừng và dừa nạo vào bát. Món bánh trôi tàu trở thành món ngon nổi tiếng của Hà Nội bởi vị mềm dẻo, ngọt thanh, dễ ăn. Những sợi gừng tươi thơm lừng càng làm món ăn thêm dậy mùi, ấm bụng.\n\n(Theo vietpress.vn)",
+            "questions" : [ {
+              "question_id" : "q_009",
+              "question_number" : 25,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 25: Loại thịt nào KHÔNG có trong nguyên liệu chế biến bún thang?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Thịt lợn."
+              }, {
+                "id" : "B",
+                "text" : "Thịt gà."
+              }, {
+                "id" : "C",
+                "text" : "Thịt bò."
+              }, {
+                "id" : "D",
+                "text" : "Thịt tôm."
+              } ],
+              "explanation" : "[VI] Nguyên liệu bún thang gồm tôm hấp, giò lụa (thịt lợn), lườn gà xé (thịt gà), trứng gà, nấm hương, nước dùng xương gà... Không hề có thịt bò.\n[EN] Bun thang ingredients include steamed shrimp, pork sausage (giò lụa), shredded chicken, eggs, and chicken broth... Beef is NOT used.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_010",
+              "question_number" : 26,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 26: “Những thực phẩm còn dư ngày Tết” nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Những nguyên liệu thực phẩm ngày Tết không ai mua."
+              }, {
+                "id" : "B",
+                "text" : "Những nguyên liệu thực phẩm ngày Tết đã ăn hết."
+              }, {
+                "id" : "C",
+                "text" : "Những nguyên liệu thực phẩm ngày Tết không mua được."
+              }, {
+                "id" : "D",
+                "text" : "Những nguyên liệu thực phẩm ngày Tết còn thừa lại."
+              } ],
+              "explanation" : "[VI] 'Những thực phẩm còn dư ngày Tết' là các nguyên liệu, món ăn chuẩn bị cho dịp Tết nhưng gia đình chưa dùng hết, còn thừa lại sau Tết.\n[EN] 'Surplus food left over from Tet' designates ingredients and dishes prepared for Lunar New Year that remained unconsumed afterwards.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_011",
+              "question_number" : 27,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 27: Từ “cơ man” trong đoạn (2) nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Số lượng quả rất nhiều, không biết chính xác bao nhiêu."
+              }, {
+                "id" : "B",
+                "text" : "Đây là những loại quả có nhiều nhất vào mùa hè."
+              }, {
+                "id" : "C",
+                "text" : "Chỉ ở Hà Nội mới có những loại quả này."
+              }, {
+                "id" : "D",
+                "text" : "Các loại quả vào mùa hè rất rẻ nhưng số lượng không nhiều."
+              } ],
+              "explanation" : "[VI] 'Cơ man' là lượng từ trong tiếng Việt biểu thị số lượng vô cùng nhiều, đếm không xuể ('cơ man những loại trái cây' = rất nhiều loại quả).\n[EN] 'Cơ man' is a Vietnamese quantifier meaning immense, countless quantity ('cơ man những loại trái cây' = an abundance of fruit varieties).",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_012",
+              "question_number" : 28,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 28: Bữa cơm của người Hà Nội ngon miệng hơn nhờ món ăn nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Nước sấu ngâm gừng mát lạnh."
+              }, {
+                "id" : "B",
+                "text" : "Trứng gà rán."
+              }, {
+                "id" : "C",
+                "text" : "Nước rau luộc dầm sấu."
+              }, {
+                "id" : "D",
+                "text" : "Củ cải muối giòn."
+              } ],
+              "explanation" : "[VI] Bài đọc nêu: 'trong bữa cơm của hầu hết người Hà Nội không thể thiếu nước rau luộc dầm sấu... làm cho bữa cơm của cả nhà ngon miệng hơn bao giờ hết'.\n[EN] The text notes: 'in most Hanoians' meals, boiled greens broth seasoned with dracontomelon (nước rau luộc dầm sấu) makes the meal more delicious than ever'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_013",
+              "question_number" : 29,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 29: Món chả rươi được làm chín bằng cách nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Xào."
+              }, {
+                "id" : "B",
+                "text" : "Hấp."
+              }, {
+                "id" : "C",
+                "text" : "Luộc."
+              }, {
+                "id" : "D",
+                "text" : "Rán."
+              } ],
+              "explanation" : "[VI] Bài đọc mô tả cách chế biến chả rươi: 'trộn lẫn với nhau rồi viên thành từng miếng và rán cho vàng đều hai mặt'.\n[EN] The text describes cooking cha ruoi: 'mixed together, shaped into patties, and fried until golden brown on both sides'.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_014",
+              "question_number" : 30,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 30: Món ăn mùa Xuân và mùa Thu có chung thành phần gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Thịt lợn xay."
+              }, {
+                "id" : "B",
+                "text" : "Trứng gà."
+              }, {
+                "id" : "C",
+                "text" : "Củ cải muối."
+              }, {
+                "id" : "D",
+                "text" : "Thịt gà."
+              } ],
+              "explanation" : "[VI] Món bún thang (mùa xuân) có 'trứng gà rán mỏng', món chả rươi (mùa thu) có nguyên liệu 'trứng gà'. Điểm chung là trứng gà.\n[EN] Bun thang (Spring) uses fried thinly sliced chicken eggs; cha ruoi (Autumn) uses chicken eggs as a binder. Both share chicken eggs.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_015",
+              "question_number" : 31,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 31: Thông tin nào về món bánh trôi tàu là KHÔNG ĐÚNG?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Một trong những nguyên liệu của món ăn là gừng."
+              }, {
+                "id" : "B",
+                "text" : "Lạc, vừng và dừa được thêm vào trước khi ăn."
+              }, {
+                "id" : "C",
+                "text" : "Bánh hình tròn vị đỗ xanh, bánh hình bồ dục vị vừng đen."
+              }, {
+                "id" : "D",
+                "text" : "Người ta phải dùng gạo nếp để làm nhân bánh trôi tàu."
+              } ],
+              "explanation" : "[VI] Bài đọc ghi: 'Viên hình tròn là nhân đậu xanh, viên hình bầu dục là nhân vừng đen... Nguyên liệu làm bánh... gồm gạo nếp, đỗ xanh...'. Gạo nếp dùng làm vỏ bánh chứ không phải nhân. Do đó câu D là SAI.\n[EN] The text notes that round balls have mung bean filling while oval ones have black sesame filling. Glutinous rice is used for the dough shell, NOT the filling. Statement D is FALSE.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_016",
+              "question_number" : 32,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 32: Câu “Hà Nội mùa nào thức ấy” trong bài đọc nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Ở Hà Nội, thời tiết khác nhau, món ăn cũng khác nhau."
+              }, {
+                "id" : "B",
+                "text" : "Các món ăn ở Hà Nội rất hấp dẫn khách du lịch."
+              }, {
+                "id" : "C",
+                "text" : "Hà Nội có bốn mùa xuân, hạ, thu, đông rất rõ rệt."
+              }, {
+                "id" : "D",
+                "text" : "Các món ăn đặc sản rất dễ tìm thấy ở Hà Nội."
+              } ],
+              "explanation" : "[VI] Thành ngữ 'Hà Nội mùa nào thức ấy' nhấn mạnh sự phong phú của ẩm thực Thủ đô: mỗi mùa trong năm (thời tiết khác nhau) lại có những món ăn đặc sản tương ứng.\n[EN] The idiom 'Hanoi: each season its own specialty' highlights culinary seasonality: different weather and seasons bring distinct seasonal dishes.",
+              "correct_answer" : "A"
+            } ]
+          }, {
+            "group_id" : "nltv-p6-g3",
+            "instruction" : "Bài đọc 3 (Câu hỏi 33-40)",
+            "content_html" : "(1) Theo báo Bangkok Post ngày 19-2, Tập đoàn Central Retail (CRC) của Thái Lan sẽ đầu tư 50 tỉ baht (khoảng 1,45 tỉ USD) vào Việt Nam trong giai đoạn 2023-2027 để mở rộng sự hiện diện tại thị trường này. Đây sẽ là khoản đầu tư lớn nhất mà CRC đổ vào Việt Nam từ trước đến nay.\n\nViệt Nam tăng trưởng nhanh nhất Đông Nam Á\n\n(2) Giải thích về điều này, giám đốc điều hành CRC Yol Phokasub cho biết, tập đoàn coi Việt Nam là một thị trường tiềm năng cao với kinh tế tăng trưởng liên tục. Thị trường bán lẻ Việt Nam ước tính trị giá 49,7 tỉ USD mỗi năm và đang tăng trưởng với tốc độ 10 - 12%/năm. Mặc dù đã có chỗ đứng vững chắc tại Việt Nam, với tiềm năng lớn của Việt Nam, CRC quyết định cần phải củng cố hơn nữa vị thế tại thị trường này.\n\n(3) CRC đã đầu tư hơn 10 tỉ baht (290 triệu USD) để mở rộng hoạt động kinh doanh bán lẻ tại Việt Nam trong giai đoạn 2012-2022. “Nền kinh tế Việt Nam sẽ tiếp tục tăng trưởng bất chấp các tín hiệu không chắc chắn của thế giới”, ông Olivier Langlet, giám đốc điều hành của Central Retail Việt Nam, nói với Bangkok Post. Theo dự đoán của ông này, tăng trưởng tổng sản phẩm quốc nội (GDP) của Việt Nam sẽ đạt lần lượt là 6,7% và 7,2% vào năm 2023 và 2024, so với mức tăng trưởng trung bình 3,5%/năm của Thái Lan trong cùng thời điểm. “Điều này sẽ đưa Việt Nam trở thành thị trường phát triển nhanh nhất Đông Nam Á”, ông Olivier khẳng định.\n\nTăng gấp đôi số cửa hàng tại Việt Nam\n\n(4) Năm 2021, Central Retail Việt Nam có 340 cửa hàng với tổng diện tích sàn hơn 1,2 triệu m2 trên 40 tỉnh thành. Doanh thu của CRC tại Việt Nam đã tăng nhanh chóng từ 300 triệu baht (8,7 triệu USD) vào năm 2014 lên 38,6 tỉ baht (1,12 tỉ USD) vào năm 2021. Theo ông Olivier, công ty đặt mục tiêu trọng tâm là phát triển mảng kinh doanh thực phẩm trên toàn quốc để củng cố vị trí dẫn đầu trong phân khúc đại siêu thị tại Việt Nam. Ngoài ra, công ty cũng có một số kế hoạch khác như cải tạo 10 - 12 chi nhánh của chuỗi siêu thị điện máy Nguyễn Kim và mở thêm 3-5 chi nhánh mới, bao gồm các cửa hàng trong hệ thống trung tâm mua sắm “GO!”.\n\n(5) Theo kế hoạch mở rộng, Central Retail Việt Nam đặt mục tiêu tăng số lượng cửa hàng lên 600 tại 57/63 tỉnh thành của Việt Nam vào năm 2027, với tổng diện tích sàn dự kiến đạt 2 triệu m2. Central Retail Việt Nam cũng sẽ lắp các tấm pin Mặt Trời trên mái 20 trung tâm thương mại GO, lắp thêm các trạm sạc cho xe điện và giảm sử dụng túi ni lông trong thời gian tới.\n\n(Theo tuoitre.vn)",
+            "questions" : [ {
+              "question_id" : "q_017",
+              "question_number" : 33,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 33: Khoản đầu tư lớn nhất tập đoàn CRC đầu tư vào Việt Nam nằm trong giai đoạn nào?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Từ năm 2014 đến năm 2021."
+              }, {
+                "id" : "B",
+                "text" : "Từ năm 2012 đến năm 2022."
+              }, {
+                "id" : "C",
+                "text" : "Từ năm 2023 đến năm 2024."
+              }, {
+                "id" : "D",
+                "text" : "Từ năm 2023 đến năm 2027."
+              } ],
+              "explanation" : "[VI] Đoạn 1 nêu: 'sẽ đầu tư 50 tỉ baht (khoảng 1,45 tỉ USD) vào Việt Nam trong giai đoạn 2023-2027... Đây sẽ là khoản đầu tư lớn nhất mà CRC đổ vào Việt Nam từ trước đến nay'.\n[EN] Paragraph 1 notes: 'will invest 50 billion baht (approx. $1.45 billion) in Vietnam during 2023-2027... This will be CRC's largest ever investment in Vietnam'.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_018",
+              "question_number" : 34,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 34: So với năm 2021, số lượng cửa hàng sẽ tăng thêm bao nhiêu vào năm 2027?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "340."
+              }, {
+                "id" : "B",
+                "text" : "300."
+              }, {
+                "id" : "C",
+                "text" : "260."
+              }, {
+                "id" : "D",
+                "text" : "600."
+              } ],
+              "explanation" : "[VI] Năm 2021 có 340 cửa hàng; mục tiêu năm 2027 là 600 cửa hàng -> Số lượng tăng thêm là 600 - 340 = 260 cửa hàng.\n[EN] In 2021 there were 340 stores; the 2027 target is 600 stores -> The planned increase is 600 - 340 = 260 stores.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_019",
+              "question_number" : 35,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 35: Giám đốc điều hành CRC dựa vào cơ sở nào để khẳng định Việt Nam sẽ trở thành thị trường phát triển nhanh nhất Đông Nam Á ?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Tốc độ tăng trưởng GDP của Việt Nam."
+              }, {
+                "id" : "B",
+                "text" : "Việc kinh doanh bán lẻ tại Việt Nam."
+              }, {
+                "id" : "C",
+                "text" : "Tổng vốn đầu tư từ nước ngoài vào Việt Nam."
+              }, {
+                "id" : "D",
+                "text" : "Số lượng siêu thị và trung tâm thương mại tại Việt Nam."
+              } ],
+              "explanation" : "[VI] Đoạn 3 nêu: dự đoán tăng trưởng GDP của Việt Nam đạt 6,7% (2023) và 7,2% (2024), vượt trội so với Thái Lan (3,5%). 'Điều này sẽ đưa Việt Nam trở thành thị trường phát triển nhanh nhất Đông Nam Á'.\n[EN] Paragraph 3 notes: projected Vietnam GDP growth of 6.7% (2023) and 7.2% (2024), outpacing Thailand (3.5%). 'This will make Vietnam the fastest growing market in Southeast Asia'.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_020",
+              "question_number" : 36,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 36: Cụm từ “không chắc chắn” trong câu “Nền kinh tế Việt Nam sẽ tiếp tục tăng trưởng bất chấp các tín hiệu không chắc chắn của thế giới” có nghĩa là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Lạc quan."
+              }, {
+                "id" : "B",
+                "text" : "Bất ổn."
+              }, {
+                "id" : "C",
+                "text" : "Ổn định."
+              }, {
+                "id" : "D",
+                "text" : "Rõ ràng."
+              } ],
+              "explanation" : "[VI] 'Không chắc chắn' (uncertainty) trong ngữ cảnh kinh tế toàn cầu chỉ sự bấp bênh, biến động, bất ổn định.\n[EN] 'Không chắc chắn' (uncertain) in global macroeconomic context denotes volatility, unpredictability, and instability.",
+              "correct_answer" : "B"
+            }, {
+              "question_id" : "q_021",
+              "question_number" : 37,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 37: Theo lời của ông Olivier, mức tăng trưởng trung bình GDP của Thái Lan năm 2024 là bao nhiêu?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "6,7% năm."
+              }, {
+                "id" : "B",
+                "text" : "7,2% năm."
+              }, {
+                "id" : "C",
+                "text" : "3,5% năm."
+              }, {
+                "id" : "D",
+                "text" : "10% đến 12% năm."
+              } ],
+              "explanation" : "[VI] Đoạn 3 nêu rõ: 'so với mức tăng trưởng trung bình 3,5%/năm của Thái Lan trong cùng thời điểm'.\n[EN] Paragraph 3 explicitly states: 'compared with Thailand's average growth rate of 3.5% per annum during the same timeframe'.",
+              "correct_answer" : "C"
+            }, {
+              "question_id" : "q_022",
+              "question_number" : 38,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 38: Để củng cố vị trí dẫn đầu trong phân khúc đại siêu thị tại Việt Nam, CRC đã đặt ra mục tiêu chính là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Mở thêm 340 siêu thị trên 40 tỉnh thành phố."
+              }, {
+                "id" : "B",
+                "text" : "Mở mới 3-5 chi nhánh các chuỗi siêu thị Nguyễn Kim."
+              }, {
+                "id" : "C",
+                "text" : "Cải tạo 10-12 chi nhánh các chuỗi siêu thị Nguyễn Kim."
+              }, {
+                "id" : "D",
+                "text" : "Phát triển mảng kinh doanh thực phẩm trên toàn quốc."
+              } ],
+              "explanation" : "[VI] Đoạn 4 nêu: 'công ty đặt mục tiêu trọng tâm là phát triển mảng kinh doanh thực phẩm trên toàn quốc để củng cố vị trí dẫn đầu trong phân khúc đại siêu thị tại Việt Nam'.\n[EN] Paragraph 4 notes: 'the company focuses on expanding its food retail segment nationwide to solidify its market leadership in Vietnam's hypermarket segment'.",
+              "correct_answer" : "D"
+            }, {
+              "question_id" : "q_023",
+              "question_number" : 39,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 39: Điều nào dưới đây KHÔNG đúng trong kế hoạch mở rộng kinh doanh tại Việt Nam của CRC?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Tăng gấp ba lần số lượng cửa hàng trên khắp Việt Nam."
+              }, {
+                "id" : "B",
+                "text" : "Giảm thiểu việc sử dụng túi ni lông."
+              }, {
+                "id" : "C",
+                "text" : "Lắp các tấm pin Mặt Trời trên mái 20 trung tâm thương mại “GO!”."
+              }, {
+                "id" : "D",
+                "text" : "Lắp thêm các trạm sạc cho xe điện."
+              } ],
+              "explanation" : "[VI] Central Retail đặt kế hoạch tăng số cửa hàng từ 340 lên 600 (tức tăng gần gấp đôi). Do đó thông tin 'Tăng gấp ba lần số lượng cửa hàng' là KHÔNG ĐÚNG.\n[EN] Central Retail plans to increase stores from 340 to 600 (roughly doubling, not tripling). Therefore, 'tripling the number of stores' is INCORRECT.",
+              "correct_answer" : "A"
+            }, {
+              "question_id" : "q_024",
+              "question_number" : 40,
+              "type" : "SINGLE_CHOICE",
+              "question_text" : "Câu 40: Tiêu đề của bài đọc có thể đặt là gì?",
+              "options" : [ {
+                "id" : "A",
+                "text" : "Tập đoàn Thái Lan sẽ đầu tư sản xuất ô tô điện tại Việt Nam."
+              }, {
+                "id" : "B",
+                "text" : "Tập đoàn Thái Lan đầu tư khủng vào Việt Nam."
+              }, {
+                "id" : "C",
+                "text" : "Tập đoàn Thái Lan sẽ xây dựng nhiều siêu thị tại Việt Nam."
+              }, {
+                "id" : "D",
+                "text" : "Tập đoàn Thái Lan dừng đầu tư vào thị trường Việt Nam."
+              } ],
+              "explanation" : "[VI] Bài báo tập trung vào sự kiện tập đoàn bán lẻ hàng đầu Thái Lan quyết định rót 1,45 tỷ USD (khoản đầu tư kỷ lục) vào thị trường Việt Nam. Tiêu đề 'Tập đoàn Thái Lan đầu tư khủng vào Việt Nam' là phù hợp nhất.\n[EN] The article highlights the leading Thai retail conglomerate pouring a record $1.45B into Vietnam. 'Thai conglomerate makes mega-investment in Vietnam' is the most accurate headline.",
+              "correct_answer" : "B"
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13"
+        }
+      } ]
+    }, {
+      "skillType" : "WRITING",
+      "durationMinutes" : 60,
+      "parts" : [ {
+        "partNumber" : 7,
+        "contentData" : {
+          "part_title" : "Kỹ năng Viết - Phần 1",
+          "instruction" : "Chọn từ phù hợp trong danh sách và điền vào chỗ trống trong đoạn văn.",
+          "question_groups" : [ {
+            "group_id" : "nltv-p7-g1",
+            "instruction" : "Đọc đoạn văn và điền từ thích hợp vào các chỗ trống từ 1 đến 10. Các từ để chọn: thắng cảnh, đặc biệt, bảo tồn, hình thành, lớn nhất, đền, cùng, du khách, tham quan, làng cổ.",
+            "content_html" : "Với diện tích hơn 500 ha, hồ Tây là hồ tự nhiên (1) ____ của thành phố Hà Nội. Hồ Tây còn là một trong những (2) ____ nổi tiếng của Thủ đô, nơi có nhiều di tích lịch sử gắn liền với sự (3) ____ và phát triển của Hà Nội. Nằm ven hồ Tây có các (4) ____ như: làng hoa Nhật Tân, làng hoa Quảng Bá, làng quất Nghi Tàm, (5) ____ nhiều ngôi chùa cổ như: chùa Tảo Sách, chùa Kim Liên, (6) ____ Quán Thánh, (7) ____, hai di tích rất lâu đời là phủ Tây Hồ và chùa Trấn Quốc vẫn được (8) ____ nguyên vẹn, thu hút đông đảo (9) ____ trong và ngoài nước đến (10) ____.",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 1,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (1)",
+              "explanation" : "[VI] Chỗ trống (1) cần một tính từ so sánh nhất bổ nghĩa cho cụm 'hồ tự nhiên'. Với diện tích hơn 500 ha, từ phù hợp nhất là 'lớn nhất'.\n[EN] Blank (1) requires a superlative adjective modifying 'natural lake'. With an area of over 500 ha, 'lớn nhất' (largest) is the perfect fit.",
+              "correct_answer" : "lớn nhất"
+            }, {
+              "question_id" : "q_002",
+              "question_number" : 2,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (2)",
+              "explanation" : "[VI] Cụm danh từ 'một trong những... nổi tiếng của Thủ đô' chỉ danh lam di tích cảnh đẹp; từ 'thắng cảnh' kết hợp tự nhiên và chuẩn xác.\n[EN] The noun phrase 'one of the famous... of the Capital' describes scenic attractions; 'thắng cảnh' (scenic landscape) fits naturally.",
+              "correct_answer" : "thắng cảnh"
+            }, {
+              "question_id" : "q_003",
+              "question_number" : 3,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (3)",
+              "explanation" : "[VI] Đi với cụm 'sự... và phát triển' của một vùng đất/đô thị là danh từ/động từ 'hình thành' (sự hình thành và phát triển).\n[EN] Paired with 'the... and development' of a historical city is the standard collocated noun 'hình thành' (formation/establishment).",
+              "correct_answer" : "hình thành"
+            }, {
+              "question_id" : "q_004",
+              "question_number" : 4,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (4)",
+              "explanation" : "[VI] Phía sau liệt kê: 'như: làng hoa Nhật Tân, làng hoa Quảng Bá, làng quất Nghi Tàm...'. Do đó danh từ số nhiều đứng trước là 'làng cổ'.\n[EN] Followed by ancient craft villages (Nhat Tan, Quang Ba, Nghi Tam), the preceding general noun is 'làng cổ' (ancient villages).",
+              "correct_answer" : "làng cổ"
+            }, {
+              "question_id" : "q_005",
+              "question_number" : 5,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (5)",
+              "explanation" : "[VI] Liên từ nối 'cùng' dùng để liên kết thêm danh sách các địa danh kiến trúc tôn giáo: 'làng cổ... cùng nhiều ngôi chùa cổ...'.\n[EN] The conjunction 'cùng' (along with/together with) links the preceding craft villages to the subsequent Buddhist pagodas.",
+              "correct_answer" : "cùng"
+            }, {
+              "question_id" : "q_006",
+              "question_number" : 6,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (6)",
+              "explanation" : "[VI] 'Quán Thánh' là một ngôi đền Đạo giáo nổi tiếng (Đền Quán Thánh / Trấn Vũ Quán). Danh từ thích hợp là 'đền'.\n[EN] Quan Thanh is one of Hanoi's four sacred Taoist temples (Đền Quán Thánh). The appropriate noun is 'đền' (temple).",
+              "correct_answer" : "đền"
+            }, {
+              "question_id" : "q_007",
+              "question_number" : 7,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (7)",
+              "explanation" : "[VI] Phó từ/từ nối 'đặc biệt' đứng đầu mệnh đề để nhấn mạnh hai di tích lâu đời nhất ven hồ Tây là phủ Tây Hồ và chùa Trấn Quốc.\n[EN] The adverbial transition 'đặc biệt' (especially/in particular) introduces and emphasizes the two oldest landmarks: Tay Ho Temple and Tran Quoc Pagoda.",
+              "correct_answer" : "đặc biệt"
+            }, {
+              "question_id" : "q_008",
+              "question_number" : 8,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (8)",
+              "explanation" : "[VI] Động từ bị động 'được... nguyên vẹn' kết hợp với di tích lịch sử tạo thành cụm chuẩn 'được bảo tồn nguyên vẹn'.\n[EN] In combination with 'intact' (nguyên vẹn) for historical heritage, the passive verb 'được bảo tồn' (preserved intact) is grammatically exact.",
+              "correct_answer" : "bảo tồn"
+            }, {
+              "question_id" : "q_009",
+              "question_number" : 9,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (9)",
+              "explanation" : "[VI] Cụm 'thu hút đông đảo... trong và ngoài nước' cần danh từ chỉ người tham quan du lịch: 'du khách'.\n[EN] The predicate 'attracting large numbers of... domestic and foreign' requires the visitor noun 'du khách' (tourists/visitors).",
+              "correct_answer" : "du khách"
+            }, {
+              "question_id" : "q_010",
+              "question_number" : 10,
+              "type" : "FILL_IN_THE_BLANK",
+              "question_text" : "Chỗ trống (10)",
+              "explanation" : "[VI] Động từ chỉ mục đích sau 'đến': 'đến tham quan' (đến để chiêm ngưỡng, ngắm cảnh các di tích lịch sử).\n[EN] The infinitive of purpose following 'đến' (to arrive) is 'tham quan' (sightsee/visit scenic places).",
+              "correct_answer" : "tham quan"
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13"
+        }
+      }, {
+        "partNumber" : 8,
+        "contentData" : {
+          "part_title" : "Kỹ năng Viết - Phần 2",
+          "instruction" : "Viết thư / email (Tối thiểu 120 từ).",
+          "question_groups" : [ {
+            "group_id" : "nltv-p8-g1",
+            "instruction" : "Viết thư cho cô bé bóng rổ Qian Yan Hong (tối thiểu 120 chữ).",
+            "content_html" : "Qian Yan Hong (người Trung Quốc) bị mất cả hai chân trong một tai nạn ô tô. Tuy nhiên, cô đã tập đi bằng tay với sự trợ giúp của một nửa quả bóng rổ. Chính vì thế, Qian Yan Hong còn được gọi là “cô bé bóng rổ”. Cô có một ước mơ đẹp là trở thành một vận động viên bơi lội. Là một người bạn ở xa, anh/chị hãy viết thư cho “cô bé bóng rổ” để hỏi thăm sức khỏe, chia sẻ những khó khăn trong cuộc sống và động viên tinh thần để cô ấy có sức mạnh thực hiện ước mơ của mình. (Bức thư tối thiểu 120 chữ)\n\n<p style=\"text-align: center;\"></p>",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 1,
+              "type" : "ESSAY",
+              "question_text" : "Viết thư cho \"cô bé bóng rổ\" Qian Yan Hong để hỏi thăm sức khỏe, chia sẻ khó khăn và động viên cô ấy thực hiện ước mơ (tối thiểu 120 chữ).",
+              "explanation" : "[VI] Hướng dẫn chấm & Dàn ý bức thư:\n1. Hình thức thư: Có đầy đủ lời chào đầu thư, nơi chốn/ngày tháng và lời ký tên cuối thư; độ dài tối thiểu 120 từ.\n2. Nội dung chính:\n   - Lời chào hỏi thăm tình hình sức khỏe và cuộc sống sinh hoạt hiện tại của Qian Yan Hong.\n   - Bày tỏ sự xúc động và lòng cảm phục sâu sắc trước nghị lực phi thường khi cô tập đi bằng tay với sự trợ giúp của nửa quả bóng rổ.\n   - Chia sẻ, thấu hiểu những khó khăn, thử thách khắc nghiệt mà cô đã và đang vượt qua.\n   - Cổ vũ, truyền lửa niềm tin và gửi lời chúc tốt đẹp nhất để cô có đủ sức mạnh hiện thực hóa ước mơ trở thành vận động viên bơi lội cừ khôi.\n[EN] Scoring Rubric & Model Letter Outline:\n1. Format: Complete epistolary structure (salutation, date, body, closing, signature); minimum length 120 words.\n2. Core Content:\n   - Cordial greetings and inquiries regarding Qian Yan Hong's health and daily life.\n   - Heartfelt admiration for her extraordinary willpower walking on her hands with the aid of half a basketball.\n   - Deep empathy for the immense adversities she courageously overcomes.\n   - Warm encouragement and best wishes for her dream of becoming a paralympic swimmer.",
+              "min_words" : 120
+            } ],
+            "shared_media" : {
+              "url" : "https://res.cloudinary.com/j5on4xwq/image/upload/v1792491722/rufoniyxhn5nrjv7tpz5.png",
+              "type" : "image"
+            }
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13"
+        }
+      }, {
+        "partNumber" : 9,
+        "contentData" : {
+          "part_title" : "Kỹ năng Viết - Phần 3",
+          "instruction" : "Viết bài văn / luận (Tối thiểu 200 từ).",
+          "question_groups" : [ {
+            "group_id" : "nltv-p9-g1",
+            "instruction" : "Viết bài văn / luận (tối thiểu 200 chữ).",
+            "content_html" : "Anh/chị hãy viết (tối thiểu 200 chữ) trình bày về nguyên nhân, hậu quả và các biện pháp khắc phục tình trạng ô nhiễm không khí hiện nay.",
+            "questions" : [ {
+              "question_id" : "q_001",
+              "question_number" : 1,
+              "type" : "ESSAY",
+              "question_text" : "Viết bài luận trình bày về nguyên nhân, hậu quả và các biện pháp khắc phục tình trạng ô nhiễm không khí hiện nay (tối thiểu 200 chữ).",
+              "explanation" : "[VI] Hướng dẫn chấm & Dàn ý bài luận:\n1. Cấu trúc bài viết: Đầy đủ 3 phần Mở bài - Thân bài - Kết bài mạch lạc, liên kết chặt chẽ; độ dài tối thiểu 200 từ.\n2. Nội dung luận điểm:\n   - Mở bài: Dẫn dắt thực trạng ô nhiễm không khí đang ở mức báo động đỏ tại các đô thị lớn.\n   - Thân bài (3 luận điểm):\n     + Nguyên nhân: Khí thải dày đặc từ phương tiện giao thông, nhà máy xí nghiệp công nghiệp, bụi mịn từ các công trình xây dựng, và thói quen đốt rác/phụ phẩm nông nghiệp.\n     + Hậu quả: Gây hại nghiêm trọng đường hô hấp (viêm phổi, hen suyễn, ung thư), suy giảm chất lượng cuộc sống, tạo hiện tượng mù sương quang hóa và biến đổi khí hậu.\n     + Giải pháp: Đẩy mạnh giao thông công cộng, xe điện thân thiện môi trường; di dời nhà máy gây ô nhiễm ra khỏi nội đô; tăng diện tích cây xanh mặt nước; kiểm soát và xử phạt nghiêm minh hành vi xả thải độc hại.\n   - Kết bài: Khẳng định bảo vệ bầu không khí trong lành là trách nhiệm sống còn của cả cộng đồng xã hội và từng cá nhân.\n[EN] Scoring Rubric & Model Essay Outline:\n1. Essay Structure: Clear 3-part layout (Introduction - Body - Conclusion) with cohesive transitions; minimum 200 words.\n2. Key Arguments:\n   - Introduction: Highlight the alarming reality of urban air pollution and particulate matter (PM2.5).\n   - Body Paragraphs:\n     + Causes: Massive vehicle emissions, industrial smokestacks, uncontained construction dust, and open waste burning.\n     + Consequences: Severe respiratory diseases, reduced life expectancy, toxic smog, and broader climate change.\n     + Solutions: Promoting mass transit and green electric vehicles; relocating heavy industry outside urban cores; urban afforestation; enforcing stringent environmental sanctions.\n   - Conclusion: Reiterate collective civic and individual duty to safeguard clean air for future generations.",
+              "min_words" : 200
+            } ]
+          } ],
+          "import_source_sha256" : "e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13"
+        }
+      } ]
+    } ],
+    "published" : false
+  },
+  "explanationStatus" : "COMPLETE"
+}

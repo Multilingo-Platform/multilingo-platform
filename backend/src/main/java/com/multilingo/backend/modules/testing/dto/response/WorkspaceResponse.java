@@ -39,6 +39,7 @@ public class WorkspaceResponse {
      * Contains questions and options, but NOT correct_answer or explanation.
      */
     private Map<String, Object> examSnapshot;
+    private AttemptLanguageContextResponse languageContext;
     private List<Integer> lockedSections;
 
     /**

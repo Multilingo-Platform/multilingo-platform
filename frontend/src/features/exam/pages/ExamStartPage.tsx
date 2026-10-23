@@ -157,6 +157,11 @@ const ExamStartPage: React.FC = () => {
                 <span className="badge-green">
                   {structure?.type}
                 </span>
+                {structure?.examLanguage && (
+                  <span className="badge-orange" aria-label="Ngôn ngữ đề">
+                    Ngôn ngữ: {structure.examLanguage}
+                  </span>
+                )}
                 <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>
                   Chuẩn Format CBT Quốc tế
                 </span>

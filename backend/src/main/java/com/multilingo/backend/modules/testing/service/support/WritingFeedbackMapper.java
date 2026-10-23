@@ -68,7 +68,8 @@ public class WritingFeedbackMapper {
                     || (job != null && job.getContextJson() != null
                     && job.getContextJson().get("images") instanceof List<?> images && !images.isEmpty());
             String originalText = extractOriginalText(attemptAnswer, questionId);
-            int wordCount = WritingWordCounter.count(originalText);
+            com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric = new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language);
+            int wordCount = lengthMetric.value();
             if (originalText.codePointCount(0, originalText.length()) > WritingGradingContextReader.MAX_ESSAY_CODE_POINTS) {
                 taskFeedbacks.add(createUnavailableTask(questionId, label, wordCount, language, null, hasVisualContext,
                         "ESSAY_TOO_LONG", "Bài viết vượt giới hạn độ dài cho phép."));
@@ -141,6 +142,7 @@ public class WritingFeedbackMapper {
                                 label,
                                 "DONE",
                                 wordCount,
+                                new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language),
                                 language,
                                 "SYSTEM",
                                 "BAND_0_9",
@@ -162,6 +164,7 @@ public class WritingFeedbackMapper {
                                 label,
                                 "DONE",
                                 wordCount,
+                                new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language),
                                 language,
                                 "AI",
                                 "BAND_0_9",
@@ -203,6 +206,7 @@ public class WritingFeedbackMapper {
                             label,
                             "DONE",
                             wordCount,
+                            new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language),
                             language,
                             isTooShort ? "SYSTEM" : "AI",
                             "BAND_0_9",
@@ -370,7 +374,7 @@ public class WritingFeedbackMapper {
     private WritingFeedbackResponse.TaskFeedback createPendingTask(
             String questionId, String label, int wordCount, String language, String originalText, boolean hasVisualContext) {
         return new WritingFeedbackResponse.TaskFeedback(
-                questionId, label, "PENDING", wordCount, language, "AI", "BAND_0_9",
+                questionId, label, "PENDING", wordCount, new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language), language, "AI", "BAND_0_9",
                 null, null, List.of(), originalText, null, null, List.of(), List.of(),
                 null, "Bài viết đang được chấm điểm...", hasVisualContext, null
         );
@@ -379,7 +383,7 @@ public class WritingFeedbackMapper {
     private WritingFeedbackResponse.TaskFeedback createQueuedTask(
             String questionId, String label, int wordCount, String language, String originalText, boolean hasVisualContext, String waitReason) {
         return new WritingFeedbackResponse.TaskFeedback(
-                questionId, label, "QUEUED", wordCount, language, "AI", "BAND_0_9",
+                questionId, label, "QUEUED", wordCount, new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language), language, "AI", "BAND_0_9",
                 null, null, List.of(), originalText, null, null, List.of(), List.of(),
                 waitReason, "Bài viết đang trong hàng đợi chấm điểm...", hasVisualContext, null
         );
@@ -389,7 +393,7 @@ public class WritingFeedbackMapper {
             String questionId, String label, int wordCount, String language, String originalText, boolean hasVisualContext,
             String reasonCode, String message) {
         return new WritingFeedbackResponse.TaskFeedback(
-                questionId, label, "FAILED", wordCount, language, "AI", "BAND_0_9",
+                questionId, label, "FAILED", wordCount, new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language), language, "AI", "BAND_0_9",
                 null, null, List.of(), originalText, null, null, List.of(), List.of(),
                 reasonCode, message, hasVisualContext, null
         );
@@ -399,7 +403,7 @@ public class WritingFeedbackMapper {
             String questionId, String label, int wordCount, String language, String originalText, boolean hasVisualContext,
             String reasonCode, String message) {
         return new WritingFeedbackResponse.TaskFeedback(
-                questionId, label, "UNAVAILABLE", wordCount, language, "SYSTEM", "BAND_0_9",
+                questionId, label, "UNAVAILABLE", wordCount, new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language), language, "SYSTEM", "BAND_0_9",
                 null, null, List.of(), originalText, null, null, List.of(), List.of(),
                 reasonCode, message, hasVisualContext, null
         );

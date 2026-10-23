@@ -17,8 +17,34 @@ public final class WorkspaceSnapshotSanitizer {
             "is_correct_flags", "isCorrectFlags",
             "earned_score", "earnedScore",
             "skill_stats", "skillStats",
-            "accepted_answers", "acceptedAnswers"
+            "accepted_answers", "acceptedAnswers",
+            "alternates",
+            "alternate_answers", "alternateAnswers",
+            "alternate_key", "alternateKey",
+            "alternate_keys", "alternateKeys",
+            "correct_option_index", "correctOptionIndex",
+            "correct_option_indices", "correctOptionIndices",
+            "answer_key", "answerKey",
+            "answer_keys", "answerKeys"
     );
+
+    private static final Set<String> NORMALIZED_BLACKLISTED_KEYS;
+    static {
+        Set<String> set = new HashSet<>();
+        for (String key : BLACKLISTED_KEYS) {
+            set.add(key.toLowerCase(Locale.ROOT));
+            set.add(key.toLowerCase(Locale.ROOT).replace("_", ""));
+        }
+        NORMALIZED_BLACKLISTED_KEYS = Collections.unmodifiableSet(set);
+    }
+
+    private static boolean isBlacklisted(String key) {
+        if (key == null) return false;
+        String lower = key.trim().toLowerCase(Locale.ROOT);
+        return BLACKLISTED_KEYS.contains(key)
+                || NORMALIZED_BLACKLISTED_KEYS.contains(lower)
+                || NORMALIZED_BLACKLISTED_KEYS.contains(lower.replace("_", ""));
+    }
 
     @SuppressWarnings("unchecked")
     public static Map<String, Object> sanitize(Map<String, Object> snapshot) {
@@ -35,7 +61,7 @@ public final class WorkspaceSnapshotSanitizer {
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 if (entry.getKey() == null) continue;
                 String keyStr = entry.getKey().toString();
-                if (BLACKLISTED_KEYS.contains(keyStr)) {
+                if (isBlacklisted(keyStr)) {
                     continue; // Skip blacklisted private keys
                 }
                 sanitizedMap.put(keyStr, sanitizeObject(entry.getValue()));

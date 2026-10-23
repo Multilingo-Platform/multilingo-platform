@@ -156,6 +156,9 @@ public class PracticeFeedbackEvaluator {
         miniSection.put("parts", List.of(miniPart));
 
         Map<String, Object> miniSnapshot = new LinkedHashMap<>();
+        if ("TV3_LANG_V1".equals(snapshot.get("languagePolicyVersion"))) {
+            miniSnapshot.put("languagePolicyVersion", "TV3_LANG_V1");
+        }
         miniSnapshot.put("sections", List.of(miniSection));
 
         Map<Integer, PartGradingKey> partKeys;

@@ -9,6 +9,7 @@ import java.util.Optional;
 public final class OfficialExamDatasetRegistry {
     public static final String CAMBRIDGE_IELTS_KEY = "cambridge-ielts-20-test-1";
     public static final String ETS_TOEIC_KEY = "ets-2024-test-1";
+    public static final String NLTV_SAMPLE_KEY = "nltv-sample-test-1";
 
     public record SourceDefinition(String fileName, String sha256, boolean supplementary, String approvalReference) {
         public SourceDefinition(String fileName, String sha256, boolean supplementary) {
@@ -63,9 +64,21 @@ public final class OfficialExamDatasetRegistry {
                     new SectionDefinition("READING", 75, List.of(5, 6, 7))),
             50, 200, 0);
 
+    private static final DatasetDefinition NLTV_SAMPLE_V1 = new DatasetDefinition(NLTV_SAMPLE_KEY, 1,
+            "NLTV-SAMPLE-T1-V1", "Đề thi Đánh giá Năng lực Tiếng Việt (NLTV) Mẫu", "NLTV", "vi", "COMPLETE",
+            List.of(new SourceDefinition("Đề_thi_Đánh_giá_Năng_lực_Tiếng_Việt_(NLTV)_Mẫu (1).xlsx",
+                    NltvExamSourceProfile.AUDIO_SAMPLE_SHA256, false,
+                    "OWNER_REQUESTED_PUBLICATION_CHAT_2026-10-21")),
+            List.of(15, 14, 14, 12, 16, 24, 10, 1, 1),
+            List.of(new SectionDefinition("LISTENING", 60, List.of(1, 2, 3, 4)),
+                    new SectionDefinition("READING", 60, List.of(5, 6)),
+                    new SectionDefinition("WRITING", 60, List.of(7, 8, 9))),
+            27, 105, 2);
+
     private static final Map<String, List<DatasetDefinition>> DATASETS = Map.of(
             CAMBRIDGE_IELTS_KEY, List.of(CAMBRIDGE_IELTS_V1, CAMBRIDGE_IELTS_V2),
-            ETS_TOEIC_KEY, List.of(ETS_TOEIC));
+            ETS_TOEIC_KEY, List.of(ETS_TOEIC),
+            NLTV_SAMPLE_KEY, List.of(NLTV_SAMPLE_V1));
 
     private OfficialExamDatasetRegistry() {}
 

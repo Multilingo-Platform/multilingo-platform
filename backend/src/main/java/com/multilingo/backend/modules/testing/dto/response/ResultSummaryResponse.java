@@ -120,6 +120,8 @@ public class ResultSummaryResponse {
         private String label;
         private String status;
         private int wordCount;
+        @JsonProperty("lengthMetric")
+        private com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric;
 
         @JsonInclude(JsonInclude.Include.ALWAYS)
         @JsonProperty("score")

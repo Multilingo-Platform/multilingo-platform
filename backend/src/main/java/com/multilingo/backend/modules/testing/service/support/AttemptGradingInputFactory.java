@@ -29,6 +29,7 @@ public class AttemptGradingInputFactory {
             Map<Integer, PartGradingKey> loadedKeys) {
 
         List<AttemptResultScope.ScopedPart> scopedParts = AttemptResultScope.read(snapshot);
+        boolean normalizeNfc = "TV3_LANG_V1".equals(snapshot.get("languagePolicyVersion"));
 
         Map<Integer, AttemptAnswer> savedByPartId = new HashMap<>();
         if (savedAnswers != null) {
@@ -98,6 +99,7 @@ public class AttemptGradingInputFactory {
                 copiedKey.setCorrect(key.getCorrect());
                 copiedKey.setAlternates(key.getAlternates() != null ? new ArrayList<>(key.getAlternates()) : null);
                 copiedKey.setAnswerGroup(key.getAnswerGroup());
+                copiedKey.setNormalizeNfc(normalizeNfc);
                 copiedAnswers.put(q.getQuestionId(), copiedKey);
             }
 

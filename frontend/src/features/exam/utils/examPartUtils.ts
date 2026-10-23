@@ -12,7 +12,7 @@ export interface PartHeaderInfo {
  * 2. Regex phân tích văn bản từ question_text, prompt, instruction.
  * 3. Fallback: Task 2 -> 250 từ; Task 1 hoặc mặc định -> 150 từ.
  */
-export function extractMinWords(question?: any, part?: any): number {
+export function extractMinWords(question?: any, part?: any, examType?: string): number {
   if (typeof question?.min_words === 'number' && question.min_words > 0) return question.min_words;
   if (typeof question?.minWords === 'number' && question.minWords > 0) return question.minWords;
   if (typeof part?.min_words === 'number' && part.min_words > 0) return part.min_words;
@@ -40,6 +40,9 @@ export function extractMinWords(question?: any, part?: any): number {
     const parsed = parseInt(matchPattern2[1], 10);
     if (parsed > 0) return parsed;
   }
+
+  // Generic language-practice tasks have no implicit certification minimum.
+  if (examType === 'LANGUAGE_PRACTICE') return 0;
 
   // Fallback theo Task 2 vs Task 1
   const isTask2 = /task\s*2/i.test(part?.title ?? '') ||

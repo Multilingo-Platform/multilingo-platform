@@ -8,17 +8,39 @@ import java.util.*;
 /** Structural/content readiness only. Human correctness and media availability are separate gates. */
 public final class ExamPublicationValidator {
     public void requireStructure(ExamBuilderRequest request) {
+        if (request != null && "NLTV".equals(request.getType())) {
+            new NltvPublicationValidator().requireStructure(request);
+            return;
+        }
+        if (request != null && "LANGUAGE_PRACTICE".equals(request.getType())) {
+            new LanguagePracticePublicationValidator().requireStructure(request);
+            return;
+        }
         if (isManagedCertificate(request) && issues(request).stream().anyMatch(issue ->
                 Set.of("STRUCTURE_INVALID", "ID_INVALID", "SKILL_INVALID", "DURATION_INVALID", "QUESTION_COUNT_INVALID")
                         .contains(issue.code())))
             throw new AppException(ErrorCode.VALIDATION_FAILED, "Cấu trúc đề không hợp lệ; kiểm tra Part, nhóm, ID và thời lượng.");
     }
     public void requirePublishable(ExamBuilderRequest request) {
+        if (request != null && "NLTV".equals(request.getType())) {
+            new NltvPublicationValidator().requirePublishable(request);
+            return;
+        }
+        if (request != null && "LANGUAGE_PRACTICE".equals(request.getType())) {
+            new LanguagePracticePublicationValidator().requirePublishable(request);
+            return;
+        }
         if(isManagedCertificate(request) && !issues(request).isEmpty())
             throw new AppException(ErrorCode.VALIDATION_FAILED,"Đề chưa đủ dữ liệu hợp lệ để xuất bản hoặc đóng gói.");
     }
 
     public List<Issue> issues(ExamBuilderRequest request) {
+        if (request != null && "NLTV".equals(request.getType())) {
+            return new NltvPublicationValidator().issues(request);
+        }
+        if (request != null && "LANGUAGE_PRACTICE".equals(request.getType())) {
+            return new LanguagePracticePublicationValidator().issues(request);
+        }
         if (request == null || !"TOEIC_LR".equals(request.getType())) return List.of();
         List<Issue> issues=new ArrayList<>(); Set<Integer> partNumbers=new HashSet<>();Set<String> questionIds=new HashSet<>(),groupIds=new HashSet<>();
         if(request.getSections()==null || request.getSections().isEmpty()) {add(issues,"STRUCTURE_INVALID",null,"Thiếu section.");return issues;}

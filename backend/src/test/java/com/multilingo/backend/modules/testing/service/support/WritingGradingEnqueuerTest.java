@@ -154,6 +154,12 @@ class WritingGradingEnqueuerTest {
         assertThat(job.getContextJson()).containsEntry("rubricCode", "WRITING_EN_V1");
         assertThat(job.getContextJson()).containsEntry("promptVersion", "v2");
         assertThat(job.getContextJson()).containsEntry("wordCount", 14);
+        assertThat(job.getContextJson()).containsKey("lengthMetric");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> lengthMetric = (Map<String, Object>) job.getContextJson().get("lengthMetric");
+        assertThat(lengthMetric).containsEntry("value", 14);
+        assertThat(lengthMetric).containsEntry("unit", "WORDS");
+        assertThat(lengthMetric).containsEntry("policyVersion", "TV3_LENGTH_V1");
 
         verify(jobRepository).save(any(WritingGradingJob.class));
     }
@@ -328,6 +334,35 @@ class WritingGradingEnqueuerTest {
         assertThat(job.getLastErrorCode()).isEqualTo("UNSUPPORTED_LANGUAGE");
         assertThat(job.getQuotaReserved()).isFalse();
         assertThat(job.getCompletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("NLTV essay: real context reader creates unavailable record, not an AI grading job")
+    void enqueue_nltvEssay_isUnavailableWithoutQuotaOrProviderEligibleJob() {
+        Map<String, Object> question = Map.of("question_id", "w_001", "type", "ESSAY", "prompt", "Viết bài luận.");
+        Map<String, Object> part = Map.of("id", 8, "questions", List.of(question));
+        Map<String, Object> section = Map.of("name", "WRITING", "skill_type", "WRITING", "parts", List.of(part));
+        TestAttempt attempt = TestAttempt.builder()
+                .userId(100)
+                .examSnapshot(Map.of("examLanguage", "vi", "sections", List.of(section)))
+                .build();
+        attempt.setId(68);
+        WritingGradingProperties enabledProperties = new WritingGradingProperties();
+        enabledProperties.setEnabled(true);
+        WritingGradingEnqueuer nltvEnqueuer = new WritingGradingEnqueuer(
+                jobRepository, new WritingGradingContextReader(false), attemptAnswerRepository,
+                enabledProperties, objectMapper);
+        when(jobRepository.findByAttemptIdAndPartIdAndQuestionId(68, 8, "w_001")).thenReturn(Optional.empty());
+        when(jobRepository.save(any(WritingGradingJob.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<WritingGradingJob> jobs = nltvEnqueuer.enqueue(attempt, List.of());
+
+        assertThat(jobs).hasSize(1);
+        assertThat(jobs.get(0).getStatus()).isEqualTo(WritingGradingJobStatus.UNAVAILABLE);
+        assertThat(jobs.get(0).getLastErrorCode()).isEqualTo("UNSUPPORTED_LANGUAGE");
+        assertThat(jobs.get(0).getQuotaReserved()).isFalse();
+        verify(jobRepository, never()).save(argThat(job -> job.getStatus() == WritingGradingJobStatus.READY));
+        verifyNoInteractions(attemptAnswerRepository);
     }
 
     @Test

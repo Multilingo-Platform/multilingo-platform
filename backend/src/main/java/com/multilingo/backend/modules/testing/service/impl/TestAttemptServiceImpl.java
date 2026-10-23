@@ -38,6 +38,7 @@ import com.multilingo.backend.modules.testing.service.support.AttemptResultSumma
 import com.multilingo.backend.modules.testing.service.support.AttemptReviewMapper;
 import com.multilingo.backend.modules.testing.service.support.ToeicWorkspaceProjection;
 import com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver;
+import com.multilingo.backend.modules.testing.service.support.AttemptLanguageResolver;
 import com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer;
 import com.multilingo.backend.modules.testing.util.AttemptDuration;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
@@ -78,6 +79,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private final AttemptReviewMapper reviewMapper;
     private final WritingGradingEnqueuer writingGradingEnqueuer;
     private final WritingGradingAttemptStateResolver stateResolver;
+    private AttemptLanguageResolver attemptLanguageResolver;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService;
@@ -134,7 +136,6 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter, gradingService, transactionManager, entityManager, gradingInputFactory, summaryMapper, new AttemptReviewMapper(objectMapper), writingGradingEnqueuer, stateResolver);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
     public TestAttemptServiceImpl(
             TestAttemptRepository testAttemptRepository,
             AttemptAnswerRepository attemptAnswerRepository,
@@ -150,6 +151,28 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             AttemptReviewMapper reviewMapper,
             WritingGradingEnqueuer writingGradingEnqueuer,
             WritingGradingAttemptStateResolver stateResolver) {
+        this(testAttemptRepository, attemptAnswerRepository, examAdapter, identityAdapter, objectMapper, gradingAdapter,
+                gradingService, transactionManager, entityManager, gradingInputFactory, summaryMapper, reviewMapper,
+                writingGradingEnqueuer, stateResolver, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public TestAttemptServiceImpl(
+            TestAttemptRepository testAttemptRepository,
+            AttemptAnswerRepository attemptAnswerRepository,
+            ExamAdapter examAdapter,
+            IdentityAdapter identityAdapter,
+            ObjectMapper objectMapper,
+            GradingAdapter gradingAdapter,
+            ObjectiveGradingService gradingService,
+            PlatformTransactionManager transactionManager,
+            EntityManager entityManager,
+            AttemptGradingInputFactory gradingInputFactory,
+            AttemptResultSummaryMapper summaryMapper,
+            AttemptReviewMapper reviewMapper,
+            WritingGradingEnqueuer writingGradingEnqueuer,
+            WritingGradingAttemptStateResolver stateResolver,
+            AttemptLanguageResolver attemptLanguageResolver) {
         this.testAttemptRepository = Objects.requireNonNull(testAttemptRepository, "testAttemptRepository must not be null");
         this.attemptAnswerRepository = Objects.requireNonNull(attemptAnswerRepository, "attemptAnswerRepository must not be null");
         this.examAdapter = Objects.requireNonNull(examAdapter, "examAdapter must not be null");
@@ -164,6 +187,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         this.reviewMapper = Objects.requireNonNull(reviewMapper, "reviewMapper must not be null");
         this.writingGradingEnqueuer = Objects.requireNonNull(writingGradingEnqueuer, "writingGradingEnqueuer must not be null");
         this.stateResolver = Objects.requireNonNull(stateResolver, "stateResolver must not be null");
+        this.attemptLanguageResolver = attemptLanguageResolver;
     }
 
     @Override
@@ -183,6 +207,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         // 3. Build server-side exam snapshot (safe — no correct answers, filtered by scope)
         Map<String, Object> snapshot = buildExamSnapshot(exam, request);
+        snapshot.put("languagePolicyVersion", com.multilingo.backend.modules.testing.dto.response.AttemptLanguageContextResponse.CURRENT_POLICY_VERSION);
 
         // 4. Persist attempt
         TestAttempt attempt = TestAttempt.builder()
@@ -750,6 +775,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .version(attempt.getVersion())
                 .savedAnswers(savedAnswers)
                 .examSnapshot(projectedSnapshot)
+                .languageContext(attemptLanguageResolver == null ? null
+                        : attemptLanguageResolver.resolve(attempt.getExamSnapshot(), attempt.getUserId()))
                 .lockedSections(attempt.getLockedSections() != null ? attempt.getLockedSections() : new java.util.ArrayList<>())
                 .listeningPlayback(playbackSummary)
                 .build();

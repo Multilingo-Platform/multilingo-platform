@@ -826,7 +826,7 @@ describe('TV3-21 real result page writing feedback contract integration', () => 
     });
 
     await screen.findByText('Task 1: Unavailable');
-    expect(screen.getByText(/Ngôn ngữ bài viết chưa được hỗ trợ/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chưa hỗ trợ chấm Writing tiếng Việt/i)).toBeInTheDocument();
     // No scores or criteria rendered
     expect(screen.queryByText(formatBandScore(7.0))).not.toBeInTheDocument();
 

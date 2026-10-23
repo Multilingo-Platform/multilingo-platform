@@ -61,6 +61,10 @@ public class DictionaryLookupRequestRecord extends BaseEntity {
     private Map<String, Object> resultJson;
     @Column(name = "failure_code", length = 50)
     private String failureCode;
+    /** Frozen language/prompt policy only; passage and selected text are never persisted here. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "context_json", columnDefinition = "jsonb")
+    private Map<String, Object> contextJson;
 
     @Override
     public String toString() {

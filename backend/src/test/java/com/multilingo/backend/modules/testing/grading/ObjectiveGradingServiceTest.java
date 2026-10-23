@@ -92,6 +92,19 @@ class ObjectiveGradingServiceTest {
     }
 
     @Test
+    void nfcComparisonIsOptInAndDoesNotMutateThePersistedUserAnswer() {
+        PartGradingKey key = partKey(2, "q_text", "FILL_IN_THE_BLANK", "café", List.of());
+        key.getAnswers().get("q_text").setNormalizeNfc(true);
+        String decomposed = "cafe\u0301";
+        AttemptAnswer answer = answerForPart(2, "q_text", decomposed);
+
+        GradingResult result = service.gradeAttempt(List.of(answer), Map.of(2, key));
+
+        assertThat(result.getPartResults().get(2).get("q_text").getVerdict()).isEqualTo(GradingVerdict.CORRECT);
+        assertThat(answer.getUserAnswers().get("q_text")).isEqualTo(decomposed);
+    }
+
+    @Test
     void pairedIeltsSlotsAreGradedTogetherForUnorderedDistinctAnswers() {
         GradingKey.AnswerGroup group = new GradingKey.AnswerGroup("listening-17-18",
                 "DISTINCT_UNORDERED", List.of("l_017", "l_018"));

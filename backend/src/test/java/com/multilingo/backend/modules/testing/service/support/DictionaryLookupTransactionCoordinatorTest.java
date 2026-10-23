@@ -34,6 +34,8 @@ class DictionaryLookupTransactionCoordinatorTest {
     private DictionaryLookupRequestRepository requestRepository;
     private DictionaryLookupContextReader contextReader;
     private DictionaryLookupRequestValidator requestValidator;
+    private DictionaryLookupV2RequestValidator v2RequestValidator;
+    private AttemptLanguageResolver languageResolver;
     private DictionaryLookupQuotaService quotaService;
     private GeminiProperties geminiProperties;
     private DictionaryLookupTransactionCoordinator coordinator;
@@ -44,11 +46,13 @@ class DictionaryLookupTransactionCoordinatorTest {
         requestRepository = mock(DictionaryLookupRequestRepository.class);
         contextReader = mock(DictionaryLookupContextReader.class);
         requestValidator = mock(DictionaryLookupRequestValidator.class);
+        v2RequestValidator = mock(DictionaryLookupV2RequestValidator.class);
+        languageResolver = mock(AttemptLanguageResolver.class);
         quotaService = mock(DictionaryLookupQuotaService.class);
         geminiProperties = new GeminiProperties();
         geminiProperties.setRequestTimeout(java.time.Duration.ofSeconds(30));
         coordinator = new DictionaryLookupTransactionCoordinator(attemptRepository, requestRepository, contextReader,
-                requestValidator, quotaService, geminiProperties,
+                requestValidator, v2RequestValidator, languageResolver, quotaService, geminiProperties,
                 Clock.fixed(NOW, ZoneOffset.UTC));
         when(requestValidator.validate(any())).thenAnswer(call -> call.getArgument(0));
         when(attemptRepository.findByIdForUpdate(70)).thenReturn(Optional.of(validAttempt()));
@@ -63,6 +67,20 @@ class DictionaryLookupTransactionCoordinatorTest {
             record.setId(12);
             return record;
         });
+    }
+
+    @Test
+    void v2FingerprintFreezesContractAndMeaningLanguageIntentWhileV1FingerprintRemainsStable() {
+        var v1 = request("elms", "The elms grow in Britain.");
+        var v2Default = new DictionaryLookupRequest(v1.requestId(), v1.partId(), v1.documentId(), v1.selectedText(), v1.contextText(), 2, null);
+        var v2Explicit = new DictionaryLookupRequest(v1.requestId(), v1.partId(), v1.documentId(), v1.selectedText(), v1.contextText(), 2, "fr");
+        assertThat(DictionaryLookupTransactionCoordinator.fingerprint(70, v1))
+                .isEqualTo(DictionaryLookupTransactionCoordinator.fingerprint(70,
+                        new DictionaryLookupRequest(v1.requestId(), v1.partId(), v1.documentId(), v1.selectedText(), v1.contextText())));
+        assertThat(DictionaryLookupTransactionCoordinator.fingerprint(70, v2Default))
+                .isNotEqualTo(DictionaryLookupTransactionCoordinator.fingerprint(70, v1));
+        assertThat(DictionaryLookupTransactionCoordinator.fingerprint(70, v2Explicit))
+                .isNotEqualTo(DictionaryLookupTransactionCoordinator.fingerprint(70, v2Default));
     }
 
     @Test

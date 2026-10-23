@@ -6,7 +6,9 @@ import com.multilingo.backend.modules.analytics.service.DictionaryLookupQuotaSer
 import com.multilingo.backend.modules.analytics.service.UserQuotaReservationService;
 import com.multilingo.backend.modules.testing.ai.gemini.GeminiProperties;
 import com.multilingo.backend.modules.testing.dto.request.DictionaryLookupRequest;
+import com.multilingo.backend.modules.testing.dto.request.DictionaryLookupV2Request;
 import com.multilingo.backend.modules.testing.dto.response.DictionaryLookupResponse;
+import com.multilingo.backend.modules.testing.dto.response.DictionaryLookupV2Response;
 import com.multilingo.backend.modules.testing.entity.DictionaryLookupRequestRecord;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
@@ -38,17 +40,27 @@ public class DictionaryLookupTransactionCoordinator {
     private final DictionaryLookupRequestRepository requestRepository;
     private final DictionaryLookupContextReader contextReader;
     private final DictionaryLookupRequestValidator requestValidator;
+    private final DictionaryLookupV2RequestValidator v2RequestValidator;
+    private final AttemptLanguageResolver languageResolver;
     private final DictionaryLookupQuotaService quotaService;
     private final GeminiProperties geminiProperties;
     private final Clock clock;
 
-    public sealed interface BeginDecision permits Replay, Reserved { }
+    public sealed interface BeginDecision permits Replay, ReplayV2, Reserved { }
     public record Replay(DictionaryLookupResponse response) implements BeginDecision { }
+    public record ReplayV2(DictionaryLookupV2Response response) implements BeginDecision { }
     public record Reserved(Reservation reservation) implements BeginDecision { }
 
     public record Reservation(Integer ledgerId, String runId, Integer userId, Integer attemptId,
                               DictionaryLookupRequest request, String sourceContext,
-                              Integer quotaId, Instant quotaResetDate, Instant leaseUntil) {
+                              Integer quotaId, Instant quotaResetDate, Instant leaseUntil,
+                              String learningLanguage, String meaningLanguage) {
+        public Reservation(Integer ledgerId, String runId, Integer userId, Integer attemptId,
+                           DictionaryLookupRequest request, String sourceContext,
+                           Integer quotaId, Instant quotaResetDate, Instant leaseUntil) {
+            this(ledgerId, runId, userId, attemptId, request, sourceContext, quotaId, quotaResetDate,
+                    leaseUntil, "en", "vi");
+        }
         @Override public String toString() {
             return "DictionaryLookupReservation[ledgerId=" + ledgerId + ", runId=" + runId
                     + ", userId=" + userId + ", attemptId=" + attemptId + ", requestId="
@@ -58,13 +70,47 @@ public class DictionaryLookupTransactionCoordinator {
 
     @Transactional
     public BeginDecision begin(Integer userId, Integer attemptId, DictionaryLookupRequest rawRequest) {
+        if (rawRequest != null && rawRequest.contractVersion() == 2) {
+            DictionaryLookupV2Request v2 = new DictionaryLookupV2Request(rawRequest.requestId(), rawRequest.partId(),
+                    rawRequest.documentId(), rawRequest.selectedText(), rawRequest.contextText(), rawRequest.meaningLanguage());
+            return beginV2(userId, attemptId, v2);
+        }
         DictionaryLookupRequest request = requestValidator.validate(rawRequest);
+        return beginValidated(userId, attemptId, request, "en", "vi");
+    }
+
+    @Transactional
+    public BeginDecision beginV2(Integer userId, Integer attemptId, DictionaryLookupV2Request rawRequest) {
+        DictionaryLookupV2Request request = v2RequestValidator.validate(rawRequest, null);
         if (userId == null || userId <= 0 || attemptId == null || attemptId <= 0) throw denied();
 
         TestAttempt attempt = attemptRepository.findByIdForUpdate(attemptId).orElseThrow(DictionaryLookupTransactionCoordinator::denied);
         verifyAttempt(attempt, userId);
+        var languageContext = languageResolver.resolve(attempt.getExamSnapshot(), userId);
+        if (languageContext.examLanguage() == null) throw new AppException(ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED);
+        request = v2RequestValidator.validate(request, languageContext.examLanguage());
+        String meaningLanguage = request.meaningLanguage() == null
+                ? languageContext.defaultExplanationLanguage() : request.meaningLanguage();
+        if (meaningLanguage == null) throw new AppException(ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED);
+        DictionaryLookupRequest internal = new DictionaryLookupRequest(request.requestId(), request.partId(),
+                request.documentId(), request.selectedText(), request.contextText(), 2, request.meaningLanguage());
+        DictionaryLookupContextReader.VerifiedContext verified = contextReader.read(attempt.getExamSnapshot(), internal);
+        ensurePartUnlocked(attempt, request.partId());
+        return beginValidated(userId, attemptId, internal, languageContext.examLanguage(), meaningLanguage, attempt, verified);
+    }
+
+    private BeginDecision beginValidated(Integer userId, Integer attemptId, DictionaryLookupRequest request,
+                                         String learningLanguage, String meaningLanguage) {
+        TestAttempt attempt = attemptRepository.findByIdForUpdate(attemptId).orElseThrow(DictionaryLookupTransactionCoordinator::denied);
+        verifyAttempt(attempt, userId);
         DictionaryLookupContextReader.VerifiedContext verified = contextReader.read(attempt.getExamSnapshot(), request);
         ensurePartUnlocked(attempt, request.partId());
+        return beginValidated(userId, attemptId, request, learningLanguage, meaningLanguage, attempt, verified);
+    }
+
+    private BeginDecision beginValidated(Integer userId, Integer attemptId, DictionaryLookupRequest request,
+                                         String learningLanguage, String meaningLanguage, TestAttempt attempt,
+                                         DictionaryLookupContextReader.VerifiedContext verified) {
 
         // Lock/provision quota before acquiring any ledger lock. A later invalid request never reaches this point.
         quotaService.prepareDailyQuota(userId);
@@ -78,8 +124,18 @@ public class DictionaryLookupTransactionCoordinator {
                     || !Objects.equals(existing.getAttemptId(), attemptId)) {
                 throw new AppException(ErrorCode.DICTIONARY_LOOKUP_REQUEST_CONFLICT);
             }
+            if (request.contractVersion() == 2 && existing.getContextJson() != null) {
+                // A retry with omitted meaningLanguage retains the first reservation's resolved language.
+                learningLanguage = string(existing.getContextJson(), "learningLanguage");
+                meaningLanguage = string(existing.getContextJson(), "meaningLanguage");
+                if (learningLanguage == null || meaningLanguage == null) {
+                    throw new AppException(ErrorCode.DICTIONARY_LOOKUP_REQUEST_CONFLICT);
+                }
+            }
             if (existing.getStatus() == DictionaryLookupRequestRecord.Status.SUCCEEDED) {
                 verifyAttempt(attempt, userId);
+                if (request.contractVersion() == 2) return new ReplayV2(toV2Response(existing.getResultJson(),
+                        existing.getContextJson(), attemptId, request, verified.sourceContext()));
                 return new Replay(toResponse(existing.getResultJson(), attemptId, request, verified.sourceContext()));
             }
             if (existing.getStatus() == DictionaryLookupRequestRecord.Status.PENDING
@@ -133,9 +189,14 @@ public class DictionaryLookupTransactionCoordinator {
         ledger.setQuotaReserved(true);
         ledger.setFailureCode(null);
         ledger.setResultJson(null);
+        ledger.setContextJson(request.contractVersion() == 2 ? Map.of("schemaVersion", 2,
+                "learningLanguage", learningLanguage, "meaningLanguage", meaningLanguage,
+                "requestedMeaningLanguage", request.meaningLanguage() == null ? "" : request.meaningLanguage(),
+                "policyVersion", "TV3_LANG_V1") : null);
         DictionaryLookupRequestRecord saved = requestRepository.saveAndFlush(ledger);
         return new Reserved(new Reservation(saved.getId(), runId, userId, attemptId, request,
-                verified.sourceContext(), quota.quotaId(), quota.resetDate(), leaseUntil));
+                verified.sourceContext(), quota.quotaId(), quota.resetDate(), leaseUntil,
+                learningLanguage, meaningLanguage));
     }
 
     /** Returns empty when this execution lost its lease/run fence or the attempt became ineligible. */
@@ -160,6 +221,34 @@ public class DictionaryLookupTransactionCoordinator {
             ledger.setQuotaReserved(false);
             ledger.setFailureCode(null);
             ledger.setLeaseUntil(null);
+            requestRepository.save(ledger);
+            return Optional.of(response);
+        } catch (AppException ineligible) {
+            failLedger(ledger, "ATTEMPT_NO_LONGER_ELIGIBLE");
+            return Optional.empty();
+        }
+    }
+
+    @Transactional
+    public Optional<DictionaryLookupV2Response> completeV2(Reservation reservation,
+            com.multilingo.backend.modules.testing.ai.dictionary.DictionaryLookupV2OutputParser.DictionaryLookupDefinitionV2 generated) {
+        TestAttempt attempt = attemptRepository.findByIdForUpdate(reservation.attemptId()).orElse(null);
+        quotaService.prepareDailyQuota(reservation.userId());
+        DictionaryLookupRequestRecord ledger = requestRepository.findByIdForUpdate(reservation.ledgerId()).orElse(null);
+        if (!ownsLiveRun(ledger, reservation, clock.instant())) return Optional.empty();
+        try {
+            verifyAttempt(attempt, reservation.userId());
+            DictionaryLookupContextReader.VerifiedContext context = contextReader.read(attempt.getExamSnapshot(), reservation.request());
+            ensurePartUnlocked(attempt, reservation.request().partId());
+            var definition = new DictionaryLookupV2Response.DictionaryDefinitionV2(2, reservation.learningLanguage(),
+                    reservation.meaningLanguage(), generated.meaning(), generated.phonetic(), generated.partOfSpeech(),
+                    generated.example(), generated.exampleTranslation());
+            var response = new DictionaryLookupV2Response(reservation.request().requestId(), reservation.attemptId(),
+                    reservation.request().partId(), reservation.request().documentId(), reservation.request().selectedText(),
+                    context.sourceContext(), definition);
+            ledger.setResultJson(toStoredResult(response));
+            ledger.setStatus(DictionaryLookupRequestRecord.Status.SUCCEEDED);
+            ledger.setQuotaReserved(false); ledger.setFailureCode(null); ledger.setLeaseUntil(null);
             requestRepository.save(ledger);
             return Optional.of(response);
         } catch (AppException ineligible) {
@@ -196,8 +285,11 @@ public class DictionaryLookupTransactionCoordinator {
     }
 
     public static String fingerprint(Integer attemptId, DictionaryLookupRequest request) {
-        String canonical = String.join("\u0000", attemptId.toString(), request.partId().toString(), request.documentId(),
-                request.selectedText(), request.contextText());
+        String canonical = request.contractVersion() == 1
+                ? String.join("\u0000", attemptId.toString(), request.partId().toString(), request.documentId(),
+                request.selectedText(), request.contextText())
+                : String.join("\u0000", "v" + request.contractVersion(), request.meaningLanguage() == null ? "<default>" : request.meaningLanguage(),
+                attemptId.toString(), request.partId().toString(), request.documentId(), request.selectedText(), request.contextText());
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
@@ -290,6 +382,27 @@ public class DictionaryLookupTransactionCoordinator {
         result.put("exampleEn", response.exampleEn());
         result.put("exampleVi", response.exampleVi());
         return result;
+    }
+
+    private Map<String, Object> toStoredResult(DictionaryLookupV2Response response) {
+        var definition = response.definition();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("meaning", definition.meaning()); result.put("phonetic", definition.phonetic());
+        result.put("partOfSpeech", definition.partOfSpeech()); result.put("example", definition.example());
+        result.put("exampleTranslation", definition.exampleTranslation());
+        return result;
+    }
+
+    private DictionaryLookupV2Response toV2Response(Map<String, Object> stored, Map<String, Object> context,
+            Integer attemptId, DictionaryLookupRequest request, String sourceContext) {
+        if (stored == null || context == null) throw new AppException(ErrorCode.CONFLICT, "Dictionary result is unavailable");
+        String learning = string(context, "learningLanguage");
+        String meaning = string(context, "meaningLanguage");
+        var definition = new DictionaryLookupV2Response.DictionaryDefinitionV2(2, learning, meaning,
+                string(stored, "meaning"), string(stored, "phonetic"), string(stored, "partOfSpeech"),
+                string(stored, "example"), string(stored, "exampleTranslation"));
+        return new DictionaryLookupV2Response(request.requestId(), attemptId, request.partId(), request.documentId(),
+                request.selectedText(), sourceContext, definition);
     }
 
     private DictionaryLookupResponse toResponse(Map<String, Object> stored, Integer attemptId,

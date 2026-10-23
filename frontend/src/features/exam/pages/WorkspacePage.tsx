@@ -68,8 +68,14 @@ const DEFAULT_SPLIT_BOUNDS = { min: 25, max: 75 };
  * The AI dictionary lookup stays Practice-only (AC-04/AC-09): Mock must never offer an
  * answer-derived lookup affordance next to the reading text.
  */
-export function shouldShowAiLookup(selection: SelectionState | null, isPractice: boolean): boolean {
+export function shouldShowAiLookup(
+  selection: SelectionState | null,
+  isPractice: boolean,
+  learningLanguage: string | null = 'en',
+): boolean {
   if (!isPractice || !selection) return false;
+  const language = learningLanguage?.trim().toLowerCase();
+  if (!language || (language !== 'en' && !language.startsWith('en-'))) return false;
   const selected = selection.text.trim();
   const length = Array.from(selected).length;
   return length >= 2 && length <= 80 && selected.split(/\s+/u).length <= 5 &&
@@ -822,7 +828,8 @@ const WorkspacePage: React.FC = () => {
   };
 
   const handleAiLookup = () => {
-    if (!selection || !shouldShowAiLookup(selection, isPracticeMode) || submission.isLocked() || isCurrentSectionLocked) return;
+    const examLanguage = activeWorkspace?.exam_snapshot?.examLanguage ?? activeWorkspace?.exam_snapshot?.exam_language ?? null;
+    if (!selection || !shouldShowAiLookup(selection, isPracticeMode, examLanguage) || submission.isLocked() || isCurrentSectionLocked) return;
     void dictionary.lookup(selection);
     setDictTooltip({
       word: selection.text,
@@ -1525,7 +1532,8 @@ const WorkspacePage: React.FC = () => {
                         : !!answersState.flags?.[partId]?.[qId];
 
                       // Calculate dynamic minWords based on question text/metadata or skill standards
-                      const minWords = extractMinWords(q, currentPart);
+                      const examLanguage = activeWorkspace?.exam_snapshot?.examLanguage ?? null;
+                      const minWords = extractMinWords(q, currentPart, activeWorkspace?.exam_snapshot?.type);
 
                       return (
                         <div
@@ -1583,6 +1591,7 @@ const WorkspacePage: React.FC = () => {
                                 partId={partId}
                                 currentAnswer={currentVal}
                                 minWords={minWords}
+                                learningLanguage={examLanguage}
                                 showPrompt={currentSkill !== 'WRITING'}
                                 onChange={(val) => {
                                   if (!isCurrentSectionLocked && !submission.isLocked()) {
@@ -1816,7 +1825,11 @@ const WorkspacePage: React.FC = () => {
       {/* 4b. SELECTION TOOLBAR & DELETE TOOLTIP */}
       <SelectionToolbar
         selection={selection}
-        showAi={shouldShowAiLookup(selection, isPracticeMode)}
+        showAi={shouldShowAiLookup(
+          selection,
+          isPracticeMode,
+          activeWorkspace?.exam_snapshot?.examLanguage ?? activeWorkspace?.exam_snapshot?.exam_language ?? null,
+        )}
         showHighlight={showHighlightAction}
         onHighlight={handleHighlight}
         onAiLookup={handleAiLookup}

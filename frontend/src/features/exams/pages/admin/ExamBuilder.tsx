@@ -396,6 +396,7 @@ export const EXAM_TYPE_OPTIONS: Record<string, string> = {
   'TOEIC_LR': 'TOEIC (Listening & Reading)',
   'TOEIC_WRITING': 'TOEIC Writing',
   'NLTV': 'Đánh giá Năng lực Tiếng Việt (NLTV)',
+  'LANGUAGE_PRACTICE': 'Luyện ngôn ngữ',
   'OTHER': 'Khác (Other)'
 };
 
@@ -435,6 +436,7 @@ export const normalizeExamType = (raw: string): string => {
   ) {
     return 'NLTV';
   }
+  if (clean === 'LANGUAGE_PRACTICE') return 'LANGUAGE_PRACTICE';
   if (clean === 'OTHER') return 'OTHER';
   return clean;
 };
@@ -1075,6 +1077,7 @@ const getNextStartForPart = (part: ExamPart, bounds: {start: number, end: number
 const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onSave: (json: string) => void, onCancel: () => void }) => {
   const [examTitle, setExamTitle] = useState('Đề thi Mới');
   const [examType, setExamType] = useState('IELTS_ACADEMIC');
+  const [examLanguage, setExamLanguage] = useState('en');
   const isToeicWriting = examType.includes('TOEIC_WRITING') || examType.startsWith('TW_');
   const [isPublished, setIsPublished] = useState(true);
   const [parts, setParts] = useState<ExamPart[]>([]);
@@ -1105,13 +1108,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   useEffect(() => {
     if (initialData) {
       setExamTitle(initialData.title || 'Đề thi Mới');
+      setExamLanguage(initialData.examLanguage || initialData.exam_language || 'en');
       const rawType = initialData.type || 'IELTS_ACADEMIC';
       const normalizedType = normalizeExamType(rawType);
       setExamType(normalizedType);
       
       const publishedState = initialData.published !== undefined ? initialData.published : initialData.isPublished;
       setIsPublished(publishedState !== false);
-      if (normalizedType === 'TOEIC_LR' || normalizedType === 'IELTS_ACADEMIC') {
+      if (normalizedType === 'TOEIC_LR' || normalizedType === 'IELTS_ACADEMIC'
+        || normalizedType === 'LANGUAGE_PRACTICE' || normalizedType === 'NLTV') {
         const mapped = toEditorParts(initialData);
         setParts(mapped);
         if (mapped.length) setWizardMode('BUILDER');
@@ -1387,6 +1392,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     }
     else if (type === 'NLTV') {
       setExamType('NLTV');
+      setExamLanguage('vi');
       setExamTitle('Đánh giá Năng lực Tiếng Việt (NLTV)');
       setParts(getNltvTemplateParts(generateId));
       setActivePartIndex(0);
@@ -2708,6 +2714,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     const finalJson = {
       exam_title: examTitle,
       exam_type: examType,
+      exam_language: examLanguage,
       is_published: draft ? false : isPublished,
       parts: parts
     };
@@ -2915,11 +2922,27 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               <optgroup label="Năng Lực Tiếng Việt">
                 <option value="NLTV">Đánh giá Năng lực Tiếng Việt (NLTV)</option>
               </optgroup>
+              <optgroup label="Luyện ngôn ngữ">
+                <option value="LANGUAGE_PRACTICE">Luyện ngôn ngữ</option>
+              </optgroup>
               <optgroup label="Khác">
                 <option value="OTHER">Khác (Other)</option>
               </optgroup>
             </select>
           </div>
+          {examType === 'LANGUAGE_PRACTICE' && (
+            <div className="eb-info-title-group">
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Ngôn ngữ đề
+              </label>
+              <select className="input-field" value={examLanguage} onChange={e => setExamLanguage(e.target.value)}>
+                <option value="en">English (en)</option><option value="vi">Tiếng Việt (vi)</option>
+                <option value="ko">한국어 (ko)</option><option value="zh">中文 (zh)</option>
+                <option value="ja">日本語 (ja)</option><option value="fr">Français (fr)</option>
+                <option value="de">Deutsch (de)</option><option value="es">Español (es)</option>
+              </select>
+            </div>
+          )}
           <div className="eb-info-status-group">
             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trạng thái hiển thị</label>
             <div 
@@ -3049,6 +3072,26 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                     )}
                   </div>
                 </div>
+
+                {examType === 'LANGUAGE_PRACTICE' && (
+                  <div className="eb-info-grid" style={{ margin: '1rem 0' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Kỹ năng</label>
+                      <select aria-label={`Kỹ năng Part ${pIndex + 1}`} className="input-field"
+                        value={part.section_skill_type || ''}
+                        onChange={event => updatePart(pIndex, 'section_skill_type', event.target.value)}>
+                        <option value="">Chọn kỹ năng</option>
+                        <option value="LISTENING">Listening</option><option value="READING">Reading</option><option value="WRITING">Writing</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600 }}>Thời lượng kỹ năng (phút)</label>
+                      <input aria-label={`Thời lượng Part ${pIndex + 1}`} type="number" min="1" className="input-field"
+                        value={part.section_duration_minutes ?? ''}
+                        onChange={event => updatePart(pIndex, 'section_duration_minutes', event.target.value === '' ? undefined : Number(event.target.value))} />
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   {/* AUDIO CHO PART */}
@@ -3625,7 +3668,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             });
           }}>Hủy</button>
           {importNotice}
-          
+          {!isToeicWriting && (
+            <button className="btn btn-outline" disabled={saving || importing} onClick={() => handleSave(true)}>Lưu nháp</button>
+          )}
           <button className="btn btn-primary" disabled={saving || importing} style={{ justifyContent: 'center' }} onClick={() => handleSave()}><Save size={18} /> Lưu Đề Thi</button>
         </div>
       </div>

@@ -8,14 +8,27 @@ import java.util.*;
 public final class ExamContentNormalizer {
     private final ObjectMapper mapper = new ObjectMapper();
 
+    private static final Set<String> CANONICAL_QUESTION_TYPES = Set.of(
+            "SINGLE_CHOICE", "MULTIPLE_CHOICE", "FILL_IN_THE_BLANK",
+            "TRUE_FALSE_NOT_GIVEN", "YES_NO_NOT_GIVEN", "MATCHING_FEATURES",
+            "MATCHING_INFORMATION", "ESSAY"
+    );
+
     public ExamBuilderRequest normalize(ExamBuilderRequest source) {
         if (source == null) return null;
         String type = source.getType();
         boolean toeic = "TOEIC_LR".equals(type);
         boolean ielts = "IELTS_ACADEMIC".equals(type);
-        if (!toeic && !ielts) return source;
+        boolean languagePractice = "LANGUAGE_PRACTICE".equals(type);
+        boolean nltv = "NLTV".equals(type);
+        if (!toeic && !ielts && !languagePractice && !nltv) return source;
 
         ExamBuilderRequest result=mapper.convertValue(source,ExamBuilderRequest.class);
+        if (languagePractice) {
+            new com.multilingo.backend.common.i18n.LearningLanguageCatalog()
+                    .findNormalized(result.getExamLanguage())
+                    .ifPresent(result::setExamLanguage);
+        }
         if(toeic && "ENGLISH".equalsIgnoreCase(result.getExamLanguage())) result.setExamLanguage("en");
         if(result.getSections()==null) return result;
         for(var section:result.getSections()) if(section.getParts()!=null) for(var part:section.getParts()) {
@@ -29,18 +42,35 @@ public final class ExamContentNormalizer {
                     group.put("shared_media",Map.of("type","image","url",images.get(0)));
                 Object qs=group.get("questions");
                 if(qs instanceof List<?> questions) for(Object q:questions) if(q instanceof Map<?,?> map)
-                    normalizeQuestion((Map<String,Object>)map, toeic);
+                    normalizeQuestion((Map<String,Object>)map, toeic, nltv);
             }
         }
         return result;
     }
 
-    private void normalizeQuestion(Map<String,Object> question, boolean normalizeLegacyToeicType) {
+    private void normalizeQuestion(Map<String,Object> question, boolean normalizeLegacyToeicType, boolean normalizeNltvType) {
         Object rawMetadata=question.remove("metadata");
         boolean legacy=rawMetadata instanceof Map<?,?>;
         Map<?,?> metadata=legacy?(Map<?,?>)rawMetadata:Map.of();
-        for(String field:List.of("options","correct_answer","explanation","media","answer_group"))
+        for(String field:List.of("options","correct_answer","alternates","explanation","media","answer_group"))
             if(!question.containsKey(field) && metadata.containsKey(field)) question.put(field,metadata.get(field));
+        Object rawType = question.get("type");
+        if (rawType instanceof String strType) {
+            String trimmed = strType.trim();
+            if ("WRITING_ESSAY".equalsIgnoreCase(trimmed)) {
+                question.put("type", "ESSAY");
+            } else if ("MULTIPLE_CHOICE_MULTI".equalsIgnoreCase(trimmed)) {
+                question.put("type", "MULTIPLE_CHOICE");
+            } else {
+                String upper = trimmed.toUpperCase(Locale.ROOT);
+                if (CANONICAL_QUESTION_TYPES.contains(upper)) {
+                    question.put("type", upper);
+                } else {
+                    question.put("type", trimmed);
+                }
+            }
+        }
+        if (normalizeNltvType && "MULTIPLE_CHOICE".equals(question.get("type"))) question.put("type", "SINGLE_CHOICE");
         if(normalizeLegacyToeicType && legacy && "MULTIPLE_CHOICE".equals(question.get("type"))) question.put("type","SINGLE_CHOICE");
         if(normalizeLegacyToeicType && legacy && "MULTIPLE_CHOICE_MULTI".equals(question.get("type"))) question.put("type","MULTIPLE_CHOICE");
         Object rawOptions=question.get("options");

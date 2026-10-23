@@ -67,13 +67,14 @@ export function removeEditorOption(metadata: Record<string, any>, index: number)
 
 // Keep canonical fields alongside editor metadata so IDs/media survive editing.
 export function toEditorParts(request: any): ExamPart[] {
-  return (request.sections || []).flatMap((section: any) => (section.parts || []).map((part: any) => {
+  return (request.sections || []).flatMap((section: any, sectionIndex: number) => (section.parts || []).map((part: any) => {
     const content = structuredClone(part.contentData || part.content_data || {});
     return {
       ...content,
       partNumber: part.partNumber ?? part.part_number,
       section_skill_type: section.skillType ?? section.skill_type,
       section_duration_minutes: section.durationMinutes ?? section.duration_minutes,
+      section_id: section.id ?? section.section_id ?? `sec_${sectionIndex}`,
       shared_content_html: content.content_html ?? content.shared_content_html,
       question_groups: (content.question_groups || []).map((group: any) => ({
         ...group,
@@ -86,6 +87,7 @@ export function toEditorParts(request: any): ExamPart[] {
 function inferOfficialSkill(type: string, partNumber: number, partTitle: string): string {
   if (type === 'TOEIC_LR') return partNumber <= 4 ? 'LISTENING' : 'READING';
   if (type === 'TOEIC_WRITING') return 'WRITING';
+  if (type === 'NLTV') return partNumber <= 4 ? 'LISTENING' : partNumber <= 6 ? 'READING' : 'WRITING';
   if (type === 'IELTS_ACADEMIC') {
     if (partNumber <= 4) return 'LISTENING';
     if (partNumber <= 7) return 'READING';
@@ -149,6 +151,7 @@ export function toOfficialExamRequest(title: string, type: string, parts: ExamPa
           ? options[metadata.correct_option_index]?.id ?? null
           : canonicalAnswer(metadata.correct_answer, options, metadata);
       const answerGroup = question.answer_group ?? metadata.answer_group;
+      const alternates = (canonical as any).alternates ?? metadata.alternates;
       return { ...canonical,
         type: question.type === 'MULTIPLE_CHOICE' ? 'SINGLE_CHOICE'
           : question.type === 'MULTIPLE_CHOICE_MULTI' ? 'MULTIPLE_CHOICE'
@@ -158,11 +161,118 @@ export function toOfficialExamRequest(title: string, type: string, parts: ExamPa
         explanation: metadata.explanation,
         ...(answerGroup ? { answer_group: answerGroup } : {}),
         ...(canonical.media !== undefined || metadata.media !== undefined ? { media: canonical.media ?? metadata.media } : {}),
+        ...(alternates !== undefined ? { alternates } : {}),
       };
     }) }));
     section.parts.push({ partNumber, contentData });
   });
-  return { title, type, examLanguage: 'en', published, sections };
+  return { title, type, examLanguage: type === 'NLTV' ? 'vi' : 'en', published, sections };
+}
+
+const LEARNING_LANGUAGE_ALIASES: Record<string, string> = {
+  eng: 'en', vie: 'vi', kor: 'ko', zho: 'zh', jpn: 'ja', fra: 'fr', deu: 'de', spa: 'es',
+};
+const SUPPORTED_LEARNING_BASES = new Set(['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es']);
+
+function canonicalLearningLanguage(raw: string): string {
+  const tag = raw.trim().replace(/_/g, '-');
+  const parts = tag.split('-');
+  const base = parts.shift()?.toLowerCase() || '';
+  const language = LEARNING_LANGUAGE_ALIASES[base] ?? base;
+  if (!SUPPORTED_LEARNING_BASES.has(language) || parts.some(part => !/^[A-Za-z0-9]{1,8}$/.test(part))) {
+    throw new Error('Ngôn ngữ đề không được hỗ trợ.');
+  }
+  const script = parts.find(part => /^[A-Za-z]{4}$/.test(part));
+  const region = parts.find(part => /^[A-Za-z]{2}$/.test(part) || /^\d{3}$/.test(part));
+  if (parts.length > Number(Boolean(script)) + Number(Boolean(region))) {
+    throw new Error('Thẻ ngôn ngữ đề không hợp lệ.');
+  }
+  return [language, script ? script[0].toUpperCase() + script.slice(1).toLowerCase() : '',
+    region ? (/^\d/.test(region) ? region : region.toUpperCase()) : ''].filter(Boolean).join('-');
+}
+
+/** Maps manually authored language-practice parts to the backend canonical request. */
+export function toLanguagePracticeRequest(title: string, language: string, parts: ExamPart[], published: boolean) {
+  const examLanguage = canonicalLearningLanguage(language);
+  if (!Array.isArray(parts) || parts.length === 0) throw new Error('Đề cần ít nhất một Part.');
+
+  const sections: Array<{ sectionKey: string; skillType: string; durationMinutes: number; parts: any[] }> = [];
+  parts.forEach((part, index) => {
+    const skillType = String((part as any).section_skill_type || '').trim().toUpperCase();
+    const durationMinutes = Number((part as any).section_duration_minutes);
+    if (!['LISTENING', 'READING', 'WRITING'].includes(skillType)) {
+      throw new Error(`Part ${index + 1} cần chọn skill tường minh.`);
+    }
+    if (!Number.isSafeInteger(durationMinutes) || durationMinutes <= 0) {
+      throw new Error(`Part ${index + 1} cần thời lượng dương.`);
+    }
+    if (!Array.isArray(part.question_groups)) throw new Error(`Part ${index + 1} thiếu nhóm câu hỏi.`);
+
+    const sectionId = (part as any).section_id;
+    const sectionKey = sectionId !== undefined && sectionId !== null && String(sectionId).trim() !== ''
+      ? `id:${String(sectionId).trim()}_${skillType}_${durationMinutes}`
+      : `skill:${skillType}_${durationMinutes}`;
+
+    let section = sections.find(item => item.sectionKey === sectionKey);
+    if (!section) {
+      section = { sectionKey, skillType, durationMinutes, parts: [] };
+      sections.push(section);
+    }
+
+    const partNumber = Number.isSafeInteger(part.partNumber) && Number(part.partNumber) > 0
+      ? Number(part.partNumber)
+      : index + 1;
+    const { partNumber: ignoredNumber, shared_content_html: sharedContent, section_skill_type: ignoredSkill,
+      section_duration_minutes: ignoredDuration, ...content } = part as any;
+    void ignoredNumber; void ignoredSkill; void ignoredDuration;
+    const contentData: any = { ...content };
+    if (sharedContent !== undefined) contentData.content_html = sharedContent;
+    delete contentData.shared_content_html;
+    contentData.question_groups = part.question_groups.map(group => ({
+      ...group,
+      questions: group.questions.map((question: any) => {
+        const metadata = question.metadata || {};
+        const canonicalOptions: CanonicalOption[] = Array.isArray(question.options) ? question.options : [];
+        const optionTexts: string[] = Array.isArray(metadata.options)
+          ? metadata.options
+          : canonicalOptions.map(option => option.text);
+        const options: CanonicalOption[] = optionTexts.map((text, i) => ({
+          id: metadata.option_ids?.[i] || canonicalOptions[i]?.id || String.fromCharCode(65 + i),
+          text,
+        }));
+        const rawAnswer = metadata.correct_option_indices !== undefined
+          ? metadata.correct_option_indices.map((optionIndex: number) => options[optionIndex]?.id).filter(Boolean)
+          : metadata.correct_option_index !== undefined
+            ? options[metadata.correct_option_index]?.id ?? null
+            : metadata.correct_answer ?? question.correct_answer;
+        const { metadata: ignoredMetadata, ...canonical } = question;
+        void ignoredMetadata;
+        const alternates = canonical.alternates ?? metadata.alternates;
+        return {
+          ...canonical,
+          type: question.type === 'MULTIPLE_CHOICE' ? 'SINGLE_CHOICE'
+            : question.type === 'MULTIPLE_CHOICE_MULTI' ? 'MULTIPLE_CHOICE'
+              : question.type === 'WRITING_ESSAY' ? 'ESSAY' : question.type,
+          options: options.length ? options : null,
+          correct_answer: canonicalAnswer(rawAnswer, options, metadata),
+          explanation: metadata.explanation ?? question.explanation ?? null,
+          ...(question.answer_group || metadata.answer_group
+            ? { answer_group: question.answer_group ?? metadata.answer_group }
+            : {}),
+          ...(alternates !== undefined ? { alternates } : {}),
+        };
+      }),
+    }));
+    section.parts.push({ partNumber, contentData });
+  });
+
+  return {
+    title,
+    type: 'LANGUAGE_PRACTICE',
+    examLanguage,
+    published,
+    sections: sections.map(({ skillType, durationMinutes, parts }) => ({ skillType, durationMinutes, parts })),
+  };
 }
 
 export function toToeicRequest(title: string, parts: ExamPart[], published: boolean) {

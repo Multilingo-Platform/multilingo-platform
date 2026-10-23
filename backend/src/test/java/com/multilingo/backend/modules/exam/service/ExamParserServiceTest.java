@@ -69,4 +69,24 @@ class ExamParserServiceTest {
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining("Định dạng file không hợp lệ hoặc cấu trúc sai");
     }
+
+    @Test
+    void previewRecognizesNltvAndKeepsMissingAudioAsPublishBlocker() throws Exception {
+        byte[] bytes;
+        try (InputStream input = getClass().getResourceAsStream(
+                "/datasets/official-source/nltv-sample-test-1.xlsx")) {
+            bytes = input.readAllBytes();
+        }
+        MockMultipartFile file = new MockMultipartFile("file", "sample.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bytes);
+
+        var preview = examParserService.previewExamFile(file);
+
+        assertThat(preview.request().getType()).isEqualTo("NLTV");
+        assertThat(preview.counts().parts()).isEqualTo(9);
+        assertThat(preview.counts().groups()).isEqualTo(27);
+        assertThat(preview.counts().questions()).isEqualTo(107);
+        assertThat(preview.issues()).filteredOn(issue -> "AUDIO_REQUIRED".equals(issue.code())).hasSize(4);
+        assertThat(preview.canPublish()).isFalse();
+    }
 }
