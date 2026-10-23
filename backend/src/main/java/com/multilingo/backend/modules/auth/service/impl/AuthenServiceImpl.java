@@ -29,12 +29,22 @@ public class AuthenServiceImpl implements AuthenService {
     private final com.multilingo.backend.modules.auth.repository.RefreshTokenRepository refreshTokenRepository;
     private final com.multilingo.backend.modules.auth.repository.RoleRepository roleRepository;
     private final com.multilingo.backend.modules.auth.service.GoogleTokenVerifierService googleTokenVerifierService;
+    private final org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
     @org.springframework.beans.factory.annotation.Value("${app.jwt.refresh-expiration-ms:604800000}")
     private long refreshTokenExpirationMs;
 
     @Override
     public AuthenticationResponse loginWithGoogle(com.multilingo.backend.modules.auth.dto.request.GoogleLoginRequest request) {
+        return loginWithGoogle(request, null, null);
+    }
+
+    @Override
+    public AuthenticationResponse loginWithGoogle(
+            com.multilingo.backend.modules.auth.dto.request.GoogleLoginRequest request,
+            String ipAddress,
+            String deviceInfo
+    ) {
         com.multilingo.backend.modules.auth.dto.GoogleTokenPayload payload = googleTokenVerifierService.verify(request.getIdToken());
 
         User user = userRepository.findByGoogleId(payload.getSub())
@@ -48,8 +58,8 @@ public class AuthenServiceImpl implements AuthenService {
                         })
                         .orElseGet(() -> {
                             com.multilingo.backend.modules.auth.entity.Role userRole = roleRepository
-                                    .findByName(com.multilingo.backend.modules.auth.entity.enums.RoleName.USER.name())
-                                    .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
+                                     .findByName(com.multilingo.backend.modules.auth.entity.enums.RoleName.USER.name())
+                                     .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND));
 
                             return User.builder()
                                     .email(payload.getEmail())
@@ -66,11 +76,25 @@ public class AuthenServiceImpl implements AuthenService {
                         }));
 
         if (!user.getIsActive()) {
+            if (applicationEventPublisher != null) {
+                applicationEventPublisher.publishEvent(new com.multilingo.backend.modules.auth.event.UserLoginEvent(
+                        user.getId(), user.getEmail(), ipAddress, deviceInfo, "FAILED"
+                ));
+            }
             throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
         }
 
         user.setLastLoginAt(java.time.Instant.now());
+        if (ipAddress != null && !ipAddress.isBlank()) {
+            user.setLastLoginIp(ipAddress);
+        }
         userRepository.save(user);
+
+        if (applicationEventPublisher != null) {
+            applicationEventPublisher.publishEvent(new com.multilingo.backend.modules.auth.event.UserLoginEvent(
+                    user.getId(), user.getEmail(), ipAddress, deviceInfo, "SUCCESS"
+            ));
+        }
 
         String token = jwtTokenProvider.generateToken(user);
 
@@ -92,18 +116,42 @@ public class AuthenServiceImpl implements AuthenService {
 
     @Override
     public AuthenticationResponse login(LoginRequest request) {
+        return login(request, null, null);
+    }
+
+    @Override
+    public AuthenticationResponse login(LoginRequest request, String ipAddress, String deviceInfo) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            if (applicationEventPublisher != null) {
+                applicationEventPublisher.publishEvent(new com.multilingo.backend.modules.auth.event.UserLoginEvent(
+                        user.getId(), user.getEmail(), ipAddress, deviceInfo, "FAILED"
+                ));
+            }
             throw new AppException(ErrorCode.WRONG_PASSWORD);
         }
         if (!user.getIsActive()) {
+            if (applicationEventPublisher != null) {
+                applicationEventPublisher.publishEvent(new com.multilingo.backend.modules.auth.event.UserLoginEvent(
+                        user.getId(), user.getEmail(), ipAddress, deviceInfo, "FAILED"
+                ));
+            }
             throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
         }
 
-         user.setLastLoginAt(java.time.Instant.now());
+        user.setLastLoginAt(java.time.Instant.now());
+        if (ipAddress != null && !ipAddress.isBlank()) {
+            user.setLastLoginIp(ipAddress);
+        }
         userRepository.save(user);
+
+        if (applicationEventPublisher != null) {
+            applicationEventPublisher.publishEvent(new com.multilingo.backend.modules.auth.event.UserLoginEvent(
+                    user.getId(), user.getEmail(), ipAddress, deviceInfo, "SUCCESS"
+            ));
+        }
 
         String token = jwtTokenProvider.generateToken(user);
 

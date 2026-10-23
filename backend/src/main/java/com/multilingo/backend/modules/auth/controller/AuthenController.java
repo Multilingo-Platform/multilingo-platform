@@ -33,8 +33,12 @@ public class AuthenController {
     private long refreshTokenExpirationMs;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthenticationResponse>> login(@Valid @RequestBody LoginRequest request) {
-        AuthenticationResponse response = authenService.login(request);
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        String clientIp = resolveClientIp(httpRequest);
+        String deviceInfo = httpRequest != null ? httpRequest.getHeader("User-Agent") : "Unknown Device";
+        AuthenticationResponse response = authenService.login(request, clientIp, deviceInfo);
         
         ResponseCookie cookie = ResponseCookie.from("refresh_token", response.getRefreshToken())
                 .httpOnly(true)
@@ -50,8 +54,11 @@ public class AuthenController {
 
     @PostMapping("/google")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> loginWithGoogle(
-            @Valid @RequestBody com.multilingo.backend.modules.auth.dto.request.GoogleLoginRequest request) {
-        AuthenticationResponse response = authenService.loginWithGoogle(request);
+            @Valid @RequestBody com.multilingo.backend.modules.auth.dto.request.GoogleLoginRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        String clientIp = resolveClientIp(httpRequest);
+        String deviceInfo = httpRequest != null ? httpRequest.getHeader("User-Agent") : "Unknown Device";
+        AuthenticationResponse response = authenService.loginWithGoogle(request, clientIp, deviceInfo);
 
         ResponseCookie cookie = ResponseCookie.from("refresh_token", response.getRefreshToken())
                 .httpOnly(true)
@@ -112,5 +119,18 @@ public class AuthenController {
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    private String resolveClientIp(jakarta.servlet.http.HttpServletRequest request) {
+        if (request == null) return "127.0.0.1";
+        String xf = request.getHeader("X-Forwarded-For");
+        if (xf != null && !xf.isBlank()) {
+            return xf.split(",")[0].trim();
+        }
+        String xr = request.getHeader("X-Real-IP");
+        if (xr != null && !xr.isBlank()) {
+            return xr.trim();
+        }
+        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "127.0.0.1";
     }
 }

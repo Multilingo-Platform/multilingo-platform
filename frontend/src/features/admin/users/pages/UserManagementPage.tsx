@@ -339,16 +339,7 @@ export const UserManagementPage = () => {
         )}
       </div>
 
-      {/* Lock/Unlock Modal */}
-      <LockUserModal
-        user={selectedUser}
-        isOpen={isLockModalOpen}
-        onClose={() => setIsLockModalOpen(false)}
-        onConfirm={handleConfirmLock}
-        isLoading={updateStatusMutation.isPending}
-      />
-
-      {/* User Detail & Sessions Drawer */}
+      {/* User Detail & Sessions Drawer (z-[1050]) */}
       <UserDetailDrawer
         userId={drawerUserId}
         isOpen={!!drawerUserId}
@@ -361,6 +352,15 @@ export const UserManagementPage = () => {
             }
           }
         }}
+      />
+
+      {/* Lock/Unlock Modal (z-[1100] - Rendered after Drawer so it is always on top) */}
+      <LockUserModal
+        user={selectedUser}
+        isOpen={isLockModalOpen}
+        onClose={() => setIsLockModalOpen(false)}
+        onConfirm={handleConfirmLock}
+        isLoading={updateStatusMutation.isPending}
       />
     </div>
   );
