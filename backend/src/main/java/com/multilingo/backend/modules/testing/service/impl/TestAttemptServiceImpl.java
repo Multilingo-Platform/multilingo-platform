@@ -82,6 +82,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private AttemptLanguageResolver attemptLanguageResolver;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.multilingo.backend.modules.testing.repository.WritingGradingJobRepository writingGradingJobRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService;
 
     public void setListeningPlaybackService(com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService) {
@@ -343,10 +346,17 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
         }
 
+        String feedbackLanguage = null;
+        if (reason != SubmitReason.TIMEOUT_SERVER && request != null && request.getFeedbackLanguage() != null
+                && !request.getFeedbackLanguage().isBlank() && attemptLanguageResolver != null) {
+            feedbackLanguage = attemptLanguageResolver.resolveFeedbackLanguage(
+                    attempt.getExamSnapshot(), userId, request.getFeedbackLanguage());
+        }
+
         List<AutosaveAnswersRequest.PartAnswerDto> finalAnswers =
                 (reason != SubmitReason.TIMEOUT_SERVER && request != null) ? request.getFinalAnswers() : null;
 
-        return finalizeAndGradeAttempt(attempt, reason, finalAnswers, userId);
+        return finalizeAndGradeAttempt(attempt, reason, finalAnswers, userId, feedbackLanguage);
     }
 
     @Override
@@ -366,6 +376,14 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                                                          SubmitReason reason,
                                                          List<AutosaveAnswersRequest.PartAnswerDto> finalAnswers,
                                                          Integer userId) {
+        return finalizeAndGradeAttempt(attempt, reason, finalAnswers, userId, null);
+    }
+
+    private SubmitResultResponse finalizeAndGradeAttempt(TestAttempt attempt,
+                                                         SubmitReason reason,
+                                                         List<AutosaveAnswersRequest.PartAnswerDto> finalAnswers,
+                                                         Integer userId,
+                                                         String feedbackLanguage) {
         Instant now = Instant.now();
 
         // Phase 1: Finalize (lock answers & set end_time)
@@ -439,7 +457,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         // Lỗi DB từ enqueue sẽ propagate để rollback submit, không để broad catch tạo trạng thái partial.
         if (objectiveGradingSucceeded) {
             List<AttemptAnswer> currentAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
-            List<WritingGradingJob> jobs = writingGradingEnqueuer.enqueue(attempt, currentAnswers);
+            List<WritingGradingJob> jobs = feedbackLanguage == null
+                    ? writingGradingEnqueuer.enqueue(attempt, currentAnswers)
+                    : writingGradingEnqueuer.enqueue(attempt, currentAnswers, feedbackLanguage);
             List<AttemptAnswer> updatedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
             AttemptStatus aggregatedStatus = stateResolver.resolve(jobs, updatedAnswers);
             attempt.setStatus(aggregatedStatus);
@@ -489,7 +509,10 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         }
 
         List<AttemptAnswer> savedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
-        ResultSummaryResponse resultSummary = summaryMapper.map(attempt, savedAnswers);
+        List<WritingGradingJob> writingJobs = writingGradingJobRepository == null
+                ? Collections.emptyList()
+                : writingGradingJobRepository.findAllByAttemptIdOrderByPartIdAscQuestionIdAsc(attempt.getId());
+        ResultSummaryResponse resultSummary = summaryMapper.map(attempt, savedAnswers, writingJobs);
         boolean summaryAvailable = resultSummary != null;
 
         Integer duration = AttemptDuration.resolveDuration(attempt);

@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { AnswerValue } from '../../types/answer.types';
 import type { Question } from '../../types/exam.types';
@@ -45,6 +46,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   revealContent,
   feedbackSlot,
 }) => {
+  useExamLocale();
   const questionId = question.question_id;
   const answered = value !== null && value !== undefined && value !== '';
 
@@ -83,7 +85,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           onClick={() => {
             if (!disabled) onToggleFlag();
           }}
-          title={flagged ? 'Bỏ đánh dấu câu hỏi này' : 'Đánh dấu câu hỏi này để xem lại sau'}
+          title={flagged ? em("Bỏ đánh dấu câu hỏi này") : em("Đánh dấu câu hỏi này để xem lại sau")}
           className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all shrink-0 shadow-2xs ${
             disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
           } ${
@@ -93,7 +95,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           }`}
         >
           <span>{flagged ? '🚩' : '🏳️'}</span>
-          <span>{flagged ? 'Đã đánh dấu' : 'Đánh dấu'}</span>
+          <span>{flagged ? em("Đã đánh dấu") : em("Đánh dấu")}</span>
         </button>
       </div>
 

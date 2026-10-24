@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React, { useState } from 'react';
 import type { QuestionGroup, Question, SharedMedia, SharedAudio } from '../../types/exam.types';
 import HtmlContent from '../content/HtmlContent';
@@ -28,6 +29,7 @@ function stripHtml(html: string): string {
 }
 
 const PromptImage: React.FC<{ media: SharedMedia; alt: string }> = ({ media, alt }) => {
+  useExamLocale();
   const [hasError, setHasError] = useState(false);
 
   if (hasError) {
@@ -36,8 +38,7 @@ const PromptImage: React.FC<{ media: SharedMedia; alt: string }> = ({ media, alt
         role="alert"
         className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg my-3"
       >
-        Không tải được hình minh họa đề bài
-      </div>
+        {em("Không tải được hình minh họa đề bài")}</div>
     );
   }
 
@@ -61,6 +62,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
   groups = [],
   questions = [],
 }) => {
+  useExamLocale();
   const seenMediaUrls = new Set<string>();
   const seenPromptTexts = new Set<string>();
 
@@ -100,7 +102,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
       {/* Part-level shared media */}
       {partSharedMedia?.url && !seenMediaUrls.has(partSharedMedia.url) && (() => {
         seenMediaUrls.add(partSharedMedia.url);
-        return <PromptImage media={partSharedMedia} alt={`Hình minh họa ${partTitle}`} />;
+        return <PromptImage media={partSharedMedia} alt={em("Hình minh họa {{v0}}", { v0: partTitle })} />;
       })()}
 
       {/* 2. Question Groups */}
@@ -154,7 +156,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
                 return (
                   <PromptImage
                     media={group.shared_media}
-                    alt={`Hình minh họa ${partTitle} ${group.group_id || ''}`}
+                    alt={em("Hình minh họa {{v0}} {{v1}}", { v0: partTitle, v1: group.group_id || '' })}
                   />
                 );
               })()}
@@ -200,7 +202,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
                       return (
                         <PromptImage
                           media={questionMedia}
-                          alt={`Hình minh họa câu hỏi ${q.question_number || ''}`}
+                          alt={em("Hình minh họa câu hỏi {{v0}}", { v0: q.question_number || '' })}
                         />
                       );
                     })()}
@@ -235,7 +237,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
                 return (
                   <PromptImage
                     media={q.media}
-                    alt={`Hình minh họa câu hỏi ${q.question_number || ''}`}
+                    alt={em("Hình minh họa câu hỏi {{v0}}", { v0: q.question_number || '' })}
                   />
                 );
               })()}

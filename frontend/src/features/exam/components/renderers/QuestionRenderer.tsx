@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { Question, ExamOption } from '../../types/exam.types';
 import type { AnswerValue } from '../../types/answer.types';
@@ -24,6 +25,7 @@ interface QuestionRendererProps {
 const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   question, currentAnswer, onChange, minWords, learningLanguage, showPrompt = true,
 }) => {
+  useExamLocale();
   const { type, question_text, options, media } = question;
 
   switch (type) {
@@ -130,7 +132,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     default:
       return (
         <div role="note" style={{ color: '#999', fontStyle: 'italic' }}>
-          Dạng câu hỏi chưa được hỗ trợ: {type}
+          {em("Dạng câu hỏi chưa được hỗ trợ:")}{' '}{type}
         </div>
       );
   }

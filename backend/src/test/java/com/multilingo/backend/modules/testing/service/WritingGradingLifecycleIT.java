@@ -391,7 +391,7 @@ public class WritingGradingLifecycleIT {
         assertThat(resultAfter.getResultSummary().getObjective())
                 .usingRecursiveComparison()
                 .isEqualTo(resultBefore.getResultSummary().getObjective());
-        assertThat(resultAfter.getResultSummary().getWriting().getTasks().get(0).getScore()).isNull();
+        assertThat(resultAfter.getResultSummary().getWriting().getTasks().get(0).getScore()).isEqualByComparingTo("7.5");
     }
 
     @Test

@@ -1,6 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import EssayRenderer from '../components/renderers/EssayRenderer';
+import i18n from '../../../i18n';
+
+beforeEach(async () => { await i18n.changeLanguage('vi'); });
 
 describe('EssayRenderer Word Count & Warning', () => {
   it('shows neutral status when essay is empty', () => {
@@ -15,7 +18,8 @@ describe('EssayRenderer Word Count & Warning', () => {
     const counter = screen.getByTestId('essay-word-count');
     expect(counter).toHaveAttribute('data-status', 'warning');
     expect(counter).toHaveTextContent('5 / 150 từ');
-    expect(counter).toHaveTextContent('Chưa đủ số từ tối thiểu');
+    expect(counter).toHaveTextContent('150 từ');
+    expect(counter).toHaveTextContent('Chưa đủ số lượng tối thiểu');
   });
 
   it('shows success badge when word count meets or exceeds threshold', () => {

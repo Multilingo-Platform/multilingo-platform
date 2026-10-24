@@ -1,10 +1,13 @@
 package com.multilingo.backend.modules.testing.config;
 
 import com.multilingo.backend.modules.testing.ai.media.ImageFetchProperties;
+import com.multilingo.backend.modules.testing.ai.grading.WritingRubricRegistry;
+import com.multilingo.backend.common.i18n.LearningLanguageCatalog;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -12,8 +15,15 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.time.Clock;
 
 @Configuration
+@Import(TestingLanguageConfiguration.class)
 @EnableConfigurationProperties({WritingGradingProperties.class, ImageFetchProperties.class})
 public class WritingGradingConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean(WritingRubricRegistry.class)
+    public WritingRubricRegistry writingRubricRegistry(LearningLanguageCatalog languages) {
+        return new WritingRubricRegistry(languages);
+    }
 
     @Bean(name = "writingGradingTaskExecutor")
     public ThreadPoolTaskExecutor writingGradingTaskExecutor(WritingGradingProperties properties) {

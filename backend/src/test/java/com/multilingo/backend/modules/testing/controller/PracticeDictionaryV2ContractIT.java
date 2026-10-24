@@ -49,13 +49,14 @@ class PracticeDictionaryV2ContractIT {
         when(service.lookup(eq(42), any())).thenReturn(new DictionaryLookupV2Response(requestId, 42, 7,
                 "group-7", "elms", "The elms grow beside the river.",
                 new DictionaryLookupV2Response.DictionaryDefinitionV2(
-                        1, "en", "vi", "cây du", null, "noun", "The elms grow here.", "Cây du mọc ở đây.")));
+                        2, "en", "vi", "cây du", null, "noun", "The elms grow here.", "Cây du mọc ở đây.")));
         mvc.perform(post("/api/v2/attempts/42/dictionary-lookups")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validBodyWith(requestId)))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.data.definition.meaning").value("cây du"))
+                .andExpect(jsonPath("$.data.definition.schemaVersion").value(2))
                 .andExpect(jsonPath("$.data.requestId").value(requestId));
         verify(service).lookup(eq(42), any(DictionaryLookupV2Request.class));
     }

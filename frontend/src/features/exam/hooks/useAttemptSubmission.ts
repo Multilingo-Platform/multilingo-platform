@@ -12,14 +12,14 @@ import { isHttpConflict, isVersionConflict } from '../utils/attemptErrors';
 export type SubmissionPhase = 'idle' | 'waiting' | 'submitting' | 'error' | 'conflict' | 'succeeded';
 type SubmitReason = 'MANUAL' | 'TIMEOUT_CLIENT';
 
-export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosave: AutosaveController) {
+export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosave: AutosaveController, feedbackLanguage: string | null = null) {
   const dispatch = useDispatch<AppDispatch>();
   const store = useStore<RootState>();
   const revision = useSelector((state: RootState) => state.answers.contextRevision);
   const answersLocked = useSelector((state: RootState) => state.answers.isLocked);
   const attemptId = workspace?.attempt_id ?? null;
-  const live = useRef({ workspace, autosave, revision });
-  live.current = { workspace, autosave, revision };
+  const live = useRef({ workspace, autosave, revision, feedbackLanguage });
+  live.current = { workspace, autosave, revision, feedbackLanguage };
   const generation = useRef(0);
   const busy = useRef(false);
   const succeeded = useRef(false);
@@ -63,6 +63,7 @@ export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosa
     if (busy.current || succeeded.current) return;
     if (requestedReason === 'TIMEOUT_CLIENT' || expired()) reason.current = 'TIMEOUT_CLIENT';
     const opGeneration = generation.current;
+    const frozenFeedbackLanguage = requestedReason === 'MANUAL' ? current.feedbackLanguage : null;
     const isCurrent = () => generation.current === opGeneration
       && live.current.workspace?.attempt_id === data.attempt_id
       && live.current.revision === current.revision
@@ -93,6 +94,7 @@ export function useAttemptSubmission(workspace: WorkspaceResponse | null, autosa
       setPhase('submitting');
       const receipt = await submitAttempt(data.attempt_id, {
         reason: reason.current, baseVersion: latest.version, finalAnswers,
+        ...(frozenFeedbackLanguage ? { feedbackLanguage: frozenFeedbackLanguage } : {}),
       }, { signal: controller.signal });
       if (!isCurrent() || controller.signal.aborted) return;
       succeeded.current = true;

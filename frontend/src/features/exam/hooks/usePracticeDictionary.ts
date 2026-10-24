@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector, useStore } from 'react-redux';
 import type { RootState } from '../../../app/store';
-import type { DictionaryLookupFailure, DictionaryLookupRequest, DictionaryLookupResponse, WorkspaceResponse } from '../types/api.types';
+import type { DictionaryLookupFailure, DictionaryLookupV2Request, DictionaryLookupV2Response, WorkspaceResponse } from '../types/api.types';
 import type { SelectionState } from './useTextSelection';
-import { lookupPracticeDictionary } from '../api/dictionaryLookupApi';
-import { DictionaryLookupContractError } from '../api/dictionaryLookupContract';
+import { lookupPracticeDictionaryV2 } from '../api/dictionaryLookupApi';
+import { DictionaryLookupV2ContractError } from '../api/dictionaryLookupV2Contract';
 import { buildDictionaryLookupRequest } from '../utils/dictionarySelection';
+import { canonicalizeLearningLanguage } from '../../../core/i18n/learningLanguages';
 
 type Phase = 'idle' | 'loading' | 'ready' | 'error';
-interface Operation { readonly attemptId: number; readonly key: string; readonly request: DictionaryLookupRequest; readonly selection: SelectionState; }
+interface Operation { readonly attemptId: number; readonly key: string; readonly request: DictionaryLookupV2Request; readonly selection: SelectionState; readonly sourceLanguage: string; }
 export interface UsePracticeDictionaryOptions {
   workspace: WorkspaceResponse | null;
   partId: number | null;
+  ownerId: number | null;
   isLocked: () => boolean;
 }
 export interface PracticeDictionaryController {
   phase: Phase;
-  data: DictionaryLookupResponse | null;
+  data: DictionaryLookupV2Response | null;
   error: DictionaryLookupFailure | null;
-  lookup(selection: SelectionState): Promise<void>;
+  lookup(selection: SelectionState, meaningLanguage?: string | null): Promise<void>;
   retry(): Promise<void>;
   cancel(): void;
 }
@@ -26,15 +28,31 @@ export interface PracticeDictionaryController {
 function record(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+function isRecordedId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+}
 function contextKey(options: UsePracticeDictionaryOptions, state: RootState['answers']): string {
-  return JSON.stringify([options.workspace?.attempt_id ?? null, options.partId, state.attemptId, state.contextRevision]);
+  const language = options.workspace?.languageContext;
+  return JSON.stringify([options.ownerId, options.workspace?.attempt_id ?? null, options.partId, state.attemptId, state.contextRevision,
+    language?.policyVersion ?? null, language?.examLanguage ?? null, language?.defaultExplanationLanguage ?? null,
+    language?.supportedExplanationLanguages ?? null]);
+}
+function sourceLanguage(options: UsePracticeDictionaryOptions): string | null {
+  const context = options.workspace?.languageContext;
+  const snapshot = options.workspace?.exam_snapshot;
+  const declared = snapshot?.examLanguage ?? snapshot?.exam_language ?? null;
+  const contextLanguage = canonicalizeLearningLanguage(context?.examLanguage);
+  const snapshotLanguage = canonicalizeLearningLanguage(declared);
+  if (context?.policyVersion !== 'TV3_LANG_V1' || !contextLanguage || contextLanguage !== snapshotLanguage) return null;
+  const supported = context.supportedExplanationLanguages.map(canonicalizeLearningLanguage).filter(Boolean);
+  return supported.includes(contextLanguage) ? contextLanguage : null;
 }
 function validScope(options: UsePracticeDictionaryOptions, selection: SelectionState, state: RootState['answers']): boolean {
   const workspace = options.workspace;
-  if (!workspace || workspace.test_mode !== 'PRACTICE' || workspace.status !== 'IN_PROGRESS' ||
+  if (!isRecordedId(options.ownerId) || !workspace || workspace.test_mode !== 'PRACTICE' || workspace.status !== 'IN_PROGRESS' ||
       workspace.attempt_id !== state.attemptId || state.isLocked || options.isLocked() ||
       !workspace.lockedSections || !Array.isArray(workspace.exam_snapshot?.sections) ||
-      selection.contextRevision !== state.contextRevision || !Number.isSafeInteger(options.partId) || !options.partId) return false;
+      selection.contextRevision !== state.contextRevision || !sourceLanguage(options) || !Number.isSafeInteger(options.partId) || !options.partId) return false;
   const matches = workspace.exam_snapshot.sections.flatMap(section => Array.isArray(section.parts)
     ? section.parts.filter(part => (part.part_id ?? part.partId ?? part.id) === options.partId).map(part => ({ section, part })) : []);
   if (matches.length !== 1) return false;
@@ -51,7 +69,7 @@ function validScope(options: UsePracticeDictionaryOptions, selection: SelectionS
   return groups.filter((group: unknown) => record(group) && String(group.group_id ?? group.groupId ?? '') === selection.documentId).length === 1;
 }
 function classify(error: unknown): DictionaryLookupFailure {
-  if (error instanceof DictionaryLookupContractError) return { kind: 'contract', message: error.message, retryAfterSeconds: null, retryable: true };
+  if (error instanceof DictionaryLookupV2ContractError) return { kind: 'contract', message: error.message, retryAfterSeconds: null, retryable: true };
   const response = (error as any)?.response;
   const status = response?.status;
   const code = response?.data?.code;
@@ -74,7 +92,7 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
   live.current = options;
   const reduxContext = useSelector((state: RootState) => JSON.stringify([state.answers.attemptId, state.answers.contextRevision]));
   const locked = options.isLocked();
-  const [state, setState] = useState<{ phase: Phase; data: DictionaryLookupResponse | null; error: DictionaryLookupFailure | null }>({ phase: 'idle', data: null, error: null });
+  const [state, setState] = useState<{ phase: Phase; data: DictionaryLookupV2Response | null; error: DictionaryLookupFailure | null }>({ phase: 'idle', data: null, error: null });
   const epoch = useRef(0);
   const flight = useRef<{ operation: Operation; controller: AbortController } | null>(null);
   const lastOperation = useRef<Operation | null>(null);
@@ -112,7 +130,9 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
     lastOperation.current = operation;
     setState({ phase: 'loading', data: null, error: null });
     try {
-      const data = await lookupPracticeDictionary(operation.attemptId, operation.request, { signal: controller.signal });
+      const data = await lookupPracticeDictionaryV2(operation.attemptId, operation.request, {
+        signal: controller.signal, learningLanguage: operation.sourceLanguage,
+      });
       if (flight.current !== ticket || requestEpoch !== epoch.current || contextKey(live.current, store.getState().answers) !== operation.key ||
           !validScope(live.current, operation.selection, store.getState().answers)) return;
       setState({ phase: 'ready', data, error: null });
@@ -124,11 +144,13 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
     }
   }, [store]);
 
-  const lookup = useCallback(async (selection: SelectionState) => {
+  const lookup = useCallback(async (selection: SelectionState, meaningLanguage?: string | null) => {
     const running = flight.current?.operation.selection;
+    const requestedIntent = meaningLanguage ? canonicalizeLearningLanguage(meaningLanguage) ?? meaningLanguage : undefined;
     if (running && running.contextKey === selection.contextKey && running.contextRevision === selection.contextRevision &&
         running.documentId === selection.documentId && running.contentHash === selection.contentHash &&
-        running.start === selection.start && running.end === selection.end && running.text === selection.text) return;
+        running.start === selection.start && running.end === selection.end && running.text === selection.text &&
+        flight.current?.operation.request.meaningLanguage === requestedIntent) return;
     if (flight.current) cancel();
     const current = live.current;
     const answers = store.getState().answers;
@@ -142,8 +164,15 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
       return;
     }
     try {
-      const request = buildDictionaryLookupRequest(selection, current.partId!);
-      const operation: Operation = { attemptId: current.workspace!.attempt_id, key, request, selection };
+      const source = sourceLanguage(current);
+      if (!source) throw new Error('Ngôn ngữ đề chưa được xác nhận.');
+      const request = buildDictionaryLookupRequest(selection, current.partId!, source);
+      const supported = current.workspace!.languageContext?.supportedExplanationLanguages
+        .map(canonicalizeLearningLanguage).filter(Boolean) ?? [];
+      const resolvedIntent = meaningLanguage ? canonicalizeLearningLanguage(meaningLanguage) : undefined;
+      if (meaningLanguage && (!resolvedIntent || !supported.includes(resolvedIntent))) throw new Error('Ngôn ngữ giải thích không được hỗ trợ.');
+      if (resolvedIntent) request.meaningLanguage = resolvedIntent;
+      const operation: Operation = { attemptId: current.workspace!.attempt_id, key, request: Object.freeze(request), selection, sourceLanguage: source };
       await run(operation);
     } catch (error) {
       setState({ phase: 'error', data: null, error: classify(error) });

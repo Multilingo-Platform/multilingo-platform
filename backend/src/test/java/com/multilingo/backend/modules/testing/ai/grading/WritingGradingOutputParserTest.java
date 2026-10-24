@@ -92,6 +92,20 @@ class WritingGradingOutputParserTest {
     }
 
     @Test
+    void genericRubricAcceptsTenAndUsesFrozenFeedbackLanguageButEnglishRejectsTen() {
+        WritingRubricRegistry registry = new WritingRubricRegistry(new com.multilingo.backend.common.i18n.LearningLanguageCatalog());
+        WritingRubricPolicy generic = registry.resolve("NLTV", "vi");
+        String tenPoint = validTextOnlyJsonResponse(10, 10, 10, 10).replace("\"feedbackLanguage\": \"vi\"", "\"feedbackLanguage\": \"fr\"");
+        WritingGrade grade = parser.parse(tenPoint, ORIGINAL_ESSAY, false, generic, "fr");
+        assertThat(grade.rubricCode()).isEqualTo("WRITING_GENERIC_V1");
+        assertThat(grade.feedbackLanguage()).isEqualTo("fr");
+        assertThat(grade.overallScore()).isEqualByComparingTo("10.0");
+        assertThatThrownBy(() -> parser.parse(tenPoint, ORIGINAL_ESSAY, false,
+                registry.resolve("IELTS_ACADEMIC", "en"), "fr"))
+                .isInstanceOf(WritingGradingException.class);
+    }
+
+    @Test
     @DisplayName("F4: Should successfully parse valid multimodal JSON output with visualObservations")
     void parse_validVisualJsonOutput_returnsGradeWithVisualObservations() {
         String visualObs = "Biểu đồ cột thể hiện mức tiêu thụ năng lượng từ 2010 đến 2020.";

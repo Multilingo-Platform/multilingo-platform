@@ -12,6 +12,7 @@ import java.time.Duration;
 public class WritingGradingProperties {
 
     private boolean enabled = false;
+    private boolean multilingualEnabled = false;
     private boolean imagesEnabled = false;
     private Duration pollInterval = Duration.ofSeconds(5);
     private int batchSize = 10;

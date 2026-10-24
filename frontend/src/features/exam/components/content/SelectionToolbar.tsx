@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import type { SelectionState } from '../../hooks/useTextSelection';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export const SelectionToolbar: React.FC<Props> = ({ selection, showAi, showHighlight = true, onHighlight, onAiLookup }) => {
+  useExamLocale();
   if (!selection || (!showAi && !showHighlight)) return null;
 
   // Fixed viewport coordinates avoid scroll-offset drift and keep the menu inside the screen.
@@ -28,7 +30,7 @@ export const SelectionToolbar: React.FC<Props> = ({ selection, showAi, showHighl
   return createPortal(
     <div
       role="toolbar"
-      aria-label="Thao tác với đoạn văn đã chọn"
+      aria-label={em("Thao tác với đoạn văn đã chọn")}
       className="fixed z-50 flex items-center bg-gray-900 shadow-lg rounded-md overflow-hidden"
       style={{ top, left, position: 'fixed' }}
       onPointerDown={(e) => e.preventDefault()} // Keep selection active while clicking
@@ -48,8 +50,7 @@ export const SelectionToolbar: React.FC<Props> = ({ selection, showAi, showHighl
           onClick={onAiLookup}
           className="px-4 py-2 text-sm font-medium text-amber-400 hover:bg-gray-800 cursor-pointer"
         >
-          Tra từ AI
-        </button>
+          {em("Tra từ AI")}</button>
       )}
     </div>,
     document.body

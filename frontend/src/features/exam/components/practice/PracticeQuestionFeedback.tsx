@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale, examErrorMessage as ee } from '../../i18n/examMessages';
 import React from 'react';
 import type { QuestionType } from '../../types/exam.types';
 import type { PracticeQuestionFeedback as FeedbackState } from '../../hooks/usePracticeFeedback';
@@ -35,35 +36,35 @@ function getVerdictInfo(verdict?: string | null) {
   switch (verdict) {
     case 'CORRECT':
       return {
-        label: 'Chính xác',
+        label: em("Chính xác"),
         badgeClass: 'bg-green-100 text-green-800 border-green-200',
         cardBorder: 'border-green-200',
         Icon: CheckCircle2,
       };
     case 'WRONG':
       return {
-        label: 'Chưa chính xác',
+        label: em("Chưa chính xác"),
         badgeClass: 'bg-red-100 text-red-800 border-red-200',
         cardBorder: 'border-red-200',
         Icon: XCircle,
       };
     case 'PARTIAL':
       return {
-        label: 'Một phần',
+        label: em("Một phần"),
         badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
         cardBorder: 'border-amber-200',
         Icon: HelpCircle,
       };
     case 'BLANK':
       return {
-        label: 'Chưa làm',
+        label: em("Chưa làm"),
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
         cardBorder: 'border-slate-200',
         Icon: HelpCircle,
       };
     case 'PENDING':
       return {
-        label: 'Chưa chấm',
+        label: em("Chưa chấm"),
         badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
         cardBorder: 'border-amber-200',
         Icon: HelpCircle,
@@ -91,6 +92,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
   disabled = false,
   className = '',
 }) => {
+  useExamLocale();
   // ESSAY question notice
   if (questionType === 'ESSAY') {
     return (
@@ -98,7 +100,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
         className={`mt-3 p-3 bg-blue-50/70 border border-blue-200 rounded-lg text-sm text-blue-900 flex items-center gap-2 ${className}`}
       >
         <Info className="w-4 h-4 text-blue-600 shrink-0" aria-hidden="true" />
-        <span className="break-words">Câu tự luận chưa hỗ trợ kiểm tra tức thì</span>
+        <span className="break-words">{em("Câu tự luận chưa hỗ trợ kiểm tra tức thì")}</span>
       </div>
     );
   }
@@ -110,13 +112,13 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
 
   const accessibleName =
     questionNumber !== undefined
-      ? `Kiểm tra đáp án cho câu ${questionNumber}`
-      : `Kiểm tra đáp án cho câu ${questionId}`;
+      ? em("Kiểm tra đáp án cho câu {{v0}}", { v0: questionNumber })
+      : em("Kiểm tra đáp án cho câu {{v0}}", { v0: questionId });
 
   const retryAccessibleName =
     questionNumber !== undefined
-      ? `Thử lại kiểm tra đáp án cho câu ${questionNumber}`
-      : `Thử lại kiểm tra đáp án cho câu ${questionId}`;
+      ? em("Thử lại kiểm tra đáp án cho câu {{v0}}", { v0: questionNumber })
+      : em("Thử lại kiểm tra đáp án cho câu {{v0}}", { v0: questionId });
 
   const { phase, data, error } = feedback;
 
@@ -135,7 +137,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
             {phase === 'checking' && (
               <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
             )}
-            <span>Kiểm tra đáp án</span>
+            <span>{em("Kiểm tra đáp án")}</span>
           </button>
         </div>
       )}
@@ -148,7 +150,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
           className="p-2.5 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-600 flex items-center gap-2"
         >
           <Loader2 className="w-4 h-4 text-amber-600 animate-spin shrink-0" aria-hidden="true" />
-          <span>Đang kiểm tra đáp án...</span>
+          <span>{em("Đang kiểm tra đáp án...")}</span>
         </div>
       )}
 
@@ -161,7 +163,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" aria-hidden="true" />
             <span className="text-xs break-words font-medium">
-              {error?.message || 'Có lỗi xảy ra khi kiểm tra đáp án. Vui lòng thử lại.'}
+              {error?.message ? ee(error.message) : em("Có lỗi xảy ra khi kiểm tra đáp án. Vui lòng thử lại.")}
             </span>
           </div>
 
@@ -175,7 +177,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md border border-red-300 bg-white text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <RefreshCw className="w-3 h-3" aria-hidden="true" />
-                <span>Thử lại</span>
+                <span>{em("Thử lại")}</span>
               </button>
             </div>
           )}
@@ -185,11 +187,11 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
               <button
                 type="button"
                 onClick={onReload}
-                aria-label="Tải lại trang"
+                aria-label={em("Tải lại trang")}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md border border-red-300 bg-white text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3 h-3" aria-hidden="true" />
-                <span>Tải lại trang</span>
+                <span>{em("Tải lại trang")}</span>
               </button>
             </div>
           )}
@@ -212,12 +214,11 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
                 {getVerdictInfo(data.verdict).label}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                (Phản hồi luyện tập)
-              </span>
+                {em("(Phản hồi luyện tập)")}</span>
             </div>
 
             <div className="text-xs font-semibold text-slate-700">
-              Điểm: {formatScore(data.score)}
+              {em("Điểm:")}{' '}{formatScore(data.score)}
             </div>
           </div>
 
@@ -225,8 +226,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
           <div className="space-y-2 min-w-0">
             <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-md min-w-0">
               <div className="text-2xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">
-                Câu trả lời của bạn:
-              </div>
+                {em("Câu trả lời của bạn:")}</div>
               <div
                 data-testid="feedback-user-answer"
                 className="text-xs text-slate-900 whitespace-pre-wrap font-sans break-words"
@@ -237,8 +237,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
 
             <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-md min-w-0">
               <div className="text-2xs font-bold text-emerald-700 uppercase tracking-wider mb-0.5">
-                Đáp án chuẩn:
-              </div>
+                {em("Đáp án chuẩn:")}</div>
               <div
                 data-testid="feedback-correct-answer"
                 className="text-xs text-emerald-950 whitespace-pre-wrap font-sans break-words"
@@ -252,7 +251,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
           <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-md text-xs text-slate-800 space-y-1 min-w-0">
             <div className="font-semibold text-amber-900 flex items-center gap-1">
               <span>💡</span>
-              <span>Giải thích chi tiết:</span>
+              <span>{em("Giải thích chi tiết:")}</span>
             </div>
             {data.explanation && data.explanation.trim() ? (
               <HtmlContent
@@ -261,8 +260,7 @@ export const PracticeQuestionFeedback: React.FC<PracticeQuestionFeedbackProps> =
               />
             ) : (
               <div className="text-slate-500 italic">
-                Chưa có giải thích
-              </div>
+                {em("Chưa có giải thích")}</div>
             )}
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { examErrorMessage as ee } from '../i18n/examMessages';
 import React from 'react';
 import { TimeUpOverlay } from './modals/TimeUpOverlay';
 
@@ -26,11 +27,11 @@ export const TimeUpModal: React.FC<TimeUpModalProps> = ({
     <TimeUpOverlay
       isExpired={open}
       isSubmitting={isSubmitting}
-      error={error}
+      error={ee(error)}
       onSubmit={() => {}}
       onRetry={onRetry}
       retryLabel={retryLabel}
-      draftWarning={draftWarning}
+      draftWarning={ee(draftWarning)}
       onNavigateToResult={onClose}
     />
   );

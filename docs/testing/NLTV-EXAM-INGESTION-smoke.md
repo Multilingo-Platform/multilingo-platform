@@ -66,3 +66,26 @@ Evidence responsive được chụp ở 375×812, 768×1024 và 1366×900; viewp
 - Lần startup đầu thất bại vì images-enabled từ dev còn true trong khi image-fetch=false; đã sửa command-line override thành images-enabled=false trước seed. Đây là cấu hình smoke, không phải bug production.
 - Không chạy lại full suite; kết quả focused mới là PostgreSQL3 PASS và HTTP smoke ở trên. Không kiểm tra provider thật, dictionary v2, tài khoản non-owner, hoặc thông qua reverse proxy production.
 - Rollback publication nếu cần: authenticated admin PATCH `/api/v1/admin/exams/4/status?isPublished=false`; giữ nguyên attempts và bundle. Chưa thực hiện unpublish vì yêu cầu là xuất bản đề.
+
+## 2026-10-23 — R1 runtime recheck — BLOCKED / partial
+
+This is an append-only recheck; it does not replace the 2026-10-21 report above.
+
+- App DB read-only preflight now saw 7 attempts/31 answers before this smoke, while the earlier report documented attempts through #77 and 72 historical rows. State differs; this run does not infer that either count is wrong. Exam ID 4 is already published, has the registered NLTV code/type/language/duration, all nine Parts carry the approved source SHA, and Part question counts match the source. No republish/unpublish/seed was run.
+- PostgreSQL regression was rerun against isolated `official_exams_test`: `NltvDatasetPostgresIT` — **3/3 PASS**. Afterwards the test DB had 0 exam/section/part rows.
+- Focused backend suite — **75 tests, 0 failures/errors, 3 PostgreSQL tests skipped** in that run; the dedicated PG run above passed those three. Frontend focused NLTV suite — **6 files / 42 tests PASS**.
+- Browser catalog/detail/start rendered the published exam. Screenshots at 375/768/1366 px are in `output/playwright/NLTV-EXAM-INGESTION-20261023/`. A new Practice attempt **88** was created and its workspace rendered. Reload then returned 502 for workspace/profile. Do not delete this attempt; its final persisted status could not be re-read.
+- At `2026-10-23 16:50:23 +07`, Docker reported `multilingo-postgres` exited 0 and its log recorded an administrator shutdown. The existing backend/proxy stopped serving requests. No restart was attempted because the shutdown owner was unknown. Browser local storage/cookies were cleared and the temporary browser was closed.
+- The previous 2026-10-21 browser and Practice/Mock smoke evidence remains present above, but this recheck did not reproduce its full lifecycle. Reconcile the current DB/history state and complete/resume the new smoke attempt only after the database owner restores the service. Current release status remains BLOCKED.
+
+## 2026-10-23 — R1 runtime recheck sau khi người dùng yêu cầu tiếp tục
+
+- Người dùng xác nhận Docker vừa được tắt có chủ đích. Khởi động lại container PostgreSQL theo yêu cầu; container healthy. Backend smoke tạm thời trỏ `localhost:5434/multilingodb`, schema validate, tắt Flyway/seeders/schedulers/dispatcher/provider. Frontend Vite có sẵn trên cổng 5173.
+- Trước lượt này exam ID 4 có 7 attempts/31 answers; toàn DB có 87 attempts. Exam vẫn published, đúng code/type/language/duration và chín Part có checksum R1/counts đã duyệt. Không seed/publish/unpublish, không sửa exam hay attempts lịch sử.
+- **Practice #88:** workspace được resume sau reload; một câu đã autosave và còn selected sau reload. Submit, result và review đều tải được. Attempt giữ trạng thái cuối `GRADING_FAILED`; hai job Writing `UNAVAILABLE`/`MULTILINGUAL_GRADING_DISABLED`, 0 quota reservation, 0 provider dispatch; điểm Writing null.
+- **Mock #89:** đồng hồ 180 phút hiển thị; 55 câu Listening đã autosave. Khi chuyển từ Listening sang Reading, UI hiện xác nhận không thể quay lại; sau khi xác nhận, section Listening ID 8 được ghi vào `locked_sections` và nút Listening bị disabled. Submit, result và review tải được. Hai job Writing unavailable, 0 quota reservation/provider dispatch; điểm Writing null.
+- Review browser phát được audio Part 1: `currentTime≈8.15s`, `readyState=4`, `error=null`. Cùng smoke report 2026-10-21 đã xác minh playback và durations cho cả bốn audio Part 1–4. Responsive evidence có sẵn: start page 375/768/1366 px, Practice workspace 375 px không tràn ngang, Mock/review 1280 px không tràn ngang.
+- Kết quả test đã chạy: backend focused **75 tests, 0 failures/errors, 3 PG skips**, sau đó PostgreSQL `NltvDatasetPostgresIT` **3/3 PASS** trên DB thử nghiệm riêng và để DB đó rỗng; frontend NLTV **6 files / 42 tests PASS**. Source không đổi nên không chạy lại.
+- Hai smoke attempts được giữ lại (ID 88, 89); tổng DB sau lượt này 89 attempts, exam ID 4 có 9. Báo cáo cũ “72 historical rows IDs≤72” không mâu thuẫn với con số 7 attempt riêng exam ID 4 ở lần preflight; không thay đổi dữ liệu lịch sử.
+- Khi essay để trống, summary UI dùng trạng thái tổng hợp “Chấm bài thất bại”/“Chấm Writing thất bại” cho job unavailable và hiển thị chưa có điểm. Không có provider call hoặc quota reservation. Handoff 2026-10-21 ghi nhận với essay đã nhập, mở Writing feedback sẽ nêu “Chưa hỗ trợ chấm Writing tiếng Việt.” Không lưu câu hỏi, câu trả lời hoặc answer key vào báo cáo.
+- Không commit/push; smoke hoàn tất trong phạm vi cho phép và dừng để review.

@@ -21,6 +21,9 @@ interface PanelProps {
   busy: boolean;
   disabled: boolean;
   retryAfterSeconds: number | null;
+  learningLanguage: string | null;
+  defaultExplanationLanguage: string | null;
+  supportedExplanationLanguages: readonly string[];
   onGenerate(selection: WritingHintsLanguageSelection): void | Promise<void>;
   onRetry(): void | Promise<void>;
 }
@@ -33,7 +36,9 @@ const noop = vi.fn();
 function panelProps(overrides: Partial<PanelProps> = {}): PanelProps {
   return {
     questionId: 'writing-task-1', taskNumber: 1, state: idle, busy: false,
-    disabled: false, retryAfterSeconds: null, onGenerate: noop, onRetry: noop, ...overrides,
+    disabled: false, retryAfterSeconds: null, learningLanguage: 'en', defaultExplanationLanguage: 'vi',
+    supportedExplanationLanguages: ['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es'],
+    onGenerate: noop, onRetry: noop, ...overrides,
   };
 }
 function state(phase: QuestionWritingHints['phase'], overrides: Partial<QuestionWritingHints> = {}): QuestionWritingHints {
@@ -58,32 +63,31 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(container.querySelector(`#${CSS.escape(panelId!)}`)).not.toHaveAttribute('hidden');
     expect(document.getElementById(panelId!)).toBeInTheDocument();
-    expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('');
-    expect(screen.getByLabelText('Ngôn ngữ gợi ý')).toHaveValue('');
+    expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
+    expect(screen.getByLabelText('Ngôn ngữ giải thích')).toHaveValue('');
     expect(screen.getByRole('button', { name: /^tạo gợi ý$/i })).toBeEnabled();
     expect(noop).not.toHaveBeenCalled();
   });
 
-  it('renders all eight existing language choices and keeps learner and hint defaults independent', async () => {
+  it('shows snapshot learning language read-only and offers eight explanation choices', async () => {
     await renderPanel();
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
     const learning = screen.getByLabelText('Ngôn ngữ học') as HTMLSelectElement;
-    const hint = screen.getByLabelText('Ngôn ngữ gợi ý') as HTMLSelectElement;
-    expect(Array.from(learning.options).map(option => option.value)).toEqual(['', 'en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es']);
+    const hint = screen.getByLabelText('Ngôn ngữ giải thích') as HTMLSelectElement;
+    expect(learning).toBeDisabled();
+    expect(Array.from(learning.options).map(option => option.value)).toEqual(['en']);
     expect(Array.from(hint.options).map(option => option.value)).toEqual(['', 'en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es']);
-    expect(within(learning).getByRole('option', { name: /theo ngôn ngữ học đã lưu/i })).toBeInTheDocument();
-    expect(within(hint).getByRole('option', { name: /theo ngôn ngữ học$/i })).toBeInTheDocument();
+    expect(within(hint).getByRole('option', { name: /mặc định/i })).toBeInTheDocument();
   });
 
   it('keeps first generation explicit and sends only the current language selection to its callback', async () => {
     const onGenerate = vi.fn();
     await renderPanel({ onGenerate });
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ học'), { target: { value: 'fr' } });
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ gợi ý'), { target: { value: 'vi' } });
+    fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'vi' } });
     expect(onGenerate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /^tạo gợi ý$/i }));
-    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'fr', hintLanguage: 'vi' });
+    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'en', hintLanguage: 'vi' });
   });
 
   it('shows a short accessible status during loading while keeping both language controls available', async () => {
@@ -91,8 +95,8 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     await renderPanel({ state: loading, busy: true });
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
     expect(screen.getByRole('status')).toHaveTextContent('Đang tạo gợi ý. Có thể tiếp tục viết bài.');
-    expect(screen.getByLabelText('Ngôn ngữ học')).toBeEnabled();
-    expect(screen.getByLabelText('Ngôn ngữ gợi ý')).toBeEnabled();
+    expect(screen.getByLabelText('Ngôn ngữ học')).toBeDisabled();
+    expect(screen.getByLabelText('Ngôn ngữ giải thích')).toBeEnabled();
     expect(screen.getByRole('button', { name: /đang tạo gợi ý/i })).toBeDisabled();
   });
 
@@ -148,15 +152,14 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     expect(alert).toHaveTextContent('Chưa tạo được bộ gợi ý mới. Đang hiển thị bộ trước.');
     expect(alert).not.toHaveTextContent('BACKEND_SENTINEL_LANGUAGE');
     expect(screen.queryByRole('button', { name: /thử lại/i })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ học'), { target: { value: 'fr' } });
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ gợi ý'), { target: { value: 'vi' } });
+    fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'vi' } });
     expect(screen.getByRole('region', { name: /gợi ý writing.*task 1/i })).toHaveAttribute('lang', 'en');
     expect(onGenerate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /^đổi ngôn ngữ và tạo gợi ý$/i }));
     expect(screen.getByRole('group', { name: 'Xác nhận tạo gợi ý mới' })).toBeInTheDocument();
     expect(onGenerate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /^xác nhận tạo gợi ý mới$/i }));
-    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'fr', hintLanguage: 'vi' });
+    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'en', hintLanguage: 'vi' });
     expect(onRetry).not.toHaveBeenCalled();
   });
 
@@ -170,15 +173,14 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     });
     const { rerender } = await renderPanel(props);
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ học'), { target: { value: 'fr' } });
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ gợi ý'), { target: { value: 'vi' } });
+    fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'vi' } });
     expect(onGenerate).not.toHaveBeenCalled();
     const error = phase === 'error' ? classifyWritingHintsError(new Error('Network Error'), 1700000000000) : null;
     rerender(<WritingHintsPanel {...props} busy={false} state={state(phase, {
       data: readyResponse, error, lastSelection: { ...operation },
     })} />);
-    expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('fr');
-    expect(screen.getByLabelText('Ngôn ngữ gợi ý')).toHaveValue('vi');
+    expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
+    expect(screen.getByLabelText('Ngôn ngữ giải thích')).toHaveValue('vi');
     expect(screen.getByRole('region', { name: /gợi ý writing.*task 1/i })).toHaveAttribute('lang', 'en');
     expect(onGenerate).not.toHaveBeenCalled();
     expect(onRetry).not.toHaveBeenCalled();
@@ -186,12 +188,12 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
       fireEvent.click(screen.getByRole('button', { name: /^thử lại$/i }));
       expect(onRetry).toHaveBeenCalledExactlyOnceWith();
       expect(onGenerate).not.toHaveBeenCalled();
-      expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('fr');
+      expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
     }
     fireEvent.click(screen.getByRole('button', { name: /^tạo gợi ý mới$/i }));
     expect(onGenerate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /^xác nhận tạo gợi ý mới$/i }));
-    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'fr', hintLanguage: 'vi' });
+    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'en', hintLanguage: 'vi' });
     expect(operation).toEqual({ learningLanguage: 'en', hintLanguage: 'en' });
   });
 
@@ -204,12 +206,12 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     });
     const { rerender } = await renderPanel(props);
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ học'), { target: { value: 'fr' } });
+    fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'fr' } });
     rerender(<WritingHintsPanel {...props} state={state('loading', {
       data: readyResponse, lastSelection: { learningLanguage: 'de', hintLanguage: null },
     })} busy />);
-    expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('de');
-    expect(screen.getByLabelText('Ngôn ngữ gợi ý')).toHaveValue('');
+    expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
+    expect(screen.getByLabelText('Ngôn ngữ giải thích')).toHaveValue('');
     expect(onGenerate).not.toHaveBeenCalled();
   });
 
@@ -230,7 +232,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     await renderPanel({ state: state('error', { error: failure('request'), lastSelection: prior }), onRetry });
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
     expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
-    expect(screen.getByLabelText('Ngôn ngữ gợi ý')).toHaveValue('vi');
+    expect(screen.getByLabelText('Ngôn ngữ giải thích')).toHaveValue('vi');
     fireEvent.click(screen.getByRole('button', { name: /thử lại/i }));
     expect(onRetry).toHaveBeenCalledExactlyOnceWith();
   });
@@ -256,8 +258,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     const existing = state('ready', { data: readyResponse, lastSelection: { learningLanguage: 'en', hintLanguage: 'vi' } });
     await renderPanel({ state: existing, onGenerate });
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ học'), { target: { value: 'fr' } });
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ gợi ý'), { target: { value: 'de' } });
+    fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'de' } });
     const previousContent = screen.getByRole('region', { name: /gợi ý writing.*task 1/i });
     expect(previousContent).toHaveAttribute('lang', 'en');
     expect(within(previousContent).getByText('Ngôn ngữ gợi ý: Tiếng Anh (English)')).toBeInTheDocument();
@@ -270,7 +271,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     fireEvent.keyDown(confirm, { key: 'Enter', code: 'Enter' });
     confirm.click(); // jsdom needs the native button activation associated with Enter explicitly.
     fireEvent.keyUp(confirm, { key: 'Enter', code: 'Enter' });
-    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'fr', hintLanguage: 'de' });
+    expect(onGenerate).toHaveBeenCalledExactlyOnceWith({ learningLanguage: 'en', hintLanguage: 'de' });
     expect(cancel.tagName).toBe('BUTTON');
   });
 
@@ -279,11 +280,11 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     const previous: WritingHintsLanguageSelection = { learningLanguage: 'en', hintLanguage: 'vi' };
     await renderPanel({ state: state('ready', { data: readyResponse, lastSelection: previous }), onGenerate });
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
-    fireEvent.change(screen.getByLabelText('Ngôn ngữ học'), { target: { value: 'fr' } });
+    fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'fr' } });
     fireEvent.click(screen.getByRole('button', { name: /tạo gợi ý mới/i }));
     fireEvent.click(screen.getByRole('button', { name: /hủy/i }));
     expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
-    expect(screen.getByLabelText('Ngôn ngữ gợi ý')).toHaveValue('vi');
+    expect(screen.getByLabelText('Ngôn ngữ giải thích')).toHaveValue('vi');
     expect(onGenerate).not.toHaveBeenCalled();
   });
 
@@ -340,7 +341,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     const { rerender } = await renderPanel({ busy: true });
     fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
     expect(screen.getByRole('button', { name: /^tạo gợi ý$/i })).toBeDisabled();
-    expect(screen.getByLabelText('Ngôn ngữ học')).toBeEnabled();
+    expect(screen.getByLabelText('Ngôn ngữ học')).toBeDisabled();
     rerender(<WritingHintsPanel {...panelProps({ retryAfterSeconds: 5 })} />);
     expect(screen.getByRole('button', { name: /gợi ý writing.*task 1/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^tạo gợi ý$/i })).toBeDisabled();

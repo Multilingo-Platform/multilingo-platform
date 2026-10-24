@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.convert.DurationStyle;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -412,7 +413,11 @@ public class WritingGradingTransactionCoordinatorIT {
         long leaseSecondsMin = Duration.between(afterClaim, claim.leaseUntil()).toSeconds();
         long leaseSecondsMax = Duration.between(beforeClaim, claim.leaseUntil()).toSeconds();
 
-        assertThat(leaseSecondsMin).isGreaterThanOrEqualTo(64);
-        assertThat(leaseSecondsMax).isLessThanOrEqualTo(66);
+        long expectedLeaseSeconds = Duration.ofSeconds(30).getSeconds()
+                + (imageFetchProperties == null ? Duration.ofSeconds(10).getSeconds()
+                : DurationStyle.detectAndParse(imageFetchProperties.getRequestTimeout()).getSeconds()) * 2
+                + properties.getLeaseExtension().getSeconds();
+        assertThat(leaseSecondsMin).isGreaterThanOrEqualTo(expectedLeaseSeconds - 1);
+        assertThat(leaseSecondsMax).isLessThanOrEqualTo(expectedLeaseSeconds + 1);
     }
 }

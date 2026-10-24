@@ -1,4 +1,7 @@
+import { examErrorMessage as ee } from '../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import LanguageSwitcher from '../../../components/common/LanguageSwitcher';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -41,6 +44,7 @@ import ReadingPartContent, {
   type ReadingQuestionView,
 } from '../components/workspace/ReadingPartContent';
 import { WritingPromptContent } from '../components/workspace/WritingPromptContent';
+import { canonicalizeLearningLanguage } from '../../../core/i18n/learningLanguages';
 import { AlertCircle } from 'lucide-react';
 import { useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../app/store';
@@ -50,6 +54,7 @@ interface DictTooltip {
   word: string;
   x: number;
   y: number;
+  selection: SelectionState;
 }
 
 function isRecordedId(value: unknown): value is number {
@@ -74,11 +79,13 @@ export function shouldShowAiLookup(
   learningLanguage: string | null = 'en',
 ): boolean {
   if (!isPractice || !selection) return false;
-  const language = learningLanguage?.trim().toLowerCase();
-  if (!language || (language !== 'en' && !language.startsWith('en-'))) return false;
+  const language = canonicalizeLearningLanguage(learningLanguage);
+  if (!language) return false;
   const selected = selection.text.trim();
   const length = Array.from(selected).length;
-  return length >= 2 && length <= 80 && selected.split(/\s+/u).length <= 5 &&
+  const base = language.split('-')[0];
+  const wordCount = selected.split(/\s+/u).filter(Boolean).length;
+  return length >= 1 && length <= 80 && ((base === 'zh' || base === 'ja') || wordCount <= 5) &&
     /[\p{L}\p{M}]/u.test(selected) && /^[\p{L}\p{M}'’\-\s]+$/u.test(selected);
 }
 
@@ -108,13 +115,13 @@ const ToeicReadingDivider: React.FC<ToeicReadingDividerProps> = ({
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="Điều chỉnh tỉ lệ khung đọc"
+      aria-label={em("Điều chỉnh tỉ lệ khung đọc")}
       aria-valuenow={Math.round(ratio)}
       aria-valuemin={TOEIC_READING_SPLIT_MIN}
       aria-valuemax={TOEIC_READING_SPLIT_MAX}
       tabIndex={0}
       data-testid="toeic-reading-divider"
-      title="Kéo hoặc dùng phím mũi tên để chỉnh tỉ lệ 2 khung (30–70%)"
+      title={em("Kéo hoặc dùng phím mũi tên để chỉnh tỉ lệ 2 khung (30–70%)")}
       onMouseDown={onMouseDown}
       onDoubleClick={onReset}
       onKeyDown={(event) => {
@@ -142,7 +149,7 @@ const ToeicReadingDivider: React.FC<ToeicReadingDividerProps> = ({
     <div className="flex flex-col items-center gap-1 rounded-lg border border-slate-200 bg-white/95 p-1 shadow-xs shrink-0">
       <button
         type="button"
-        aria-label="Thu hẹp khung đọc"
+        aria-label={em("Thu hẹp khung đọc")}
         onClick={() => onStep(-TOEIC_READING_SPLIT_STEP)}
         className="w-5 h-5 flex items-center justify-center rounded text-[11px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
       >
@@ -150,7 +157,7 @@ const ToeicReadingDivider: React.FC<ToeicReadingDividerProps> = ({
       </button>
       <button
         type="button"
-        aria-label="Đặt lại tỉ lệ 50/50"
+        aria-label={em("Đặt lại tỉ lệ 50/50")}
         onClick={onReset}
         className="w-5 h-5 flex items-center justify-center rounded text-[8px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
       >
@@ -158,7 +165,7 @@ const ToeicReadingDivider: React.FC<ToeicReadingDividerProps> = ({
       </button>
       <button
         type="button"
-        aria-label="Mở rộng khung đọc"
+        aria-label={em("Mở rộng khung đọc")}
         onClick={() => onStep(TOEIC_READING_SPLIT_STEP)}
         className="w-5 h-5 flex items-center justify-center rounded text-[11px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
       >
@@ -169,6 +176,7 @@ const ToeicReadingDivider: React.FC<ToeicReadingDividerProps> = ({
 );
 
 const WorkspacePage: React.FC = () => {
+  useExamLocale();
   const { attemptId: attemptIdStr } = useParams<{ attemptId: string }>();
   const parsedAttemptId = Number(attemptIdStr);
   const isValidAttemptId = Number.isSafeInteger(parsedAttemptId) && parsedAttemptId >= 1 && parsedAttemptId <= 2147483647;
@@ -185,7 +193,10 @@ const WorkspacePage: React.FC = () => {
     activeWorkspace?.serverTimeOffset ?? 0
   );
   const autosave = useAutosave(activeWorkspace && activeWorkspace.status === 'IN_PROGRESS' ? attemptId : null, activeWorkspace ?? undefined);
-  const submission = useAttemptSubmission(activeWorkspace, autosave);
+  const [feedbackLanguage, setFeedbackLanguage] = useState<string | null>(null);
+  useEffect(() => setFeedbackLanguage(null), [attemptId]);
+  const submission = useAttemptSubmission(activeWorkspace, autosave,
+    feedbackLanguage ?? activeWorkspace?.languageContext?.defaultExplanationLanguage ?? null);
   const isSubmitting = submission.phase === 'waiting' || submission.phase === 'submitting';
   const draftWarning = submission.draftWarning ?? autosave.draftWarning;
 
@@ -526,6 +537,8 @@ const WorkspacePage: React.FC = () => {
 
   // Hints use recorded canonical IDs, never the answer editor's compatibility fallback.
   const writingPartId = currentPart?.id ?? null;
+  const ownerId = useSelector((state: RootState) => state.auth?.user?.id ?? null);
+  const dictionaryOwnerId = isRecordedId(Number(ownerId)) ? Number(ownerId) : null;
   const writingSection = currentPart ? (sections.find(section => section.parts?.some(p => ((p as any).id === writingPartId || (p as any).part_id === writingPartId))) ?? sections.find(section => section.parts?.includes(currentPart))) : undefined;
   const writingQuestionIds: (string | null)[] = currentPartQuestions.map((question: any) => {
     const id = question.question_id ?? question.questionId ?? question.id;
@@ -547,6 +560,7 @@ const WorkspacePage: React.FC = () => {
     partId: writingPartId,
     questions: partQuestions,
     isLocked: submission.isLocked,
+    ownerId: dictionaryOwnerId,
   });
 
   const practiceFeedback = usePracticeFeedback({
@@ -668,8 +682,6 @@ const WorkspacePage: React.FC = () => {
   const partSharedMedia = (currentPart as any)?.sharedMedia
     || (currentPart as any)?.shared_media
     || currentPart?.content?.shared_media;
-  const ownerId = useSelector((state: RootState) => state.auth?.user?.id ?? null);
-  const dictionaryOwnerId = isRecordedId(Number(ownerId)) ? Number(ownerId) : null;
   const currentSectionId = (currentSection as any)?.section_id ?? currentSection?.id;
   const isCurrentSectionLocked = Boolean(
     activeWorkspace?.test_mode === 'MOCK_TEST' &&
@@ -679,6 +691,7 @@ const WorkspacePage: React.FC = () => {
   const dictionary = usePracticeDictionary({
     workspace: activeWorkspace,
     partId: isPracticeMode && currentSkill === 'READING' ? partId : null,
+    ownerId: dictionaryOwnerId,
     isLocked: () => submission.isLocked() || isCurrentSectionLocked,
   });
   const isToeicExam = isToeicExamSnapshot((activeWorkspace as any)?.exam_snapshot);
@@ -828,13 +841,14 @@ const WorkspacePage: React.FC = () => {
   };
 
   const handleAiLookup = () => {
-    const examLanguage = activeWorkspace?.exam_snapshot?.examLanguage ?? activeWorkspace?.exam_snapshot?.exam_language ?? null;
+    const examLanguage = activeWorkspace?.languageContext?.examLanguage ?? null;
     if (!selection || !shouldShowAiLookup(selection, isPracticeMode, examLanguage) || submission.isLocked() || isCurrentSectionLocked) return;
-    void dictionary.lookup(selection);
+    dictionary.cancel();
     setDictTooltip({
       word: selection.text,
       x: Math.max(16, selection.rect.left + selection.rect.width / 2 - 140),
       y: Math.max(70, selection.rect.bottom + 8),
+      selection,
     });
     setSelection(null);
   };
@@ -893,7 +907,7 @@ const WorkspacePage: React.FC = () => {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         </div>
-        <p className="text-slate-600 font-medium text-sm">Đang tải phiên thi Multilingo...</p>
+        <p className="text-slate-600 font-medium text-sm">{em("Đang tải phiên thi Multilingo...")}</p>
       </div>
     );
   }
@@ -905,14 +919,12 @@ const WorkspacePage: React.FC = () => {
           <div className="w-12 h-12 mx-auto rounded-full bg-red-50 text-red-500 flex items-center justify-center text-2xl font-bold">
             ⚠️
           </div>
-          <p className="text-slate-700 text-sm leading-relaxed">{error}</p>
+          <p className="text-slate-700 text-sm leading-relaxed">{ee(error)}</p>
           <div className="flex gap-3 justify-center pt-2">
             <button onClick={retry} className="btn-primary text-sm">
-              Thử lại
-            </button>
+              {em("Thử lại")}</button>
             <button onClick={() => navigate('/')} className="btn-outline text-sm">
-              Về trang chủ
-            </button>
+              {em("Về trang chủ")}</button>
           </div>
         </div>
       </div>
@@ -936,13 +948,13 @@ const WorkspacePage: React.FC = () => {
     if (isSubmitting || store.getState().answers.saveStatus === 'saving') return;
     const currentState = store.getState().answers;
     if (currentState.isDirty) {
-      const ok = window.confirm("Bạn có các câu trả lời chưa được lưu lên máy chủ. Bạn có chắc muốn tải lại bản mới nhất từ máy chủ?");
+      const ok = window.confirm(em("Bạn có các câu trả lời chưa được lưu lên máy chủ. Bạn có chắc muốn tải lại bản mới nhất từ máy chủ?"));
       if (!ok) return;
       try {
         localStorage.setItem(`exam_draft_${attemptId}`, JSON.stringify(currentState.answers));
         setHasLocalDraft(true);
       } catch {
-        alert("Không thể giữ bản nháp trên thiết bị. Hãy sao chép bài làm trước khi tải lại.");
+        alert(em("Không thể giữ bản nháp trên thiết bị. Hãy sao chép bài làm trước khi tải lại."));
         return;
       }
     }
@@ -970,7 +982,7 @@ const WorkspacePage: React.FC = () => {
 
     // Locked section check
     if (lockedSections.includes(targetSId)) {
-      alert("Phần này đã bị khóa và không thể truy cập lại.");
+      alert(em("Phần này đã bị khóa và không thể truy cập lại."));
       return;
     }
 
@@ -997,7 +1009,7 @@ const WorkspacePage: React.FC = () => {
         }
       }
 
-      const confirmMessage = `Sau khi tiếp tục bạn KHÔNG THỂ quay lại ${currentSection?.title || 'phần này'}.\nBạn còn ${sectionUnanswered} câu chưa làm của phần này.\nBạn có chắc chắn muốn chuyển sang ${targetSection?.title || 'phần khác'}?`;
+      const confirmMessage = em("Sau khi tiếp tục bạn KHÔNG THỂ quay lại {{v0}}. Bạn còn {{v1}} câu chưa làm của phần này. Bạn có chắc chắn muốn chuyển sang {{v2}}?", { v0: currentSection?.title || 'phần này', v1: sectionUnanswered, v2: targetSection?.title || 'phần khác' });
       if (window.confirm(confirmMessage)) {
         lockOperationGenRef.current += 1;
         const opAttemptId = attemptId;
@@ -1045,11 +1057,11 @@ const WorkspacePage: React.FC = () => {
             }
           } catch (refreshErr: any) {
             if (!isOperationActive()) return;
-            setPendingLockError(refreshErr instanceof Error ? refreshErr.message : "Lỗi khi làm mới thông tin phần thi");
+            setPendingLockError(refreshErr instanceof Error ? refreshErr.message : em("Lỗi khi làm mới thông tin phần thi"));
           }
         } catch (e: any) {
           if (!isOperationActive()) return;
-          alert("Lỗi khi khóa phần thi: " + e.message);
+          alert(em("Lỗi khi khóa phần thi:") + e.message);
         }
       }
     } else {
@@ -1083,7 +1095,7 @@ const WorkspacePage: React.FC = () => {
       }
     } catch (err: any) {
       if (!isRetryActive()) return;
-      setPendingLockError(err instanceof Error ? err.message : "Lỗi khi làm mới thông tin phần thi");
+      setPendingLockError(err instanceof Error ? err.message : em("Lỗi khi làm mới thông tin phần thi"));
     }
   };
 
@@ -1105,7 +1117,7 @@ const WorkspacePage: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0" aria-hidden="true" />
-            <span className="font-medium">{practiceFeedback.blockedMessage}</span>
+            <span className="font-medium">{ee(practiceFeedback.blockedMessage)}</span>
           </div>
           {practiceFeedback.blockedMessage.includes('tải lại trang') && (
             <button
@@ -1113,8 +1125,7 @@ const WorkspacePage: React.FC = () => {
               onClick={handleReload}
               className="px-3 py-1.5 bg-red-600 text-white hover:bg-red-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
             >
-              Tải lại trang
-            </button>
+              {em("Tải lại trang")}</button>
           )}
         </div>
       )}
@@ -1153,7 +1164,7 @@ const WorkspacePage: React.FC = () => {
 
           <div className="flex items-center gap-2 overflow-hidden">
             <h1 className="font-heading font-bold text-slate-900 text-sm sm:text-base truncate">
-              {activeWorkspace.exam_snapshot?.title || 'Bài thi'}
+              {activeWorkspace.exam_snapshot?.title || em("Bài thi")}
             </h1>
             {allParts.length > 0 && (
               <span
@@ -1168,33 +1179,33 @@ const WorkspacePage: React.FC = () => {
 
         {/* Right: Save Status & Live Timer */}
         <div className="flex items-center gap-3 shrink-0">
+          <LanguageSwitcher />
           <SaveStatusBadge onReload={handleReload} />
           <TimerDisplay displayTime={displayTime} isExpired={isExpired} isPractice={isPractice} />
         </div>
       </header>
 
       {/* Notice Banners */}
-      {draftWarning && <div role="alert" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">{draftWarning}</div>}
+      {draftWarning && <div role="alert" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">{ee(draftWarning)}</div>}
       {readingHighlights.warning && highlightEnabled && (
         <div role="alert" data-testid="highlight-storage-warning" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">
-          {readingHighlights.warning}
+          {ee(readingHighlights.warning)}
         </div>
       )}
       {(refreshError || pendingLockError) && (
         <div role="alert" className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between text-xs text-red-800 shrink-0">
-          <span>{refreshError || pendingLockError}</span>
+          <span>{ee(refreshError || pendingLockError)}</span>
           <button
             type="button"
             onClick={handleRetryMetadata}
             className="px-2.5 py-1 rounded border border-red-300 bg-white hover:bg-red-100 font-semibold text-red-800"
           >
-            Thử lại
-          </button>
+            {em("Thử lại")}</button>
         </div>
       )}
       {hasLocalDraft && (
         <div data-testid="local-draft-notice" className="bg-amber-50 border-b border-amber-200 px-4 py-1.5 text-xs text-amber-800 flex items-center gap-2 shrink-0">
-          <span>ℹ️ Đang dùng bản đã lưu trên máy chủ; bản nháp trên thiết bị chưa được khôi phục.</span>
+          <span>{em("ℹ️ Đang dùng bản đã lưu trên máy chủ; bản nháp trên thiết bị chưa được khôi phục.")}</span>
         </div>
       )}
 
@@ -1227,7 +1238,9 @@ const WorkspacePage: React.FC = () => {
                     {(() => {
                       const snapType = (activeWorkspace?.exam_snapshot?.type || '').toUpperCase();
                       let certLabel = 'IELTS Academic';
-                      if (snapType.includes('TOEIC')) {
+                      if (snapType === 'LANGUAGE_PRACTICE') {
+                        certLabel = em('Luyện ngôn ngữ');
+                      } else if (snapType.includes('TOEIC')) {
                         certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
                       } else if (snapType.includes('NLTV') || snapType.includes('VSTEP')) {
                         certLabel = 'NLTV';
@@ -1245,14 +1258,14 @@ const WorkspacePage: React.FC = () => {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Bôi đen từ để tra từ điển AI
-                    </span>
+                      {em("Bôi đen từ để tra từ điển AI")}</span>
                   </div>
                 )}
               </div>
 
               {/* Passage / Prompt Text Content */}
               <div
+                lang={activeWorkspace.languageContext?.examLanguage ?? undefined}
                 className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
               >
                 {showToeicReference ? (
@@ -1302,8 +1315,7 @@ const WorkspacePage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="p-6 text-center text-slate-400 italic">
-                      Không có nội dung bài đọc cho phần thi này.
-                    </div>
+                      {em("Không có nội dung bài đọc cho phần thi này.")}</div>
                   )}
                 </div>
               )}
@@ -1317,7 +1329,7 @@ const WorkspacePage: React.FC = () => {
             data-testid="pane-divider"
             role="separator"
             aria-orientation="vertical"
-            aria-label={currentSkill === 'WRITING' ? 'Thanh điều chỉnh độ rộng đề bài và bài làm' : 'Thanh điều chỉnh độ rộng'}
+            aria-label={currentSkill === 'WRITING' ? em("Thanh điều chỉnh độ rộng đề bài và bài làm") : em("Thanh điều chỉnh độ rộng")}
             aria-valuenow={Math.round(splitRatio)}
             aria-valuemin={splitBoundsRef.current.min}
             aria-valuemax={splitBoundsRef.current.max}
@@ -1325,7 +1337,7 @@ const WorkspacePage: React.FC = () => {
             onKeyDown={handleDividerKeyDown}
             onMouseDown={() => setIsDraggingSplit(true)}
             onDoubleClick={() => setSplitRatio(50)}
-            title="Kéo để chỉnh độ rộng 2 bên (Nhấp đúp để đặt lại 50/50)"
+            title={em("Kéo để chỉnh độ rộng 2 bên (Nhấp đúp để đặt lại 50/50)")}
             className={`hidden lg:flex w-2.5 hover:w-3.5 bg-slate-200 hover:bg-amber-400 cursor-col-resize items-center justify-center border-x border-slate-300 transition-colors group select-none shrink-0 z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
               isDraggingSplit ? 'bg-amber-500 w-3.5' : ''
             }`}
@@ -1373,12 +1385,11 @@ const WorkspacePage: React.FC = () => {
             )}
             {isPracticeMode && writingHints.blockedError && (
               <div role="alert" className="flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-950">
-                <span>{writingHints.blockedError.message}</span>
+                <span>{ee(writingHints.blockedError.message)}</span>
                 {writingHints.blockedError.action === 'reload' && (
                   <button type="button" onClick={handleReload} disabled={isSubmitting || answersState.saveStatus === 'saving'}
                     className="rounded-lg border border-amber-300 px-3 py-1.5 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:opacity-50">
-                    Tải lại trang
-                  </button>
+                    {em("Tải lại trang")}</button>
                 )}
               </div>
             )}
@@ -1457,7 +1468,7 @@ const WorkspacePage: React.FC = () => {
                 {/* Part Instruction Callout */}
                 {currentSkill !== 'WRITING' && partInstruction && (
                   <div className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700">
-                    <span className="font-bold text-amber-800 block mb-0.5">Hướng dẫn làm bài:</span>
+                    <span className="font-bold text-amber-800 block mb-0.5">{em("Hướng dẫn làm bài:")}</span>
                     {partInstruction}
                   </div>
                 )}
@@ -1569,7 +1580,7 @@ const WorkspacePage: React.FC = () => {
                                   }
                                 }
                               }}
-                              title={isFlagged ? 'Bỏ đánh dấu xem lại' : 'Đánh dấu câu hỏi này để xem lại sau'}
+                              title={isFlagged ? em("Bỏ đánh dấu xem lại") : em("Đánh dấu câu hỏi này để xem lại sau")}
                               className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer shrink-0 shadow-2xs ${
                                 isFlagged
                                   ? 'bg-amber-100 border-amber-400 text-amber-900 ring-2 ring-amber-400/30'
@@ -1577,7 +1588,7 @@ const WorkspacePage: React.FC = () => {
                               }`}
                             >
                               <span>{isFlagged ? '🚩' : '🏳️'}</span>
-                              <span>{isFlagged ? 'Đã xem lại' : 'Xem lại'}</span>
+                              <span>{isFlagged ? em("Đã xem lại") : em("Xem lại")}</span>
                             </button>
                           </div>
 
@@ -1617,8 +1628,12 @@ const WorkspacePage: React.FC = () => {
                                 busy={writingHints.busy}
                                 disabled={isWritingSectionLocked || submission.isLocked() || Boolean(writingHints.blockedError)}
                                 retryAfterSeconds={writingHints.retryAfterSeconds}
+                                learningLanguage={activeWorkspace?.languageContext?.examLanguage ?? null}
+                                defaultExplanationLanguage={activeWorkspace?.languageContext?.defaultExplanationLanguage ?? null}
+                                supportedExplanationLanguages={activeWorkspace?.languageContext?.supportedExplanationLanguages ?? []}
                                 onGenerate={(selection) => writingHints.generate(qId, selection)}
                                 onRetry={() => writingHints.retry(qId)}
+                                onLanguageChange={() => writingHints.suspend()}
                               />
                             ) : isPracticeMode && (
                               <PracticeQuestionFeedback
@@ -1644,7 +1659,7 @@ const WorkspacePage: React.FC = () => {
                 <svg className="w-16 h-16 mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p>Không có dữ liệu phần thi.</p>
+                <p>{em("Không có dữ liệu phần thi.")}</p>
               </div>
             )}
 
@@ -1672,7 +1687,7 @@ const WorkspacePage: React.FC = () => {
                             submission.isLocked() ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                           }`}
                         >
-                          Chuyển sang phần tiếp theo ({nextSection.title}) <span>→</span>
+                          {em("Chuyển sang phần tiếp theo (")}{nextSection.title}) <span>→</span>
                         </button>
                       </div>
                     );
@@ -1698,8 +1713,7 @@ const WorkspacePage: React.FC = () => {
             {allParts.length > 1 && (
               <div className="p-4 border-b border-slate-200 bg-slate-50/50 shrink-0">
                 <div className="font-heading font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
-                  Chọn phần thi
-                </div>
+                  {em("Chọn phần thi")}</div>
                 <div className="grid grid-cols-2 gap-2">
                   {allParts.map((p: any) => {
                     const pId = (p as any).part_id ?? p.id;
@@ -1734,8 +1748,7 @@ const WorkspacePage: React.FC = () => {
                         </span>
                         {qCount > 0 && (
                           <span className="text-[10px] font-normal opacity-75 mt-0.5">
-                            {qCount} câu
-                          </span>
+                            {qCount} {em("câu")}</span>
                         )}
                       </button>
                     );
@@ -1746,10 +1759,9 @@ const WorkspacePage: React.FC = () => {
 
             <div className="p-4 flex-1">
               <div className="font-heading font-bold text-xs uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
-                <span>Bảng câu hỏi</span>
+                <span>{em("Bảng câu hỏi")}</span>
                 <span className="badge-orange text-[11px]">
-                  {allQuestions.length} câu
-                </span>
+                  {allQuestions.length} {em("câu")}</span>
               </div>
               <QuestionPalette
                 allParts={allParts}
@@ -1796,12 +1808,12 @@ const WorkspacePage: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  <span>Đang nộp...</span>
+                  <span>{em("Đang nộp...")}</span>
                 </>
               ) : (
                 <>
                   <span>🚀</span>
-                  <span>Nộp bài</span>
+                  <span>{em("Nộp bài")}</span>
                 </>
               )}
             </button>
@@ -1814,11 +1826,15 @@ const WorkspacePage: React.FC = () => {
         <PracticeDictionaryPopover
           {...dictTooltip}
           ownerId={dictionaryOwnerId}
+          learningLanguage={activeWorkspace?.languageContext?.examLanguage ?? null}
+          defaultExplanationLanguage={activeWorkspace?.languageContext?.defaultExplanationLanguage ?? null}
+          supportedExplanationLanguages={activeWorkspace?.languageContext?.supportedExplanationLanguages ?? []}
           phase={dictionary.phase}
           data={dictionary.data}
           error={dictionary.error}
           onClose={closeDictionary}
           onRetry={() => void dictionary.retry()}
+          onLookup={(language) => { if (dictTooltip) void dictionary.lookup(dictTooltip.selection, language); }}
         />
       )}
 
@@ -1828,7 +1844,7 @@ const WorkspacePage: React.FC = () => {
         showAi={shouldShowAiLookup(
           selection,
           isPracticeMode,
-          activeWorkspace?.exam_snapshot?.examLanguage ?? activeWorkspace?.exam_snapshot?.exam_language ?? null,
+          activeWorkspace?.languageContext?.examLanguage ?? null,
         )}
         showHighlight={showHighlightAction}
         onHighlight={handleHighlight}
@@ -1838,7 +1854,7 @@ const WorkspacePage: React.FC = () => {
       {deleteTooltip && createPortal(
         <button
           type="button"
-          aria-label="Xóa highlight"
+          aria-label={em("Xóa highlight")}
           className="fixed z-50 min-h-11 flex items-center bg-white border border-gray-200 shadow-lg rounded-md px-3 py-1 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
           style={{
             top: Math.max(8, Math.min(window.innerHeight - 52, deleteTooltip.top)),
@@ -1846,7 +1862,7 @@ const WorkspacePage: React.FC = () => {
           }}
           onClick={handleDeleteHighlight}
         >
-          <span className="text-sm font-medium text-red-600">Xóa highlight</span>
+          <span className="text-sm font-medium text-red-600">{em("Xóa highlight")}</span>
         </button>,
         document.body
       )}
@@ -1858,6 +1874,12 @@ const WorkspacePage: React.FC = () => {
         answered={allQuestions.length - unansweredCount}
         unansweredCount={unansweredCount}
         isLoading={isSubmitting}
+        feedbackLanguage={activeWorkspace?.languageContext ? {
+          value: feedbackLanguage,
+          defaultLanguage: activeWorkspace.languageContext.defaultExplanationLanguage,
+          supportedLanguages: activeWorkspace.languageContext.supportedExplanationLanguages,
+          onChange: setFeedbackLanguage,
+        } : undefined}
         onConfirm={() => {
           setShowConfirm(false);
           setShowOverlay(true);
@@ -1871,8 +1893,8 @@ const WorkspacePage: React.FC = () => {
         isSubmitting={isSubmitting}
         error={submission.error}
         onRetry={submission.phase === 'conflict' ? handleReload : () => { writingHints.suspend(); void submission.retry(); }}
-        retryLabel={submission.phase === 'conflict' ? 'Tải lại bản mới nhất' : undefined}
-        draftWarning={draftWarning}
+        retryLabel={submission.phase === 'conflict' ? em("Tải lại bản mới nhất") : undefined}
+        draftWarning={ee(draftWarning)}
         onClose={submission.result ? () => navigate(submission.result!.redirect_url) : undefined}
       />
 
@@ -1880,7 +1902,7 @@ const WorkspacePage: React.FC = () => {
         visible={showOverlay && !showTimeUp && submission.phase !== 'conflict' && submission.phase !== 'succeeded'}
         isRetrying={isSubmitting}
         error={submission.error}
-        draftWarning={draftWarning}
+        draftWarning={ee(draftWarning)}
         onRetry={() => { writingHints.suspend(); void submission.retry(); }}
         onClose={() => setShowOverlay(false)}
       />

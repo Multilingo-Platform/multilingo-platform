@@ -1,4 +1,5 @@
 import axiosClient from '../../../core/api/axiosClient';
+import { canonicalizeLearningLanguage } from '../../../core/i18n/learningLanguages';
 import type {
   ApiResponse,
   AutosaveRequest,
@@ -167,50 +168,38 @@ function normalizeSnapshotAliases(snapshot: unknown): unknown {
   };
 }
 
-const LANGUAGE_ALIASES: Record<string, string> = {
-  eng: 'en', vie: 'vi', kor: 'ko', zho: 'zh', jpn: 'ja', fra: 'fr', deu: 'de', spa: 'es',
-};
-const SUPPORTED_LANGUAGE_BASES = new Set(['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es']);
-
 function normalizeSnapshotLanguage(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes('_') || trimmed.includes('*') || trimmed.includes('--') || trimmed.startsWith('-') || trimmed.endsWith('-')) {
-    return null;
-  }
-  const lower = trimmed.toLowerCase();
-  if (lower === 'und' || lower.startsWith('und-') || lower.startsWith('x-') || lower.includes('-x-')) {
-    return null;
-  }
-  const subtags = trimmed.split('-');
-  if (subtags.length > 3) return null;
-  const rawBase = subtags[0];
-  const base = LANGUAGE_ALIASES[rawBase.toLowerCase()] ?? rawBase.toLowerCase();
-  if (!SUPPORTED_LANGUAGE_BASES.has(base)) return null;
+  return canonicalizeLearningLanguage(value);
+}
 
-  let script = '';
-  let region = '';
+function normalizeAttemptLanguageContext(
+  value: unknown,
+  snapshotLanguage: string | null
+): WorkspaceResponse['languageContext'] {
+  if (!isRecord(value) || value.policyVersion !== 'TV3_LANG_V1' || !snapshotLanguage) return null;
+  const examLanguage = normalizeSnapshotLanguage(value.examLanguage);
+  const defaultExplanationLanguage = value.defaultExplanationLanguage === null
+    ? null
+    : normalizeSnapshotLanguage(value.defaultExplanationLanguage);
+  if (!examLanguage || examLanguage !== snapshotLanguage) return null;
+  if (value.defaultExplanationLanguage !== null && !defaultExplanationLanguage) return null;
+  if (!Array.isArray(value.supportedExplanationLanguages) || value.supportedExplanationLanguages.length === 0) return null;
 
-  if (subtags.length === 2) {
-    const sub = subtags[1];
-    if (/^[A-Za-z]{4}$/.test(sub)) {
-      script = sub[0].toUpperCase() + sub.slice(1).toLowerCase();
-    } else if (/^[A-Za-z]{2}$/.test(sub) || /^\d{3}$/.test(sub)) {
-      region = /^\d/.test(sub) ? sub : sub.toUpperCase();
-    } else {
-      return null;
-    }
-  } else if (subtags.length === 3) {
-    const sub1 = subtags[1];
-    const sub2 = subtags[2];
-    if (!/^[A-Za-z]{4}$/.test(sub1)) return null;
-    script = sub1[0].toUpperCase() + sub1.slice(1).toLowerCase();
-    if (!/^[A-Za-z]{2}$/.test(sub2) && !/^\d{3}$/.test(sub2)) return null;
-    region = /^\d/.test(sub2) ? sub2 : sub2.toUpperCase();
+  const supportedExplanationLanguages: string[] = [];
+  for (const rawLanguage of value.supportedExplanationLanguages) {
+    const normalized = normalizeSnapshotLanguage(rawLanguage);
+    if (!normalized || supportedExplanationLanguages.includes(normalized)) return null;
+    supportedExplanationLanguages.push(normalized);
   }
+  if (!supportedExplanationLanguages.includes(examLanguage)) return null;
+  if (defaultExplanationLanguage && !supportedExplanationLanguages.includes(defaultExplanationLanguage)) return null;
 
-  return [base, script, region].filter(Boolean).join('-');
+  return {
+    policyVersion: 'TV3_LANG_V1',
+    examLanguage,
+    defaultExplanationLanguage,
+    supportedExplanationLanguages,
+  };
 }
 
 function isValidIsoInstant(val: unknown): val is string {
@@ -426,16 +415,11 @@ function normalizeWorkspace(
   const playbackRaw = pickField(raw, 'listeningPlayback', 'listening_playback');
   const listeningPlayback = normalizeListeningPlaybackSummary(playbackRaw);
   const languageContextRaw = pickField(raw, 'languageContext', 'language_context');
-  const languageContext = isRecord(languageContextRaw)
-    ? {
-        policyVersion: typeof languageContextRaw.policyVersion === 'string' ? languageContextRaw.policyVersion : '',
-        examLanguage: normalizeSnapshotLanguage(languageContextRaw.examLanguage),
-        defaultExplanationLanguage: normalizeSnapshotLanguage(languageContextRaw.defaultExplanationLanguage),
-        supportedExplanationLanguages: Array.isArray(languageContextRaw.supportedExplanationLanguages)
-          ? languageContextRaw.supportedExplanationLanguages.map(normalizeSnapshotLanguage).filter((tag): tag is string => tag !== null)
-          : [],
-      }
-    : null;
+  const normalizedSnapshot = normalizeSnapshotAliases(snapshotRaw) as WorkspaceResponse['exam_snapshot'];
+  const languageContext = normalizeAttemptLanguageContext(
+    languageContextRaw,
+    normalizeSnapshotLanguage(normalizedSnapshot.examLanguage)
+  );
 
   return {
     attempt_id: attemptId,
@@ -447,7 +431,7 @@ function normalizeWorkspace(
     serverTime,
     gracePeriodSeconds: gracePeriod,
     lockedSections,
-    exam_snapshot: normalizeSnapshotAliases(snapshotRaw) as WorkspaceResponse['exam_snapshot'],
+    exam_snapshot: normalizedSnapshot,
     languageContext,
     version,
     saved_answers,
@@ -525,6 +509,7 @@ export interface SubmitAttemptApiRequest {
   reason: 'MANUAL' | 'TIMEOUT_CLIENT';
   baseVersion: number;
   finalAnswers: PartAnswers[];
+  feedbackLanguage?: string;
 }
 
 const WRITE_TIMEOUT_MS = 10_000;
@@ -583,6 +568,7 @@ export async function submitAttempt(
     reason: req.reason,
     baseVersion: req.baseVersion,
     finalAnswers: req.finalAnswers,
+    ...(req.feedbackLanguage ? { feedbackLanguage: req.feedbackLanguage } : {}),
   };
   const res = await boundedAttemptRequest(signal => axiosClient.post<unknown, ApiResponse<any>>(
     `/v1/attempts/${attemptId}/submit`,
@@ -707,7 +693,7 @@ export async function checkPracticeAnswer(
 export async function generateWritingHints(
   attemptId: number,
   req: WritingHintsRequest,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal; defaultHintLanguage?: string | null }
 ): Promise<WritingHintsResponse> {
   const validatedReq = validateWritingHintsRequest(attemptId, req);
   const payload: Record<string, unknown> = {
@@ -736,6 +722,7 @@ export async function generateWritingHints(
   return normalizeWritingHints(res, {
     ...validatedReq,
     attemptId,
+    defaultHintLanguage: options?.defaultHintLanguage,
   });
 }
 

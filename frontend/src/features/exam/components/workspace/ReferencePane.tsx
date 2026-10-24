@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import HtmlContent from '../content/HtmlContent';
 import MediaDisplay from '../content/MediaDisplay';
@@ -33,12 +34,13 @@ function asImage(url: string): SharedMedia {
  * selection (and its text offsets) is always attributed to exactly one document.
  */
 const ReferencePane: React.FC<ReferencePaneProps> = ({ docs, className, testId = 'toeic-reference-pane' }) => {
+  useExamLocale();
   if (docs.length === 0) return null;
 
   return (
     <div data-testid={testId} className={className ?? 'space-y-6'}>
       {docs.map((doc, index) => {
-        const label = doc.instruction ?? `Tài liệu ${index + 1}`;
+        const label = doc.instruction ?? em("Tài liệu {{v0}}", { v0: index + 1 });
         return (
           <section
             key={doc.groupId}
@@ -59,7 +61,7 @@ const ReferencePane: React.FC<ReferencePaneProps> = ({ docs, className, testId =
               >
                 <MediaDisplay
                   media={asImage(url)}
-                  alt={`Tài liệu ${index + 1} hình ${mediaIndex + 1}`}
+                  alt={em("Tài liệu {{v0}} hình {{v1}}", { v0: index + 1, v1: mediaIndex + 1 })}
                 />
               </div>
             ))}

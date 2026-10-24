@@ -230,8 +230,9 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = 'dropdown
           {SUPPORTED_LANGUAGES.map((lang) => {
             const isSelected = i18n.language === lang.code;
             return (
-              <div
+              <button
                 key={lang.code}
+                type="button"
                 onClick={() => handleSelectLanguage(lang.code)}
                 style={{
                   display: 'flex',
@@ -276,7 +277,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = 'dropdown
                 </div>
 
                 {isSelected && <Check size={16} color="#ea580c" />}
-              </div>
+              </button>
             );
           })}
         </div>

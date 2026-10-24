@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import HtmlContent from '../content/HtmlContent';
 
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export const ExplanationBox: React.FC<Props> = ({ htmlContent }) => {
+  useExamLocale();
   if (!htmlContent || !htmlContent.trim()) {
     return (
       <div
@@ -14,9 +16,9 @@ export const ExplanationBox: React.FC<Props> = ({ htmlContent }) => {
       >
         <div className="font-semibold mb-1 text-[#F59E0B] flex items-center gap-1">
           <span>💡</span>
-          <span>Giải thích chi tiết:</span>
+          <span>{em("Giải thích chi tiết:")}</span>
         </div>
-        <div className="text-gray-500 italic">Chưa có giải thích</div>
+        <div className="text-gray-500 italic">{em("Chưa có giải thích")}</div>
       </div>
     );
   }
@@ -28,7 +30,7 @@ export const ExplanationBox: React.FC<Props> = ({ htmlContent }) => {
     >
       <div className="font-semibold mb-2 text-[#F59E0B] flex items-center gap-1">
         <span>💡</span>
-        <span>Giải thích chi tiết:</span>
+        <span>{em("Giải thích chi tiết:")}</span>
       </div>
       <HtmlContent html={htmlContent} className="prose max-w-none text-[#0F172A]" />
     </div>

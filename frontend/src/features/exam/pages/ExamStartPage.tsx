@@ -1,3 +1,5 @@
+import { examErrorMessage as ee } from '../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import ScopeModePicker from '../components/ScopeModePicker';
@@ -14,6 +16,7 @@ const VALID_MODES: TestMode[] = ['MOCK_TEST', 'PRACTICE'];
 const VALID_SCOPES: TestScope[] = ['FULL_EXAM', 'SINGLE_SKILL', 'SINGLE_PART'];
 
 const ExamStartPage: React.FC = () => {
+  useExamLocale();
   const { examId } = useParams<{ examId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -59,7 +62,7 @@ const ExamStartPage: React.FC = () => {
       .catch((err: unknown) => {
         if (!isCancelled) {
           setStructureError(
-            err instanceof Error ? err.message : 'Không thể tải cấu trúc đề thi. Vui lòng thử lại.'
+            err instanceof Error ? err.message : em("Không thể tải cấu trúc đề thi. Vui lòng thử lại.")
           );
           setStructureLoading(false);
         }
@@ -83,7 +86,7 @@ const ExamStartPage: React.FC = () => {
       navigate(`/attempts/${workspace.attempt_id}`);
     } catch (err: unknown) {
       setSubmitError(
-        err instanceof Error ? err.message : 'Không thể tạo phiên thi. Vui lòng thử lại.'
+        err instanceof Error ? err.message : em("Không thể tạo phiên thi. Vui lòng thử lại.")
       );
     } finally {
       setIsSubmitting(false);
@@ -94,8 +97,7 @@ const ExamStartPage: React.FC = () => {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div role="alert" style={{ color: '#ef4444', fontWeight: 600 }}>
-          Exam ID không hợp lệ (Phải là số nguyên dương)
-        </div>
+          {em("Exam ID không hợp lệ (Phải là số nguyên dương)")}</div>
       </div>
     );
   }
@@ -104,8 +106,7 @@ const ExamStartPage: React.FC = () => {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div role="status" style={{ color: '#4b5563', fontWeight: 600 }}>
-          Đang tải thông tin đề thi...
-        </div>
+          {em("Đang tải thông tin đề thi...")}</div>
       </div>
     );
   }
@@ -114,7 +115,7 @@ const ExamStartPage: React.FC = () => {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
         <div role="alert" style={{ color: '#ef4444', fontWeight: 600 }}>
-          {structureError}
+          {ee(structureError)}
         </div>
         <button
           type="button"
@@ -129,8 +130,7 @@ const ExamStartPage: React.FC = () => {
             fontWeight: 600,
           }}
         >
-          Thử lại
-        </button>
+          {em("Thử lại")}</button>
       </div>
     );
   }
@@ -143,8 +143,7 @@ const ExamStartPage: React.FC = () => {
       {/* Main Form Container */}
       <main className="max-w-6xl mx-auto px-4 pb-12 w-full flex flex-col gap-6">
         <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-amber-600 transition-colors w-fit" style={{ textDecoration: 'none' }}>
-          ⬅ Quay lại Trang chủ
-        </Link>
+          {em("⬅ Quay lại Trang chủ")}</Link>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Overview & Rules */}
           <div className="lg:col-span-7 space-y-6">
@@ -152,19 +151,18 @@ const ExamStartPage: React.FC = () => {
             <div className="ed-card" style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                 <span className="badge-orange">
-                  Mã đề: {structure?.code}
+                  {em("Mã đề:")}{' '}{structure?.code}
                 </span>
                 <span className="badge-green">
                   {structure?.type}
                 </span>
                 {structure?.examLanguage && (
-                  <span className="badge-orange" aria-label="Ngôn ngữ đề">
-                    Ngôn ngữ: {structure.examLanguage}
+                  <span className="badge-orange" aria-label={em("Ngôn ngữ đề")}>
+                    {em("Ngôn ngữ:")}{' '}{structure.examLanguage}
                   </span>
                 )}
                 <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>
-                  Chuẩn Format CBT Quốc tế
-                </span>
+                  {em("Chuẩn Format CBT Quốc tế")}</span>
               </div>
 
               <h1 style={{
@@ -178,8 +176,7 @@ const ExamStartPage: React.FC = () => {
                 {structure?.title}
               </h1>
               <p style={{ color: '#4b5563', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                Bài thi trực tuyến theo chuẩn định dạng bài thi.
-              </p>
+                {em("Bài thi trực tuyến theo chuẩn định dạng bài thi.")}</p>
 
               {/* Quick Info Grid */}
               <div style={{
@@ -187,23 +184,22 @@ const ExamStartPage: React.FC = () => {
                 padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb',
               }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>⏱️ Thời lượng</div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>{em("⏱️ Thời lượng")}</div>
                   <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>
-                    {structure?.durationMinutes ? `${structure.durationMinutes} phút` : 'Tính theo phạm vi đề'}
+                    {structure?.durationMinutes ? em("{{v0}} phút", { v0: structure.durationMinutes }) : em("Tính theo phạm vi đề")}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>📖 Cấu trúc</div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>{em("📖 Cấu trúc")}</div>
                   <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>
-                    {totalSections} kỹ năng ({totalParts} part)
+                    {totalSections} {em("kỹ năng (")}{totalParts} part)
                   </div>
                 </div>
               </div>
 
               {totalSections === 0 && (
                 <div role="status" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f3f4f6', borderRadius: '0.5rem', color: '#6b7280', fontStyle: 'italic', textAlign: 'center' }}>
-                  Đề thi chưa có phần thi nào.
-                </div>
+                  {em("Đề thi chưa có phần thi nào.")}</div>
               )}
             </div>
 
@@ -218,13 +214,12 @@ const ExamStartPage: React.FC = () => {
               lineHeight: 1.6,
             }}>
               <div style={{ fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>💡</span> Lưu ý quan trọng khi làm bài:
-              </div>
+                <span>💡</span> {em("Lưu ý quan trọng khi làm bài:")}</div>
               <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
-                <li><strong>Chế độ Mock Test (Toàn bộ đề):</strong> Không thể tạm dừng. Bạn phải làm bài theo trình tự. Sau khi hoàn thành một phần và chuyển tiếp, phần thi đó sẽ <strong>BỊ KHÓA</strong> vĩnh viễn và bạn không thể quay lại.</li>
-                <li><strong>Autosave:</strong> Tự động lưu bài làm liên tục vào máy chủ đám mây.</li>
-                <li><strong>Tra từ tại chỗ:</strong> Bôi đen từ vựng trong bài đọc để tra cứu phiên âm, nghĩa tiếng Việt và lưu Flashcard (chỉ khả dụng trong chế độ Practice).</li>
-                <li><strong>Giữ nguyên tab:</strong> Bạn có thể tải lại trang (F5), bài làm và thời gian còn lại sẽ được khôi phục. Tải lại trang có thể làm gián đoạn bài một chút.</li>
+                <li><strong>{em("Chế độ Mock Test (Toàn bộ đề):")}</strong> {em("Không thể tạm dừng. Bạn phải làm bài theo trình tự. Sau khi hoàn thành một phần và chuyển tiếp, phần thi đó sẽ")}<strong>{em("BỊ KHÓA")}</strong> {em("vĩnh viễn và bạn không thể quay lại.")}</li>
+                <li><strong>Autosave:</strong> {em("Tự động lưu bài làm liên tục vào máy chủ đám mây.")}</li>
+                <li><strong>{em("Tra từ tại chỗ:")}</strong> {em("Bôi đen từ vựng trong bài đọc để tra cứu phiên âm, nghĩa tiếng Việt và lưu Flashcard (chỉ khả dụng trong chế độ Practice).")}</li>
+                <li><strong>{em("Giữ nguyên tab:")}</strong> {em("Bạn có thể tải lại trang (F5), bài làm và thời gian còn lại sẽ được khôi phục. Tải lại trang có thể làm gián đoạn bài một chút.")}</li>
               </ul>
             </div>
           </div>
@@ -244,8 +239,7 @@ const ExamStartPage: React.FC = () => {
                 />
               ) : (
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280', fontSize: '0.9rem' }}>
-                  Không thể bắt đầu vì đề thi chưa có cấu trúc phần thi.
-                </div>
+                  {em("Không thể bắt đầu vì đề thi chưa có cấu trúc phần thi.")}</div>
               )}
             </div>
           </div>

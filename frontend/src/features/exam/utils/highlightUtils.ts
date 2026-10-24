@@ -40,8 +40,11 @@ function isValidRange(range: Highlight): boolean {
 /** Validates ranges against the exact visible-text document and rebuilds debug text from it. */
 export function normalizeAgainstText(ranges: Highlight[], documentText: string): Highlight[] {
   if (!Array.isArray(ranges) || typeof documentText !== 'string') return [];
+  const splitsSurrogate = (offset: number) => offset > 0 && offset < documentText.length &&
+    documentText.charCodeAt(offset - 1) >= 0xd800 && documentText.charCodeAt(offset - 1) <= 0xdbff &&
+    documentText.charCodeAt(offset) >= 0xdc00 && documentText.charCodeAt(offset) <= 0xdfff;
   const valid = ranges.filter((range) =>
-    isValidRange(range) && range.end <= documentText.length
+    isValidRange(range) && range.end <= documentText.length && !splitsSurrogate(range.start) && !splitsSurrogate(range.end)
   );
   return normalize(valid).map((range) => ({
     ...range,

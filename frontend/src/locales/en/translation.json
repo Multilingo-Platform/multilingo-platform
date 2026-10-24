@@ -240,7 +240,8 @@
       "cert": {
         "ielts": "IELTS",
         "toeic": "TOEIC",
-        "nltv": "Vietnamese Proficiency (NLTV)"
+        "nltv": "Vietnamese Proficiency (NLTV)",
+        "languagePractice": "Language practice"
       },
       "skill_title": "2. SELECT SKILL",
       "all_skills": "All Skills (Full Test & Parts)",
@@ -251,6 +252,8 @@
       },
       "part_title": "3. SELECT PART",
       "all_parts": "All Parts",
+      "language": "Exam language",
+      "allLanguages": "All languages",
       "apply": "Apply Filters",
       "clear": "Clear Filters"
     },

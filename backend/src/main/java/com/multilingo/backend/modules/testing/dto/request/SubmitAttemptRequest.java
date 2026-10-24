@@ -23,4 +23,7 @@ public class SubmitAttemptRequest {
 
     @JsonAlias({"answers", "finalAnswers"})
     private List<AutosaveAnswersRequest.PartAnswerDto> finalAnswers;
+
+    /** Optional language for post-submit Writing feedback; resolved and frozen server-side. */
+    private String feedbackLanguage;
 }

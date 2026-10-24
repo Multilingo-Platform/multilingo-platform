@@ -1,7 +1,7 @@
 # TV3-MULTILINGUAL — Đa ngôn ngữ cho luồng thi, Practice và AI
 
 **Ngày:** 2026-10-20  
-**Trạng thái:** IN_PROGRESS  
+**Trạng thái:** IMPLEMENTED — final full-feature review PASS (2026-10-23)
 **Baseline:** `ffd329f`, branch `feature/TV3-00-contract-audit`.
 
 ## Mục tiêu

@@ -2,30 +2,37 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PracticeDictionaryPopover } from '../components/practice/PracticeDictionaryPopover';
 
+const base = {
+  word: '水', x: 150, y: 100, data: null, error: null, onClose: vi.fn(), onRetry: vi.fn(), onLookup: vi.fn(), ownerId: 21,
+  learningLanguage: 'ja', defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'ja'],
+};
+
 describe('PracticeDictionaryPopover', () => {
-  it('hides a cancelled lookup instead of showing a loading state without a request', () => {
-    const props = { word: 'elms', x: 150, y: 100, data: null, error: null, onClose: vi.fn(), onRetry: vi.fn(), ownerId: 21 };
-    const { rerender } = render(<PracticeDictionaryPopover {...props} phase="loading" />);
-    expect(screen.getByRole('status')).toBeInTheDocument();
-    rerender(<PracticeDictionaryPopover {...props} phase="idle" />);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  it('opens idle with a meaning-language choice and only dispatches on explicit action', () => {
+    render(<PracticeDictionaryPopover {...base} phase="idle" />);
+    expect(screen.getByRole('dialog', { name: 'Tra từ AI: 水' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' })).toBeEnabled();
+    expect(base.onLookup).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' }), { target: { value: 'ja' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Tra từ' }));
+    expect(base.onLookup).toHaveBeenCalledExactlyOnceWith('ja');
   });
-  it('announces loading and shows AI result as text with manual retry on error', () => {
-    const onClose = vi.fn();
-    const onRetry = vi.fn();
-    const props = { word: 'elms', x: 150, y: 100, data: null, onClose, onRetry, ownerId: 21 };
-    const { rerender } = render(<PracticeDictionaryPopover {...props} phase="loading" error={null} />);
+
+  it('renders the v2 definition as inert localized text and retries only after explicit click', () => {
+    const props = { ...base, onRetry: vi.fn() };
+    const { rerender } = render(<PracticeDictionaryPopover {...props} phase="loading" />);
     expect(screen.getByRole('status')).toHaveTextContent(/đang tra nghĩa/i);
-    rerender(<PracticeDictionaryPopover {...props} phase="ready" error={null} data={{
+    rerender(<PracticeDictionaryPopover {...props} phase="ready" data={{
       requestId: 'f98eb3d0-808c-4cc0-88d0-d8f94f1a7347', attemptId: 42, partId: 7, documentId: 'g1',
-      selectedText: 'elms', contextText: 'Elms grow.', sourceContext: 'Elms grow.', learningLanguage: 'en', meaningLanguage: 'vi',
-      meaningVi: '<script>cây du</script>', phonetic: null, partOfSpeech: null, exampleEn: 'Elms grow.', exampleVi: 'Cây du mọc.',
+      selectedText: '水', sourceContext: '水は大切です。', definition: {
+        schemaVersion: 2, learningLanguage: 'ja', meaningLanguage: 'vi', meaning: '<script>nước</script>',
+        phonetic: null, partOfSpeech: null, example: '水は大切です。', exampleTranslation: 'Nước rất quan trọng.',
+      },
     }} />);
-    expect(screen.getByText('<script>cây du</script>')).toBeInTheDocument();
-    expect(screen.queryByText('AI Vocab')).not.toBeInTheDocument();
+    expect(screen.getByText('<script>nước</script>')).toBeInTheDocument();
+    expect(screen.getAllByText('水は大切です。')[0]).toHaveAttribute('lang', 'ja');
     rerender(<PracticeDictionaryPopover {...props} phase="error" error={{ kind: 'request', message: 'Thử lại', retryAfterSeconds: null, retryable: true }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
-    expect(onRetry).toHaveBeenCalledOnce();
+    expect(props.onRetry).toHaveBeenCalledOnce();
   });
 });

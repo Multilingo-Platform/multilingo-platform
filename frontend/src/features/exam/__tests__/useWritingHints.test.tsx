@@ -25,8 +25,9 @@ function workspace(attemptId = 42): WorkspaceResponse {
     attempt_id: attemptId, status: 'IN_PROGRESS', test_scope: 'FULL_EXAM', test_mode: 'PRACTICE',
     startTime: '2026-10-13T07:00:00Z', serverTime: '2026-10-13T07:00:00Z', deadline: null,
     gracePeriodSeconds: 15, lockedSections: [], version: 7, saved_answers: [], serverTimeOffset: 0,
+    languageContext: { policyVersion: 'TV3_LANG_V1', examLanguage: 'en', defaultExplanationLanguage: 'en', supportedExplanationLanguages: ['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es'] },
     exam_snapshot: {
-      exam_id: 1, code: 'TEST', title: 'Test', type: 'IELTS', sections: [{
+      exam_id: 1, code: 'TEST', title: 'Test', type: 'IELTS', examLanguage: 'en', sections: [{
         id: 3, skill_type: 'WRITING', title: 'Writing', duration_minutes: 60,
         parts: [{ id: 30, questions: essays }, { id: 31, questions: [essay] }],
       }],
@@ -182,16 +183,23 @@ describe('TV3-19-03 scoped Writing hints controller', () => {
     expect(first).toEqual({ partId: 30, questionId: 'writing-task-1', requestId: expect.any(String) });
     expect(hook.result.current.getHints(essay.question_id).lastSelection).toEqual(defaults);
     expect(uuid).toHaveBeenCalledTimes(1);
-    await generate(hook, essay.question_id, { learningLanguage: 'fr', hintLanguage: 'vi' });
+    await generate(hook, essay.question_id, { learningLanguage: 'en', hintLanguage: 'vi' });
     expect(requestBody(2).requestId).not.toBe(first.requestId);
-    expect(requestBody(2)).toMatchObject({ learningLanguage: 'fr', hintLanguage: 'vi' });
+    expect(requestBody(2)).toMatchObject({ learningLanguage: 'en', hintLanguage: 'vi' });
   });
 
-  it.each(['en', 'vi', 'fr', 'ko', 'zh', 'ja', 'de', 'es'])('preserves explicit %s selection and response languages', async language => {
+  it.each(['en', 'vi', 'fr', 'ko', 'zh', 'ja', 'de', 'es'])('keeps snapshot source en and accepts explanation language %s', async language => {
     const hook = setup();
-    await generate(hook, essay.question_id, { learningLanguage: language, hintLanguage: 'vi' });
-    expect(requestBody()).toMatchObject({ learningLanguage: language, hintLanguage: 'vi' });
-    expect(hook.result.current.getHints(essay.question_id).data).toMatchObject({ learningLanguage: language, hintLanguage: 'vi' });
+    await generate(hook, essay.question_id, { learningLanguage: 'en', hintLanguage: language });
+    expect(requestBody()).toMatchObject({ learningLanguage: 'en', hintLanguage: language });
+    expect(hook.result.current.getHints(essay.question_id).data).toMatchObject({ learningLanguage: 'en', hintLanguage: language });
+  });
+
+  it('rejects a learning language that differs from the immutable exam snapshot', async () => {
+    const hook = setup();
+    await generate(hook, essay.question_id, { learningLanguage: 'fr', hintLanguage: 'vi' });
+    expect(http).not.toHaveBeenCalled();
+    expect(hook.result.current.getHints(essay.question_id).error?.action).toBe('change-language');
   });
 
   it('invalid language creates no HTTP and no English fallback', async () => {
@@ -206,7 +214,7 @@ describe('TV3-19-03 scoped Writing hints controller', () => {
     await generate(hook);
     const data = hook.result.current.getHints(essay.question_id).data;
     http.mockRejectedValueOnce(new Error('SECRET raw request'));
-    await generate(hook, essay.question_id, { learningLanguage: 'fr', hintLanguage: 'vi' });
+    await generate(hook, essay.question_id, { learningLanguage: 'en', hintLanguage: 'fr' });
     expect(hook.result.current.getHints(essay.question_id)).toMatchObject({ phase: 'error', data, error: { action: 'retry' } });
     expect(hook.result.current.getHints(essay.question_id).error?.message).not.toContain('SECRET');
     expect(hook.result.current.getHints(essay.question_id).data?.learningLanguage).toBe('en');
@@ -260,7 +268,7 @@ describe('TV3-19-03 scoped Writing hints controller', () => {
     expect(hook.result.current.getHints(essay.question_id).error?.action).toBe('change-language');
     await act(async () => { await hook.result.current.retry(essay.question_id); });
     expect(http).toHaveBeenCalledTimes(1);
-    await generate(hook, essay.question_id, { learningLanguage: 'vi', hintLanguage: null });
+    await generate(hook, essay.question_id, { learningLanguage: 'en', hintLanguage: 'vi' });
     expect(requestBody(1).requestId).not.toBe(requestBody().requestId);
     expect(hook.result.current.getHints(essay.question_id).phase).toBe('ready');
   });

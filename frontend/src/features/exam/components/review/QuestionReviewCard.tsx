@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ReviewQuestionDto, ReviewOptionDto, ResultSummary } from '../../types/api.types';
 import HtmlContent from '../content/HtmlContent';
@@ -39,8 +40,9 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   index,
   isSelected = false,
 }) => {
+  useExamLocale();
   const verdictInfo = getVerdictBadgeInfo(question.verdict);
-  const labelText = question.label || `Câu ${index + 1}`;
+  const labelText = question.label || em("Câu {{v0}}", { v0: index + 1 });
   const hasOptions = Array.isArray(question.options) && question.options.length > 0;
   const hasOptionWithoutText = hasOptions && question.options!.some(option => {
     const optionText = option.text || option.content || '';
@@ -102,7 +104,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
         </div>
 
         <div className="text-sm font-medium text-slate-600">
-          <span>Điểm: {formatScore(writingInfo ? writingInfo.score : question.score)}</span>
+          <span>{em("Điểm:")}{' '}{formatScore(writingInfo ? writingInfo.score : question.score)}</span>
         </div>
       </div>
 
@@ -132,13 +134,12 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
         <div className="space-y-2.5 mb-4">
           {isUnanswered(question.userAnswer) && (
             <div className="text-xs text-slate-500 italic mb-2">
-              Lựa chọn của bạn: <span>Chưa trả lời</span>
+              {em("Lựa chọn của bạn:")}<span>{em("Chưa trả lời")}</span>
             </div>
           )}
           {hasOptionWithoutText && (
             <p className="text-xs text-slate-500" role="note">
-              Chưa có lời thoại cho các lựa chọn. Vui lòng nghe audio để đối chiếu.
-            </p>
+              {em("Chưa có lời thoại cho các lựa chọn. Vui lòng nghe audio để đối chiếu.")}</p>
           )}
           {question.options!.map((opt: ReviewOptionDto, optIdx: number) => {
             const optContent = opt.text || opt.content || '';
@@ -179,10 +180,10 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
                 </div>
                 <div className="text-xs font-bold shrink-0">
                   {isCorrectOption && (
-                    <span className="text-[#16A34A]">Đáp án đúng</span>
+                    <span className="text-[#16A34A]">{em("Đáp án đúng")}</span>
                   )}
                   {isUserChoice && !isCorrectOption && (
-                    <span className="text-[#DC2626]">Lựa chọn của bạn</span>
+                    <span className="text-[#DC2626]">{em("Lựa chọn của bạn")}</span>
                   )}
                 </div>
               </div>
@@ -194,8 +195,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
         <div className="space-y-3 mb-4">
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-md">
             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Câu trả lời của bạn:
-            </div>
+              {em("Câu trả lời của bạn:")}</div>
             <div className="text-sm text-slate-900 whitespace-pre-wrap font-sans">
               {formatUserAnswer(question.userAnswer)}
             </div>
@@ -203,8 +203,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
 
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
             <div className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">
-              Đáp án chuẩn / Gợi ý:
-            </div>
+              {em("Đáp án chuẩn / Gợi ý:")}</div>
             <div className="text-sm text-emerald-950 whitespace-pre-wrap font-sans">
               {formatCorrectAnswer(question.correctAnswer)}
             </div>

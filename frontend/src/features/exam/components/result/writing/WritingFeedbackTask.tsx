@@ -1,4 +1,6 @@
+import { examMessage as em, useExamLocale } from '../../../i18n/examMessages';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { WritingFeedbackTask as WritingFeedbackTaskData } from '../../../types/api.types';
 import {
   formatBandScore,
@@ -19,9 +21,12 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
   task,
   className = '',
 }) => {
+  useExamLocale();
+  const { t } = useTranslation('exam');
   const isDone = task.status === 'DONE';
-  const isTooShort = isDone && (task.source === 'SYSTEM' || task.reasonCode === 'TOO_SHORT');
-  const isAiDone = isDone && !isTooShort;
+  const isEmpty = isDone && task.reasonCode === 'EMPTY_ESSAY';
+  const isTooShort = isDone && !isEmpty && (task.source === 'SYSTEM' || task.reasonCode === 'TOO_SHORT');
+  const isAiDone = isDone && task.source === 'AI';
   const canonicalCriteria = sortCriteriaCanonical(task.criteria ?? []);
 
   return (
@@ -37,14 +42,14 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
           </h3>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1 font-medium">
-              <span>Độ dài:</span>
-              <span className="font-semibold text-foreground">{task.wordCount}</span>
-              <span>từ</span>
+              <span>{em("Độ dài:")}</span>
+              <span className="font-semibold text-foreground">{task.lengthMetric?.value ?? task.wordCount}</span>
+              <span>{task.lengthMetric?.unit === 'CHARACTERS' ? em('ký tự') : em("từ")}</span>
             </span>
             {task.language && (
               <>
                 <span>•</span>
-                <span>Ngôn ngữ: {task.language.toUpperCase()}</span>
+                <span>{em("Ngôn ngữ:")}{' '}{task.language.toUpperCase()}</span>
               </>
             )}
           </div>
@@ -67,13 +72,11 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
           {/* Source badge */}
           {isAiDone && (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-              Chấm bởi AI
-            </span>
+              {em("Chấm bởi AI")}</span>
           )}
           {isTooShort && (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-              Đánh giá bởi: Hệ thống (SYSTEM)
-            </span>
+              {em("Đánh giá bởi: Hệ thống (SYSTEM)")}</span>
           )}
         </div>
       </header>
@@ -85,8 +88,7 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
           <div className="rounded-lg border bg-muted/30 p-4 flex flex-wrap items-center justify-between gap-4">
             <div>
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Điểm Overall
-              </span>
+                {task.scoreUnit === 'PRACTICE_0_10' ? t('writing.practiceScore') : em("Điểm Overall")}</span>
               <div className="flex items-baseline gap-2 mt-0.5">
                 <span className="text-3xl font-extrabold text-primary">
                   {formatBandScore(task.overall)}
@@ -99,17 +101,16 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
 
             {isTooShort && (
               <p className="text-xs md:text-sm text-amber-700 dark:text-amber-400 font-medium max-w-md">
-                Điểm 0 do bài viết quá ngắn (không đủ số từ tối thiểu để tiến hành chấm chi tiết).
-              </p>
+                {em("Điểm 0 do bài viết quá ngắn (không đủ số từ tối thiểu để tiến hành chấm chi tiết).")}</p>
             )}
+            {isEmpty && <p className="text-sm text-amber-700">{t('writing.emptyEssay')}</p>}
           </div>
 
           {/* Canonical Criteria Grid */}
           {canonicalCriteria.length > 0 && (
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                Chi tiết tiêu chí chấm điểm
-              </h4>
+                {em("Chi tiết tiêu chí chấm điểm")}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {canonicalCriteria.map(criterion => (
                   <div
@@ -124,7 +125,7 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
                         {formatBandScore(criterion.score)}
                       </span>
                     </div>
-                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                    <p lang={task.feedbackLanguage ?? undefined} className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                       {criterion.feedback}
                     </p>
                   </div>
@@ -137,9 +138,8 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
           {task.overallFeedback && (
             <div className="rounded-lg border bg-card p-4 space-y-2">
               <h4 className="text-sm font-bold text-foreground">
-                Nhận xét tổng quan
-              </h4>
-              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                {em("Nhận xét tổng quan")}</h4>
+              <p lang={task.feedbackLanguage ?? undefined} className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 {task.overallFeedback}
               </p>
             </div>
@@ -152,9 +152,8 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
               className="rounded-lg border bg-card p-4 space-y-2 border-primary/20 bg-primary/5"
             >
               <h4 className="text-sm font-bold text-primary">
-                Nhận xét ngữ cảnh hình ảnh / biểu đồ
-              </h4>
-              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                {em("Nhận xét ngữ cảnh hình ảnh / biểu đồ")}</h4>
+              <p lang={task.feedbackLanguage ?? undefined} className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 {task.visualObservations}
               </p>
             </div>
@@ -163,17 +162,16 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
           {/* Diff View */}
           <div className="space-y-2">
             <h4 className="text-sm font-bold text-foreground">
-              So sánh bài viết & đề xuất sửa đổi
-            </h4>
-            <WritingDiffView
+              {em("So sánh bài viết & đề xuất sửa đổi")}</h4>
+            <div lang={task.language ?? undefined}><WritingDiffView
               originalText={task.originalText}
               correctedEssay={task.correctedEssay}
               diff={task.diff}
-            />
+            /></div>
           </div>
 
           {/* Corrections List */}
-          <WritingCorrectionsList corrections={task.corrections} />
+          <div lang={task.feedbackLanguage ?? undefined}><WritingCorrectionsList corrections={task.corrections} /></div>
         </div>
       )}
 
@@ -186,14 +184,14 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
           <div className="flex items-center gap-2 font-medium text-sm">
             <span>
               {task.status === 'QUEUED'
-                ? 'Bài viết đang nằm trong hàng đợi chấm điểm.'
-                : 'Bài viết đang được hệ thống xử lý chấm điểm.'}
+                ? em("Bài viết đang nằm trong hàng đợi chấm điểm.")
+                : em("Bài viết đang được hệ thống xử lý chấm điểm.")}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
             {task.reasonCode && ALLOWED_REASON_CODES.has(task.reasonCode)
-              ? mapReasonCodeToMessage(task.reasonCode)
-              : 'Vui lòng bấm nút "Cập nhật nhận xét" phía trên để kiểm tra kết quả khi hoàn tất.'}
+              ? em(mapReasonCodeToMessage(task.reasonCode))
+              : em("Vui lòng bấm nút \"Cập nhật nhận xét\" phía trên để kiểm tra kết quả khi hoàn tất.")}
           </p>
         </div>
       )}
@@ -206,8 +204,8 @@ export const WritingFeedbackTask: React.FC<WritingFeedbackTaskProps> = ({
           </div>
           <p className="text-xs md:text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
             {task.reasonCode === 'UNSUPPORTED_LANGUAGE' && task.language?.split('-')[0].toLowerCase() === 'vi'
-              ? 'Chưa hỗ trợ chấm Writing tiếng Việt.'
-              : mapReasonCodeToMessage(task.reasonCode)}
+              ? em("Chưa hỗ trợ chấm Writing tiếng Việt.")
+              : em(mapReasonCodeToMessage(task.reasonCode))}
           </p>
         </div>
       )}

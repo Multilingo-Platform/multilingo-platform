@@ -240,7 +240,8 @@
       "cert": {
         "ielts": "IELTS",
         "toeic": "TOEIC",
-        "nltv": "Năng Lực Tiếng Việt (NLTV)"
+        "nltv": "Năng Lực Tiếng Việt (NLTV)",
+        "languagePractice": "Luyện ngôn ngữ"
       },
       "skill_title": "2. CHỌN KỸ NĂNG",
       "all_skills": "Tất cả kỹ năng (Full Test & Parts)",
@@ -251,6 +252,8 @@
       },
       "part_title": "3. CHỌN PHẦN THI (PART)",
       "all_parts": "Tất cả phần thi",
+      "language": "Ngôn ngữ đề",
+      "allLanguages": "Tất cả ngôn ngữ",
       "apply": "Áp dụng bộ lọc",
       "clear": "Xóa bộ lọc"
     },

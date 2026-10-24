@@ -4,22 +4,8 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-export interface LanguageOption {
-  code: string;
-  name: string;
-  shortLabel: string;
-}
-
-export const SUPPORTED_LANGUAGES: LanguageOption[] = [
-  { code: 'en', name: 'Tiếng Anh (English)', shortLabel: 'EN' },
-  { code: 'vi', name: 'Tiếng Việt', shortLabel: 'VI' },
-  { code: 'ko', name: 'Tiếng Hàn (한국어)', shortLabel: 'KO' },
-  { code: 'zh', name: 'Tiếng Trung (中文)', shortLabel: 'ZH' },
-  { code: 'ja', name: 'Tiếng Nhật (日本語)', shortLabel: 'JA' },
-  { code: 'fr', name: 'Tiếng Pháp (Français)', shortLabel: 'FR' },
-  { code: 'de', name: 'Tiếng Đức (Deutsch)', shortLabel: 'DE' },
-  { code: 'es', name: 'Tiếng Tây Ban Nha (Español)', shortLabel: 'ES' },
-];
+export { SUPPORTED_LEARNING_LANGUAGES as SUPPORTED_LANGUAGES } from '../../../core/i18n/learningLanguages';
+export type { LearningLanguageOption as LanguageOption } from '../../../core/i18n/learningLanguages';
 
 export interface DeckSummary {
   id: number;

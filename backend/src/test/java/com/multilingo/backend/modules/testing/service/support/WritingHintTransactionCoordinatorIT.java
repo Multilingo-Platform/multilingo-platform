@@ -18,6 +18,7 @@ import com.multilingo.backend.modules.testing.entity.WritingHintRequest;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
+import com.multilingo.backend.modules.testing.repository.AttemptAnswerRepository;
 import com.multilingo.backend.modules.testing.repository.WritingHintRequestRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -112,6 +113,9 @@ public class WritingHintTransactionCoordinatorIT {
     private TestAttemptRepository attemptRepository;
 
     @Autowired
+    private AttemptAnswerRepository attemptAnswerRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -137,6 +141,7 @@ public class WritingHintTransactionCoordinatorIT {
 
         requestRepository.deleteAll();
         userQuotaRepository.deleteAll();
+        attemptAnswerRepository.deleteAll();
         attemptRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -161,6 +166,7 @@ public class WritingHintTransactionCoordinatorIT {
                 .startTime(clock.instant().minusSeconds(600))
                 .deadline(clock.instant().plusSeconds(3600))
                 .examSnapshot(Map.of(
+                        "examLanguage", "en",
                         "sections", List.of(
                                 Map.of(
                                         "id", 10,
@@ -349,7 +355,7 @@ public class WritingHintTransactionCoordinatorIT {
         assertThat(begin1).isInstanceOf(WritingHintTransactionCoordinator.BeginDecision.Reserved.class);
         var reserved1 = (WritingHintTransactionCoordinator.BeginDecision.Reserved) begin1;
         assertThat(reserved1.reservation().languages().learningLanguage()).isEqualTo("en");
-        assertThat(reserved1.reservation().languages().hintLanguage()).isEqualTo("en");
+        assertThat(reserved1.reservation().languages().hintLanguage()).isEqualTo("vi");
 
         // Mô phỏng thất bại -> ghi nhận FAILED
         coordinator.fail(reserved1.reservation(), ErrorCode.WRITING_HINTS_TIMEOUT);
@@ -367,7 +373,7 @@ public class WritingHintTransactionCoordinatorIT {
 
         // KHẲNG ĐỊNH P1-03: Retry sử dụng frozen languages "en", không bị đổi sang "fr" và không bị REQUEST_CONFLICT
         assertThat(reservedRetry.reservation().languages().learningLanguage()).isEqualTo("en");
-        assertThat(reservedRetry.reservation().languages().hintLanguage()).isEqualTo("en");
+        assertThat(reservedRetry.reservation().languages().hintLanguage()).isEqualTo("vi");
 
         // Hoàn tất thành công
         WritingHintsResponse.Content content = new WritingHintsResponse.Content(
@@ -384,7 +390,7 @@ public class WritingHintTransactionCoordinatorIT {
         assertThat(beginReplay).isInstanceOf(WritingHintTransactionCoordinator.BeginDecision.Replay.class);
         var replay = (WritingHintTransactionCoordinator.BeginDecision.Replay) beginReplay;
         assertThat(replay.response().learningLanguage()).isEqualTo("en");
-        assertThat(replay.response().hintLanguage()).isEqualTo("en");
+        assertThat(replay.response().hintLanguage()).isEqualTo("vi");
 
         // 5. Nếu gửi payload thực sự bị thay đổi (explicit learningLanguage = "es") trên cùng requestId -> CONFLICT!
         WritingHintsRequest conflictingReq = new WritingHintsRequest(30, "w1", "req-frozen-lang", "es", "vi");
@@ -636,6 +642,7 @@ public class WritingHintTransactionCoordinatorIT {
                 .status(AttemptStatus.IN_PROGRESS)
                 .startTime(clock.instant().minusSeconds(600))
                 .examSnapshot(Map.of(
+                        "examLanguage", "en",
                         "sections", List.of(
                                 Map.of(
                                         "id", 10,
@@ -854,6 +861,7 @@ public class WritingHintTransactionCoordinatorIT {
                 .startTime(t0.minusSeconds(600))
                 .deadline(t0.plusSeconds(30)) // Deadline expires at t0 + 30s
                 .examSnapshot(Map.of(
+                        "examLanguage", "en",
                         "sections", List.of(
                                 Map.of(
                                         "id", 10,

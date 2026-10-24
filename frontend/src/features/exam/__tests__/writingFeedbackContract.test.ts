@@ -65,6 +65,28 @@ describe('writingFeedbackContract - normalizeWritingFeedback', () => {
       );
     });
 
+    it('accepts 10 only for the versioned generic practice rubric', () => {
+      const wire = structuredClone(validAiDoneTextOnlyWire) as any;
+      const task = wire.tasks[0];
+      task.rubricCode = 'WRITING_GENERIC_V1';
+      task.scoreUnit = 'PRACTICE_0_10';
+      task.maxScore = 10;
+      task.feedbackLanguage = 'ja';
+      task.overall = 10;
+      task.criteria.forEach((criterion: { score: number }) => { criterion.score = 10; });
+      const normalized = normalizeWritingFeedback(wire, expectedAttemptId, expectedPartId).tasks[0];
+      expect(normalized.overall).toBe(10);
+      expect(normalized.rubricCode).toBe('WRITING_GENERIC_V1');
+      expect(normalized.scoreUnit).toBe('PRACTICE_0_10');
+
+      const english = structuredClone(wire) as any;
+      english.tasks[0].rubricCode = 'WRITING_EN_V1';
+      english.tasks[0].scoreUnit = 'BAND_0_9';
+      english.tasks[0].maxScore = 9;
+      expect(() => normalizeWritingFeedback(english, expectedAttemptId, expectedPartId))
+        .toThrow(WritingFeedbackContractError);
+    });
+
     it('normalizes valid TOO_SHORT SYSTEM response with overall 0.0 and no visualObservations', () => {
       const result = normalizeWritingFeedback(validTooShortSystemWire, expectedAttemptId, expectedPartId);
 
