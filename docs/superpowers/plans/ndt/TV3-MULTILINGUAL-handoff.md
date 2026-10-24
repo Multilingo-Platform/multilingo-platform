@@ -547,3 +547,128 @@ Không có P0 được xác nhận. Các findings trên độc lập với phầ
 - **Verification cuối:** `git diff --check` exit0; script AST parse không lỗi. Không chạy full suite, không kiểm tra provider thật/non-owner/dictionary-v2; không commit/push. Backend8088 và frontend5173 được giữ chạy local để re-review. Chi tiết lệnh, evidence, residual risks và cách unpublish riêng ID4 nằm tại [NLTV-EXAM-INGESTION-smoke.md](../../../testing/NLTV-EXAM-INGESTION-smoke.md).
 - **Next:** re-review NLTV R1 với evidence mới; nếu cần ký nhận UI chuyển section, chạy lại bằng browser hỗ trợ native confirm. Đây là execution handoff, chưa phải quyết định full-feature PASS.
 
+### 2026-10-21 — TV3-MULTILINGUAL Completion — PLANNED/IN_PROGRESS
+
+- Kế hoạch chi tiết và handoff triển khai: [TV3-MULTILINGUAL-completion-plan.md](TV3-MULTILINGUAL-completion-plan.md), [TV3-MULTILINGUAL-completion-handoff.md](TV3-MULTILINGUAL-completion-handoff.md).
+- Baseline được xác minh trước triển khai: `b016894`, branch `feature/TV3-multilingual-completion`, working tree sạch.
+- Đã phê duyệt: bài nộp mới của `LANGUAGE_PRACTICE` và đề ngoài English, gồm NLTV, dùng rubric generic 0–10 khi bật feature; job/kết quả cũ không đổi.
+- Các completion task ML-C00, ML-07A–D, ML-08A–D, ML-09A–B, ML-10A–C và ML-11A–C được theo dõi tại handoff completion. `ML-FULL-01` vẫn mở tới khi review toàn feature.
+
+# 2026-10-21 — Completion execution progress
+
+- Completion plan/handoff: `TV3-MULTILINGUAL-completion-plan.md` and `TV3-MULTILINGUAL-completion-handoff.md`.
+- Implemented: ML-C00, ML-07A–D, ML-08A–D and ML-09A–B with focused backend/frontend evidence; ML-10A has the `exam` locale namespace foundation only.
+- Backend focused evidence: 121 tests PASS for rubric/context/result/prompt/parser/generator/enqueuer/coordinator/worker and 103 tests PASS for feedback/result/submit/grace-period contracts. Effective lease assertion test: 1 PASS.
+- Frontend focused evidence: groups of 279, 136 and 129 tests PASS (overlapping suites); TypeScript, lint and production build PASS. Lint has repository warnings; build reports a large existing main chunk.
+- Still open: ML-10B/C broad TV3 UI i18n and locale-state regression; ML-11A fake-provider lifecycle; ML-11B isolated PostgreSQL; ML-11C browser/IME matrix and final full-feature review. No PostgreSQL test credentials/browser/real IME evidence was available in this turn. Do not close `ML-FULL-01` or enable generic multilingual grading for learners yet.
+- Additional regression/fix: Japanese generic 10/10 feedback was being returned as `FAILED` because the mapper deserialized versioned persistence metadata as a provider `WritingGrade`. The mapper now returns the strictly validated parser projection; `WritingFeedbackContractIT` + `WritingFeedbackMultilingualMapperTest` pass **86/86**.
+
+### 2026-10-22 — Completion execution refresh — implementation done, acceptance review pending
+
+- The full TV3-MULTILINGUAL completion implementation has been carried through ML-10B/C and ML-11A/B/C. Latest evidence and per-task details are in `TV3-MULTILINGUAL-completion-handoff.md`; earlier `IN_PROGRESS` entries are preserved as history and explicitly superseded by the final verification entry.
+- Latest backend broad gate: **2,069 tests, 0 failures/errors, 47 skipped** using `.\mvnw.cmd clean '-Dtest=*,!GenerateTemplateTest' test`. This excludes the workbook-writing test and is not the original full suite. Frontend full Vitest: **117 files / 1,753 tests PASS**; TypeScript and production build pass; lint exits 0 with warnings.
+- Isolated PostgreSQL 17 UTF-8 gates: **15/15 PASS** using a disposable DB on loopback port 50892. The application DB at port 5434 was not accessed. Browser smoke covers 375/768/1366 responsive checks, keyboard focus, fake-provider Dictionary/Flashcard and simulated composition events.
+- Remaining external/manual release evidence: native OS Japanese/Korean/Chinese IME, live-provider quality by language, and a few browser async combinations. These are explicitly not claimed as verified. Independent review found no confirmed code defect but initially marked acceptance BLOCKED on the remaining browser/IME evidence; see completion handoff for follow-up.
+- No real AI/CDN call, application DB write, seed/publish, commit or push was performed.
+
+### 2026-10-22 — Independent review — BLOCKED on native IME validation
+
+- Full-feature review found no code defects; final verdict is BLOCKED only because real OS IME input for Japanese, Chinese and Korean remains unverified. Automated composition events are explicitly not treated as equivalent.
+- Review's other evidence gaps were closed: 768px browser check and keyboard focus were recorded; focused tests cover locale changes during in-flight autosave and active audio while preserving state (**2 files / 19 PASS**). Pending submit was already covered.
+- The running Chrome could not be safely controlled because Computer Use could not determine its current URL, and stopped without issuing input. Please open the project's exam page in the browser and request the native IME check again if you want this final gate completed. Live Gemini language quality remains a separate pre-release human review requirement.
+
+### 2026-10-22 — Codex Reviewer — Re-review full feature TV3-MULTILINGUAL
+
+**Agent:** Codex Reviewer. **Decision: NEED_FIX.** Phạm vi: approved TV3-MULTILINGUAL plan và completion plan ML-01–11/ML-C00–ML-11C, main/completion handoffs, verification matrix/browser record, relevant committed baseline changes và staged/unstaged/untracked implementation/tests. Branch `feature/TV3-multilingual-completion`, HEAD `b016894cf3f02db4fe9a9c469583f6791afc707d`; staged rỗng. Không sửa code/tests/plan, không ghi DB/provider, không commit/push; chỉ append review này.
+
+#### IN-SCOPE — Confirmed findings
+
+1. **ML-FULL-02 — P1 — Result normalizer từ chối lengthMetric CJK hợp lệ.** Vị trí `frontend/src/features/exam/api/resultContract.ts:130`, trong `normalizeSummary`. Backend hiện bảo toàn `wordCount` legacy và trả riêng `lengthMetric`: ví dụ bài Nhật `猫が好きです。` có wordCount1 và CHARACTERS6. Equality assertion buộc hai đại lượng bằng nhau làm `normalizeAttemptResult` ném ResultContractError, khiến toàn trang kết quả không tải được dù response backend hợp lệ. Áp dụng cả khi Writing chưa được chấm. **Fix tối thiểu:** validate wordCount và lengthMetric độc lập theo contract/unit, không ép CHARACTERS bằng số từ; giữ raw text/legacy field. **Regression:** đưa response CJK thật (wordCount1/CHARACTERS6) qua result normalizer và Result page; phải hiển thị kết quả/độ dài mà không contract error. AC-05/08/09 và completion ML-09B bị ảnh hưởng.
+
+2. **ML-FULL-03 — P1 — Feedback generic có ảnh vẫn áp cutoff 10 từ của English.** Vị trí `backend/src/main/java/com/multilingo/backend/modules/testing/service/support/WritingFeedbackMapper.java:296–298`, `parseAndValidateGrade`. Generic CJK essay không có khoảng trắng có thể dài nhiều ký tự nhưng wordCount chỉ1. Job generic chấm thành công với ảnh/visualObservations; mapper đặt visual=false vì wordCount≤10, rồi gọi parser text-only có cấm visualObservations. Grade hợp lệ bị bỏ và learner nhận FAILED/MALFORMED_FEEDBACK, điểm null. **Fix tối thiểu:** chỉ áp cutoff English cho rubric English/legacy; generic dùng visual context đã đóng băng, không suy từ whitespace word count. **Regression:** generic Nhật/Trung có ảnh, nonempty và wordCount1, persisted SUCCEEDED result/visualObservations/score10 phải trả DONE và giữ đúng feedback; giữ regression English short-essay hiện có. AC-05/08/09 và ML-08C/09A bị ảnh hưởng.
+
+Không xác nhận P0 hoặc P2 riêng trong lượt này. Hai finding trên là lỗi tích hợp thực tế; trạng thái NEED_FIX không xuất phát chỉ từ gate IME chưa chạy. Các entry cũ “không có code defect / chỉ BLOCKED vì IME” được thay thế bởi kết luận mới này.
+
+#### Verification độc lập
+
+- Frontend: `npx vitest run src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/multilingualWritingFeedbackContract.test.tsx src/features/exam/__tests__/examLocaleSwitch.test.tsx src/features/exam/__tests__/multilingualTv3LifecycleContract.test.tsx src/features/exam/__tests__/usePracticeDictionary.test.tsx src/features/exam/__tests__/useWritingHints.test.tsx --maxWorkers=2` — **6 files / 182 tests PASS**. Các fixture hiện tại không nối response result CJK của backend vào result normalizer nên không bắt ML-FULL-02.
+- Backend: `./mvnw.cmd '-Dtest=WritingFeedbackMultilingualMapperTest,WritingGradingContextCodecTest,WritingGradingResultCodecTest,WritingGradingEnqueuerTest,AttemptResultSummaryMapperTest' test` — **5 classes / 43 tests PASS**, 0 failures/errors/skips; BUILD SUCCESS. Mapper regression hiện kiểm tra generic text-only và empty result, chưa có generic visual case của ML-FULL-03.
+- **Repro ML-FULL-02, không sửa file:** Node dùng TypeScript.transpileModule để import source resultContract.ts và fixture attemptResult.ts trong bộ nhớ. Giữ fixture hợp lệ, wordCount1: metric CHARACTERS1 được ACCEPT; đổi duy nhất value thành6 → REJECT ResultContractError. Đây là response shape phù hợp output backend CJK, không phải lỗi dữ liệu đề.
+- **Repro ML-FULL-03, không sửa file:** JShell với Maven test classpath, ObjectMapper/result codec/mapper production thật, generic ja policy, raw essay `猫が好きです。`, 4 criteria10 và persisted SUCCEEDED job. Text-only control → `DONE / score10.0`; cùng input thêm frozen job image + visualObservations → `FAILED / MALFORMED_FEEDBACK / score null`. Không provider/network hoặc DB.
+- `git diff --check` và `git diff --cached --check` exit0; chỉ có LF/CRLF advisories. Không chạy full suites hoặc PostgreSQL/browser trong lượt review này. Không cộng các lượt kiểm tra với nhau.
+- **Executor-reported, không tái chạy:** broad backend2069/0fail/0error/47skip; frontend1753 PASS; tsc/lint/build PASS; isolated PostgreSQL15 PASS; responsive/keyboard/simulated composition và async-state evidence như completion handoff. Các số này không phủ nhận hai repro độc lập.
+
+#### Criteria / OUT-OF-SCOPE / next action
+
+- Đã đối chiếu policy snapshot/catalog, publication/start, Unicode grading/length, Dictionary v2/Hints/Flashcard scope/owner/pair, job replay/rubric/result codecs, i18n và async fences, lịch sử/Diff và các integration tests liên quan. Deliverables ML-07–11 đã hiện diện; không lặp lại finding cũ chỉ vì các bảng PLANNED lịch sử còn được giữ.
+- Chưa nghiệm thu AC-05/08/09 vì hai lỗi trên; AC-12 vẫn còn gate native OS IME ja/zh/ko chưa xác minh theo ML-11C. Simulated composition không thay thế native IME. Chất lượng provider thật là gate rollout riêng; review không gọi Gemini.
+- NLTV dataset ingestion/seed/publish và dữ liệu application DB thuộc task khác, ngoài phạm vi review này. Không audit lại hoặc dùng evidence NLTV để thay cho multilingual lifecycle/IME.
+- **Next required action:** sửa ML-FULL-02/03 với focused regression nêu trên, chạy lại result/feedback/lifecycle suites, ghi evidence; hoàn tất hoặc có quyết định được duyệt về native IME gate rồi yêu cầu full-feature re-review. Chưa đóng ML-FULL-01 và chưa suy ra quyền bật rollout cho learner từ các tests PASS.
+
+### 2026-10-22 — Codex Reviewer — Re-review full feature TV3-MULTILINGUAL
+
+**Agent:** Codex Reviewer. **Decision: BLOCKED.** Re-reviewed toàn bộ TV3-MULTILINGUAL theo approved plan và completion plan, main/completion handoffs, staged/unstaged/untracked changes và AC-01–12. Branch `feature/TV3-multilingual-completion`, HEAD `b016894cf3f02db4fe9a9c469583f6791afc707d`; staged diff rỗng. Chỉ ghi handoff; không sửa code/tests/plan, không dùng database/provider, không commit/push.
+
+#### Kết quả code review
+
+- Hai finding P1 của lần review trước đã được khắc phục:
+  - `frontend/src/features/exam/api/resultContract.ts`: normalizer giữ `wordCount` legacy độc lập với `lengthMetric`; không còn từ chối metric `CHARACTERS` đúng cho ja/zh.
+  - `backend/src/main/java/com/multilingo/backend/modules/testing/service/support/WritingFeedbackMapper.java`: generic rubric dùng frozen visual context khi kiểm tra persisted `visualObservations`; cutoff 10 từ chỉ còn áp dụng rubric English. Bổ sung regression ja/zh có wordCount1 và ảnh/visual feedback; response phải ở trạng thái `DONE`.
+- Không tìm thấy finding P0/P1/P2 code mới trong phạm vi review này. Các thay đổi tiếp tục khớp quyết định snapshot/rubric/feature flag, Dictionary v2, Hints/Flashcard scope và locale độc lập đã duyệt; các kết quả/lịch sử cũ được giữ tương thích.
+
+#### Verification độc lập
+
+- Frontend: `npx vitest run src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/resultPageContract.test.tsx --maxWorkers=2` — **2 files / 102 tests PASS**. Regression xác nhận CJK `wordCount=1`, `lengthMetric=6 CHARACTERS` được chuẩn hóa; số âm, số thập phân, unit/version không hợp lệ vẫn bị từ chối.
+- Backend: `./mvnw.cmd '-Dtest=WritingFeedbackMultilingualMapperTest,AttemptResultSummaryMapperTest' test` — **2 classes / 26 tests PASS**, 0 failures/errors/skips; BUILD SUCCESS. Ja/zh có visual result đi qua mapper với `DONE`, score10, metric ký tự và observations được giữ.
+- `git diff --check` và `git diff --cached --check` — exit0; chỉ có cảnh báo chuyển LF/CRLF. Không chạy lại full suites, PostgreSQL, browser hoặc provider trong lượt này. Kết quả broad suite, PostgreSQL cô lập, browser giả lập và async regressions trước đó là executor-reported trong các entry phía trên, không tính là chạy độc lập lần này.
+
+#### Criteria, gate còn mở và hành động tiếp theo
+
+- Các code criteria liên quan ML-09B/ML-08C–D cho hai lỗi trước đã được xác minh lại bằng production normalizer/mapper và regression tests. Những gate AC/ML còn lại được đánh giá theo evidence hiện có trong completion handoff.
+- **BLOCKED — ML-11C native IME:** chưa có kiểm chứng bằng IME hệ điều hành thật cho Japanese, Chinese và Korean. Composition events giả lập không đáp ứng gate này; handoff trước ghi nhận thao tác browser native chưa thực hiện được. Đây là thiếu bằng chứng nghiệm thu, không phải finding code.
+- Chất lượng Gemini thật theo ngôn ngữ vẫn là gate rollout riêng; không có provider thật nào được gọi. Seed/publish NLTV và application DB là phạm vi task khác.
+- **Next required action:** thực hiện browser smoke với native OS IME ja/zh/ko, ghi evidence vào matrix/handoff rồi yêu cầu re-review cuối. Sau gate đó có thể đóng ML-FULL-01 nếu không phát hiện vấn đề mới.
+
+### 2026-10-22 — Codex Executor — Native IME smoke retry — BLOCKED
+
+- Rechecked the approved TV3-MULTILINGUAL plan and latest review. The two confirmed P1 findings are already fixed and re-reviewed; no new code finding was established in this attempt.
+- Native IME preflight: `Get-InstalledLanguage` lists only `en-US` and `vi-VN`. `Get-WindowsCapability -Online` requires elevation; current process is not Administrator. Chrome's `127.0.0.1:9222/json/list` returns HTTP 404 and no Vite server is listening at port 5173. No Japanese, Chinese, or Korean input was entered; this does not count as smoke evidence.
+- The full evidence is in `docs/testing/TV3-MULTILINGUAL-browser-smoke.md` and `TV3-MULTILINGUAL-completion-handoff.md`. The user named `NLTC-EXAM-INGESTION-handoff.md`, which is absent; the outcome is recorded in the existing TV3 handoffs instead of creating a misleading NLTC artifact.
+- Final re-review is still pending the actual native ja/zh/ko smoke. Resume when those OS IMEs are installed and the TV3 exam page is open in a controllable browser.
+
+### 2026-10-23 — Codex Executor — Native IME smoke retry — BLOCKED
+
+- The user opened the authenticated application at `/student/dashboard`. The `Luyện ngôn ngữ` filter showed no available exams, so a one-skill Writing Practice attempt for Cambridge IELTS 20 Test 1 was opened at `/attempts/87`; source language is English and the attempt remains unsubmitted.
+- Windows inventory now lists Japanese `ja-JP` (`LpCab`), Chinese `zh-CN` (`BasicTyping`) and Korean `ko-KR` (`BasicTyping`). Native desktop capture failed twice (`FrameArrived timed out`, then `window capture timed out`); no IME key input was sent.
+- No code defect was reproduced and no code/test changes were made. Browser DOM input is not accepted as proof of native OS composition. ML-11C remains BLOCKED pending observed ja/zh/ko IME input; final re-review has not been requested.
+- Detailed evidence is in `docs/testing/TV3-MULTILINGUAL-browser-smoke.md`. The user-named `NLTC-EXAM-INGESTION-handoff.md` is absent in this repo, so no unrelated file was created.
+
+### 2026-10-23 — User-performed native IME smoke — PASS, final review requested
+
+- User reports completing the ja/zh/ko IME flows in the TV3 Writing textarea on attempt 87. Attachments show native Japanese candidates for `konnichiwa` including `こんにちは`, Chinese Pinyin candidates for `ni'hao` including `你好`, and committed Korean `안녕하세요` in the editor.
+- ja/zh screenshots were captured with candidate composition popups open, so final commit for those two is user-reported; Korean committed text is visible. Attempt 87 is Cambridge IELTS 20 Test 1 (English source), left unsubmitted. This validates the Writing field's native CJK input path only, not generic grading/provider quality.
+- No code finding was reproduced and no code/test files changed. Request final full-feature review against AC-01–12 and the latest fixed P1 findings, retaining the evidence caveat above.
+
+### 2026-10-23 — Codex Reviewer — Final full-feature re-review TV3-MULTILINGUAL
+
+**Agent:** Codex Reviewer. **Decision: PASS.** Re-reviewed TV3-MULTILINGUAL against the approved plan and completion plan, current handoffs, relevant tracked/staged/unstaged/untracked changes, and AC-01–12. Branch `feature/TV3-multilingual-completion`, HEAD `b016894cf3f02db4fe9a9c469583f6791afc707d`; staged diff rỗng. Review chỉ đọc; không thay đổi code/test/plan, không ghi database, không gọi provider, không commit/push.
+
+#### Kết quả và findings
+
+- Hai P1 đã báo ở review trước vẫn được khắc phục:
+  - `frontend/src/features/exam/api/resultContract.ts`: `wordCount` legacy và `lengthMetric` được chuẩn hóa độc lập; CJK `CHARACTERS` không còn bị so bằng số từ. Regression mới giữ nguyên `wordCount=1`, metric 6 ký tự và từ chối các metric sai.
+  - `backend/src/main/java/com/multilingo/backend/modules/testing/service/support/WritingFeedbackMapper.java`: validation generic rubric dùng frozen visual context; cutoff 10 từ English không còn làm hỏng feedback generic có ảnh. Regression ja/zh xác nhận feedback có visual observations trả `DONE`, score10, đúng rubric/language/length.
+- Không phát hiện finding P0/P1/P2 mới trong các code path và integration liên quan. **AC-01–12: đạt theo implementation/tests/evidence trong plan và handoffs**; không dùng các bảng trạng thái PLANNED lịch sử làm blocker sau khi deliverables đã được bổ sung.
+
+#### Verification độc lập trong lần re-review này
+
+- Frontend: `npx vitest run src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/resultPageContract.test.tsx --maxWorkers=2` — **2 files / 102 tests PASS**.
+- Backend: `./mvnw.cmd '-Dtest=WritingFeedbackMultilingualMapperTest,AttemptResultSummaryMapperTest' test` — **2 classes / 26 tests PASS**, 0 failures/errors/skips; BUILD SUCCESS.
+- Native IME smoke được đối chiếu tại `docs/testing/TV3-MULTILINGUAL-browser-smoke.md`: người dùng báo đã hoàn tất ja/zh/ko trong textarea Writing thật của attempt 87; ảnh ja/zh cho thấy native candidate/composition popup (konnichiwa→こんにちは, Pinyin ni'hao→你好), còn Korean `안녕하세요` đã commit và nhìn thấy trong editor. Hai ảnh ja/zh chụp trước khi đóng popup, nên trạng thái commit cuối của chúng là user-reported, không nhìn thấy trực tiếp. Với giới hạn này, bằng chứng đáp ứng smoke native input theo ML-11C; nó chỉ xác nhận nhập liệu, không xác nhận grading.
+- `git diff --check` và `git diff --cached --check` — exit0; có cảnh báo LF/CRLF. Không chạy lại broad suites/PostgreSQL/browser trong lần này; kết quả đó đã được executor ghi tại các entry trước, không tính là reviewer-run hôm nay.
+
+#### Gate và bàn giao
+
+- Cambridge IELTS 20 Test 1 trên attempt 87 có examLanguage English; do đó smoke trên không được xem là bằng chứng cho grading đa ngôn ngữ hay chất lượng Gemini. Human review chất lượng provider theo ngôn ngữ vẫn là gate rollout riêng, không phải finding code của review.
+- Seed/publish NLTV, exam IDs của NLTV và application database thuộc task khác; không ảnh hưởng quyết định TV3-MULTILINGUAL.
+- Entry này supersedes quyết định **BLOCKED** ở review trước về native IME. Có thể đóng `ML-FULL-01` về mặt review kỹ thuật; không suy ra feature flag generic phải bật hoặc learner rollout được phép khi chưa hoàn tất human review provider.

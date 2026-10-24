@@ -81,7 +81,7 @@ export interface WorkspaceResponse {
 }
 
 export interface AttemptLanguageContext {
-  policyVersion: 'TV3_LANG_V1' | string;
+  policyVersion: 'TV3_LANG_V1';
   examLanguage: string | null;
   defaultExplanationLanguage: string | null;
   supportedExplanationLanguages: string[];
@@ -119,7 +119,7 @@ export interface ObjectiveResultStats {
   accuracy: number;
 }
 
-export type ResultWritingStatus = 'PENDING' | 'QUEUED' | 'FAILED' | 'UNAVAILABLE';
+export type ResultWritingStatus = 'PENDING' | 'QUEUED' | 'DONE' | 'FAILED' | 'UNAVAILABLE';
 
 export interface ResultSummary {
   objective: ObjectiveResultStats & {
@@ -135,9 +135,12 @@ export interface ResultSummary {
       label: string;
       status: ResultWritingStatus;
       wordCount: number;
-      // TV3-11 exposes Writing metadata, not AI scores.
-      score: null;
-      maxScore: null;
+      lengthMetric?: { value: number; unit: 'WORDS' | 'CHARACTERS'; policyVersion: 'TV3_LENGTH_V1' } | null;
+      score: number | null;
+      maxScore: number | null;
+      rubricCode?: 'WRITING_EN_V1' | 'WRITING_GENERIC_V1' | null;
+      feedbackLanguage?: string | null;
+      scoreUnit?: 'BAND_0_9' | 'PRACTICE_0_10' | null;
     }>;
   } | null;
 }
@@ -329,6 +332,31 @@ export interface DictionaryLookupResponse extends DictionaryLookupRequest {
   exampleVi: string;
 }
 
+export interface DictionaryLookupV2Request extends DictionaryLookupRequest {
+  meaningLanguage?: string;
+}
+
+export interface DictionaryLookupV2Definition {
+  schemaVersion: 2;
+  learningLanguage: string;
+  meaningLanguage: string;
+  meaning: string;
+  phonetic: string | null;
+  partOfSpeech: string | null;
+  example: string;
+  exampleTranslation: string;
+}
+
+export interface DictionaryLookupV2Response {
+  requestId: string;
+  attemptId: number;
+  partId: number;
+  documentId: string;
+  selectedText: string;
+  sourceContext: string;
+  definition: DictionaryLookupV2Definition;
+}
+
 export interface DictionaryLookupFailure {
   kind: 'quota' | 'rate-limited' | 'context' | 'access' | 'ended' | 'disabled' | 'contract' | 'request';
   message: string;
@@ -383,13 +411,17 @@ export interface WritingDiffSegment {
 }
 
 export interface WritingFeedbackTask {
+  schemaVersion?: 2;
   questionId: string;
   label: string;
   status: WritingFeedbackTaskStatus;
   wordCount: number;
+  lengthMetric?: { value: number; unit: 'WORDS' | 'CHARACTERS'; policyVersion: 'TV3_LENGTH_V1' } | null;
   language: string | null;
   source: 'AI' | 'SYSTEM';
-  scoreUnit: 'BAND_0_9';
+    scoreUnit: 'BAND_0_9' | 'PRACTICE_0_10';
+    rubricCode?: 'WRITING_EN_V1' | 'WRITING_GENERIC_V1' | null;
+    feedbackLanguage?: string | null;
   overall: number | null;
   maxScore: number | null;
   criteria: WritingCriterion[];

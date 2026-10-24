@@ -379,9 +379,9 @@ public class WritingGradingResultCompatibilityIT {
                 .usingRecursiveComparison()
                 .isEqualTo(parsedResultBefore.getResultSummary().getObjective());
 
-        // In /result summary, writing task score remains separate (null) - full score is in feedback endpoint
+        // Versioned jobs expose their validated score without adding it to objective totals.
         assertThat(parsedResultAfter.getResultSummary().getWriting().getTasks().get(0).getScore())
-                .isNull();
+                .isEqualByComparingTo("7.5");
     }
 
     @Test

@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 interface TimerDisplayProps {
   displayTime: string;
   isExpired: boolean;
@@ -12,6 +13,7 @@ function parseToSeconds(time: string): number {
 }
 
 export function TimerDisplay({ displayTime, isExpired, isPractice }: TimerDisplayProps) {
+  useExamLocale();
   if (isPractice) {
     return (
       <div style={{
@@ -25,8 +27,7 @@ export function TimerDisplay({ displayTime, isExpired, isPractice }: TimerDispla
           width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981',
           display: 'inline-block', animation: 'pulse 2s infinite',
         }} />
-        Practice Mode
-      </div>
+        {em("Practice Mode")}</div>
     );
   }
 
@@ -54,7 +55,7 @@ export function TimerDisplay({ displayTime, isExpired, isPractice }: TimerDispla
         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
       }}
       aria-live="polite"
-      aria-label={`Thời gian còn lại: ${displayTime}`}
+      aria-label={em("Thời gian còn lại: {{v0}}", { v0: displayTime })}
     >
       <span>{icon}</span>
       {displayTime}

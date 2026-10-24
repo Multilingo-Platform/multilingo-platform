@@ -19,6 +19,24 @@ class WritingGradingPromptFactoryTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
+    void selectsGenericPromptAndCarriesFrozenLanguageAndLengthMetadata() throws Exception {
+        WritingRubricPolicy policy = new WritingRubricRegistry(new com.multilingo.backend.common.i18n.LearningLanguageCatalog())
+                .resolve("NLTV", "ja");
+        var metric = new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count("水です", "ja");
+        WritingGradingContext context = new WritingGradingContext(8, "w_8", "WRITING", null, null,
+                "短い作文を書いてください", "水です", "ja", 3, List.of(), policy, "fr", metric);
+
+        GeminiGenerationRequest request = factory.build(context, List.of());
+        JsonNode root = objectMapper.readTree(request.userText());
+
+        assertThat(request.systemInstruction()).contains("WRITING_GENERIC_V1", "0.0 to 10.0", "requested feedbackLanguage");
+        assertThat(request.systemInstruction()).doesNotContain("official IELTS");
+        assertThat(root.get("rubricCode").asText()).isEqualTo("WRITING_GENERIC_V1");
+        assertThat(root.get("feedbackLanguage").asText()).isEqualTo("fr");
+        assertThat(root.get("lengthMetric").get("unit").asText()).isEqualTo("CHARACTERS");
+    }
+
+    @Test
     @DisplayName("F4: Should build valid GeminiGenerationRequest with V1 rubric and v2 prompt, multimodal policies and untrusted data warnings")
     void build_validContextWithoutImages_producesValidV2Request() throws Exception {
         WritingGradingContext context = new WritingGradingContext(

@@ -159,6 +159,14 @@ describe('submitAttempt', () => {
     });
   });
 
+  it('includes only the optional feedback language and keeps learning language server-owned', async () => {
+    mockAxios.post.mockResolvedValueOnce({ success: true, data: { attemptId: 42, status: 'COMPLETED', redirectUrl: '/attempts/42/result' } });
+    await submitAttempt(42, { reason: 'MANUAL', baseVersion: 5, finalAnswers: [], feedbackLanguage: 'ja' });
+    expect(mockAxios.post).toHaveBeenCalledWith('/v1/attempts/42/submit', {
+      reason: 'MANUAL', baseVersion: 5, finalAnswers: [], feedbackLanguage: 'ja',
+    }, expect.any(Object));
+  });
+
   it('throws when server returns error', async () => {
     mockAxios.post.mockResolvedValueOnce({ success: false, message: 'not found' });
     await expect(submitAttempt(99, { reason: 'MANUAL', baseVersion: 1, finalAnswers: [] })).rejects.toThrow('not found');
@@ -366,12 +374,12 @@ describe('getWorkspace and createAttempt contracts', () => {
       examSnapshot: { ...validWorkspaceData.examSnapshot, exam_language: 'zho-Hans-CN', sections: [] },
       exam_snapshot: { ...validWorkspaceData.examSnapshot, exam_language: 'zho-Hans-CN', sections: [] },
       language_context: { policyVersion: 'TV3_LANG_V1', examLanguage: 'zh-Hans-CN',
-        defaultExplanationLanguage: 'vie', supportedExplanationLanguages: ['en', 'vie', 'ja'] },
+        defaultExplanationLanguage: 'vie', supportedExplanationLanguages: ['en', 'vie', 'ja', 'zh-Hans-CN'] },
     } });
     const normalized = await getWorkspace(42);
     expect(normalized.exam_snapshot.examLanguage).toBe('zh-Hans-CN');
     expect(normalized.languageContext).toEqual({ policyVersion: 'TV3_LANG_V1', examLanguage: 'zh-Hans-CN',
-      defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'ja'] });
+      defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'ja', 'zh-Hans-CN'] });
 
     mockAxios.get.mockResolvedValueOnce({ success: true, data: {
       ...validWorkspaceData,
@@ -428,6 +436,21 @@ describe('getWorkspace and createAttempt contracts', () => {
     } });
     const humanName = await getWorkspace(42);
     expect(humanName.exam_snapshot.examLanguage).toBeNull();
+  });
+
+  it('keeps a readable workspace but disables malformed language AI metadata', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(2000);
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData,
+      examSnapshot: { ...validWorkspaceData.examSnapshot, exam_language: 'en', sections: [] },
+      exam_snapshot: { ...validWorkspaceData.examSnapshot, exam_language: 'en', sections: [] },
+      language_context: { policyVersion: 'TV3_LANG_V2', examLanguage: 'ja',
+        defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['vi', 'vi'] },
+    } });
+
+    const normalized = await getWorkspace(42);
+    expect(normalized.exam_snapshot.examLanguage).toBe('en');
+    expect(normalized.languageContext).toBeNull();
   });
 
   it('validates MOCK_TEST deadline must not be before startTime', async () => {

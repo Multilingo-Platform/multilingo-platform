@@ -31,9 +31,13 @@ public class WritingGradingGenerator {
             throw new IllegalArgumentException("WritingGradingContext must not be null");
         }
 
-        // Short essay rule: <= 10 words gets an automatic 0.0 grade without calling provider
-        if (context.wordCount() <= 10) {
-            return WritingGrade.tooShort(context.originalText());
+        boolean genericRubric = context.rubricPolicy() != null
+                && WritingRubricRegistry.GENERIC_RUBRIC.equals(context.rubricPolicy().rubricCode());
+        // Preserve the English legacy cutoff. Generic scripts are not measured by English whitespace words.
+        if ((!genericRubric && context.wordCount() <= 10) || (genericRubric && com.multilingo.backend.modules.testing.util.WritingWordCounter.count(context.originalText()) == 0)) {
+            return genericRubric
+                    ? WritingGrade.emptyEssay(context.originalText(), context.rubricPolicy(), context.feedbackLanguage())
+                    : WritingGrade.tooShort(context.originalText());
         }
 
         List<GeminiImagePart> suppliedImages = images == null ? List.of() : images;
@@ -66,7 +70,8 @@ public class WritingGradingGenerator {
 
         boolean hasVisualContext = !imageParts.isEmpty();
         try {
-            WritingGrade grade = outputParser.parse(result.text(), context.originalText(), hasVisualContext);
+            WritingGrade grade = outputParser.parse(result.text(), context.originalText(), hasVisualContext,
+                    context.rubricPolicy(), context.feedbackLanguage());
             if (imageDigests != null && !imageDigests.isEmpty()) {
                 return grade.withImageDigests(imageDigests);
             }

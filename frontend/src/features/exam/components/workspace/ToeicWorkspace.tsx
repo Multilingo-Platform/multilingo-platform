@@ -1,3 +1,5 @@
+import { examErrorMessage as ee } from '../../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React, { useEffect, useMemo, useRef } from 'react';
 import type { AnswerValue } from '../../types/answer.types';
 import type { Question } from '../../types/exam.types';
@@ -82,6 +84,7 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
   onAnswer,
   onToggleFlag,
 }) => {
+  useExamLocale();
   // Whole-exam view model: Part number and canonical whole-exam question numbers.
   const fullModel = useMemo(() => buildToeicWorkspaceModel(snapshot), [snapshot]);
   const modelPart = useMemo(
@@ -167,21 +170,19 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
       if (!mockEnabled) {
         return (
           <div data-testid="toeic-audio-unavailable" className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-            Audio không khả dụng cho lượt thi này.
-          </div>
+            {em("Audio không khả dụng cho lượt thi này.")}</div>
         );
       }
       if (playback.status === 'NOT_STARTED' && playback.canStart) {
         return (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-white p-3">
-            <span className="text-xs text-slate-600">Audio chỉ bắt đầu một lần và phát liên tục theo thời gian thi.</span>
+            <span className="text-xs text-slate-600">{em("Audio chỉ bắt đầu một lần và phát liên tục theo thời gian thi.")}</span>
             <button
               type="button"
               onClick={() => void playback.start()}
               className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
             >
-              Bắt đầu phát audio
-            </button>
+              {em("Bắt đầu phát audio")}</button>
           </div>
         );
       }
@@ -200,12 +201,11 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
         );
       }
       if (playback.loading) {
-        return <div role="status" className="text-xs text-slate-500">Đang tải audio…</div>;
+        return <div role="status" className="text-xs text-slate-500">{em("Đang tải audio…")}</div>;
       }
       return (
         <div data-testid="toeic-audio-unavailable" className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-          Audio không khả dụng cho lượt thi này.
-        </div>
+          {em("Audio không khả dụng cho lượt thi này.")}</div>
       );
     }
 
@@ -228,8 +228,7 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
 
     return (
       <div data-testid="toeic-audio-unavailable" className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-        Không có audio cho phần này.
-      </div>
+        {em("Không có audio cho phần này.")}</div>
     );
   };
 
@@ -240,17 +239,16 @@ const ToeicWorkspace: React.FC<ToeicWorkspaceProps> = ({
     <WorkspaceFrame
       instruction={partInstruction}
       toolbar={practiceTools}
-      questionsLabel={`Câu hỏi ${partTitle}`}
+      questionsLabel={em("Câu hỏi {{v0}}", { v0: partTitle })}
       header={
         <>
           {renderAudioHeader()}
           {playback.offline && (
             <p role="status" className="text-xs text-amber-700">
-              Mất kết nối; audio sẽ tiếp tục theo thời gian thi khi kết nối lại.
-            </p>
+              {em("Mất kết nối; audio sẽ tiếp tục theo thời gian thi khi kết nối lại.")}</p>
           )}
           {playback.error && (
-            <p role="alert" className="text-xs text-red-700">{playback.error}</p>
+            <p role="alert" className="text-xs text-red-700">{ee(playback.error)}</p>
           )}
         </>
       }

@@ -123,6 +123,10 @@ public class ResultSummaryResponse {
         @JsonProperty("lengthMetric")
         private com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric;
 
+        private String rubricCode;
+        private String feedbackLanguage;
+        private String scoreUnit;
+
         @JsonInclude(JsonInclude.Include.ALWAYS)
         @JsonProperty("score")
         private BigDecimal score;

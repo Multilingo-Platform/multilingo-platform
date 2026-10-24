@@ -32,8 +32,8 @@ function isPositiveJavaInt(val: unknown): val is number {
   return typeof val === 'number' && Number.isSafeInteger(val) && val >= 1 && val <= 2147483647;
 }
 
-function isValidScore(val: unknown): val is number {
-  return typeof val === 'number' && Number.isFinite(val) && val >= 0 && val <= 9 && (val * 2) % 1 === 0;
+function isValidScore(val: unknown, max = 9): val is number {
+  return typeof val === 'number' && Number.isFinite(val) && val >= 0 && val <= max && (val * 2) % 1 === 0;
 }
 
 const VALID_POST_SUBMIT_ATTEMPT_STATUSES: ReadonlySet<string> = new Set([
@@ -146,6 +146,15 @@ export function normalizeWritingFeedback(
       `Task wordCount must be a non-negative integer: ${rawTask.wordCount}`
     );
     const wordCount = rawTask.wordCount;
+    requireValue(rawTask.schemaVersion == null || rawTask.schemaVersion === 2, 'Unsupported feedback schema');
+    const schemaVersion = rawTask.schemaVersion === 2 ? 2 as const : undefined;
+    let lengthMetric: WritingFeedbackTask['lengthMetric'] = null;
+    if (rawTask.lengthMetric != null) {
+      const metric = rawTask.lengthMetric;
+      requireValue(isRecord(metric) && Number.isSafeInteger(metric.value) && (metric.value as number) >= 0 &&
+        (metric.unit === 'WORDS' || metric.unit === 'CHARACTERS') && metric.policyVersion === 'TV3_LENGTH_V1', 'Invalid length metric');
+      lengthMetric = { value: metric.value as number, unit: metric.unit as 'WORDS' | 'CHARACTERS', policyVersion: 'TV3_LENGTH_V1' };
+    }
 
     // language
     if (rawTask.language !== null && rawTask.language !== undefined) {
@@ -164,8 +173,13 @@ export function normalizeWritingFeedback(
     const source = rawTask.source;
 
     // scoreUnit
-    requireValue(rawTask.scoreUnit === 'BAND_0_9', `Task scoreUnit must be 'BAND_0_9': ${rawTask.scoreUnit}`);
-    const scoreUnit = 'BAND_0_9';
+    const rubricCode = rawTask.rubricCode == null ? 'WRITING_EN_V1' : rawTask.rubricCode;
+    requireValue(rubricCode === 'WRITING_EN_V1' || rubricCode === 'WRITING_GENERIC_V1');
+    const scoreUnit = rubricCode === 'WRITING_GENERIC_V1' ? 'PRACTICE_0_10' : 'BAND_0_9';
+    requireValue(rawTask.scoreUnit === scoreUnit, `Task scoreUnit does not match rubric: ${rawTask.scoreUnit}`);
+    const maxScoreValue = rubricCode === 'WRITING_GENERIC_V1' ? 10 : 9;
+    const feedbackLanguage = rawTask.feedbackLanguage == null ? null : rawTask.feedbackLanguage;
+    requireValue(feedbackLanguage === null || (typeof feedbackLanguage === 'string' && feedbackLanguage.trim().length > 0));
 
     // hasVisualContext
     requireValue(typeof rawTask.hasVisualContext === 'boolean', 'Task hasVisualContext must be a boolean');
@@ -187,22 +201,26 @@ export function normalizeWritingFeedback(
     }
     const reasonCode =
       typeof rawTask.reasonCode === 'string' && rawTask.reasonCode.trim().length > 0 ? rawTask.reasonCode : null;
+    const isEmptyGeneric = source === 'SYSTEM' && rubricCode === 'WRITING_GENERIC_V1' && reasonCode === 'EMPTY_ESSAY';
 
     if (status === 'DONE') {
       // overall
-      requireValue(isValidScore(rawTask.overall), `Task overall score must be valid half-step 0..9: ${rawTask.overall}`);
+      requireValue(isValidScore(rawTask.overall, maxScoreValue), `Task overall score is outside its rubric: ${rawTask.overall}`);
       const overall = rawTask.overall;
 
       // maxScore
       requireValue(
-        typeof rawTask.maxScore === 'number' && rawTask.maxScore === 9,
-        `Task maxScore must be exactly 9.0: ${rawTask.maxScore}`
+        typeof rawTask.maxScore === 'number' && rawTask.maxScore === maxScoreValue,
+        `Task maxScore does not match its rubric: ${rawTask.maxScore}`
       );
-      const maxScore = 9.0;
+      const maxScore = maxScoreValue;
 
       // originalText
       requireValue(typeof rawTask.originalText === 'string', 'DONE task must have string originalText');
       const originalText = rawTask.originalText;
+      if (isEmptyGeneric) requireValue(!/[^\s\p{Z}\u0085]/u.test(originalText) && overall === 0 &&
+        rawTask.correctedEssay === originalText && Array.isArray(rawTask.corrections) && rawTask.corrections.length === 0,
+        'Invalid empty essay system result');
 
       // overallFeedback
       requireValue(typeof rawTask.overallFeedback === 'string', 'DONE task must have string overallFeedback');
@@ -216,7 +234,7 @@ export function normalizeWritingFeedback(
       const correctedEssay = rawTask.correctedEssay;
 
       // criteria
-      requireValue(Array.isArray(rawTask.criteria) && rawTask.criteria.length === 4, 'DONE task must have exactly 4 criteria');
+      requireValue(Array.isArray(rawTask.criteria) && rawTask.criteria.length === (isEmptyGeneric ? 0 : 4), 'DONE task must have rubric criteria');
       const criteriaMap = new Map<string, WritingCriterion>();
 
       for (const rawCrit of rawTask.criteria) {
@@ -228,7 +246,7 @@ export function normalizeWritingFeedback(
         const code = rawCrit.code as WritingCriterionCode;
         requireValue(!criteriaMap.has(code), `Duplicate criterion code: ${code}`);
 
-        requireValue(isValidScore(rawCrit.score), `Criterion ${code} score must be valid half-step 0..9: ${rawCrit.score}`);
+        requireValue(isValidScore(rawCrit.score, maxScoreValue), `Criterion ${code} score is outside its rubric: ${rawCrit.score}`);
         requireValue(typeof rawCrit.feedback === 'string', `Criterion ${code} feedback must be string`);
         if (source === 'AI') {
           requireValue(rawCrit.feedback.trim().length > 0, `AI criterion ${code} feedback must not be empty`);
@@ -242,7 +260,7 @@ export function normalizeWritingFeedback(
       }
 
       // Canonical ordering TR, CC, LR, GRA
-      const criteria = CANONICAL_CRITERION_CODES.map((code) => {
+      const criteria = (isEmptyGeneric ? [] : CANONICAL_CRITERION_CODES).map((code) => {
         const c = criteriaMap.get(code);
         requireValue(c !== undefined, `Missing canonical criterion code: ${code}`);
         return c;
@@ -289,7 +307,7 @@ export function normalizeWritingFeedback(
       const corrections: WritingCorrection[] = [];
 
       if (source === 'SYSTEM') {
-        requireValue(reasonCode === 'TOO_SHORT', 'SYSTEM DONE task must have reasonCode TOO_SHORT');
+        requireValue(reasonCode === 'TOO_SHORT' || isEmptyGeneric, 'SYSTEM DONE task must have a supported local reason');
         requireValue(overall === 0.0, 'SYSTEM DONE task must have overall 0.0');
         requireValue(rawTask.corrections.length === 0, 'SYSTEM DONE task must have empty corrections');
         requireValue(correctedEssay === originalText, 'SYSTEM DONE correctedEssay must equal originalText');
@@ -367,6 +385,8 @@ export function normalizeWritingFeedback(
       }
 
       validatedTasks.push({
+        schemaVersion,
+        lengthMetric,
         questionId,
         label,
         status,
@@ -374,6 +394,8 @@ export function normalizeWritingFeedback(
         language,
         source,
         scoreUnit,
+        rubricCode,
+        feedbackLanguage,
         overall,
         maxScore,
         criteria,
@@ -438,6 +460,8 @@ export function normalizeWritingFeedback(
       const originalText = typeof rawTask.originalText === 'string' ? rawTask.originalText : null;
 
       validatedTasks.push({
+        schemaVersion,
+        lengthMetric,
         questionId,
         label,
         status,
@@ -445,6 +469,8 @@ export function normalizeWritingFeedback(
         language,
         source,
         scoreUnit,
+        rubricCode,
+        feedbackLanguage,
         overall: null,
         maxScore: null,
         criteria: [],

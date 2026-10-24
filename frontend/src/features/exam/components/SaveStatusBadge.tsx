@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import { useSelector } from 'react-redux';
 import { selectSaveStatus } from '../store/answerSlice';
 import type { RootState } from '../../../app/store';
@@ -15,6 +16,7 @@ export interface SaveStatusBadgeProps {
 }
 
 export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
+  useExamLocale();
   const { saveStatus } = useSelector((state: RootState) => selectSaveStatus(state));
 
   if (saveStatus === 'idle') return null;
@@ -28,8 +30,7 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
         background: '#fffbeb', border: '1px solid #fde68a',
         borderRadius: '9999px',
       }}>
-        <Spinner /> Đang lưu...
-      </span>
+        <Spinner /> {em("Đang lưu...")}</span>
     );
   }
 
@@ -43,8 +44,7 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
         borderRadius: '9999px',
       }}>
         <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-        Đã lưu
-      </span>
+        {em("Đã lưu")}</span>
     );
   }
 
@@ -57,8 +57,7 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
         background: '#fee2e2', border: '1px solid #fca5a5',
         borderRadius: '9999px',
       }}>
-        ⚠️ Đang thử lại...
-      </span>
+        {em("⚠️ Đang thử lại...")}</span>
     );
   }
 
@@ -79,7 +78,7 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
           borderRadius: '9999px',
         }}
       >
-        <span>⚠️ Phiên làm bài đã thay đổi</span>
+        <span>{em("⚠️ Phiên làm bài đã thay đổi")}</span>
         {onReload && (
           <button
             type="button"
@@ -95,8 +94,7 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
               cursor: 'pointer',
             }}
           >
-            Tải lại bản mới nhất
-          </button>
+            {em("Tải lại bản mới nhất")}</button>
         )}
       </span>
     );
@@ -119,7 +117,7 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
           borderRadius: '9999px',
         }}
       >
-        <span>⚠️ Không thể tự động lưu</span>
+        <span>{em("⚠️ Không thể tự động lưu")}</span>
         {onReload && (
           <button
             type="button"
@@ -135,8 +133,7 @@ export function SaveStatusBadge({ onReload }: SaveStatusBadgeProps = {}) {
               cursor: 'pointer',
             }}
           >
-            Tải lại bản mới nhất
-          </button>
+            {em("Tải lại bản mới nhất")}</button>
         )}
       </span>
     );

@@ -30,6 +30,24 @@ beforeEach(() => { vi.resetAllMocks(); localStorage.clear(); });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('TV3-12 real result pipeline (only HTTP/browser mocked)', () => {
+  it('loads a pending CJK Writing result and displays characters independently of legacy wordCount', async () => {
+    const wire = attemptResultFixture();
+    Object.assign(wire.resultSummary.writing.tasks[0], {
+      label: '作文（日本語）', wordCount: 1,
+      lengthMetric: { value: 6, unit: 'CHARACTERS', policyVersion: 'TV3_LENGTH_V1' },
+    });
+    http.get.mockResolvedValueOnce(resultEnvelope(wire) as never);
+
+    mount();
+
+    await screen.findByRole('heading', { name: 'Kết quả thi thử #42' });
+    expect(screen.getByText('作文（日本語）')).toBeInTheDocument();
+    expect(screen.getByText('6').closest('dd')).toHaveTextContent('6 ký tự');
+    expect(screen.getByText('Chưa có điểm')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(http.get).toHaveBeenCalledOnce();
+  });
+
   it('direct URL consumes GET only, leaves conflicting draft untouched and never accesses result storage', async () => {
     localStorage.setItem('exam_draft_42', JSON.stringify({ 20: { essay: 'PRIVATE local C' } }));
     const getStorage = vi.spyOn(Storage.prototype, 'getItem');

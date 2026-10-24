@@ -1,3 +1,5 @@
+import { examErrorMessage as ee } from '../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -7,13 +9,16 @@ import { useExamReview } from '../hooks/useExamReview';
 import { parseResultAttemptId } from '../api/resultContract';
 import { PartReviewContent } from '../components/review/PartReviewContent';
 import { ReviewPalette } from '../components/review/ReviewPalette';
+import { WritingFeedbackPanel } from '../components/result/writing/WritingFeedbackPanel';
 
 const ExamReviewPage: React.FC = () => {
+  useExamLocale();
   const params = useParams<{ attemptId: string }>();
   const attemptId = parseResultAttemptId(params.attemptId);
   const ownerId = useSelector((state: RootState) => state.auth?.user?.id ?? null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | number | null>(null);
+  const [feedbackIdentity, setFeedbackIdentity] = useState<string | null>(null);
 
   // Hook 1: Attempt result (provides dynamic reviewParts metadata)
   const result = useAttemptResult(attemptId);
@@ -63,14 +68,13 @@ const ExamReviewPage: React.FC = () => {
   if (attemptId === null) {
     return (
       <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
-        <h2 className="text-xl font-bold text-red-700 mb-2">Mã bài làm không hợp lệ</h2>
-        <p className="text-gray-600 mb-4">Vui lòng mở lại từ lịch sử làm bài.</p>
+        <h2 className="text-xl font-bold text-red-700 mb-2">{em("Mã bài làm không hợp lệ")}</h2>
+        <p className="text-gray-600 mb-4">{em("Vui lòng mở lại từ lịch sử làm bài.")}</p>
         <Link
           to="/student/history"
           className="inline-block px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
         >
-          Lịch sử làm bài
-        </Link>
+          {em("Lịch sử làm bài")}</Link>
       </div>
     );
   }
@@ -80,7 +84,7 @@ const ExamReviewPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center" role="status" aria-live="polite">
         <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-lg font-medium text-gray-700">Đang tải thông tin bài làm...</p>
+        <p className="text-lg font-medium text-gray-700">{em("Đang tải thông tin bài làm...")}</p>
       </div>
     );
   }
@@ -89,8 +93,8 @@ const ExamReviewPage: React.FC = () => {
   if (result.error) {
     return (
       <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
-        <h2 className="text-xl font-bold text-red-700 mb-2">Lỗi khi tải kết quả</h2>
-        <p className="text-gray-600 mb-4">{result.error.message}</p>
+        <h2 className="text-xl font-bold text-red-700 mb-2">{em("Lỗi khi tải kết quả")}</h2>
+        <p className="text-gray-600 mb-4">{ee(result.error.message)}</p>
         <div className="flex justify-center gap-3">
           {result.error.retryable && (
             <button
@@ -98,15 +102,13 @@ const ExamReviewPage: React.FC = () => {
               onClick={() => void result.reload()}
               className="px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
             >
-              Thử lại
-            </button>
+              {em("Thử lại")}</button>
           )}
           <Link
             to="/student/history"
             className="px-4 py-2 border border-gray-300 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-50 transition"
           >
-            Lịch sử làm bài
-          </Link>
+            {em("Lịch sử làm bài")}</Link>
         </div>
       </div>
     );
@@ -116,14 +118,13 @@ const ExamReviewPage: React.FC = () => {
   if (result.data && reviewParts.length === 0) {
     return (
       <div className="p-8 max-w-xl mx-auto my-12 bg-slate-50 border border-slate-200 rounded-lg text-center" role="alert">
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Không có phần thi để xem lại</h2>
-        <p className="text-slate-600 mb-4">Bài thi này không cung cấp dữ liệu xem lại bài làm.</p>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">{em("Không có phần thi để xem lại")}</h2>
+        <p className="text-slate-600 mb-4">{em("Bài thi này không cung cấp dữ liệu xem lại bài làm.")}</p>
         <Link
           to={`/attempts/${attemptId}/result`}
           className="inline-block px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
         >
-          Quay lại bảng điểm
-        </Link>
+          {em("Quay lại bảng điểm")}</Link>
       </div>
     );
   }
@@ -132,22 +133,21 @@ const ExamReviewPage: React.FC = () => {
   if (isPartSelectionInvalid && reviewParts.length > 0) {
     return (
       <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
-        <h2 className="text-xl font-bold text-red-700 mb-2">Phần thi không hợp lệ</h2>
-        <p className="text-slate-600 mb-4">Phần thi được chọn không tồn tại hoặc không thuộc bài làm này.</p>
+        <h2 className="text-xl font-bold text-red-700 mb-2">{em("Phần thi không hợp lệ")}</h2>
+        <p className="text-slate-600 mb-4">{em("Phần thi được chọn không tồn tại hoặc không thuộc bài làm này.")}</p>
         <div className="flex justify-center gap-3">
           <button
             type="button"
             onClick={() => setSearchParams({ partId: String(reviewParts[0].id) })}
             className="px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition"
           >
-            Chuyển đến {reviewParts[0].label}
+            {em("Chuyển đến")}{' '}{reviewParts[0].label}
           </button>
           <Link
             to={`/attempts/${attemptId}/result`}
             className="px-4 py-2 border border-gray-300 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-50 transition"
           >
-            Quay lại bảng điểm
-          </Link>
+            {em("Quay lại bảng điểm")}</Link>
         </div>
       </div>
     );
@@ -158,7 +158,7 @@ const ExamReviewPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center" role="status" aria-live="polite">
         <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-lg font-medium text-gray-700">Đang tải dữ liệu bài làm và giải thích...</p>
+        <p className="text-lg font-medium text-gray-700">{em("Đang tải dữ liệu bài làm và giải thích...")}</p>
       </div>
     );
   }
@@ -167,22 +167,20 @@ const ExamReviewPage: React.FC = () => {
   if (reviewError) {
     return (
       <div className="p-8 max-w-xl mx-auto my-12 bg-red-50 border border-red-200 rounded-lg text-center" role="alert">
-        <h2 className="text-xl font-bold text-red-700 mb-2">Lỗi khi tải kết quả ôn tập</h2>
-        <p className="text-gray-600 mb-4">{reviewError.message || 'Không thể tải dữ liệu ôn tập.'}</p>
+        <h2 className="text-xl font-bold text-red-700 mb-2">{em("Lỗi khi tải kết quả ôn tập")}</h2>
+        <p className="text-gray-600 mb-4">{reviewError.message || em("Không thể tải dữ liệu ôn tập.")}</p>
         <div className="flex justify-center gap-3">
           <button
             type="button"
             onClick={() => void reloadReview()}
             className="px-4 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 transition cursor-pointer"
           >
-            Thử lại
-          </button>
+            {em("Thử lại")}</button>
           <Link
             to={`/attempts/${attemptId}/result`}
             className="px-4 py-2 border border-gray-300 bg-white text-gray-700 font-medium rounded-md hover:bg-gray-50 transition"
           >
-            Quay lại bảng điểm
-          </Link>
+            {em("Quay lại bảng điểm")}</Link>
         </div>
       </div>
     );
@@ -192,8 +190,7 @@ const ExamReviewPage: React.FC = () => {
   if (!reviewData) {
     return (
       <div className="p-8 text-center text-gray-500">
-        Không có dữ liệu bài thi để hiển thị.
-      </div>
+        {em("Không có dữ liệu bài thi để hiển thị.")}</div>
     );
   }
 
@@ -203,15 +200,14 @@ const ExamReviewPage: React.FC = () => {
       <div className="max-w-7xl mx-auto mb-6 bg-white rounded-lg shadow-xs border border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 mb-2">
-            Chế độ Ôn tập & Phân tích (Review)
-          </span>
+            {em("Chế độ Ôn tập & Phân tích (Review)")}</span>
           <h1 className="text-2xl font-bold text-[#0F172A]">
-            Bài thi #{attemptId} - Part {selectedPartId}
+            {em("Bài thi #")}{attemptId} - Part {selectedPartId}
           </h1>
         </div>
 
         {/* Dynamic Part Navigation Tabs */}
-        <nav aria-label="Danh sách phần thi" className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+        <nav aria-label={em("Danh sách phần thi")} className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
           {reviewParts.map((p) => {
             const isActive = selectedPartId === p.id;
             return (
@@ -237,7 +233,7 @@ const ExamReviewPage: React.FC = () => {
             className="text-sm font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition"
           >
             <span>←</span>
-            <span>Quay lại bảng điểm</span>
+            <span>{em("Quay lại bảng điểm")}</span>
           </Link>
         </div>
       </div>
@@ -245,7 +241,7 @@ const ExamReviewPage: React.FC = () => {
       {/* Warning on refresh error */}
       {refreshError && (
         <div className="max-w-7xl mx-auto mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm" role="alert">
-          {refreshError.message}
+          {ee(refreshError.message)}
         </div>
       )}
 
@@ -253,6 +249,18 @@ const ExamReviewPage: React.FC = () => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Questions column */}
         <div className="lg:col-span-8">
+          {reviewData.questions.some(question => question.type === 'ESSAY') && (
+            <div className="mb-6">
+              <button type="button" className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium"
+                aria-expanded={feedbackIdentity === `${attemptId}:${selectedPartId}`}
+                onClick={() => setFeedbackIdentity(current => current === `${attemptId}:${selectedPartId}` ? null : `${attemptId}:${selectedPartId}`)}>
+                {em('Nhận xét chi tiết phần thi Writing')}
+              </button>
+              {feedbackIdentity === `${attemptId}:${selectedPartId}` && selectedPartId !== null && (
+                <WritingFeedbackPanel attemptId={attemptId} partId={selectedPartId} />
+              )}
+            </div>
+          )}
           <PartReviewContent
             reviewData={reviewData}
           ownerId={ownerId}

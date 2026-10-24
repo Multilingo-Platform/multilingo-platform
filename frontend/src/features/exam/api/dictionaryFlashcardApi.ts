@@ -1,6 +1,7 @@
 import axiosClient from '../../../core/api/axiosClient';
 import type { CreateDeckRequest, CreateFlashcardRequest, DeckSummary, Flashcard } from '../../vocab/types/vocab.types';
-import type { DictionaryLookupResponse } from '../types/api.types';
+import type { DictionaryLookupV2Response } from '../types/api.types';
+import { canonicalizeLearningLanguage } from '../../../core/i18n/learningLanguages';
 
 const FLASHCARD_TIMEOUT_MS = 15_000;
 export class DictionaryFlashcardDuplicateError extends Error {
@@ -18,9 +19,10 @@ function positiveId(value: unknown): value is number {
 function record(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-function eligibleDeck(value: unknown, ownerId: number): value is DeckSummary {
+function eligibleDeck(value: unknown, ownerId: number, targetLanguage: string, sourceLanguage: string): value is DeckSummary {
   return record(value) && positiveId(value.id) && value.userId === ownerId && value.isPublic === false &&
-    value.targetLanguage === 'en' && value.sourceLanguage === 'vi' && typeof value.name === 'string';
+    canonicalizeLearningLanguage(value.targetLanguage) === targetLanguage &&
+    canonicalizeLearningLanguage(value.sourceLanguage) === sourceLanguage && typeof value.name === 'string';
 }
 async function request<T>(execute: (signal: AbortSignal) => Promise<T>, uncertainOnTimeout = false): Promise<T> {
   const controller = new AbortController();
@@ -39,30 +41,36 @@ function unwrap<T>(raw: unknown): T {
   return raw.data as T;
 }
 
-export async function getDictionaryDecks(ownerId: number): Promise<DeckSummary[]> {
-  if (!positiveId(ownerId)) throw new DictionaryFlashcardContractError();
+export async function getDictionaryDecks(ownerId: number, targetLanguage: string, sourceLanguage: string): Promise<DeckSummary[]> {
+  const target = canonicalizeLearningLanguage(targetLanguage);
+  const source = canonicalizeLearningLanguage(sourceLanguage);
+  if (!positiveId(ownerId) || !target || !source) throw new DictionaryFlashcardContractError();
   const raw = await request(signal => axiosClient.get<unknown, unknown>('/v1/vocab/decks', { signal, timeout: FLASHCARD_TIMEOUT_MS }));
   const data = unwrap<unknown>(raw);
   if (!Array.isArray(data) || data.some(item => !record(item) || !positiveId(item.id) ||
       !Number.isSafeInteger(item.userId) || typeof item.name !== 'string' || typeof item.targetLanguage !== 'string' ||
       typeof item.sourceLanguage !== 'string' || typeof item.isPublic !== 'boolean')) throw new DictionaryFlashcardContractError();
-  return data.filter((item): item is DeckSummary => eligibleDeck(item, ownerId));
+  return data.filter((item): item is DeckSummary => eligibleDeck(item, ownerId, target, source));
 }
 
-export async function createDictionaryDeck(ownerId: number, name: string): Promise<DeckSummary> {
-  if (!positiveId(ownerId) || !name.trim() || Array.from(name).length > 100) throw new DictionaryFlashcardContractError();
-  const body: CreateDeckRequest = { name: name.trim(), description: 'Từ vựng lưu từ bài đọc', targetLanguage: 'en', sourceLanguage: 'vi', isPublic: false };
+export async function createDictionaryDeck(ownerId: number, name: string, targetLanguage: string, sourceLanguage: string): Promise<DeckSummary> {
+  const target = canonicalizeLearningLanguage(targetLanguage);
+  const source = canonicalizeLearningLanguage(sourceLanguage);
+  if (!positiveId(ownerId) || !target || !source || !name.trim() || Array.from(name).length > 100) throw new DictionaryFlashcardContractError();
+  const body: CreateDeckRequest = { name: name.trim(), description: 'Từ vựng lưu từ bài đọc', targetLanguage: target, sourceLanguage: source, isPublic: false };
   const raw = await request(signal => axiosClient.post<unknown, unknown>('/v1/vocab/decks', body, { signal, timeout: FLASHCARD_TIMEOUT_MS }), true);
   const deck = unwrap<unknown>(raw);
-  if (!eligibleDeck(deck, ownerId)) throw new DictionaryFlashcardContractError();
+  if (!eligibleDeck(deck, ownerId, target, source)) throw new DictionaryFlashcardContractError();
   return deck;
 }
 
-export async function addDictionaryFlashcard(deck: DeckSummary, ownerId: number, result: DictionaryLookupResponse): Promise<Flashcard> {
-  if (!eligibleDeck(deck, ownerId)) throw new DictionaryFlashcardContractError();
+export async function addDictionaryFlashcard(deck: DeckSummary, ownerId: number, result: DictionaryLookupV2Response): Promise<Flashcard> {
+  const target = canonicalizeLearningLanguage(result.definition.learningLanguage);
+  const source = canonicalizeLearningLanguage(result.definition.meaningLanguage);
+  if (!target || !source || !eligibleDeck(deck, ownerId, target, source)) throw new DictionaryFlashcardContractError();
   const body: CreateFlashcardRequest = {
-    customWord: result.selectedText, customMeaning: result.meaningVi, exampleSentence: result.sourceContext,
-    phonetic: result.phonetic ?? undefined, pos: result.partOfSpeech ?? undefined,
+    customWord: result.selectedText, customMeaning: result.definition.meaning, exampleSentence: result.sourceContext,
+    phonetic: result.definition.phonetic ?? undefined, pos: result.definition.partOfSpeech ?? undefined,
   };
   let raw: unknown;
   try {

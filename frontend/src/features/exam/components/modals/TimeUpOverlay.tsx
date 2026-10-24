@@ -1,3 +1,5 @@
+import { examErrorMessage as ee } from '../../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React, { useEffect, useRef } from 'react';
 
 export interface TimeUpOverlayProps {
@@ -17,10 +19,11 @@ export const TimeUpOverlay: React.FC<TimeUpOverlayProps> = ({
   error = null,
   onSubmit,
   onRetry,
-  retryLabel = 'Thử lại ngay',
+  retryLabel = em("Thử lại ngay"),
   draftWarning,
   onNavigateToResult,
 }) => {
+  useExamLocale();
   const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
@@ -49,19 +52,17 @@ export const TimeUpOverlay: React.FC<TimeUpOverlayProps> = ({
           id="time-up-title"
           className="text-2xl font-bold text-slate-900 font-heading mb-2 tracking-tight"
         >
-          Thời gian làm bài đã hết!
-        </h2>
+          {em("Thời gian làm bài đã hết!")}</h2>
 
         <p className="text-sm text-slate-600 leading-relaxed mb-6">
-          Hệ thống đang tự động thu bài và khóa tất cả các câu trả lời của bạn.
-        </p>
+          {em("Hệ thống đang tự động thu bài và khóa tất cả các câu trả lời của bạn.")}</p>
 
-        {draftWarning && <p className="mb-4 text-sm text-amber-800">{draftWarning}</p>}
+        {draftWarning && <p className="mb-4 text-sm text-amber-800">{ee(draftWarning)}</p>}
         {error ? (
           <div className="space-y-4">
             <div role="alert" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center justify-center gap-2">
               <span>⚠️</span>
-              <span>{error}</span>
+              <span>{ee(error)}</span>
             </div>
             <button
               id="btn-retry-submit"
@@ -79,7 +80,7 @@ export const TimeUpOverlay: React.FC<TimeUpOverlayProps> = ({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <span className="text-xs font-semibold text-slate-600">Đang gửi bài và xử lý điểm thi...</span>
+            <span className="text-xs font-semibold text-slate-600">{em("Đang gửi bài và xử lý điểm thi...")}</span>
           </div>
         ) : onNavigateToResult ? (
           <button
@@ -88,8 +89,7 @@ export const TimeUpOverlay: React.FC<TimeUpOverlayProps> = ({
             onClick={onNavigateToResult}
             className="w-full py-3 px-4 rounded-xl font-heading font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-98 transition-all cursor-pointer"
           >
-            Xem kết quả thi
-          </button>
+            {em("Xem kết quả thi")}</button>
         ) : null}
       </div>
     </div>

@@ -23,7 +23,8 @@ function workspace(attemptId = 42) {
     startTime: new Date(now - 60000).toISOString(), serverTime: new Date(Date.now()).toISOString(),
     deadline: null, gracePeriodSeconds: 15, lockedSections: [], version: 7,
     savedAnswers: [{ part_id: 30, answers: [{ question_id: questionId, answer: 'Server essay' }] }],
-    examSnapshot: { exam_id: 1, code: 'TV3-19', title: 'Writing integration', type: 'IELTS', sections: [{
+    languageContext: { policyVersion: 'TV3_LANG_V1', examLanguage: 'en', defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es'] },
+    examSnapshot: { exam_id: 1, code: 'TV3-19', title: 'Writing integration', type: 'IELTS', examLanguage: 'en', sections: [{
       id: 3, skill_type: 'WRITING', title: 'Writing', duration_minutes: 60,
       parts: [30, 31].map((id, index) => ({ id, title: `Writing part ${index + 1}`, content: {
         part_title: `Writing part ${index + 1}`, question_groups: [{ group_id: `g-${id}`, questions: [{
@@ -45,11 +46,11 @@ function hintsCalls() { return http.post.mock.calls.filter(([url]) => String(url
 function body(index = 0) { return hintsCalls()[index][1] as WritingHintsRequest; }
 function signal(index = 0) { return hintsCalls()[index][2]!.signal as AbortSignal; }
 function response(request: WritingHintsRequest, attemptId = 42, point = 'Localized hints marker') {
-  const language = request.learningLanguage ?? 'vi';
-  const hintLanguage = request.hintLanguage ?? language;
+  const language = request.learningLanguage ?? 'en';
+  const hintLanguage = request.hintLanguage ?? 'vi';
   const localizedFixture = hintLanguage === 'fr' ? validWritingHintsFr : hintLanguage === 'en' ? validWritingHintsEn : validWritingHintsVi;
   const data = { ...structuredClone(localizedFixture), ...request, attemptId,
-    learningLanguage: language, hintLanguage: request.hintLanguage ?? language };
+    learningLanguage: language, hintLanguage };
   data.outline[0].points[0] = point;
   return { ...createWritingHintsEnvelope(data), data };
 }
@@ -93,8 +94,8 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
     const before = structuredClone(view.store.getState().answers);
     const storageWrite = vi.spyOn(Storage.prototype, 'setItem');
     open();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ học' }), { target: { value: 'en' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ gợi ý' }), { target: { value: 'vi' } });
+    expect(screen.getByRole('combobox', { name: 'Ngôn ngữ học' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' }), { target: { value: 'vi' } });
     expect(http.post).not.toHaveBeenCalled();
     await generate();
     expect(http.get.mock.calls.map(([url]) => url)).toEqual(['/v1/attempts/42/workspace']);
@@ -113,16 +114,15 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
   it('TC_19_02/14: defaults omit languages; cancel sends nothing; confirmed regenerate creates a new UUID', async () => {
     mockSuccess(); mount(); await flush(); open(); await generate();
     const first = structuredClone(body());
-    expect(Object.keys(first).sort()).toEqual(['partId', 'questionId', 'requestId']);
+    expect(Object.keys(first).sort()).toEqual(['learningLanguage', 'partId', 'questionId', 'requestId']);
     expect(screen.getByRole('region', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('lang', 'vi');
     fireEvent.click(screen.getByRole('button', { name: 'Tạo gợi ý mới' }));
     fireEvent.click(screen.getByRole('button', { name: 'Hủy' }));
     expect(hintsCalls()).toHaveLength(1);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ học' }), { target: { value: 'fr' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' }), { target: { value: 'fr' } });
     await regenerate();
-    expect(body(1)).toMatchObject({ partId: 30, questionId, learningLanguage: 'fr' });
+    expect(body(1)).toMatchObject({ partId: 30, questionId, learningLanguage: 'en', hintLanguage: 'fr' });
     expect(body(1).requestId).not.toBe(first.requestId);
-    expect(body(1)).not.toHaveProperty('hintLanguage');
     expect(screen.getByRole('region', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('lang', 'fr');
   });
 
@@ -150,7 +150,6 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
     await advance(30000); expect(hintsCalls()).toHaveLength(1);
     const replay = response(first);
     http.post.mockResolvedValueOnce(replay as never);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ học' }), { target: { value: 'fr' } });
     fireEvent.click(screen.getByRole('button', { name: 'Thử lại' })); await flush();
     expect(body(1)).toEqual(first);
     expect(screen.getByText('Localized hints marker')).toBeInTheDocument();
@@ -229,7 +228,7 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nộp bài ngay' })); await flush();
     expect(signal().aborted).toBe(true); expect(view.store.getState().answers.isLocked).toBe(true);
     const submitCall = http.post.mock.calls.find(([url]) => String(url).endsWith('/submit'))!;
-    expect(submitCall[1]).toEqual({ reason: 'MANUAL', baseVersion: 7, finalAnswers: [{ part_id: 30, answers: [{ question_id: questionId, answer: 'Final essay 😀' }] }] });
+    expect(submitCall[1]).toEqual({ reason: 'MANUAL', baseVersion: 7, feedbackLanguage: 'vi', finalAnswers: [{ part_id: 30, answers: [{ question_id: questionId, answer: 'Final essay 😀' }] }] });
     expect(submitCall[2]).toMatchObject({ timeout: 10000 });
     await act(async () => { hintsWait.resolve(response(body(), 42, 'Forbidden late hints')); });
     expect(screen.queryByText('Forbidden late hints')).toBeNull();

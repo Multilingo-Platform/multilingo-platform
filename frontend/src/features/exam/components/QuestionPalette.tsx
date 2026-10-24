@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../app/store';
@@ -54,7 +55,7 @@ function questionCellLabel(
     const number = resolveQuestionNumber(question, partNumber).number;
     return number !== null
       ? { display: String(number), aria: String(number) }
-      : { display: '–', aria: 'chưa xác định' };
+      : { display: '–', aria: em("chưa xác định") };
   }
   const raw = question?.question_number ?? question?.questionNumber ?? question?.id;
   const text = raw === undefined || raw === null ? '–' : String(raw);
@@ -72,6 +73,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
   isToeicExam = false,
   onNavigate,
 }) => {
+  useExamLocale();
   const answers = useSelector((state: RootState) => state.answers.answers);
   const flags = useSelector((state: RootState) => state.answers.flags);
 
@@ -129,11 +131,9 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
           <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-heading)', fontWeight: 600, color: '#4b5563' }}>
-            Tiến độ hoàn thành
-          </span>
+            {em("Tiến độ hoàn thành")}</span>
           <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-heading)', fontWeight: 700, color: '#111827' }}>
-            {answeredCount}/{total} câu
-          </span>
+            {answeredCount}/{total} {em("câu")}</span>
         </div>
         <div style={{
           width: '100%', height: '6px',
@@ -174,7 +174,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                 </div>
               )}
               <nav
-                aria-label={`Điều hướng câu hỏi phần ${index + 1}`}
+                aria-label={em("Điều hướng câu hỏi phần {{v0}}", { v0: index + 1 })}
                 style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}
               >
                 {qList.map((q: any) => {
@@ -225,7 +225,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                       disabled={isCellDisabled}
                       aria-disabled={isCellDisabled ? 'true' : 'false'}
                       aria-current={isCurrentQuestion ? 'true' : undefined}
-                      aria-label={`Câu ${ariaNumber}${isFlagged ? ' (đã gắn cờ)' : ''}${answered ? ' (đã trả lời)' : ' (chưa trả lời)'}`}
+                      aria-label={em("Câu {{v0}}{{v1}}{{v2}}", { v0: ariaNumber, v1: isFlagged ? ' (đã gắn cờ)' : '', v2: answered ? ' (đã trả lời)' : ' (chưa trả lời)' })}
                       onClick={() => { if (!isCellDisabled) handleCellClick(pId, qId); }}
                       style={{
                         position: 'relative',
@@ -267,7 +267,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                             lineHeight: 1,
                             boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
                           }}
-                          title="Đã đánh dấu xem lại"
+                          title={em("Đã đánh dấu xem lại")}
                         >
                           🚩
                         </span>
@@ -286,15 +286,15 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 500, color: '#4b5563' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#10b981', display: 'inline-block' }} />
-          Đã làm ({answeredCount})
+          {em("Đã làm (")}{answeredCount})
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 500, color: '#6b7280' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ffffff', border: '1px solid #d1d5db', display: 'inline-block' }} />
-          Chưa làm ({total - answeredCount})
+          {em("Chưa làm (")}{total - answeredCount})
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem', fontWeight: 500, color: '#b45309' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#fef3c7', border: '1px solid #f59e0b', display: 'inline-block' }} />
-          Đánh dấu xem lại ({flaggedCount})
+          {em("Đánh dấu xem lại (")}{flaggedCount})
         </span>
       </div>
     </div>

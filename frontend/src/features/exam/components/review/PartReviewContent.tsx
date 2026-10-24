@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type {
   ExamReviewResponse,
@@ -64,6 +65,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
   onFilterChange: externalOnFilterChange,
   ownerId = null,
 }) => {
+  useExamLocale();
   const [internalFilter, setInternalFilter] = useState<ReviewFilter>('ALL');
   const currentFilter = externalFilter ?? internalFilter;
   const setFilter = externalOnFilterChange ?? setInternalFilter;
@@ -144,14 +146,14 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
     extractAudioUrl((reviewData as any).media);
 
   return (
-    <div ref={containerRef} className="space-y-6" role="region" aria-label={`Nội dung ôn tập ${partTitle}`}>
+    <div ref={containerRef} className="space-y-6" role="region" aria-label={em("Nội dung ôn tập {{v0}}", { v0: partTitle })}>
       {/* Part Statistics and Filter Header */}
       <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                {reviewData.skill || 'Ôn tập'}
+                {reviewData.skill || em("Ôn tập")}
               </span>
               <span className="text-xs text-slate-500 font-medium">Part {reviewData.partId}</span>
             </div>
@@ -162,17 +164,17 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
           {partStats && (
             <div className="flex items-center gap-3">
               <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-[80px]">
-                <div className="text-xs text-slate-500 font-medium">Độ chính xác</div>
+                <div className="text-xs text-slate-500 font-medium">{em("Độ chính xác")}</div>
                 <div className="text-lg font-bold text-slate-900">{partStats.accuracy}%</div>
               </div>
               <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-[80px]">
-                <div className="text-xs text-slate-500 font-medium">Số câu đúng</div>
+                <div className="text-xs text-slate-500 font-medium">{em("Số câu đúng")}</div>
                 <div className="text-lg font-bold text-green-700">
                   {partStats.correctCount} / {partStats.totalQuestions}
                 </div>
               </div>
               <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-[80px]">
-                <div className="text-xs text-slate-500 font-medium">Điểm số</div>
+                <div className="text-xs text-slate-500 font-medium">{em("Điểm số")}</div>
                 <div className="text-lg font-bold text-slate-900">{formatScore(partStats.score)}</div>
               </div>
             </div>
@@ -182,7 +184,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
         {/* Filter controls */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 text-xs font-medium">
-            <span className="text-slate-500 mr-1">Bộ lọc:</span>
+            <span className="text-slate-500 mr-1">{em("Bộ lọc:")}</span>
             <button
               type="button"
               onClick={() => setFilter('ALL')}
@@ -192,7 +194,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              Tất cả ({allQuestions.length})
+              {em("Tất cả (")}{allQuestions.length})
             </button>
             <button
               type="button"
@@ -203,7 +205,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                   : 'bg-red-50 text-red-800 hover:bg-red-100'
               }`}
             >
-              Câu sai ({partStats?.incorrectCount ?? 0})
+              {em("Câu sai (")}{partStats?.incorrectCount ?? 0})
             </button>
             <button
               type="button"
@@ -214,7 +216,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              Chưa làm ({partStats?.unansweredCount ?? 0})
+              {em("Chưa làm (")}{partStats?.unansweredCount ?? 0})
             </button>
             <button
               type="button"
@@ -225,13 +227,12 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                   : 'bg-green-50 text-green-800 hover:bg-green-100'
               }`}
             >
-              Câu đúng ({partStats?.correctCount ?? 0})
+              {em("Câu đúng (")}{partStats?.correctCount ?? 0})
             </button>
           </div>
 
           <div className="text-xs text-slate-500 font-medium">
-            Đang hiển thị {filteredQuestions.length} câu hỏi
-          </div>
+            {em("Đang hiển thị")}{' '}{filteredQuestions.length} {em("câu hỏi")}</div>
         </div>
       </div>
 
@@ -242,8 +243,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
           data-testid="part-stimulus"
         >
           <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
-            Nội dung bài đọc (Passage)
-          </div>
+            {em("Nội dung bài đọc (Passage)")}</div>
           <div
             className="text-slate-800 text-sm leading-relaxed prose max-w-none"
             data-testid={isReadingReview ? 'review-reading-passage' : undefined}
@@ -275,20 +275,17 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
             autoPlay={false}
             className="w-full h-10"
           >
-            Trình duyệt của bạn không hỗ trợ phát âm thanh.
-          </audio>
+            {em("Trình duyệt của bạn không hỗ trợ phát âm thanh.")}</audio>
         </div>
       )}
 
       {/* Questions list */}
       {allQuestions.length === 0 ? (
         <div className="bg-white p-8 rounded-lg border border-slate-200 text-center text-slate-500">
-          Không có câu hỏi trong phần thi này.
-        </div>
+          {em("Không có câu hỏi trong phần thi này.")}</div>
       ) : filteredQuestions.length === 0 ? (
         <div className="bg-white p-8 rounded-lg border border-slate-200 text-center text-slate-500">
-          Không có câu hỏi phù hợp với bộ lọc hiện tại.
-        </div>
+          {em("Không có câu hỏi phù hợp với bộ lọc hiện tại.")}</div>
       ) : groups.length > 0 ? (
         /* Group-based rendering */
         <div className="space-y-6">
@@ -327,8 +324,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                 {groupAudioUrl && (
                   <div className="p-3 bg-slate-50 rounded-md border border-slate-200" data-testid="group-audio">
                     <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      File nghe phần thi (Audio)
-                    </div>
+                      {em("File nghe phần thi (Audio)")}</div>
                     <audio
                       ref={registerAudio}
                       src={groupAudioUrl}
@@ -337,8 +333,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                       autoPlay={false}
                       className="w-full h-10"
                     >
-                      Trình duyệt của bạn không hỗ trợ phát âm thanh.
-                    </audio>
+                      {em("Trình duyệt của bạn không hỗ trợ phát âm thanh.")}</audio>
                   </div>
                 )}
 

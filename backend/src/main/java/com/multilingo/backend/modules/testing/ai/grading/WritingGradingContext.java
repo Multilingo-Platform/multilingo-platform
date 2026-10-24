@@ -18,7 +18,10 @@ public record WritingGradingContext(
         String originalText,
         String learningLanguage,
         int wordCount,
-        List<WritingImageRef> images
+        List<WritingImageRef> images,
+        WritingRubricPolicy rubricPolicy,
+        String feedbackLanguage,
+        com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric
 ) {
     public WritingGradingContext {
         Objects.requireNonNull(partId, "partId must not be null");
@@ -26,6 +29,13 @@ public record WritingGradingContext(
         Objects.requireNonNull(learningLanguage, "learningLanguage must not be null");
         originalText = originalText != null ? originalText : "";
         images = images != null ? List.copyOf(images) : List.of();
+    }
+
+    public WritingGradingContext(Integer partId, String questionId, String partTitle, String partInstruction,
+                                 String groupInstruction, String taskPrompt, String originalText,
+                                 String learningLanguage, int wordCount, List<WritingImageRef> images) {
+        this(partId, questionId, partTitle, partInstruction, groupInstruction, taskPrompt, originalText,
+                learningLanguage, wordCount, images, null, null, null);
     }
 
     public WritingGradingContext(
@@ -37,7 +47,13 @@ public record WritingGradingContext(
             int wordCount,
             List<WritingImageRef> images
     ) {
-        this(partId, questionId, null, null, null, taskPrompt, originalText, learningLanguage, wordCount, images);
+        this(partId, questionId, null, null, null, taskPrompt, originalText, learningLanguage, wordCount, images, null, null, null);
+    }
+
+    public WritingGradingContext withPolicy(WritingRubricPolicy policy, String resolvedFeedbackLanguage,
+                                            com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric metric) {
+        return new WritingGradingContext(partId, questionId, partTitle, partInstruction, groupInstruction, taskPrompt,
+                originalText, learningLanguage, wordCount, images, policy, resolvedFeedbackLanguage, metric);
     }
 
     public boolean hasVisualContext() {
@@ -54,6 +70,7 @@ public record WritingGradingContext(
                 + ", questionId='" + questionId + '\''
                 + ", learningLanguage='" + learningLanguage + '\''
                 + ", wordCount=" + wordCount
+                + ", rubric=" + (rubricPolicy == null ? "legacy" : rubricPolicy.rubricCode())
                 + ", imageCount=" + images.size() + ']';
     }
 }

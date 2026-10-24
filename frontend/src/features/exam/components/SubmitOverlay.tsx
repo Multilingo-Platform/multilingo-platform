@@ -1,3 +1,5 @@
+import { examErrorMessage as ee } from '../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 interface SubmitOverlayProps {
   visible: boolean;
   isRetrying: boolean;
@@ -16,6 +18,7 @@ const SpinnerSvg = () => (
 );
 
 export function SubmitOverlay({ visible, isRetrying, onRetry, error, onClose, draftWarning }: SubmitOverlayProps) {
+  useExamLocale();
   if (!visible) return null;
 
   return (
@@ -38,9 +41,8 @@ export function SubmitOverlay({ visible, isRetrying, onRetry, error, onClose, dr
             <h2 style={{
               fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', color: '#F8FAFC', margin: '0 0 0.5rem',
             }}>
-              Đang nộp bài...
-            </h2>
-            <p style={{ color: '#94A3B8', fontSize: '0.875rem' }}>Vui lòng không đóng trình duyệt.</p>
+              {em("Đang nộp bài...")}</h2>
+            <p style={{ color: '#94A3B8', fontSize: '0.875rem' }}>{em("Vui lòng không đóng trình duyệt.")}</p>
           </div>
         </>
       ) : (
@@ -50,10 +52,9 @@ export function SubmitOverlay({ visible, isRetrying, onRetry, error, onClose, dr
             <h2 style={{
               fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', color: '#F8FAFC', margin: '0 0 0.5rem',
             }}>
-              Chưa nộp được bài
-            </h2>
+              {em("Chưa nộp được bài")}</h2>
             <p style={{ color: '#fca5a5', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              {error ?? 'Nộp bài thất bại — kiểm tra kết nối mạng và thử lại.'}
+              {error ?? em("Nộp bài thất bại — kiểm tra kết nối mạng và thử lại.")}
             </p>
             <button
               id="btn-retry-submit"
@@ -72,13 +73,12 @@ export function SubmitOverlay({ visible, isRetrying, onRetry, error, onClose, dr
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#1a3fb5'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#2151DA'; }}
             >
-              🔄 Thử nộp lại
-            </button>
-            {onClose && <button type="button" onClick={onClose} className="mt-4 block w-full text-white underline focus-visible:ring-2 focus-visible:ring-white">Quay lại bài làm</button>}
+              {em("🔄 Thử nộp lại")}</button>
+            {onClose && <button type="button" onClick={onClose} className="mt-4 block w-full text-white underline focus-visible:ring-2 focus-visible:ring-white">{em("Quay lại bài làm")}</button>}
           </div>
         </>
       )}
-      {draftWarning && <p className="max-w-md text-center text-amber-100 text-sm">{draftWarning}</p>}
+      {draftWarning && <p className="max-w-md text-center text-amber-100 text-sm">{ee(draftWarning)}</p>}
     </div>
   );
 }

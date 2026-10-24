@@ -10,6 +10,7 @@ import WorkspacePage from '../pages/WorkspacePage';
 import { ExamResultPage } from '../pages/ExamResultPage';
 import ExamReviewPage from '../pages/ExamReviewPage';
 import axiosClient from '../../../core/api/axiosClient';
+import i18n from '../../../i18n';
 import {
   LIFECYCLE_ATTEMPT_ID,
   LIFECYCLE_ESSAY_QUESTION_ID,
@@ -119,7 +120,8 @@ function essayAnswers(essay: string) {
   ];
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage('vi');
   vi.resetAllMocks();
   localStorage.clear();
   window.scrollTo = vi.fn();
@@ -235,7 +237,7 @@ describe('TV3-22 lifecycle: picker → workspace → submit → result → revie
     expect(screen.getByRole('heading', { name: `Kết quả thi thử #${LIFECYCLE_ATTEMPT_ID}` })).toBeInTheDocument();
     expect(http.get.mock.calls.some(call => call[0] === RESULT_URL)).toBe(true);
     expect(http.get.mock.calls.filter(call => call[0] === FEEDBACK_URL)).toHaveLength(0);
-    expect(screen.getByRole('heading', { name: 'Writing' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Kết quả Writing' })).toBeInTheDocument();
     expect(screen.getByText('154')).toBeInTheDocument();
 
     // Feedback is disclosure-scoped: one request for the Writing Part only.

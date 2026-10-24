@@ -33,6 +33,8 @@ public record WritingFeedbackResponse(
             @JsonProperty("language") String language,
             @JsonProperty("source") String source,
             @JsonProperty("scoreUnit") String scoreUnit,
+            @JsonProperty("rubricCode") String rubricCode,
+            @JsonProperty("feedbackLanguage") String feedbackLanguage,
             @JsonProperty("overall") BigDecimal overall,
             @JsonProperty("maxScore") BigDecimal maxScore,
             @JsonProperty("criteria") List<WritingGrade.CriterionGrade> criteria,
@@ -63,16 +65,33 @@ public record WritingFeedbackResponse(
                 String reasonCode, String displayMessage,
                 boolean hasVisualContext, String visualObservations
         ) {
-            this(questionId, label, status, wordCount, null, language, source, scoreUnit,
+            this(questionId, label, status, wordCount, null, language, source, scoreUnit, null, null,
                     overall, maxScore, criteria, originalText, overallFeedback,
                     correctedEssay, corrections, diff, reasonCode, displayMessage,
                     hasVisualContext, visualObservations);
+        }
+
+        public TaskFeedback(
+                String questionId, String label, String status, int wordCount,
+                com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric,
+                String language, String source, String scoreUnit,
+                BigDecimal overall, BigDecimal maxScore,
+                List<WritingGrade.CriterionGrade> criteria, String originalText, String overallFeedback,
+                String correctedEssay, List<WritingGrade.Correction> corrections, List<WritingGrade.DiffSegment> diff,
+                String reasonCode, String displayMessage, boolean hasVisualContext, String visualObservations
+        ) {
+            this(questionId, label, status, wordCount, lengthMetric, language, source, scoreUnit, null, null,
+                    overall, maxScore, criteria, originalText, overallFeedback, correctedEssay,
+                    corrections, diff, reasonCode, displayMessage, hasVisualContext, visualObservations);
         }
 
         @Override
         public String toString() {
             return "TaskFeedback[questionId=" + questionId + ", status=" + status + ", overall=" + overall + "]";
         }
+
+        @JsonProperty("schemaVersion")
+        public Integer schemaVersion() { return rubricCode == null ? null : 2; }
     }
 
     @Override

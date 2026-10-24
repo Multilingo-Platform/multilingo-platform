@@ -31,12 +31,14 @@ export interface UseWritingHintsOptions {
   partId: number | null;
   questions: readonly Question[];
   isLocked: () => boolean;
+  ownerId?: number | null;
 }
 
 interface HintsOperation {
   readonly attemptId: number;
   readonly payload: WritingHintsRequest;
   readonly selection: WritingHintsLanguageSelection;
+  readonly defaultHintLanguage: string | null;
 }
 interface HintsEntry {
   operation: HintsOperation | null;
@@ -62,6 +64,14 @@ function record(value: unknown): value is Record<string, unknown> {
 function keyFor(partId: number, questionId: string): string {
   return JSON.stringify([partId, questionId]);
 }
+function snapshotLearningLanguage(workspace: WorkspaceResponse | null): string | null {
+  if (!workspace || workspace.languageContext?.policyVersion !== 'TV3_LANG_V1') return null;
+  const contextLanguage = canonicalizeLanguageTag(workspace.languageContext.examLanguage);
+  const snapshotLanguage = canonicalizeLanguageTag(
+    workspace.exam_snapshot?.examLanguage ?? workspace.exam_snapshot?.exam_language,
+  );
+  return contextLanguage && contextLanguage === snapshotLanguage ? contextLanguage : null;
+}
 
 // Match the workspace's canonical grouped content before its flat compatibility view.
 // Only recorded IDs establish membership; question numbers/order never grant access.
@@ -86,7 +96,8 @@ function eligible(options: UseWritingHintsOptions, state: RootState['answers'], 
   const ws = options.workspace;
   const partId = options.partId;
   if (!ws || !positiveId(ws.attempt_id) || !positiveId(partId) || state.attemptId !== ws.attempt_id ||
-    ws.test_mode !== 'PRACTICE' || ws.status !== 'IN_PROGRESS' || state.isLocked || options.isLocked()) return false;
+    ws.test_mode !== 'PRACTICE' || ws.status !== 'IN_PROGRESS' || state.isLocked || options.isLocked() ||
+    !snapshotLearningLanguage(ws)) return false;
   const sections = ws.exam_snapshot?.sections;
   if (!Array.isArray(sections) || !Array.isArray(ws.lockedSections)) return false;
   const matches = sections.flatMap(section => Array.isArray(section.parts)
@@ -120,7 +131,10 @@ export function useWritingHints(options: UseWritingHintsOptions): WritingHintsCo
 
   const contextKey = useCallback(() => {
     const state = store.getState().answers;
-    return JSON.stringify([live.current.workspace?.attempt_id ?? null, state.attemptId, state.contextRevision]);
+    const language = live.current.workspace?.languageContext;
+    return JSON.stringify([live.current.ownerId ?? null, live.current.workspace?.attempt_id ?? null, state.attemptId, state.contextRevision,
+      language?.policyVersion ?? null, language?.examLanguage ?? null, language?.defaultExplanationLanguage ?? null,
+      language?.supportedExplanationLanguages ?? null]);
   }, [store]);
   const publish = useCallback(() => { if (mounted.current) redraw(); }, []);
   const clearContext = useCallback(() => {
@@ -213,9 +227,11 @@ export function useWritingHints(options: UseWritingHintsOptions): WritingHintsCo
     flight.current = active;
     try {
       if (selection !== null) {
+        const sourceLanguage = snapshotLearningLanguage(ws);
         const invalidLanguage = [selection.learningLanguage, selection.hintLanguage]
           .some(language => language !== null && canonicalizeLanguageTag(language) === null);
-        if (invalidLanguage) {
+        const requestedLearning = selection.learningLanguage ? canonicalizeLanguageTag(selection.learningLanguage) : sourceLanguage;
+        if (invalidLanguage || !sourceLanguage || requestedLearning !== sourceLanguage) {
           entries.current.set(key, {
             operation: null,
             value: {
@@ -233,6 +249,7 @@ export function useWritingHints(options: UseWritingHintsOptions): WritingHintsCo
         operation = Object.freeze({
           attemptId: ws.attempt_id, payload,
           selection: Object.freeze({ learningLanguage: payload.learningLanguage ?? null, hintLanguage: payload.hintLanguage ?? null }),
+          defaultHintLanguage: canonicalizeLanguageTag(ws.languageContext?.defaultExplanationLanguage) ?? sourceLanguage,
         });
       }
       if (!operation) return;
@@ -241,7 +258,9 @@ export function useWritingHints(options: UseWritingHintsOptions): WritingHintsCo
         value: { phase: 'loading', data: previous?.value.data ?? null, error: null, lastSelection: { ...operation.selection } },
       });
       publish();
-      const response = await generateWritingHints(operation.attemptId, operation.payload, { signal: active.abortController.signal });
+      const response = await generateWritingHints(operation.attemptId, operation.payload, {
+        signal: active.abortController.signal, defaultHintLanguage: operation.defaultHintLanguage,
+      });
       synchronize();
       if (!mounted.current || flight.current !== active || epoch.current !== active.epoch) return;
       entries.current.set(key, {

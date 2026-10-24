@@ -34,6 +34,21 @@ public class AttemptLanguageResolver {
                 supported);
     }
 
+    /** Resolve and validate the feedback language for a new submission. */
+    public String resolveFeedbackLanguage(Map<String, Object> snapshot, Integer userId, String requestedLanguage) {
+        String sourceLanguage = resolveSnapshotLanguage(snapshot);
+        if (sourceLanguage == null) {
+            throw new com.multilingo.backend.common.exception.AppException(
+                    com.multilingo.backend.common.exception.ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED);
+        }
+        if (requestedLanguage != null && !requestedLanguage.isBlank()) {
+            return catalog.findNormalized(requestedLanguage).orElseThrow(() ->
+                    new com.multilingo.backend.common.exception.AppException(
+                            com.multilingo.backend.common.exception.ErrorCode.WRITING_HINTS_LANGUAGE_UNSUPPORTED));
+        }
+        return resolveDefaultExplanationLanguage(sourceLanguage, userId);
+    }
+
     private String resolveSnapshotLanguage(Map<String, Object> snapshot) {
         if (snapshot == null) {
             return null;

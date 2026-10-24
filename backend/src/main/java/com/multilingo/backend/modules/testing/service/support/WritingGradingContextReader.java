@@ -1,12 +1,14 @@
 package com.multilingo.backend.modules.testing.service.support;
 
 import com.multilingo.backend.common.exception.AppException;
+import com.multilingo.backend.common.i18n.LearningLanguageCatalog;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGradingContext;
 import com.multilingo.backend.modules.testing.ai.grading.WritingImageRef;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
 import com.multilingo.backend.modules.testing.util.WritingWordCounter;
+import com.multilingo.backend.modules.testing.util.WritingLengthCounter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,8 @@ public class WritingGradingContextReader {
     public static final int MAX_IMAGES_PER_TASK = 2;
     public static final int MAX_IMAGE_URL_LENGTH = 2048;
     public static final String SUPPORTED_LEARNING_LANGUAGE = "en";
+    private static final LearningLanguageCatalog LANGUAGE_CATALOG = new LearningLanguageCatalog();
+    private final WritingLengthCounter lengthCounter = new WritingLengthCounter();
 
     private static final Pattern IMG_TAG_PATTERN = Pattern.compile("(?i)<img\\b");
 
@@ -88,7 +92,7 @@ public class WritingGradingContextReader {
 
         Map<String, Object> snapshot = attempt.getExamSnapshot();
 
-        // 1. Kiểm tra ngôn ngữ đề thi trong snapshot (bắt buộc tiếng Anh "en")
+        // 1. Resolve language strictly from the immutable attempt snapshot.
         Object langObj = snapshot.get("examLanguage");
         if (langObj == null) {
             langObj = snapshot.get("exam_language");
@@ -96,8 +100,8 @@ public class WritingGradingContextReader {
         if (langObj == null || !(langObj instanceof String langStr) || langStr.isBlank()) {
             return new ContextDecision.Unavailable("MISSING_LANGUAGE", "Exam language is missing from attempt snapshot");
         }
-        String canonicalLang = langStr.trim().toLowerCase(Locale.ROOT);
-        if (!SUPPORTED_LEARNING_LANGUAGE.equals(canonicalLang)) {
+        String canonicalLang = LANGUAGE_CATALOG.findNormalized(langStr).orElse(null);
+        if (canonicalLang == null) {
             return new ContextDecision.Unavailable("UNSUPPORTED_LANGUAGE", "Exam language is not supported for writing grading");
         }
 
@@ -172,10 +176,14 @@ public class WritingGradingContextReader {
         }
 
         // 6. Đếm số từ theo quy tắc chuẩn hóa \S+ (UNICODE_CHARACTER_CLASS)
-        int wordCount = WritingWordCounter.count(originalText);
+        int legacyWordCount = WritingWordCounter.count(originalText);
+        WritingLengthCounter.WritingLengthMetric metric = lengthCounter.count(originalText, canonicalLang);
+        int wordCount = legacyWordCount;
 
-        // 7. Quy tắc ≤10 từ: nhận 0 điểm mà không gọi Gemini/quota/ảnh (bỏ qua mọi xử lý/lỗi ảnh)
-        if (wordCount <= 10) {
+        // The English rubric preserves its legacy short-essay rule; multilingual jobs only short-circuit empty text.
+        boolean englishRubric = "en".equals(canonicalLang.split("-", 2)[0])
+                && !"LANGUAGE_PRACTICE".equalsIgnoreCase(String.valueOf(snapshot.get("type")));
+        if ((englishRubric && legacyWordCount <= 10) || (!englishRubric && legacyWordCount == 0)) {
             WritingGradingContext shortContext = new WritingGradingContext(
                     partId,
                     questionId,
@@ -186,7 +194,8 @@ public class WritingGradingContextReader {
                     originalText,
                     canonicalLang,
                     wordCount,
-                    List.of()
+                    List.of(),
+                    null, null, metric
             );
             return new ContextDecision.Eligible(shortContext);
         }
@@ -207,7 +216,8 @@ public class WritingGradingContextReader {
                 originalText,
                 canonicalLang,
                 wordCount,
-                mediaResult.images()
+                mediaResult.images(),
+                null, null, metric
         );
 
         return new ContextDecision.Eligible(context);

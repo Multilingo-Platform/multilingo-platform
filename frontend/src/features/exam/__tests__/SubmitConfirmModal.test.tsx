@@ -29,4 +29,15 @@ describe('SubmitConfirmModal', () => {
     fireEvent.click(confirmBtn);
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
+
+  it('lets the learner choose the frozen Writing feedback language', () => {
+    const onChange = vi.fn();
+    render(<SubmitConfirmModal total={1} answered={1} onConfirm={vi.fn()} feedbackLanguage={{
+      value: null, defaultLanguage: 'vi', supportedLanguages: ['en', 'vi'], onChange,
+    }} />);
+    const selector = screen.getByLabelText('Ngôn ngữ giải thích');
+    expect(selector).toHaveValue('');
+    fireEvent.change(selector, { target: { value: 'en' } });
+    expect(onChange).toHaveBeenCalledWith('en');
+  });
 });

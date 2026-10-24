@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ExamOption } from '../../types/exam.types';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 const MatchingRenderer: React.FC<Props> = ({ options, value, onChange, questionText }) => {
+  useExamLocale();
   const normalizedOptions: ExamOption[] = (options ?? []).map((opt, idx) => {
     if (typeof opt === 'string') {
       return { id: String.fromCharCode(65 + idx), text: opt };
@@ -24,7 +26,7 @@ const MatchingRenderer: React.FC<Props> = ({ options, value, onChange, questionT
         onChange={e => onChange(e.target.value)}
         style={{ padding: '4px 8px', minWidth: '160px' }}
       >
-        <option value="">-- Chọn --</option>
+        <option value="">{em("-- Chọn --")}</option>
         {normalizedOptions.map(opt => (
           <option key={opt.id} value={opt.id}>
             {opt.id}{opt.text ? `. ${opt.text}` : ''}

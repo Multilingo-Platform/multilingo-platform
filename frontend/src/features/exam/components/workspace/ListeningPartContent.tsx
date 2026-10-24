@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { AnswerValue } from '../../types/answer.types';
 import type { PracticeFeedbackResponse } from '../../types/api.types';
@@ -111,6 +112,7 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
   onToggleFlag,
   playingPartNumber = null,
 }) => {
+  useExamLocale();
   const labelsOnlyOptions = partNumber === 1 || partNumber === 2;
   const hidePrompt = partNumber === 1 || partNumber === 2;
 
@@ -139,7 +141,7 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
               data-testid={`listening-transcript-${view.question.question_id}`}
               className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 space-y-1"
             >
-              <div className="font-semibold text-slate-800">Nội dung nghe (luyện tập)</div>
+              <div className="font-semibold text-slate-800">{em("Nội dung nghe (luyện tập)")}</div>
               {detail.transcript && <p className="whitespace-pre-wrap">{detail.transcript}</p>}
               {detail.options.map(option => (
                 <p key={option.label} className="whitespace-pre-wrap">
@@ -172,8 +174,8 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
         {groups.map(group => {
           const firstQuestionNumber = group.questions[0]?.number;
           const photoAlt = firstQuestionNumber === null || firstQuestionNumber === undefined
-            ? `Ảnh Part 1, nhóm ${group.groupId}`
-            : `Ảnh Part 1, câu ${firstQuestionNumber}`;
+            ? em("Ảnh Part 1, nhóm {{v0}}", { v0: group.groupId })
+            : em("Ảnh Part 1, câu {{v0}}", { v0: firstQuestionNumber });
 
           return (
             <section key={group.groupId} data-testid={`listening-group-${group.groupId}`} className="space-y-3">
@@ -208,8 +210,7 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
           </div>
         )}
         <p data-testid="toeic-cue-note" className="text-xs text-slate-500">
-          Audio phát liên tục theo Part; câu đang xem không có mốc thời gian riêng.
-        </p>
+          {em("Audio phát liên tục theo Part; câu đang xem không có mốc thời gian riêng.")}</p>
         {groups.flatMap(group => group.questions).map(renderCard)}
       </div>
     );

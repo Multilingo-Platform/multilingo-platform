@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import { Check, Minus, Target, X } from 'lucide-react';
 import type { ObjectiveResultStats, ResultSummary } from '../../types/api.types';
 import { formatResultAccuracy, formatResultScore } from '../../utils/resultPresentation';
@@ -5,6 +6,7 @@ import { formatResultAccuracy, formatResultScore } from '../../utils/resultPrese
 type StatsRow = ObjectiveResultStats & { key: string | number; label: string; skill: string };
 
 function StatsTable({ title, rows }: { title: string; rows: StatsRow[] }) {
+  useExamLocale();
   if (rows.length === 0) return null;
   return (
     <div role="region" aria-label={title} tabIndex={0}
@@ -12,7 +14,7 @@ function StatsTable({ title, rows }: { title: string; rows: StatsRow[] }) {
       <table className="w-full min-w-[600px] text-sm text-left">
         <caption className="p-4 text-left font-semibold text-slate-900">{title}</caption>
         <thead className="bg-slate-50 text-slate-700"><tr>
-          {['Tên', 'Kỹ năng', 'Điểm raw', 'Đúng', 'Sai', 'Bỏ trống', 'Tổng', 'Độ chính xác'].map(label => (
+          {[em("Tên"), em("Kỹ năng"), em("Điểm raw"), em("Đúng"), em("Sai"), em("Bỏ trống"), em("Tổng"), em("Độ chính xác")].map(label => (
             <th key={label} scope="col" className="px-3 py-3">{label}</th>
           ))}
         </tr></thead>
@@ -34,16 +36,17 @@ function StatsTable({ title, rows }: { title: string; rows: StatsRow[] }) {
 }
 
 export function ObjectiveResultSummary({ objective }: { objective: ResultSummary['objective'] }) {
-  if (objective.total === 0) return <p className="rounded-xl border border-slate-200 bg-white p-5">Không có câu khách quan trong phạm vi bài làm này.</p>;
+  useExamLocale();
+  if (objective.total === 0) return <p className="rounded-xl border border-slate-200 bg-white p-5">{em("Không có câu khách quan trong phạm vi bài làm này.")}</p>;
   const cards = [
-    { label: 'Điểm khách quan (raw)', value: formatResultScore(objective.rawScore), icon: Target },
-    { label: 'Câu đúng / tổng số câu', value: `${objective.correct}/${objective.total}`, icon: Check },
-    { label: 'Câu sai', value: objective.incorrect, icon: X },
-    { label: 'Câu bỏ trống', value: objective.unanswered, icon: Minus },
+    { label: em("Điểm khách quan (raw)"), value: formatResultScore(objective.rawScore), icon: Target },
+    { label: em("Câu đúng / tổng số câu"), value: `${objective.correct}/${objective.total}`, icon: Check },
+    { label: em("Câu sai"), value: objective.incorrect, icon: X },
+    { label: em("Câu bỏ trống"), value: objective.unanswered, icon: Minus },
   ];
   return (
-    <section aria-label="Kết quả khách quan" className="space-y-4">
-      <h2 className="text-lg font-semibold text-slate-900">Kết quả khách quan</h2>
+    <section aria-label={em("Kết quả khách quan")} className="space-y-4">
+      <h2 className="text-lg font-semibold text-slate-900">{em("Kết quả khách quan")}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map(({ label, value, icon: Icon }) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
@@ -52,9 +55,9 @@ export function ObjectiveResultSummary({ objective }: { objective: ResultSummary
           </div>
         ))}
       </div>
-      <p className="text-sm text-slate-700">Độ chính xác: <strong>{formatResultAccuracy(objective.accuracy)}</strong></p>
-      <StatsTable title="Kết quả theo kỹ năng" rows={objective.bySkill.map((row, index) => ({ ...row, key: index, label: row.skill }))} />
-      <StatsTable title="Kết quả theo phần thi" rows={objective.byPart.map(row => ({ ...row, key: row.partId }))} />
+      <p className="text-sm text-slate-700">{em("Độ chính xác:")}<strong>{formatResultAccuracy(objective.accuracy)}</strong></p>
+      <StatsTable title={em("Kết quả theo kỹ năng")} rows={objective.bySkill.map((row, index) => ({ ...row, key: index, label: row.skill }))} />
+      <StatsTable title={em("Kết quả theo phần thi")} rows={objective.byPart.map(row => ({ ...row, key: row.partId }))} />
     </section>
   );
 }

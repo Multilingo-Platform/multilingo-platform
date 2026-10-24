@@ -58,4 +58,11 @@ class AttemptLanguageResolverTest {
         assertThat(resolved.examLanguage()).isNull();
         assertThat(resolved.defaultExplanationLanguage()).isNull();
     }
+
+    @Test
+    void resolvesExplicitOrNativeFeedbackLanguageAgainstImmutableSnapshot() {
+        when(userLanguages.findNativeLanguage(7)).thenReturn(Optional.of("ko-KR"));
+        assertThat(resolver.resolveFeedbackLanguage(Map.of("examLanguage", "ja"), 7, "fr-ca")).isEqualTo("fr-CA");
+        assertThat(resolver.resolveFeedbackLanguage(Map.of("examLanguage", "ja"), 7, null)).isEqualTo("ko-KR");
+    }
 }

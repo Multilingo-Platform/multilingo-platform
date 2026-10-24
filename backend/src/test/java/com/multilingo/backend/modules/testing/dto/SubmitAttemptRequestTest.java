@@ -37,4 +37,15 @@ class SubmitAttemptRequestTest {
         Set<ConstraintViolation<SubmitAttemptRequest>> violations = validator.validate(req);
         assertTrue(violations.isEmpty());
     }
+
+    @Test
+    void optionalFeedbackLanguageDoesNotChangeExistingSubmitValidation() {
+        SubmitAttemptRequest req = SubmitAttemptRequest.builder()
+                .reason(SubmitReason.MANUAL)
+                .feedbackLanguage("ja")
+                .build();
+        Set<ConstraintViolation<SubmitAttemptRequest>> violations = validator.validate(req);
+        assertTrue(violations.isEmpty());
+        assertEquals("ja", req.getFeedbackLanguage());
+    }
 }

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import axiosClient from '../../../core/api/axiosClient';
-import { lookupPracticeDictionary, DICTIONARY_LOOKUP_TIMEOUT_MS } from '../api/dictionaryLookupApi';
+import { lookupPracticeDictionary, lookupPracticeDictionaryV2, DICTIONARY_LOOKUP_TIMEOUT_MS } from '../api/dictionaryLookupApi';
 import type { DictionaryLookupRequest } from '../types/api.types';
 
 vi.mock('../../../core/api/axiosClient', () => ({ default: { post: vi.fn() } }));
@@ -38,5 +38,21 @@ describe('dictionary lookup API', () => {
     await vi.advanceTimersByTimeAsync(DICTIONARY_LOOKUP_TIMEOUT_MS);
     await assertion;
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('uses the v2 endpoint and returns the normalized nested definition', async () => {
+    const v2Request = { ...request, meaningLanguage: 'fr' };
+    post.mockResolvedValue({ success: true, data: {
+      requestId: request.requestId, attemptId: 42, partId: 7, documentId: 'group-7',
+      selectedText: 'elms', sourceContext: 'The elms grow.',
+      definition: { schemaVersion: 2, learningLanguage: 'en', meaningLanguage: 'fr', meaning: 'ormes',
+        phonetic: null, partOfSpeech: 'noun', example: 'Elms grow.', exampleTranslation: 'Les ormes poussent.' },
+    } } as never);
+
+    const result = await lookupPracticeDictionaryV2(42, v2Request, { learningLanguage: 'en' });
+    expect(post).toHaveBeenCalledWith('/v2/attempts/42/dictionary-lookups', v2Request, expect.objectContaining({
+      timeout: DICTIONARY_LOOKUP_TIMEOUT_MS, signal: expect.any(AbortSignal),
+    }));
+    expect(result.definition.schemaVersion).toBe(2);
   });
 });

@@ -1,3 +1,4 @@
+import { examMessage as em, examUiLocale } from '../i18n/examMessages';
 import type {
   WritingCriterionCode,
   WritingFeedbackTaskStatus,
@@ -17,19 +18,19 @@ export const CRITERIA_NAMES: Record<WritingCriterionCode, string> = {
   GRA: 'Grammatical Range & Accuracy',
 };
 
-const bandScoreFormatter = new Intl.NumberFormat('vi-VN', {
+const bandScoreFormatter = () => new Intl.NumberFormat(examUiLocale(), {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
 
 export function formatBandScore(
   score: number | null | undefined,
-  fallback: string = 'Chưa có điểm'
+  fallback: string = em("Chưa có điểm")
 ): string {
   if (score === null || score === undefined || typeof score !== 'number' || Number.isNaN(score)) {
     return fallback;
   }
-  return bandScoreFormatter.format(score);
+  return bandScoreFormatter().format(score);
 }
 
 const CANONICAL_ORDER: Record<string, number> = {
@@ -40,7 +41,7 @@ const CANONICAL_ORDER: Record<string, number> = {
 };
 
 export function getCriterionName(code: WritingCriterionCode): string {
-  return CRITERIA_NAMES[code] ?? code;
+  return em(CRITERIA_NAMES[code] ?? code);
 }
 
 export function sortCriteriaCanonical<T extends { code: WritingCriterionCode }>(
@@ -56,16 +57,16 @@ export function sortCriteriaCanonical<T extends { code: WritingCriterionCode }>(
 export function getTaskStatusLabel(status: WritingFeedbackTaskStatus): string {
   switch (status) {
     case 'DONE':
-      return 'Đã có kết quả';
+      return em("Đã có kết quả");
     case 'PENDING':
-      return 'Đang chờ chấm';
+      return em("Đang chờ chấm");
     case 'QUEUED':
-      return 'Đang trong hàng đợi';
+      return em("Đang trong hàng đợi");
     case 'FAILED':
-      return 'Chấm điểm thất bại';
+      return em("Chấm điểm thất bại");
     case 'UNAVAILABLE':
-      return 'Chưa có nhận xét';
+      return em("Chưa có nhận xét");
     default:
-      return 'Chưa rõ';
+      return em("Chưa rõ");
   }
 }

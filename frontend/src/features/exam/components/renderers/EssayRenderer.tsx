@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 
 import type { SharedMedia } from '../../types/exam.types';
@@ -22,10 +23,11 @@ const EssayRenderer: React.FC<Props> = ({
   learningLanguage = 'en',
   showPrompt = true,
 }) => {
+  useExamLocale();
   const text = value ?? '';
   const lengthMetric = countWritingLength(text, learningLanguage);
   const length = lengthMetric.value;
-  const unitLabel = lengthMetric.unit === 'CHARACTERS' ? 'ký tự' : 'từ';
+  const unitLabel = lengthMetric.unit === 'CHARACTERS' ? em("ký tự") : em("từ");
   const hasRequirement = minWords > 0;
   const isMet = hasRequirement && length >= minWords;
   const isEmpty = length === 0;
@@ -49,16 +51,16 @@ const EssayRenderer: React.FC<Props> = ({
           rows={14}
           value={text}
           onChange={e => onChange(e.target.value)}
-          aria-label={questionText ? `Bài làm cho: ${questionText.slice(0, 60)}` : 'Bài tự luận'}
+          aria-label={questionText ? em("Bài làm cho: {{v0}}", { v0: questionText.slice(0, 60) }) : em("Bài tự luận")}
           lang={learningLanguage || undefined}
           className="w-full flex-1 min-h-[240px] lg:min-h-[280px] p-4 rounded-xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-y font-sans text-[15px] leading-relaxed text-slate-800 bg-white shadow-inner transition-colors duration-200"
-          placeholder="Viết bài tự luận của bạn tại đây..."
+          placeholder={em("Viết bài tự luận của bạn tại đây...")}
         />
 
         {/* Word count bar placed in layout flow below textarea */}
         <div className="mt-2.5 flex items-center justify-between gap-2">
           <div className="text-xs text-slate-400 font-medium">
-            {hasRequirement ? `Yêu cầu tối thiểu ${minWords} ${unitLabel}` : null}
+            {hasRequirement ? em("Yêu cầu tối thiểu {{v0}} {{v1}}", { v0: minWords, v1: unitLabel }) : null}
           </div>
           <div
             data-testid="essay-word-count"
@@ -81,12 +83,12 @@ const EssayRenderer: React.FC<Props> = ({
             ) : isMet ? (
               <>
                 <span className="text-emerald-600">✓</span>
-                <span>{length} {unitLabel} (Đạt yêu cầu)</span>
+                <span>{length} {unitLabel} {em("(Đạt yêu cầu)")}</span>
               </>
             ) : (
               <>
                 <span className="text-rose-600">⚠️</span>
-                <span>{length} / {minWords} {unitLabel} (Chưa đủ số lượng tối thiểu)</span>
+                <span>{length} / {minWords} {unitLabel} {em("(Chưa đủ số lượng tối thiểu)")}</span>
               </>
             )}
           </div>

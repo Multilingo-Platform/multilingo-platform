@@ -193,13 +193,13 @@ describe('writingHintsContract', () => {
       expect(canonicalizeLanguageTag('eng')).toBe('en');
       expect(canonicalizeLanguageTag('vie')).toBe('vi');
       expect(canonicalizeLanguageTag('fra')).toBe('fr');
-      expect(canonicalizeLanguageTag('fre')).toBe('fr');
+      expect(canonicalizeLanguageTag('fre')).toBeNull();
       expect(canonicalizeLanguageTag('deu')).toBe('de');
-      expect(canonicalizeLanguageTag('ger')).toBe('de');
+      expect(canonicalizeLanguageTag('ger')).toBeNull();
       expect(canonicalizeLanguageTag('spa')).toBe('es');
       expect(canonicalizeLanguageTag('kor')).toBe('ko');
       expect(canonicalizeLanguageTag('zho')).toBe('zh');
-      expect(canonicalizeLanguageTag('chi')).toBe('zh');
+      expect(canonicalizeLanguageTag('chi')).toBeNull();
       expect(canonicalizeLanguageTag('jpn')).toBe('ja');
     });
 

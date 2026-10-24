@@ -362,3 +362,78 @@ npx vitest run src/features/exams/__tests__/NltvExamBuilderImport.test.tsx src/f
 - TV3-MULTILINGUAL work và các failure suite không có repro riêng NLTV tiếp tục theo handoff riêng; không phải finding của review này.
 - Tiếp tục NLP-05/06 sau khi xác nhận DB thử nghiệm đúng cấu hình: chạy PostgreSQL regression, rồi thực hiện seed/publish có kiểm soát theo quyền đã được phê duyệt; ghi exam ID và kiểm tra library/start, audio từ app origin cùng lifecycle Practice/Mock. Sau khi có evidence, yêu cầu full-feature re-review. Release vẫn BLOCKED cho tới lúc hoàn thành các gate này.
 
+
+
+## 2026-10-22 — Codex Executor — TV3-MULTILINGUAL re-FIX ML-FULL-02/03 — IMPLEMENTED, chờ re-review
+
+- Nguồn: latest Codex review ngày 2026-10-22 trong [TV3-MULTILINGUAL-handoff.md](TV3-MULTILINGUAL-handoff.md), đối chiếu approved main/completion plans. Chỉ xử lý hai confirmed P1; không xác nhận thêm P0/P2.
+- Ghi tại handoff ingestion theo yêu cầu người dùng: tên `NLTC-EXAM-INGESTION-handoff.md` không tồn tại; dùng file `NLTV-EXAM-INGESTION-handoff.md` hiện có như đối chiếu ở lượt trước. Đây là evidence re-fix TV3-MULTILINGUAL.
+
+### Fix và regression
+
+1. **ML-FULL-02 (P1):** bỏ assertion buộc `lengthMetric.value === wordCount` trong `frontend/src/features/exam/api/resultContract.ts`. Hai count vẫn được validate độc lập là số nguyên không âm; metric vẫn kiểm tra unit/policyVersion. Giữ nguyên legacy wordCount và response đầu vào. Thêm regression PENDING/DONE với wordCount1/CHARACTERS6, các count/unit/version không hợp lệ, và pipeline HTTP → normalizer → `ExamResultPage` thật hiển thị `6 ký tự` khi Writing chưa được chấm. Files test: `resultContract.test.ts`, `resultPageContract.test.tsx`.
+2. **ML-FULL-03 (P1):** `WritingFeedbackMapper.parseAndValidateGrade` giữ visual context cho rubric `WRITING_GENERIC_V1`, không áp English whitespace cutoff lên generic. English/legacy vẫn áp quy tắc bài ngắn hiện có. Thêm regression Nhật/Trung: production parser/result codec tạo persisted SUCCEEDED grade với ảnh đóng băng trong job, wordCount1; mapper trả DONE, điểm10, CHARACTERS6/4, visualObservations và nguyên văn essay. File test: `WritingFeedbackMultilingualMapperTest.java`.
+
+### RED → GREEN, xác minh do executor chạy thực tế
+
+- **RED frontend:** `npx vitest run src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/resultPageContract.test.tsx --maxWorkers=2` — 3 failed / 99 passed; hai case CJK ném ResultContractError ở equality assertion, trang kết quả hiển thị lỗi contract.
+- **RED backend:** `.\mvnw.cmd '-Dtest=WritingFeedbackMultilingualMapperTest' test` — 2 failed / 2 passed; cả Nhật/Trung generic visual trả FAILED thay vì DONE.
+- **GREEN frontend**, từ `frontend/`:
+
+```powershell
+npx vitest run src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/resultPageContract.test.tsx src/features/exam/__tests__/ResultSummary.test.tsx src/features/exam/__tests__/multilingualWritingFeedbackContract.test.tsx src/features/exam/__tests__/writingFeedbackContract.test.ts src/features/exam/__tests__/writingFeedbackPageContract.test.tsx src/features/exam/__tests__/multilingualTv3LifecycleContract.test.tsx src/features/exam/__tests__/examLocaleSwitch.test.tsx --maxWorkers=2
+```
+
+**8 files / 195 tests PASS.** Bao gồm result/feedback consumer, lifecycle và locale state regressions.
+
+- **GREEN backend**, từ `backend/`:
+
+```powershell
+.\mvnw.cmd '-Dtest=WritingFeedbackMultilingualMapperTest,WritingFeedbackServiceTest,WritingFeedbackContractIT,WritingGradingOutputParserTest,WritingGradingGeneratorTest,WritingGradingContextCodecTest,WritingGradingResultCodecTest,WritingGradingEnqueuerTest,AttemptResultSummaryMapperTest,MultilingualTv3LifecycleIT' test
+.\mvnw.cmd '-Dtest=WritingGradingLifecycleIT' test
+```
+
+Lệnh thứ nhất: **199 tests, 0 failures/errors, 4 skipped, BUILD SUCCESS** — 195 thực chạy PASS, bao gồm English short-essay, feedback HTTP/privacy, parser/generator và job/result codecs. Bốn skipped thuộc `MultilingualTv3LifecycleIT` vì không có `TV3_PG_TEST_URL`; không tính là PASS. Lệnh thứ hai: **28/28 PASS**, không skip, H2 test profile và fake provider, bao phủ Writing submit/worker/result/feedback cùng các đường ảnh/error. Không chạy PostgreSQL trong lượt này.
+
+- `npx tsc -b --pretty false` — exit0.
+- `npx oxlint src/features/exam/api/resultContract.ts src/features/exam/__tests__/resultContract.test.ts src/features/exam/__tests__/resultPageContract.test.tsx` — exit0, không warning/error.
+- `git diff --check` và `git diff --cached --check` — exit0; chỉ LF/CRLF advisories của các file có sẵn. Không chạy full suites/build/browser/provider thật. Các warning compiler/Java agent/Redis hiện có không được sửa ngoài scope.
+
+### Giới hạn và bàn giao
+
+- Bảo toàn staged/unstaged/untracked work; source production chỉ thay hai điều kiện đã tái hiện, không refactor, đổi schema/API/auth/grading policy, regrade hoặc ghi application DB. Không seed/publish/commit/push.
+- Chưa tái xác minh PostgreSQL multilingual lifecycle, native OS IME ja/zh/ko, browser hoặc live-provider quality. Giữ các gate acceptance/rollout đã ghi trong TV3-MULTILINGUAL review; không tự đóng ML-FULL-01 hoặc tuyên bố full-feature PASS.
+- **Next:** Codex full-feature re-review hai fixes và evidence trên; dừng triển khai tại đây.
+
+## 2026-10-23 — Codex Executor — NLTV-EXAM-INGESTION R1 continuation — IN_PROGRESS
+
+- Scope: resume only remaining approved PostgreSQL/browser/release gates in NLP-05/06 and NLTV-09. Prior parser, media, bundle, UI and language-policy evidence remains in earlier entries; do not repeat or expand those changes.
+- Preserve the current branch and all staged/unstaged/untracked files. No source edits, DB writes, seed, publish or rollback until read-only checks establish the exact configured target, existing NLTV code/checksum state, and test DB isolation.
+- Next: inspect PostgreSQL targets read-only, run focused PostgreSQL contracts where safe, and continue the controlled smoke only if plan preconditions hold. Otherwise append the specific blocker and stop before writes.
+
+## 2026-10-23 — Codex Executor — NLTV-EXAM-INGESTION R1 continuation — BLOCKED
+
+- Scope: complete the remaining database/browser gates without modifying unrelated TV3-MULTILINGUAL work. No production or test source changes were made in this continuation.
+- Backend focused command from `backend/`: `..\mvnw.cmd '-Dtest=Nltv*,ExamParserServiceTest,OfficialExamDatasetRegistryTest,ExamDatasetBundleV2Test,DefaultExamDatasetServiceTest,DefaultExamDatasetRunnerTest,DbExamAdapterSnapshotTest,SubmitAttemptImmutableKeysTest,ExamReviewContractIT,PracticeFeedbackContractIT' test` — **75 tests; 0 failures/errors; 3 skipped; BUILD SUCCESS**. The three skips were enabled/run separately below. Frontend focused command for six NLTV files — **42/42 PASS**.
+- PostgreSQL: `NltvDatasetPostgresIT` on `official_exams_test` — **3/3 PASS** (draft/explicit publish/idempotency/catalog/conflict rollback). Post-test read-only check: 0 exams, 0 sections, 0 parts.
+- Read-only app DB preflight at configured `localhost:5434/multilingodb`, PostgreSQL 16.15: `NLTV-SAMPLE-T1-V1`, ID **4**, already published; type `NLTV`, language `vi`, duration 180. All nine Parts have approved source SHA `e155c3b007cd5f51cf5a73f8652e7d7274aa4a4953cf0c552b05c670a3582d13`; counts match `15/14/14/12/16/24/10/1/1`. At preflight there were 7 attempts and 31 answers. Existing `smoke.md` from 2026-10-21 records a different DB history through attempt #77/72 historical rows; preserve both records and reconcile the state. No seed/publish/unpublish or existing-attempt mutation was performed.
+- Browser recheck: catalog, exam detail and start page rendered; start screenshots at 375/768/1366 px are in `output/playwright/NLTV-EXAM-INGESTION-20261023/`. Workspace Practice opened at 375 px with document width 375. UI created Practice attempt **88** and loaded its workspace. On reload, workspace/profile requests returned 502. Do not delete attempt 88; final DB status could not be verified.
+- At `2026-10-23 16:50:23 +07`, Docker showed `multilingo-postgres` exited cleanly (0) and logs recorded an administrator shutdown; the existing backend/proxy stopped responding. Did not restart because the shutdown owner is unknown. Cleared local browser storage/cookies and closed the browser. No submission or AI grading call occurred in this partial smoke.
+- Appended current recheck to `docs/testing/NLTV-EXAM-INGESTION-smoke.md`. `git diff --check` was run after these additions; see final status below.
+- **BLOCKER:** reconcile the changed app DB attempt history, then have its owner restore PostgreSQL/backend. Re-read attempt 88 and complete Practice autosave/resume/submit/review and Mock/browser gates. Do not mark NLP-06/NLTV-09 or release PASS until then. Stop for review.
+
+### Correction — test command path
+
+Trong entry ngay trên, đường dẫn Maven được ghi nhầm thành `..\mvnw.cmd`. Lệnh thực tế đã chạy từ thư mục `backend/` là `./mvnw.cmd '-Dtest=Nltv*,ExamParserServiceTest,OfficialExamDatasetRegistryTest,ExamDatasetBundleV2Test,DefaultExamDatasetServiceTest,DefaultExamDatasetRunnerTest,DbExamAdapterSnapshotTest,SubmitAttemptImmutableKeysTest,ExamReviewContractIT,PracticeFeedbackContractIT' test` (PowerShell: ` .\mvnw.cmd ...`). Kết quả giữ nguyên: 75 tests, 0 failures/errors, 3 skipped, BUILD SUCCESS. `git diff --check` exit 0; chỉ có cảnh báo chuẩn hóa LF/CRLF.
+
+## 2026-10-23 — Codex Executor — NLTV-EXAM-INGESTION R1 continuation after user authorization — IMPLEMENTED / STOP FOR REVIEW
+
+- Người dùng xác nhận PostgreSQL bị tắt có chủ đích và yêu cầu tiếp tục. Container `multilingo-postgres` đã healthy trên cổng 5434; backend smoke tạm thời dùng schema `validate`, Flyway/seeder/scheduler/dispatcher/provider đều không chạy.
+- Chỉ nối tiếp PostgreSQL/browser gates. Không sửa source/test, không seed/publish/unpublish, không sửa attempt cũ, không xóa dữ liệu. Published exam ID 4 vẫn là `NLTV-SAMPLE-T1-V1`, type `NLTV`, language `vi`, 180 phút; chín Part và checksum nguồn R1 giữ đúng. DB có 87 attempts trước lượt này; trong đó exam ID 4 có 7 attempts/31 answers. Hai attempt smoke mới được giữ nguyên; không xóa hay rollback.
+- Practice attempt **88**: reload/resume khôi phục câu đã autosave (1 answer); submit và result/review tải được. Hai Writing jobs `UNAVAILABLE` do policy `MULTILINGUAL_GRADING_DISABLED`, 0 quota reservation, 0 lần thử/provider dispatch; không có điểm Writing. Attempt cuối `GRADING_FAILED` theo state resolver hiện hữu khi gặp UNAVAILABLE.
+- Mock attempt **89**: đủ 55 câu Listening được autosave. Đồng hồ 180 phút khởi chạy; chuyển sang Reading hiện confirmation “không thể quay lại”, chấp nhận chuyển đã khóa section Listening ID 8; nút quay lại Listening bị disabled. Submit/result/review tải được. Attempt còn đúng hai Writing jobs unavailable, 0 quota reservation; status tổng hợp `GRADING_FAILED`. Attempt giữ `locked_sections=[8]`.
+- Playback: trang review phát audio Part 1 trong browser smoke; `currentTime` tiến đến khoảng 8.15s, `readyState=4`, không có media error. Báo cáo smoke 2026-10-21 trước đó ghi nhận cả bốn audio Part 1–4 phát và xác minh thời lượng/mapping. Responsive evidence trước lượt này gồm start page ở 375/768/1366 px và Practice workspace 375 px không tràn ngang; Mock/review ở viewport 1280 px cũng không tràn.
+- Kết quả focused hiện có: backend 75 tests, 0 failures/errors, 3 PostgreSQL skips (ba test được chạy riêng `NltvDatasetPostgresIT` và PASS 3/3 trên `official_exams_test`); frontend 6 files / 42 tests PASS. Không chạy lại vì source không đổi.
+- Đối chiếu lịch sử: entry trước ghi “7 attempts/31 answers” là số riêng exam ID 4, còn smoke 2026-10-21 ghi 72 historical rows (IDs ≤72) và các smoke #73–77; phạm vi khác nhau, không có bằng chứng mâu thuẫn. Sau lượt này tổng DB là 89 attempts và exam ID 4 có 9 attempts. Không sửa/xóa lịch sử.
+- Giới hạn: với hai essay để trống trong lượt smoke này, result summary hiển thị trạng thái tổng hợp `Chấm bài thất bại`/`Chấm Writing thất bại` và chưa có điểm; đây là mapping `UNAVAILABLE` hiện hữu, không phải lỗi gọi AI. Smoke 2026-10-21 với essay đã nhập ghi nhận UI “Chưa hỗ trợ chấm Writing tiếng Việt.” Không có provider call/quota reservation trong lượt này. Raw content/answer keys không được chép vào handoff.
+- `git diff --check` chạy sau khi append; không commit/push. Dừng tại đây để review; không tuyên bố release PASS ngoài phạm vi evidence trên.

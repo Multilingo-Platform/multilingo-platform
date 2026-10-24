@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ExamOption } from '../../types/exam.types';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, maxSelections }) => {
+  useExamLocale();
   const safeValue: string[] = Array.isArray(value)
     ? value
     : (typeof value === 'string' && value ? [value] : []);
@@ -60,7 +62,7 @@ const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, max
               {letter}
             </span>
             <span className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1">
-              {opt.text ? opt.text : `Lựa chọn ${letter}`}
+              {opt.text ? opt.text : em("Lựa chọn {{v0}}", { v0: letter })}
             </span>
           </label>
         );
@@ -76,8 +78,8 @@ const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, max
             }`}
           >
             {value.length === maxSelections
-              ? `✓ Đã chọn đủ ${maxSelections} đáp án`
-              : `Đã chọn ${value.length}/${maxSelections} đáp án (Chọn đúng ${maxSelections} đáp án)`}
+              ? em("✓ Đã chọn đủ {{v0}} đáp án", { v0: maxSelections })
+              : em("Đã chọn {{v0}}/{{v1}} đáp án (Chọn đúng {{v2}} đáp án)", { v0: value.length, v1: maxSelections, v2: maxSelections })}
           </span>
         </div>
       )}

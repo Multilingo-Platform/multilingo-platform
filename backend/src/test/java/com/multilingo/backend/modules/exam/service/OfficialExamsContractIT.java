@@ -18,8 +18,6 @@ import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import com.multilingo.backend.modules.testing.repository.AttemptAnswerRepository;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.testing.service.TestAttemptService;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +26,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ActiveProfiles("test")
 @WithMockUser(username = "1", roles = "USER")
 class OfficialExamsContractIT {
-    private static final String TOEIC_RESOURCE = "/datasets/official-source/ets-2024-test-1-completed.xlsx";
+    private static final String TOEIC_RESOURCE = "/datasets/exams/ets-2024-test-1.v2.json";
 
     @Autowired private ExamParserService parser;
     @Autowired private DefaultExamDatasetService datasets;
@@ -132,13 +129,7 @@ class OfficialExamsContractIT {
     private ExamDatasetBundle parseToeicBundle() throws Exception {
         try (InputStream input = getClass().getResourceAsStream(TOEIC_RESOURCE)) {
             assertThat(input).isNotNull();
-            byte[] bytes = input.readAllBytes();
-            try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
-                var preview = new ExcelV2ExamParser().parse(workbook,
-                        OfficialExamSourceProfile.ETS_2024_COMPLETED_SHA256);
-                return ExamDatasetBundle.exportOfficial(preview.request(),
-                        OfficialExamDatasetRegistry.ETS_TOEIC_KEY, "TEST-ONLY; no release approval");
-            }
+            return mapper.readValue(input, ExamDatasetBundle.class);
         }
     }
 

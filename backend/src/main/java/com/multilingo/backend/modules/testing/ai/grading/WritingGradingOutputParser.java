@@ -41,8 +41,6 @@ public class WritingGradingOutputParser {
     private static final Set<String> CORRECTION_ALLOWLIST = Set.of("start", "end", "replacement", "explanation");
     private static final Set<String> REQUIRED_CRITERIA_CODES = Set.of("TR", "CC", "LR", "GRA");
 
-    private static final Set<BigDecimal> ALLOWED_SCORES = initAllowedScores();
-
     private final ObjectMapper objectMapper;
 
     public WritingGradingOutputParser() {
@@ -59,6 +57,16 @@ public class WritingGradingOutputParser {
     }
 
     public WritingGrade parse(String rawText, String originalEssay, boolean hasVisualContext) {
+        return parse(rawText, originalEssay, hasVisualContext, null, WritingGrade.DEFAULT_LANGUAGE);
+    }
+
+    public WritingGrade parse(String rawText, String originalEssay, boolean hasVisualContext,
+                              WritingRubricPolicy policy, String expectedFeedbackLanguage) {
+        String rubric = policy == null ? WritingGrade.DEFAULT_RUBRIC : policy.rubricCode();
+        String feedbackLanguage = expectedFeedbackLanguage == null || expectedFeedbackLanguage.isBlank()
+                ? WritingGrade.DEFAULT_LANGUAGE : expectedFeedbackLanguage;
+        BigDecimal maxScore = policy == null ? new BigDecimal("9.0") : policy.maxScore();
+        Set<BigDecimal> allowedScores = allowedScores(maxScore);
         String safeOriginal = (originalEssay == null) ? "" : originalEssay;
 
         if (rawText == null || rawText.isBlank()) {
@@ -100,8 +108,8 @@ public class WritingGradingOutputParser {
 
         // feedbackLanguage
         JsonNode langNode = root.get("feedbackLanguage");
-        if (langNode == null || !langNode.isTextual() || !"vi".equals(langNode.asText())) {
-            throw malformed("Invalid or missing feedbackLanguage (must be 'vi')");
+        if (langNode == null || !langNode.isTextual() || !feedbackLanguage.equals(langNode.asText())) {
+            throw malformed("Invalid or missing feedbackLanguage");
         }
 
         // visualObservations: required for visual context, forbidden for text-only
@@ -166,8 +174,8 @@ public class WritingGradingOutputParser {
                 throw malformed("Invalid score step for criterion");
             }
 
-            if (!ALLOWED_SCORES.contains(score)) {
-                throw malformed("Invalid score for criterion (must be [0.0, 9.0] in step 0.5)");
+            if (!allowedScores.contains(score)) {
+                throw malformed("Invalid score for criterion under the selected rubric");
             }
             sumScore = sumScore.add(score);
 
@@ -281,8 +289,8 @@ public class WritingGradingOutputParser {
         List<WritingGrade.DiffSegment> diff = WritingDiffBuilder.build(safeOriginal, corrections);
 
         return new WritingGrade(
-                WritingGrade.DEFAULT_RUBRIC,
-                WritingGrade.DEFAULT_LANGUAGE,
+                rubric,
+                feedbackLanguage,
                 overallScore,
                 criteria,
                 overallFeedback,
@@ -301,8 +309,13 @@ public class WritingGradingOutputParser {
     }
 
     private static Set<BigDecimal> initAllowedScores() {
+        return allowedScores(new BigDecimal("9.0"));
+    }
+
+    private static Set<BigDecimal> allowedScores(BigDecimal maxScore) {
         Set<BigDecimal> scores = new HashSet<>();
-        for (int i = 0; i <= 18; i++) {
+        int maxHalfSteps = maxScore.multiply(BigDecimal.valueOf(2)).intValueExact();
+        for (int i = 0; i <= maxHalfSteps; i++) {
             scores.add(BigDecimal.valueOf(i).divide(BigDecimal.valueOf(2), 1, RoundingMode.UNNECESSARY));
         }
         return Collections.unmodifiableSet(scores);

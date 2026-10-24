@@ -13,7 +13,7 @@ describe('Practice dictionary contract', () => {
   it('builds a bounded context around the exact selected UTF-16 range', () => {
     const source = 'The old elms were planted beside the river.';
     const start = source.indexOf('elms');
-    const request = buildDictionaryLookupRequest(selection('elms', start, start + 4), 7, source);
+    const request = buildDictionaryLookupRequest(selection('elms', start, start + 4), 7, 'en', source);
     expect(request).toMatchObject({
       partId: 7, documentId: 'reading-group-1', selectedText: 'elms',
       contextText: source,
@@ -24,14 +24,14 @@ describe('Practice dictionary contract', () => {
   it('preserves Unicode selections and rejects out-of-range or oversized selections', () => {
     const source = 'Les arbres — café — grand';
     const start = source.indexOf('café');
-    const request = buildDictionaryLookupRequest(selection('café', start, start + 4), 7, source);
+    const request = buildDictionaryLookupRequest(selection('café', start, start + 4), 7, 'fr', source);
     expect(request.selectedText).toBe('café');
     expect(() => buildDictionaryLookupRequest(selection('outside', 0, 99), 7, source)).toThrow();
     expect(() => buildDictionaryLookupRequest(selection('one two three four five six', 0, 27), 7, source)).toThrow();
   });
 
   it('normalizes only a complete response matching the request identity', () => {
-    const request = buildDictionaryLookupRequest(selection('elms', 4, 8), 7, 'The elms grow.');
+    const request = buildDictionaryLookupRequest(selection('elms', 4, 8), 7, 'en', 'The elms grow.');
     const raw = {
       requestId: request.requestId, attemptId: 42, partId: 7, documentId: request.documentId,
       selectedText: 'elms', sourceContext: 'The elms grow.', learningLanguage: 'en', meaningLanguage: 'vi',
