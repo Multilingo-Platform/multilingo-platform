@@ -79,6 +79,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+        log.warn("Quyền truy cập bị từ chối (AccessDeniedException): {}", ex.getMessage());
+        ErrorCode errorCode = ErrorCode.FORBIDDEN;
+        ApiResponse<Void> response = ApiResponse.error(errorCode.getCode(), errorCode.getMessage());
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Lỗi không mong muốn phát sinh (Uncaught Exception): ", ex);

@@ -96,40 +96,44 @@ export const router = createBrowserRouter([
   // --- MÀN HÌNH STUDENT ---
   {
     path: "/student",
-    element: <UserLayout />,
-    // Thêm errorElement ở đây sau này: errorElement: <StudentErrorBoundary />,
+    element: <ProtectedRoute allowedRoles={["USER", "ADMIN"]} />,
     children: [
       {
-        path: "library",
-        element: <ExamLibrary />,
-      },
-      {
-        path: "history",
-        element: <TestHistory />,
-      },
-      {
-        path: "dashboard",
-        element: <StudentDashboardPage />,
-      },
-      {
-        path: "flashcards",
-        element: <FlashcardsPage />,
-      },
-      {
-        path: "settings",
-        element: <SettingsPage />,
-      },
-      {
-        path: "premium",
-        element: <PremiumUpgradePage />,
-      },
-      {
-        path: "payment/result",
-        element: <PaymentResultPage />,
-      },
-      {
-        path: "purchase-history",
-        element: <PurchaseHistoryPage />,
+        element: <UserLayout />,
+        children: [
+          {
+            path: "library",
+            element: <ExamLibrary />,
+          },
+          {
+            path: "history",
+            element: <TestHistory />,
+          },
+          {
+            path: "dashboard",
+            element: <StudentDashboardPage />,
+          },
+          {
+            path: "flashcards",
+            element: <FlashcardsPage />,
+          },
+          {
+            path: "settings",
+            element: <SettingsPage />,
+          },
+          {
+            path: "premium",
+            element: <PremiumUpgradePage />,
+          },
+          {
+            path: "payment/result",
+            element: <PaymentResultPage />,
+          },
+          {
+            path: "purchase-history",
+            element: <PurchaseHistoryPage />,
+          },
+        ],
       },
     ],
   },
@@ -137,55 +141,60 @@ export const router = createBrowserRouter([
   // --- MÀN HÌNH ADMIN ---
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: <ProtectedRoute allowedRoles={["ADMIN"]} />,
     children: [
       {
-        index: true,
-        element: <Navigate to="/admin/dashboard" replace />,
-      },
-      {
-        path: "dashboard",
-        element: <AdminDashboardPage />,
-      },
-      {
-        path: "users",
-        element: <UserManagementPage />,
-      },
-      {
-        path: "tracking",
-        element: <TrackingAnalyticsPage />,
-      },
-      {
-        path: "transactions",
-        element: <TransactionReconciliationPage />,
-      },
-      {
-        path: "quotas",
-        element: <QuotaSettingsPage />,
-      },
-      {
-        path: "settings",
-        element: <QuotaSettingsPage />,
-      },
-      {
-        path: "audit",
-        element: <AuditLogPage />,
-      },
-      {
-        path: "exams",
-        element: <ExamManagement />,
-      },
-      {
-        path: "exams/create",
-        element: <ExamBuilderPage />,
-      },
-      {
-        path: "exams/edit/:id",
-        element: <ExamBuilderPage />,
-      },
-      {
-        path: "premium",
-        element: <AdminPremiumPage />,
+        element: <AdminLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/admin/dashboard" replace />,
+          },
+          {
+            path: "dashboard",
+            element: <AdminDashboardPage />,
+          },
+          {
+            path: "users",
+            element: <UserManagementPage />,
+          },
+          {
+            path: "tracking",
+            element: <TrackingAnalyticsPage />,
+          },
+          {
+            path: "transactions",
+            element: <TransactionReconciliationPage />,
+          },
+          {
+            path: "quotas",
+            element: <QuotaSettingsPage />,
+          },
+          {
+            path: "settings",
+            element: <QuotaSettingsPage />,
+          },
+          {
+            path: "audit",
+            element: <AuditLogPage />,
+          },
+          {
+            path: "exams",
+            element: <ExamManagement />,
+          },
+          {
+            path: "exams/create",
+            element: <ExamBuilderPage />,
+          },
+          {
+            path: "exams/edit/:id",
+            element: <ExamBuilderPage />,
+          },
+          {
+            path: "premium",
+            element: <AdminPremiumPage />,
+          },
+        ],
       },
     ],
   },
