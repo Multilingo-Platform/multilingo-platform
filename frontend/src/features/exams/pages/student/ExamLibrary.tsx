@@ -105,7 +105,7 @@ const ExamLibrary = () => {
           }
         } else {
           if (selectedCert === 'IELTS') {
-            typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_LISTENING', 'IELTS_READING', 'IELTS_WRITING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4', 'IELTS_R1', 'IELTS_W1', 'IELTS_W2'];
+            typesToFetch = ['IELTS_ACADEMIC', 'IELTS_LISTENING', 'IELTS_READING', 'IELTS_WRITING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4', 'IELTS_R1', 'IELTS_W1', 'IELTS_W2'];
           } else if (selectedCert === 'TOEIC') {
             typesToFetch = ['TOEIC_LR', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2'];
           } else if (selectedCert === 'NLTV') {

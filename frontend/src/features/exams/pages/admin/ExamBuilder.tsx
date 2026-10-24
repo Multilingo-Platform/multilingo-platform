@@ -392,7 +392,6 @@ export const QUESTION_TYPES = [
 
 export const EXAM_TYPE_OPTIONS: Record<string, string> = {
   'IELTS_ACADEMIC': 'IELTS Academic',
-  'IELTS_GENERAL': 'IELTS General',
   'TOEIC_LR': 'TOEIC (Listening & Reading)',
   'TOEIC_WRITING': 'TOEIC Writing',
   'NLTV': 'Đánh giá Năng lực Tiếng Việt (NLTV)',
@@ -416,10 +415,7 @@ export const normalizeExamType = (raw: string): string => {
   if (clean === 'TOEIC_WRITING' || clean.includes('TOEIC WRITING')) {
     return 'TOEIC_WRITING';
   }
-  if (clean === 'IELTS_GENERAL' || clean.includes('GENERAL')) {
-    return 'IELTS_GENERAL';
-  }
-  if (clean === 'IELTS' || clean === 'IELTS_ACADEMIC' || clean.includes('ACADEMIC')) {
+  if (clean === 'IELTS_GENERAL' || clean.includes('GENERAL') || clean === 'IELTS' || clean === 'IELTS_ACADEMIC' || clean.includes('ACADEMIC')) {
     return 'IELTS_ACADEMIC';
   }
   if (
@@ -1079,7 +1075,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   const [examType, setExamType] = useState('IELTS_ACADEMIC');
   const [examLanguage, setExamLanguage] = useState('en');
   const isToeicWriting = examType.includes('TOEIC_WRITING') || examType.startsWith('TW_');
-  const [isPublished, setIsPublished] = useState(true);
+  const [isPublished, setIsPublished] = useState(false);
   const [parts, setParts] = useState<ExamPart[]>([]);
   const [activePartIndex, setActivePartIndex] = useState(0);
   const [selectedSpecificPart, setSelectedSpecificPart] = useState('IELTS_L1');
@@ -2574,8 +2570,6 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           (allTitlesLower.includes('kỹ năng') && (allTitlesLower.includes('nghe') || allTitlesLower.includes('đọc') || allTitlesLower.includes('viết')))
         ) {
           detectedType = 'NLTV';
-        } else if (fileNameLower.includes('general') || allTitlesLower.includes('general')) {
-          detectedType = 'IELTS_GENERAL';
         } else {
           detectedType = 'IELTS_ACADEMIC';
         }
@@ -2589,7 +2583,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             ? (detectedType === 'TOEIC_WRITING' ? 'TOEIC Writing Test' : 'TOEIC L&R Test')
             : (detectedType.startsWith('NLTV')
                 ? 'Đánh giá Năng lực Tiếng Việt (NLTV)'
-                : (detectedType.includes('GENERAL') ? 'IELTS General Training Test' : 'IELTS Academic Mock Test')));
+                : 'IELTS Academic Mock Test'));
 
       setExamTitle(finalExamTitle);
       const cleanedParts = deduplicatePartAndGroupInstructions(tempParts);
@@ -2648,7 +2642,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       } catch { /* Malformed files remain the backend preview's responsibility. */ }
       if (controller.signal.aborted) return;
       const fileNameLower = (file.name || '').toLowerCase();
-      const isClientImport = ['IELTS_GENERAL', 'TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)
+      const isGeneral = (legacyType || '').toLowerCase().includes('general')
+        || fileNameLower.includes('general');
+      const isClientImport = isGeneral
+        || ['TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)
         || legacyType.includes('WRITING')
         || legacyType.startsWith('TW_')
         || (fileNameLower.includes('writing') && !fileNameLower.includes('ielts_academic'));
@@ -2657,19 +2654,27 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         setIsPublished(false);
         return;
       }
-      const form = new FormData();
-      form.append('file', file);
-      const response = await axiosClient.post<any, any>('/v1/admin/exams/import/preview', form, { signal: controller.signal, timeout: 10000 });
-      if (controller.signal.aborted) return;
-      if (!response.success || !response.data?.request?.sections || !Array.isArray(response.data.issues)) throw new Error('Invalid preview');
-      const preview = response.data;
-      setExamTitle(preview.request.title);
-      setExamType(normalizeExamType(preview.request.type));
-      setIsPublished(false);
-      setParts(toEditorParts(preview.request));
-      setImportIssues(preview.issues);
-      setActivePartIndex(0);
-      setWizardMode('BUILDER');
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const response = await axiosClient.post<any, any>('/v1/admin/exams/import/preview', form, { signal: controller.signal, timeout: 60000 });
+        if (controller.signal.aborted) return;
+        if (!response.success || !response.data?.request?.sections || !Array.isArray(response.data.issues)) throw new Error('Invalid preview');
+        const preview = response.data;
+        setExamTitle(preview.request.title);
+        setExamType(normalizeExamType(preview.request.type));
+        setIsPublished(false);
+        setParts(toEditorParts(preview.request));
+        setImportIssues(preview.issues);
+        setActivePartIndex(0);
+        setWizardMode('BUILDER');
+      } catch (backendErr) {
+        if (controller.signal.aborted) return;
+        // Fallback to client-side parser so ANY valid Excel file (including TOEIC templates or custom formats) can be imported
+        await handleImportOtherExcel(file);
+        setIsPublished(false);
+        return;
+      }
     } catch {
       if (!controller.signal.aborted) setImportError('Không thể đọc file Excel. Hãy kiểm tra định dạng và thử lại.');
     } finally {
@@ -2913,7 +2918,6 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
               <optgroup label="IELTS">
                 <option value="IELTS_ACADEMIC">IELTS Academic</option>
-                <option value="IELTS_GENERAL">IELTS General</option>
               </optgroup>
               <optgroup label="TOEIC">
                 <option value="TOEIC_LR">TOEIC (Listening & Reading)</option>
@@ -3668,9 +3672,6 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             });
           }}>Hủy</button>
           {importNotice}
-          {!isToeicWriting && (
-            <button className="btn btn-outline" disabled={saving || importing} onClick={() => handleSave(true)}>Lưu nháp</button>
-          )}
           <button className="btn btn-primary" disabled={saving || importing} style={{ justifyContent: 'center' }} onClick={() => handleSave()}><Save size={18} /> Lưu Đề Thi</button>
         </div>
       </div>

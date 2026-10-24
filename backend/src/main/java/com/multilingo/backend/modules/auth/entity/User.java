@@ -66,4 +66,8 @@ public class User extends BaseEntity {
 
     @Column(name = "last_login_ip", length = 45)
     String lastLoginIp;
+
+    @Builder.Default
+    @Column(name = "has_completed_onboarding", nullable = false)
+    Boolean hasCompletedOnboarding = false;
 }

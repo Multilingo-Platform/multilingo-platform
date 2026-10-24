@@ -1231,8 +1231,6 @@ const WorkspacePage: React.FC = () => {
                         certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
                       } else if (snapType.includes('NLTV') || snapType.includes('VSTEP')) {
                         certLabel = 'NLTV';
-                      } else if (snapType.includes('GENERAL')) {
-                        certLabel = 'IELTS General';
                       }
                       const skillLabel = (currentSkill as string) === 'WRITING' ? 'Writing' : 'Reading';
                       return `${certLabel} ${skillLabel}`;

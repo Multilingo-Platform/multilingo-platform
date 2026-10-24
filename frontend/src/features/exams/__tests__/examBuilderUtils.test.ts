@@ -32,8 +32,8 @@ describe('ExamBuilder utils', () => {
     expect(normalizeExamType('IELTS')).toBe('IELTS_ACADEMIC');
     expect(normalizeExamType('IELTS_ACADEMIC')).toBe('IELTS_ACADEMIC');
     expect(normalizeExamType('IELTS Academic')).toBe('IELTS_ACADEMIC');
-    expect(normalizeExamType('IELTS_GENERAL')).toBe('IELTS_GENERAL');
-    expect(normalizeExamType('IELTS General')).toBe('IELTS_GENERAL');
+    expect(normalizeExamType('IELTS_GENERAL')).toBe('IELTS_ACADEMIC');
+    expect(normalizeExamType('IELTS General')).toBe('IELTS_ACADEMIC');
   });
 
   it('correctly maps NLTV variations', () => {
@@ -48,7 +48,7 @@ describe('ExamBuilder utils', () => {
     expect(EXAM_TYPE_OPTIONS['TOEIC_LR']).toBe('TOEIC (Listening & Reading)');
     expect(EXAM_TYPE_OPTIONS['TOEIC_WRITING']).toBe('TOEIC Writing');
     expect(EXAM_TYPE_OPTIONS['IELTS_ACADEMIC']).toBe('IELTS Academic');
-    expect(EXAM_TYPE_OPTIONS['IELTS_GENERAL']).toBe('IELTS General');
+    expect(EXAM_TYPE_OPTIONS['IELTS_GENERAL']).toBeUndefined();
     expect(EXAM_TYPE_OPTIONS['NLTV']).toBe('Đánh giá Năng lực Tiếng Việt (NLTV)');
     expect(EXAM_TYPE_OPTIONS['NLTV_B1_C1']).toBeUndefined();
     expect(EXAM_TYPE_OPTIONS['NLTV_A1_A2']).toBeUndefined();
@@ -332,7 +332,7 @@ describe('ExamBuilder utils', () => {
       expect(getPartBounds('Writing Task 2', 'IELTS_ACADEMIC')).toEqual({ start: 2, end: 2 });
 
       // Case insensitivity & partial match
-      expect(getPartBounds('listening part 1: notes completion', 'IELTS_GENERAL')).toEqual({ start: 1, end: 10 });
+      expect(getPartBounds('listening part 1: notes completion', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 10 });
       expect(getPartBounds('passage 2: science history', 'IELTS_ACADEMIC')).toEqual({ start: 14, end: 26 });
       expect(getPartBounds('task 1: chart description', 'IELTS_ACADEMIC')).toEqual({ start: 1, end: 1 });
     });

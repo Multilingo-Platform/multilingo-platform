@@ -76,7 +76,6 @@ const UserSettings = () => {
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Chứng chỉ đang ôn luyện</label>
                     <select className="input-field">
                       <option>IELTS Academic</option>
-                      <option>IELTS General</option>
                       <option>TOEIC</option>
                       <option>Đánh giá Năng lực Tiếng Việt (VSTEP)</option>
                     </select>

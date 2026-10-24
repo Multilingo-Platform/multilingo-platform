@@ -36,6 +36,30 @@ public class ExamParserService {
             String hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
             try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
                 ExamImportPreviewResponse parsed = parseWorkbook(workbook, hash);
+                if (parsed == null) {
+                    ExamBuilderRequest legacyReq = parseExcel(file);
+                    if (legacyReq != null && legacyReq.getSections() != null && !legacyReq.getSections().isEmpty()) {
+                        int qCount = legacyReq.getSections().stream()
+                                .filter(s -> s.getParts() != null)
+                                .flatMap(s -> s.getParts().stream())
+                                .mapToInt(p -> {
+                                    if (p.getContentData() != null && p.getContentData().get("questions") instanceof List<?> list) {
+                                        return list.size();
+                                    }
+                                    return 0;
+                                }).sum();
+                        int pCount = legacyReq.getSections().stream()
+                                .mapToInt(s -> s.getParts() == null ? 0 : s.getParts().size()).sum();
+                        return new ExamImportPreviewResponse(
+                                legacyReq,
+                                List.of(),
+                                new ExamImportPreviewResponse.Counts(pCount, pCount, qCount),
+                                hash,
+                                true
+                        );
+                    }
+                    throw new AppException(ErrorCode.INVALID_IMPORT_FILE);
+                }
                 var issues = new java.util.ArrayList<>(parsed.issues());
                 OfficialExamSourceProfile sourceProfile = OfficialExamSourceProfile.forSha256(hash);
                 if ("TOEIC_LR".equals(parsed.request().getType()))

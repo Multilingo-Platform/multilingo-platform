@@ -22,4 +22,7 @@ public class UserResponse {
     String phone;
     String subscriptionTier;
     Instant premiumExpiresAt;
+    Boolean hasCompletedOnboarding;
+    String nativeLanguage;
+    String targetLanguage;
 }

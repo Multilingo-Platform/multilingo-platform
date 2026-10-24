@@ -11,11 +11,11 @@ vi.mock('sweetalert2', () => ({ default: { fire: vi.fn() } }));
 describe('NLTV admin import identity', () => {
   it('preserves the canonical NLTV type while retaining legacy aliases', () => {
     expect(normalizeExamType('NLTV')).toBe('NLTV');
-    expect(normalizeExamType('NLTV_B1_C1')).toBe('NLTV_B1_C1');
-    expect(normalizeExamType('NLTV_A1_A2')).toBe('NLTV_A1_A2');
+    expect(normalizeExamType('NLTV_B1_C1')).toBe('NLTV');
+    expect(normalizeExamType('NLTV_A1_A2')).toBe('NLTV');
   });
 
-  it('saves the Full NLTV B1-C1 wizard draft with its legacy type alias', async () => {
+  it('saves the Full NLTV wizard draft with its canonical type', async () => {
     vi.mocked(axiosClient.post).mockResolvedValue({ success: true } as any);
 
     render(<MemoryRouter initialEntries={['/admin/exams/new']}><Routes>
@@ -24,13 +24,13 @@ describe('NLTV admin import identity', () => {
     </Routes></MemoryRouter>);
 
     fireEvent.click(screen.getByText('1. Tạo Full Đề'));
-    fireEvent.click(screen.getByRole('button', { name: 'Full NLTV B1-C1' }));
-    fireEvent.click(screen.getByRole('button', { name: /lưu nháp/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Full NLTV' }));
+    fireEvent.click(screen.getByRole('button', { name: /lưu đề thi/i }));
 
     await screen.findByText('Saved', {}, { timeout: 10000 });
     expect(axiosClient.post).toHaveBeenCalledTimes(1);
     expect(vi.mocked(axiosClient.post).mock.calls[0][1]).toMatchObject({
-      type: 'NLTV_B1_C1',
+      type: 'NLTV',
       examLanguage: 'vi',
       published: false,
       sections: expect.arrayContaining([
