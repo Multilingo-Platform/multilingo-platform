@@ -1,4 +1,6 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React, { useState, useEffect } from 'react';
+import { ExplanationLanguageSelect } from '../practice/ExplanationLanguageSelect';
 
 export interface SubmitConfirmModalProps {
   open?: boolean;
@@ -11,6 +13,7 @@ export interface SubmitConfirmModalProps {
   isLoading?: boolean;
   onConfirm: () => void;
   onCancel?: () => void;
+  feedbackLanguage?: { value: string | null; defaultLanguage: string | null; supportedLanguages: readonly string[]; onChange(language: string | null): void };
 }
 
 export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
@@ -24,7 +27,9 @@ export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
   isLoading = false,
   onConfirm,
   onCancel,
+  feedbackLanguage,
 }) => {
+  useExamLocale();
   const effectiveTotal = total ?? totalQuestions;
   const effectiveAnswered = answered ?? answeredCount;
 
@@ -76,24 +81,34 @@ export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
               id="submit-modal-title"
               className="text-slate-900 font-bold text-lg font-heading"
             >
-              Xác nhận nộp bài thi
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Kiểm tra thông tin trước khi hoàn tất</p>
+              {em("Xác nhận nộp bài thi")}</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{em("Kiểm tra thông tin trước khi hoàn tất")}</p>
           </div>
         </div>
 
         {/* Body */}
         <div className="p-6 space-y-4">
+          {feedbackLanguage && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <ExplanationLanguageSelect
+                id="submit-feedback-language"
+                value={feedbackLanguage.value}
+                defaultLanguage={feedbackLanguage.defaultLanguage}
+                supportedLanguages={feedbackLanguage.supportedLanguages}
+                disabled={isLoading}
+                onChange={feedbackLanguage.onChange}
+              />
+              <p className="mt-1 text-xs text-slate-500">{em("Ngôn ngữ này được dùng cho nhận xét Writing sau khi nộp.")}</p>
+            </div>
+          )}
           {hasUnanswered ? (
             <div className="flex items-start gap-3 p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl text-amber-900">
               <span className="text-lg shrink-0 mt-0.5">⚠️</span>
               <div>
                 <p className="text-sm font-semibold text-amber-800">
-                  Bạn còn {unanswered} câu chưa làm!
-                </p>
+                  {em("Bạn còn")} {unanswered} {em("câu chưa làm!")}</p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Các câu bỏ trống sẽ không được tính điểm. Bạn có chắc chắn muốn nộp không?
-                </p>
+                  {em("Các câu bỏ trống sẽ không được tính điểm. Bạn có chắc chắn muốn nộp không?")}</p>
               </div>
             </div>
           ) : (
@@ -101,20 +116,16 @@ export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
               <span className="text-lg shrink-0 mt-0.5">🎉</span>
               <div>
                 <p className="text-sm font-semibold text-emerald-800">
-                  Bạn đã trả lời đầy đủ các câu hỏi!
-                </p>
+                  {em("Bạn đã trả lời đầy đủ các câu hỏi!")}</p>
                 <p className="text-xs text-emerald-700 mt-0.5">
-                  Sẵn sàng gửi bài để hệ thống bắt đầu chấm điểm.
-                </p>
+                  {em("Sẵn sàng gửi bài để hệ thống bắt đầu chấm điểm.")}</p>
               </div>
             </div>
           )}
 
           <p className="text-sm text-slate-600 leading-relaxed">
-            Sau khi nộp bài, hệ thống sẽ kết thúc bài thi và chuyển sang báo cáo chấm điểm. Bạn{' '}
-            <strong className="text-slate-900 font-semibold">không thể chỉnh sửa lại</strong> các câu
-            trả lời.
-          </p>
+            {em("Sau khi nộp bài, hệ thống sẽ kết thúc bài thi và chuyển sang báo cáo chấm điểm. Bạn")}{' '}{' '}
+            <strong className="text-slate-900 font-semibold">{em("không thể chỉnh sửa lại")}</strong> {em("các câu trả lời.")}</p>
         </div>
 
         {/* Footer */}
@@ -136,12 +147,12 @@ export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span>Đang nộp bài...</span>
+                <span>{em("Đang nộp bài...")}</span>
               </>
             ) : countdown > 0 ? (
-              <span>Nộp bài ngay ({countdown}s)</span>
+              <span>{em("Nộp bài ngay (")}{countdown}s)</span>
             ) : (
-              <span>Nộp bài ngay</span>
+              <span>{em("Nộp bài ngay")}</span>
             )}
           </button>
 
@@ -153,8 +164,7 @@ export const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
               onClick={onCancel}
               className="flex-1 py-2.5 px-4 rounded-xl font-heading font-semibold text-sm bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 active:scale-98 transition-all duration-150 cursor-pointer disabled:opacity-50"
             >
-              Tiếp tục làm bài
-            </button>
+              {em("Tiếp tục làm bài")}</button>
           )}
         </div>
       </div>

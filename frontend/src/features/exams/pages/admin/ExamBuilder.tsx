@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { examMessage as em, useExamLocale } from '../../../exam/i18n/examMessages';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, Save, AlignLeft, Settings, Image, Music, Zap, CheckCircle, FileText, Upload, Download, Edit3, ArrowUp } from 'lucide-react';
 import ExcelJS from 'exceljs';
@@ -402,6 +403,9 @@ export const EXAM_TYPE_OPTIONS: Record<string, string> = {
 export const normalizeExamType = (raw: string): string => {
   if (!raw) return 'IELTS_ACADEMIC';
   const clean = raw.trim().toUpperCase();
+  if (clean === 'NLTV_B1_C1' || clean === 'NLTV_A1_A2') return clean;
+  if (clean === 'NLTV (B1 - C1)' || clean === 'NLTV (B1-C1)') return 'NLTV_B1_C1';
+  if (clean === 'NLTV (A1 - A2)' || clean === 'NLTV (A1-A2)') return 'NLTV_A1_A2';
   if (
     clean === 'TOEIC' ||
     clean === 'TOEIC_LR' ||
@@ -1071,6 +1075,7 @@ const getNextStartForPart = (part: ExamPart, bounds: {start: number, end: number
 };
 
 const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onSave: (json: string) => void, onCancel: () => void }) => {
+  useExamLocale();
   const [examTitle, setExamTitle] = useState('Đề thi Mới');
   const [examType, setExamType] = useState('IELTS_ACADEMIC');
   const [examLanguage, setExamLanguage] = useState('en');
@@ -1345,7 +1350,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
   };
 
   // --- FULL TEMPLATE GENERATORS ---
-  const applyTemplate = (type: 'IELTS' | 'TOEIC' | 'TOEIC_WRITING' | 'NLTV') => {
+  const applyTemplate = (type: 'IELTS' | 'TOEIC' | 'TOEIC_WRITING' | 'NLTV' | 'NLTV_B1_C1' | 'NLTV_A1_A2') => {
     if (parts.length > 0 && !window.confirm(`Áp dụng Template ${type} sẽ xóa toàn bộ nội dung hiện tại. Bạn có chắc chắn?`)) return;
 
     const newParts: ExamPart[] = [];
@@ -1386,8 +1391,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         { group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_tw_008', type: 'WRITING_ESSAY', question_text: 'Write an essay...', metadata: { correct_answer: '', explanation: '' } }] }
       ] });
     }
-    else if (type === 'NLTV') {
-      setExamType('NLTV');
+    else if (type.startsWith('NLTV')) {
+      setExamType(type);
       setExamLanguage('vi');
       setExamTitle('Đánh giá Năng lực Tiếng Việt (NLTV)');
       setParts(getNltvTemplateParts(generateId));
@@ -2804,6 +2809,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('IELTS'); setWizardMode('BUILDER'); }}>Full IELTS Academic</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('TOEIC'); setWizardMode('BUILDER'); }}>Full TOEIC L&R</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('NLTV'); setWizardMode('BUILDER'); }}>Full NLTV</button>
+          <button className="btn btn-outline flex-center" onClick={() => { applyTemplate('NLTV_B1_C1'); setWizardMode('BUILDER'); }}>Full NLTV B1-C1</button>
           <button className="btn btn-outline flex-center" style={{ padding: '1rem', background: 'white', fontSize: '1rem', justifyContent: 'center' }} onClick={() => { applyTemplate('TOEIC_WRITING'); setWizardMode('BUILDER'); }}>Full TOEIC Writing</button>
         </div>
         <button className="btn" style={{ marginTop: '2rem' }} onClick={() => setWizardMode('START')}>Quay lại</button>
@@ -2926,8 +2932,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               <optgroup label="Năng Lực Tiếng Việt">
                 <option value="NLTV">Đánh giá Năng lực Tiếng Việt (NLTV)</option>
               </optgroup>
-              <optgroup label="Luyện ngôn ngữ">
-                <option value="LANGUAGE_PRACTICE">Luyện ngôn ngữ</option>
+              <optgroup label={em('Luyện ngôn ngữ')}>
+                <option value="LANGUAGE_PRACTICE">{em('Luyện ngôn ngữ')}</option>
               </optgroup>
               <optgroup label="Khác">
                 <option value="OTHER">Khác (Other)</option>
@@ -2937,7 +2943,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           {examType === 'LANGUAGE_PRACTICE' && (
             <div className="eb-info-title-group">
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Ngôn ngữ đề
+                {em('Ngôn ngữ đề')}
               </label>
               <select className="input-field" value={examLanguage} onChange={e => setExamLanguage(e.target.value)}>
                 <option value="en">English (en)</option><option value="vi">Tiếng Việt (vi)</option>

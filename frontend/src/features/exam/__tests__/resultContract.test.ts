@@ -75,6 +75,39 @@ describe('TV3-11 result projection', () => {
     const wire = attemptResultFixture(); Object.assign(wire.resultSummary, { writing: undefined });
     expect(normalizeAttemptResult(wire, 42)).toHaveProperty('resultSummary.writing', null);
   });
+
+  it.each(['PENDING', 'DONE'])('preserves independent CJK character and legacy word counts for %s Writing', status => {
+    const wire = attemptResultFixture();
+    wire.resultSummary.writing.status = status;
+    Object.assign(wire.resultSummary.writing.tasks[0], {
+      status, wordCount: 1,
+      lengthMetric: { value: 6, unit: 'CHARACTERS', policyVersion: 'TV3_LENGTH_V1' },
+      ...(status === 'DONE' ? {
+        score: 10, maxScore: 10, rubricCode: 'WRITING_GENERIC_V1',
+        scoreUnit: 'PRACTICE_0_10', feedbackLanguage: 'ja',
+      } : {}),
+    });
+    const original = structuredClone(wire);
+
+    expect(normalizeAttemptResult(wire, 42).resultSummary?.writing?.tasks[0]).toMatchObject({
+      wordCount: 1, lengthMetric: { value: 6, unit: 'CHARACTERS', policyVersion: 'TV3_LENGTH_V1' },
+    });
+    expect(wire).toEqual(original);
+  });
+
+  it.each([
+    { wordCount: -1 }, { wordCount: 1.5 },
+    { lengthMetric: { value: -1, unit: 'CHARACTERS', policyVersion: 'TV3_LENGTH_V1' } },
+    { lengthMetric: { value: 1.5, unit: 'CHARACTERS', policyVersion: 'TV3_LENGTH_V1' } },
+    { lengthMetric: { value: 6, unit: 'BYTES', policyVersion: 'TV3_LENGTH_V1' } },
+    { lengthMetric: { value: 6, unit: 'CHARACTERS', policyVersion: 'UNKNOWN' } },
+  ])('still rejects invalid independent Writing counts %j', override => {
+    const wire = attemptResultFixture();
+    Object.assign(wire.resultSummary.writing.tasks[0], {
+      wordCount: 1, lengthMetric: { value: 6, unit: 'CHARACTERS', policyVersion: 'TV3_LENGTH_V1' }, ...override,
+    });
+    expect(() => normalizeAttemptResult(wire, 42)).toThrow(ResultContractError);
+  });
 });
 
 describe('TV3-14 reviewParts contract', () => {

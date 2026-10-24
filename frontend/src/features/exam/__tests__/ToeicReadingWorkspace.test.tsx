@@ -331,9 +331,11 @@ describe('TW-08 reading helpers', () => {
     };
 
     expect(shouldShowAiLookup(selection, true)).toBe(true);
-    expect(shouldShowAiLookup(selection, true, 'vi')).toBe(false);
+    expect(shouldShowAiLookup(selection, true, 'vi')).toBe(true);
     expect(shouldShowAiLookup(selection, true, null)).toBe(false);
     expect(shouldShowAiLookup(selection, true, 'en-US')).toBe(true);
+    expect(shouldShowAiLookup({ ...selection, text: '水' }, true, 'ja')).toBe(true);
+    expect(shouldShowAiLookup({ ...selection, text: 'a' }, true, 'en')).toBe(true);
     expect(shouldShowAiLookup(selection, false)).toBe(false);
     expect(shouldShowAiLookup(null, true)).toBe(false);
     expect(shouldShowAiLookup({ ...selection, text: 'x'.repeat(81) }, true)).toBe(false);

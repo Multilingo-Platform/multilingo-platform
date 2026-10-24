@@ -64,7 +64,29 @@
     "profile_settings": "Hồ sơ & Cài đặt",
     "purchase_history": "Lịch sử mua gói",
     "default_user": "Người dùng",
-    "loading": "Đang tải..."
+    "loading": "Đang tải...",
+
+    "forgot_password_title": "Quên mật khẩu",
+    "forgot_password_desc_step1": "Nhập email của bạn để nhận mã OTP đặt lại mật khẩu.",
+    "forgot_password_desc_step2": "Nhập mã xác thực gồm 6 chữ số vừa được gửi về email của bạn.",
+    "forgot_password_desc_step3": "Thiết lập mật khẩu mới có ít nhất 6 ký tự cho tài khoản.",
+    "send_otp_btn": "Gửi mã xác nhận",
+    "continue_btn": "Tiếp tục",
+    "otp_sent_to": "Mã xác thực đã gửi đến",
+    "change_email": "Đổi email",
+    "otp_label": "Mã xác nhận (OTP)",
+    "otp_placeholder": "------",
+    "new_password_label": "Mật khẩu mới",
+    "confirm_new_password_label": "Xác nhận mật khẩu mới",
+    "save_new_password_btn": "Lưu thay đổi",
+    "resend_otp_countdown": "Gửi lại mã sau ({{count}}s)",
+    "resend_otp_now": "Gửi lại mã OTP",
+    "back_to_login": "Quay lại Đăng nhập",
+    "back_to_otp": "Quay lại bước trước",
+    "reset_password_success": "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.",
+    "otp_sent_success": "Mã OTP đã được gửi về email của bạn!",
+    "otp_required": "Vui lòng nhập đầy đủ mã OTP 6 số",
+    "password_min_length": "Mật khẩu phải từ 6 ký tự trở lên"
   },
   "billing": {
     "history_title": "Lịch sử mua gói cước",
@@ -218,7 +240,8 @@
       "cert": {
         "ielts": "IELTS",
         "toeic": "TOEIC",
-        "nltv": "Năng Lực Tiếng Việt (NLTV)"
+        "nltv": "Năng Lực Tiếng Việt (NLTV)",
+        "languagePractice": "Luyện ngôn ngữ"
       },
       "skill_title": "2. CHỌN KỸ NĂNG",
       "all_skills": "Tất cả kỹ năng (Full Test & Parts)",
@@ -229,6 +252,8 @@
       },
       "part_title": "3. CHỌN PHẦN THI (PART)",
       "all_parts": "Tất cả phần thi",
+      "language": "Ngôn ngữ đề",
+      "allLanguages": "Tất cả ngôn ngữ",
       "apply": "Áp dụng bộ lọc",
       "clear": "Xóa bộ lọc"
     },

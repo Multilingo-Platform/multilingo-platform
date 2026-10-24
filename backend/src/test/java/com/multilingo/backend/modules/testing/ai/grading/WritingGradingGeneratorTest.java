@@ -87,6 +87,27 @@ class WritingGradingGeneratorTest {
     }
 
     @Test
+    void nonEmptyJapaneseEssayDoesNotUseEnglishWhitespaceCutoff() {
+        WritingRubricPolicy policy = new WritingRubricRegistry(new com.multilingo.backend.common.i18n.LearningLanguageCatalog())
+                .resolve("LANGUAGE_PRACTICE", "ja");
+        var metric = new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count("水です", "ja");
+        WritingGradingContext context = new WritingGradingContext(8, "w_8", "WRITING", null, null,
+                "作文を書いてください", "水です", "ja", 3, List.of(), policy, "fr", metric);
+        String response = """
+                {"feedbackLanguage":"fr","criteria":[{"code":"TR","score":8,"feedback":"Bien."},{"code":"CC","score":8,"feedback":"Bien."},{"code":"LR","score":8,"feedback":"Bien."},{"code":"GRA","score":8,"feedback":"Bien."}],"overallFeedback":"Bon travail.","correctedEssay":"水です","corrections":[]}
+                """;
+        when(geminiClient.generate(any(GeminiGenerationRequest.class)))
+                .thenReturn(new GeminiGenerationResult(response, new GeminiGenerationResult.Usage(10, 10, 20)));
+
+        WritingGrade grade = generator.generate(context);
+
+        assertThat(grade.rubricCode()).isEqualTo("WRITING_GENERIC_V1");
+        assertThat(grade.overallScore()).isEqualByComparingTo("8.0");
+        assertThat(grade.feedbackLanguage()).isEqualTo("fr");
+        verify(geminiClient, times(1)).generate(any());
+    }
+
+    @Test
     @DisplayName("F5: Should pass pre-loaded GeminiImageParts and attach digests to WritingGrade")
     void generate_withPreLoadedImages_passesImagesToGeminiAndAttachesDigests() {
         WritingGradingContext context = new WritingGradingContext(

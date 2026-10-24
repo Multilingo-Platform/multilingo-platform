@@ -152,7 +152,7 @@ class WritingGradingEnqueuerTest {
         assertThat(job.getQuotaReserved()).isFalse();
         assertThat(job.getInputHash()).hasSize(64);
         assertThat(job.getContextJson()).containsEntry("rubricCode", "WRITING_EN_V1");
-        assertThat(job.getContextJson()).containsEntry("promptVersion", "v2");
+        assertThat(job.getContextJson()).containsEntry("promptVersion", "writing-grading-en-multilingual-feedback-v1");
         assertThat(job.getContextJson()).containsEntry("wordCount", 14);
         assertThat(job.getContextJson()).containsKey("lengthMetric");
         @SuppressWarnings("unchecked")
@@ -359,7 +359,7 @@ class WritingGradingEnqueuerTest {
 
         assertThat(jobs).hasSize(1);
         assertThat(jobs.get(0).getStatus()).isEqualTo(WritingGradingJobStatus.UNAVAILABLE);
-        assertThat(jobs.get(0).getLastErrorCode()).isEqualTo("UNSUPPORTED_LANGUAGE");
+        assertThat(jobs.get(0).getLastErrorCode()).isEqualTo("MULTILINGUAL_GRADING_DISABLED");
         assertThat(jobs.get(0).getQuotaReserved()).isFalse();
         verify(jobRepository, never()).save(argThat(job -> job.getStatus() == WritingGradingJobStatus.READY));
         verifyNoInteractions(attemptAnswerRepository);

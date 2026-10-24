@@ -14,6 +14,7 @@ import com.multilingo.backend.modules.auth.mapper.UserMapper;
 import com.multilingo.backend.modules.auth.repository.RoleRepository;
 import com.multilingo.backend.modules.auth.repository.UserRepository;
 import com.multilingo.backend.modules.auth.service.UserService;
+import com.multilingo.backend.modules.auth.service.EmailService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -42,6 +43,7 @@ public class UserServiceImpl implements UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     StringRedisTemplate stringRedisTemplate;
+    EmailService emailService;
 
     @Override
     @Transactional
@@ -142,11 +144,20 @@ public class UserServiceImpl implements UserService {
     public void forgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        
-        String otp = String.format("%06d", new Random().nextInt(999999));
+
+        String cooldownKey = "OTP_RESET_COOLDOWN:" + request.getEmail();
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(cooldownKey))) {
+            throw new AppException(ErrorCode.OTP_COOLDOWN_ACTIVE);
+        }
+
+        java.security.SecureRandom secureRandom = new java.security.SecureRandom();
+        String otp = String.format("%06d", secureRandom.nextInt(1_000_000));
+
         stringRedisTemplate.opsForValue().set("OTP_RESET_PWD:" + request.getEmail(), otp, 5, TimeUnit.MINUTES);
-        
-        log.info("Sending OTP {} to email {}", otp, request.getEmail());
+        stringRedisTemplate.opsForValue().set(cooldownKey, "1", 60, TimeUnit.SECONDS);
+        stringRedisTemplate.delete("OTP_RESET_ATTEMPTS:" + request.getEmail());
+
+        emailService.sendResetPasswordOtp(user.getEmail(), user.getFullName(), otp);
     }
 
     @Override
@@ -155,19 +166,30 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String otpInRedis = stringRedisTemplate.opsForValue().get("OTP_RESET_PWD:" + request.getEmail());
-        
+        String otpKey = "OTP_RESET_PWD:" + request.getEmail();
+        String otpInRedis = stringRedisTemplate.opsForValue().get(otpKey);
+
         if (otpInRedis == null) {
             throw new AppException(ErrorCode.OTP_EXPIRED);
         }
-        
+
         if (!otpInRedis.equals(request.getOtp())) {
+            String attemptKey = "OTP_RESET_ATTEMPTS:" + request.getEmail();
+            Long attempts = stringRedisTemplate.opsForValue().increment(attemptKey);
+            stringRedisTemplate.expire(attemptKey, 5, TimeUnit.MINUTES);
+
+            if (attempts != null && attempts >= 5) {
+                stringRedisTemplate.delete(otpKey);
+                throw new AppException(ErrorCode.OTP_MAX_ATTEMPTS_EXCEEDED);
+            }
             throw new AppException(ErrorCode.INVALID_OTP);
         }
-        
+
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        
-        stringRedisTemplate.delete("OTP_RESET_PWD:" + request.getEmail());
+
+        stringRedisTemplate.delete(otpKey);
+        stringRedisTemplate.delete("OTP_RESET_COOLDOWN:" + request.getEmail());
+        stringRedisTemplate.delete("OTP_RESET_ATTEMPTS:" + request.getEmail());
     }
 }

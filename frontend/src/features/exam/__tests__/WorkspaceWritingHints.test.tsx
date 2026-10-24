@@ -59,6 +59,7 @@ beforeEach(() => {
     attempt_id: 42, status: 'IN_PROGRESS', test_mode: 'PRACTICE', test_scope: 'FULL_EXAM',
     startTime: new Date().toISOString(), deadline: null, serverTime: new Date().toISOString(),
     gracePeriodSeconds: 15, serverTimeOffset: 0, lockedSections: [], version: 1, saved_answers: [],
+    languageContext: { policyVersion: 'TV3_LANG_V1', examLanguage: 'en', defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'fr'] },
     exam_snapshot: {
       exam_id: 1, code: 'WRITING', title: 'Writing test', type: 'IELTS',
       sections: [{ id: 3, title: 'Writing', skill_type: 'WRITING', parts: [{
@@ -101,7 +102,7 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
     expect(hints.generate).not.toHaveBeenCalled();
     open(2);
     fireEvent.click(screen.getByRole('button', { name: 'Tạo gợi ý' }));
-    expect(hints.generate).toHaveBeenCalledWith('writing-task-2', { learningLanguage: null, hintLanguage: null });
+    expect(hints.generate).toHaveBeenCalledWith('writing-task-2', { learningLanguage: 'en', hintLanguage: null });
   });
 
   it('passes actual part and the synchronous submission lock function before early returns', () => {
@@ -206,12 +207,13 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
     workspace.exam_snapshot.sections[0].parts.push({ ...structuredClone(workspace.exam_snapshot.sections[0].parts[0]), id: 40, title: 'Second part' });
     setup();
     open();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ học' }), { target: { value: 'fr' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' }), { target: { value: 'fr' } });
     fireEvent.click(screen.getByRole('button', { name: /Second part/ }));
     expect(screen.getByRole('button', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('aria-expanded', 'false');
     expect(vi.mocked(useWritingHints).mock.calls.at(-1)![0].partId).toBe(40);
     open();
-    expect(screen.getByRole('combobox', { name: 'Ngôn ngữ học' })).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: 'Ngôn ngữ học' })).toHaveValue('en');
+    expect(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' })).toHaveValue('');
   });
 
   it('routes a manual panel retry only to its question without changed language payload', () => {
@@ -219,7 +221,7 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
       error: { kind: 'request', action: 'retry', retryAt: null, message: 'Retry manually' } }));
     setup();
     open(2);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ học' }), { target: { value: 'fr' } });
+    expect(screen.getByRole('combobox', { name: 'Ngôn ngữ học' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
     expect(hints.retry).toHaveBeenCalledWith('writing-task-2');
     expect(hints.generate).not.toHaveBeenCalled();

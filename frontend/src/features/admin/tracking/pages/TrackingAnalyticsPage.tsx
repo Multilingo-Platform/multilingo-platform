@@ -56,7 +56,7 @@ export const TrackingAnalyticsPage = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Theo Dõi & Giám Sát Tiến Trình (A_Tracking)
+          Theo Dõi & Giám Sát Tiến Trình
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           Báo cáo thống kê: &quot;Đề này có bao nhiêu người làm&quot; (lượt thi, điểm TB, tỷ lệ hoàn tất) và &quot;Người này làm bao nhiêu đề&quot; (giờ học, điểm số học viên).

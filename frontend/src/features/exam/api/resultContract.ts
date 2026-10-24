@@ -70,7 +70,7 @@ function items<T>(value: unknown, normalize: (item: unknown) => T): T[] {
 }
 
 function writingStatus(value: unknown): ResultWritingStatus {
-  return enumeration(value, ['PENDING', 'QUEUED', 'FAILED', 'UNAVAILABLE']);
+  return enumeration(value, ['PENDING', 'QUEUED', 'DONE', 'FAILED', 'UNAVAILABLE']);
 }
 
 function normalizeSummary(value: unknown): ResultSummary {
@@ -99,11 +99,38 @@ function normalizeSummary(value: unknown): ResultSummary {
         requireValue(positiveId(task.partId));
         const questionId = text(task.questionId);
         const key = JSON.stringify([task.partId, questionId]);
-        requireValue(!seenTasks.has(key) && task.score === null && task.maxScore === null);
+        requireValue(!seenTasks.has(key));
         seenTasks.add(key);
+        let score: number | null = null;
+        let maxScore: number | null = null;
+        let rubricCode: 'WRITING_EN_V1' | 'WRITING_GENERIC_V1' | null = null;
+        let feedbackLanguage: string | null = null;
+        let scoreUnit: 'BAND_0_9' | 'PRACTICE_0_10' | null = null;
+        if (task.score !== null || task.maxScore !== null) {
+          requireValue(typeof task.score === 'number' && Number.isFinite(task.score) && task.score >= 0
+            && typeof task.maxScore === 'number' && Number.isFinite(task.maxScore));
+          requireValue((task.rubricCode === 'WRITING_EN_V1' && task.scoreUnit === 'BAND_0_9' && task.maxScore === 9)
+            || (task.rubricCode === 'WRITING_GENERIC_V1' && task.scoreUnit === 'PRACTICE_0_10' && task.maxScore === 10));
+          requireValue(task.score <= task.maxScore && Number.isInteger(task.score * 2));
+          requireValue(typeof task.feedbackLanguage === 'string' && task.feedbackLanguage.trim().length > 0);
+          score = task.score;
+          maxScore = task.maxScore;
+          rubricCode = task.rubricCode;
+          feedbackLanguage = task.feedbackLanguage;
+          scoreUnit = task.scoreUnit;
+        } else {
+          requireValue(task.score === null && task.maxScore === null && task.rubricCode == null
+            && task.feedbackLanguage == null && task.scoreUnit == null);
+        }
+        let lengthMetric: NonNullable<ResultSummary['writing']>['tasks'][number]['lengthMetric'] = null;
+        if (task.lengthMetric != null) {
+          const metric = record(task.lengthMetric);
+          requireValue(metric.policyVersion === 'TV3_LENGTH_V1' && (metric.unit === 'WORDS' || metric.unit === 'CHARACTERS'));
+          lengthMetric = { value: count(metric.value), unit: metric.unit, policyVersion: 'TV3_LENGTH_V1' };
+        }
         return {
           partId: task.partId, questionId, label: text(task.label), status: writingStatus(task.status),
-          wordCount: count(task.wordCount), score: null, maxScore: null,
+          wordCount: count(task.wordCount), lengthMetric, score, maxScore, rubricCode, feedbackLanguage, scoreUnit,
         };
       }),
     };

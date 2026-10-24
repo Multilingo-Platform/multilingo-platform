@@ -17,6 +17,16 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class WritingGradingContextReaderTest {
+    @Test
+    void englishGenericShortEssayRetainsItsImageContext() {
+        Map<String, Object> question = Map.of("question_id", "w_1", "type", "ESSAY", "prompt", "Describe the image.",
+                "shared_media", Map.of("type", "image", "url", "https://cdn.example.test/chart.png"));
+        Map<String, Object> snapshot = new LinkedHashMap<>(createWritingSnapshot("en", Map.of("questions", List.of(question))));
+        snapshot.put("type", "LANGUAGE_PRACTICE");
+        var decision = readerWithImagesEnabled.read(createAttempt(snapshot), 10, "w_1", createAnswers(10, "w_1", "One word"));
+        assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
+        assertThat(((ContextDecision.Eligible) decision).context().imageCount()).isEqualTo(1);
+    }
 
     private WritingGradingContextReader reader;
     private WritingGradingContextReader readerWithImagesEnabled;
@@ -169,8 +179,8 @@ class WritingGradingContextReaderTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"vi", "fr", "ja", "de", "es", "zh"})
-    @DisplayName("Should return Unavailable when examLanguage is not English")
-    void read_nonEnglishLanguage_returnsUnavailable(String lang) {
+    @DisplayName("Should allow configured non-English source languages for generic rubric policy")
+    void read_nonEnglishLanguage_returnsEligible(String lang) {
         Map<String, Object> questionMap = new LinkedHashMap<>();
         questionMap.put("question_id", "w_1");
         questionMap.put("type", "ESSAY");
@@ -183,9 +193,28 @@ class WritingGradingContextReaderTest {
         List<AttemptAnswer> answers = createAnswers(10, "w_1", "Some valid long essay written in another language for test.");
 
         ContextDecision decision = reader.read(attempt, 10, "w_1", answers);
-        assertThat(decision).isInstanceOf(ContextDecision.Unavailable.class);
-        ContextDecision.Unavailable unavail = (ContextDecision.Unavailable) decision;
-        assertThat(unavail.reasonCode()).isEqualTo("UNSUPPORTED_LANGUAGE");
+        assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
+        assertThat(((ContextDecision.Eligible) decision).context().learningLanguage()).isEqualTo(lang);
+    }
+
+    @Test
+    void read_shortJapaneseEssayDoesNotApplyEnglishTenWordCutoff() {
+        Map<String, Object> question = new LinkedHashMap<>();
+        question.put("question_id", "w_1");
+        question.put("type", "ESSAY");
+        question.put("prompt", "作文を書いてください。");
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("questions", List.of(question));
+        TestAttempt attempt = createAttempt(createWritingSnapshot("ja", content));
+
+        ContextDecision decision = reader.read(attempt, 10, "w_1", createAnswers(10, "w_1", "水です"));
+
+        assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
+        WritingGradingContext context = ((ContextDecision.Eligible) decision).context();
+        assertThat(context.originalText()).isEqualTo("水です");
+        assertThat(context.lengthMetric()).isNotNull();
+        assertThat(context.lengthMetric().value()).isEqualTo(3);
+        assertThat(context.lengthMetric().unit()).isEqualTo(com.multilingo.backend.modules.testing.util.WritingLengthCounter.Unit.CHARACTERS);
     }
 
     @Test

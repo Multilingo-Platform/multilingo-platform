@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ExamOption } from '../../types/exam.types';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 const MatchingInformationRenderer: React.FC<Props> = ({ options, value, onChange, disabled }) => {
+  useExamLocale();
   const defaultLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
   const normalizedOptions: { letter: string; label: string }[] = (
@@ -18,12 +20,12 @@ const MatchingInformationRenderer: React.FC<Props> = ({ options, value, onChange
             const trimmed = opt.trim();
             const letterMatch = trimmed.match(/^[A-Z]$/i) || trimmed.match(/^(?:Section|Paragraph|Đoạn)\s*([A-Z])/i);
             const letter = letterMatch ? (letterMatch[1] || letterMatch[0]).toUpperCase() : String.fromCharCode(65 + idx);
-            return { letter, label: trimmed || `Đoạn ${letter}` };
+            return { letter, label: trimmed || em("Đoạn {{v0}}", { v0: letter }) };
           }
           const letter = (opt.id || String.fromCharCode(65 + idx)).trim().toUpperCase();
-          return { letter, label: opt.text || `Đoạn ${letter}` };
+          return { letter, label: opt.text || em("Đoạn {{v0}}", { v0: letter }) };
         })
-      : defaultLetters.map(letter => ({ letter, label: `Đoạn ${letter}` }))
+      : defaultLetters.map(letter => ({ letter, label: em("Đoạn {{v0}}", { v0: letter }) }))
   );
 
   const handleSelect = (letter: string) => {
@@ -39,11 +41,10 @@ const MatchingInformationRenderer: React.FC<Props> = ({ options, value, onChange
     <div className="my-2.5">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          Chọn đoạn văn chứa thông tin:
-        </span>
+          {em("Chọn đoạn văn chứa thông tin:")}</span>
         {value && (
           <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-            Đã chọn: Đoạn {value}
+            {em("Đã chọn: Đoạn")}{' '}{value}
           </span>
         )}
       </div>

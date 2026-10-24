@@ -15,6 +15,7 @@ import {
 } from './fixtures/writingFeedback';
 import { REFRESH_WARNING_MESSAGE } from '../utils/writingFeedbackErrors';
 import { formatBandScore } from '../utils/writingFeedbackPresentation';
+import i18n from '../../../i18n';
 
 vi.mock('../../../core/api/axiosClient', () => ({
   default: {
@@ -74,7 +75,8 @@ function mount(initialPath = '/attempts/42/result', strict = false) {
 }
 
 describe('TV3-21 real result page writing feedback contract integration', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('vi');
     vi.resetAllMocks();
     localStorage.clear();
   });
@@ -102,7 +104,7 @@ describe('TV3-21 real result page writing feedback contract integration', () => 
     await screen.findByRole('heading', { name: 'Kết quả thi thử #42' });
 
     // WritingResultSummary is rendered
-    expect(screen.getByRole('heading', { name: 'Writing' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Kết quả Writing' })).toBeInTheDocument();
     expect(screen.getByText('Chưa có điểm')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument(); // Word count from backend result
 

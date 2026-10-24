@@ -5,6 +5,9 @@ import com.multilingo.backend.modules.testing.adapter.WritingGradingQuotaAdapter
 import com.multilingo.backend.modules.testing.ai.gemini.GeminiProperties;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGrade;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGradingContext;
+import com.multilingo.backend.modules.testing.ai.grading.WritingGradingContextCodec;
+import com.multilingo.backend.modules.testing.ai.grading.WritingGradingResultCodec;
+import com.multilingo.backend.modules.testing.util.WritingLengthCounter;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGradingFailure;
 import com.multilingo.backend.modules.testing.ai.grading.WritingImageRef;
 import com.multilingo.backend.modules.testing.ai.media.ImageFetchProperties;
@@ -40,6 +43,9 @@ import java.util.*;
  */
 @Component
 public class WritingGradingTransactionCoordinator {
+
+    private final WritingGradingContextCodec contextCodec = new WritingGradingContextCodec();
+    private final WritingGradingResultCodec resultCodec = new WritingGradingResultCodec();
 
     private final WritingGradingJobRepository jobRepository;
     private final TestAttemptRepository testAttemptRepository;
@@ -324,7 +330,12 @@ public class WritingGradingTransactionCoordinator {
 
         // Merge aiFeedback under attempt lock
         @SuppressWarnings("unchecked")
-        Map<String, Object> gradeMap = objectMapper.convertValue(grade, Map.class);
+        Map<String, Object> rawGradeMap = objectMapper.convertValue(grade, Map.class);
+        Map<String, Object> gradeMap = claim.context() != null && claim.context().rubricPolicy() != null
+                ? resultCodec.encode(rawGradeMap, claim.context().rubricPolicy(), claim.context().feedbackLanguage(),
+                    claim.context().lengthMetric() != null ? claim.context().lengthMetric()
+                            : new WritingLengthCounter().count(claim.context().originalText(), claim.context().learningLanguage()))
+                : rawGradeMap;
         mergeAiFeedback(attempt, claim.partId(), claim.questionId(), gradeMap);
 
         // Update Job
@@ -613,7 +624,7 @@ public class WritingGradingTransactionCoordinator {
                     .toList();
         }
 
-        return new WritingGradingContext(
+        WritingGradingContext base = new WritingGradingContext(
                 partId,
                 questionId,
                 partTitle,
@@ -625,5 +636,19 @@ public class WritingGradingTransactionCoordinator {
                 wordCount,
                 images
         );
+        WritingGradingContextCodec.Decoded decoded = contextCodec.decode(map);
+        if (decoded.legacy() || decoded.policy() == null) return base;
+        WritingLengthCounter.WritingLengthMetric metric = readLengthMetric(map.get("lengthMetric"), learningLanguage);
+        return base.withPolicy(decoded.policy(), decoded.feedbackLanguage(), metric);
+    }
+
+    private WritingLengthCounter.WritingLengthMetric readLengthMetric(Object raw, String language) {
+        if (!(raw instanceof Map<?, ?> metric)) return new WritingLengthCounter().count("", language);
+        int value = metric.get("value") instanceof Number number ? Math.max(0, number.intValue()) : 0;
+        WritingLengthCounter.Unit unit;
+        try { unit = WritingLengthCounter.Unit.valueOf(String.valueOf(metric.get("unit"))); }
+        catch (RuntimeException exception) { throw new IllegalArgumentException("Writing grading length metric is invalid"); }
+        if (!"TV3_LENGTH_V1".equals(metric.get("policyVersion"))) throw new IllegalArgumentException("Writing grading length metric is invalid");
+        return new WritingLengthCounter.WritingLengthMetric(value, unit, "TV3_LENGTH_V1");
     }
 }

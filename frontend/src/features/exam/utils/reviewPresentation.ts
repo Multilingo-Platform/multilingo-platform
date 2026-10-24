@@ -1,3 +1,4 @@
+import { examMessage as em } from '../i18n/examMessages';
 import type { ReviewQuestionDto, ReviewVerdict, ResultSummary, ResultWritingStatus } from '../types/api.types';
 
 /**
@@ -6,15 +7,15 @@ import type { ReviewQuestionDto, ReviewVerdict, ResultSummary, ResultWritingStat
  */
 export function formatUserAnswer(answer: unknown): string {
   if (answer === null || answer === undefined) {
-    return 'Chưa trả lời';
+    return em("Chưa trả lời");
   }
 
   if (typeof answer === 'string') {
-    return answer.trim().length === 0 ? 'Chưa trả lời' : answer;
+    return answer.trim().length === 0 ? em("Chưa trả lời") : answer;
   }
 
   if (typeof answer === 'boolean') {
-    return answer ? 'Đúng' : 'Sai';
+    return answer ? em("Đúng") : em("Sai");
   }
 
   if (typeof answer === 'number') {
@@ -22,16 +23,16 @@ export function formatUserAnswer(answer: unknown): string {
   }
 
   if (Array.isArray(answer)) {
-    if (answer.length === 0) return 'Chưa trả lời';
+    if (answer.length === 0) return em("Chưa trả lời");
     const nonNullItems = answer
       .filter((item) => item !== null && item !== undefined && String(item).trim().length > 0)
       .map(String);
-    return nonNullItems.length === 0 ? 'Chưa trả lời' : nonNullItems.join(', ');
+    return nonNullItems.length === 0 ? em("Chưa trả lời") : nonNullItems.join(', ');
   }
 
   if (typeof answer === 'object') {
     const entries = Object.entries(answer as Record<string, unknown>);
-    if (entries.length === 0) return 'Chưa trả lời';
+    if (entries.length === 0) return em("Chưa trả lời");
     return entries.map(([key, val]) => `${key}: ${String(val)}`).join('\n');
   }
 
@@ -44,15 +45,15 @@ export function formatUserAnswer(answer: unknown): string {
  */
 export function formatCorrectAnswer(answer: unknown): string {
   if (answer === null || answer === undefined) {
-    return 'Chưa có dữ liệu';
+    return em("Chưa có dữ liệu");
   }
 
   if (typeof answer === 'string') {
-    return answer.trim().length === 0 ? 'Chưa có dữ liệu' : answer;
+    return answer.trim().length === 0 ? em("Chưa có dữ liệu") : answer;
   }
 
   if (typeof answer === 'boolean') {
-    return answer ? 'Đúng' : 'Sai';
+    return answer ? em("Đúng") : em("Sai");
   }
 
   if (typeof answer === 'number') {
@@ -60,16 +61,16 @@ export function formatCorrectAnswer(answer: unknown): string {
   }
 
   if (Array.isArray(answer)) {
-    if (answer.length === 0) return 'Chưa có dữ liệu';
+    if (answer.length === 0) return em("Chưa có dữ liệu");
     const items = answer
       .filter((item) => item !== null && item !== undefined && String(item).trim().length > 0)
       .map(String);
-    return items.length === 0 ? 'Chưa có dữ liệu' : items.join(', ');
+    return items.length === 0 ? em("Chưa có dữ liệu") : items.join(', ');
   }
 
   if (typeof answer === 'object') {
     const entries = Object.entries(answer as Record<string, unknown>);
-    if (entries.length === 0) return 'Chưa có dữ liệu';
+    if (entries.length === 0) return em("Chưa có dữ liệu");
     return entries.map(([key, val]) => `${key}: ${String(val)}`).join('\n');
   }
 
@@ -112,7 +113,7 @@ export function getVerdictBadgeInfo(verdict?: ReviewVerdict | string): VerdictBa
   switch (verdict) {
     case 'CORRECT':
       return {
-        label: 'Chính xác',
+        label: em("Chính xác"),
         bgClass: 'bg-green-100',
         textClass: 'text-green-800',
         borderClass: 'border-green-300',
@@ -120,7 +121,7 @@ export function getVerdictBadgeInfo(verdict?: ReviewVerdict | string): VerdictBa
       };
     case 'WRONG':
       return {
-        label: 'Chưa chính xác',
+        label: em("Chưa chính xác"),
         bgClass: 'bg-red-100',
         textClass: 'text-red-800',
         borderClass: 'border-red-300',
@@ -128,7 +129,7 @@ export function getVerdictBadgeInfo(verdict?: ReviewVerdict | string): VerdictBa
       };
     case 'BLANK':
       return {
-        label: 'Chưa làm',
+        label: em("Chưa làm"),
         bgClass: 'bg-slate-100',
         textClass: 'text-slate-700',
         borderClass: 'border-slate-300',
@@ -136,7 +137,7 @@ export function getVerdictBadgeInfo(verdict?: ReviewVerdict | string): VerdictBa
       };
     case 'PENDING':
       return {
-        label: 'Đang chấm',
+        label: em("Đang chấm"),
         bgClass: 'bg-amber-100',
         textClass: 'text-amber-800',
         borderClass: 'border-amber-300',
@@ -144,7 +145,7 @@ export function getVerdictBadgeInfo(verdict?: ReviewVerdict | string): VerdictBa
       };
     default:
       return {
-        label: 'Chưa xác định',
+        label: em("Chưa xác định"),
         bgClass: 'bg-slate-100',
         textClass: 'text-slate-600',
         borderClass: 'border-slate-300',
@@ -185,7 +186,7 @@ export function getWritingEvaluationStatus(
   if (!resultSummary?.writing?.tasks || !Array.isArray(resultSummary.writing.tasks)) {
     return {
       status: 'UNAVAILABLE',
-      label: 'Chưa có thông tin chấm bài',
+      label: em("Chưa có thông tin chấm bài"),
       score: null,
       wordCount: null,
     };
@@ -198,7 +199,7 @@ export function getWritingEvaluationStatus(
   if (!task) {
     return {
       status: 'UNAVAILABLE',
-      label: 'Chưa có thông tin chấm bài',
+      label: em("Chưa có thông tin chấm bài"),
       score: null,
       wordCount: null,
     };
@@ -206,13 +207,13 @@ export function getWritingEvaluationStatus(
 
   switch (task.status) {
     case 'PENDING':
-      return { status: 'PENDING', label: 'Đang chấm', score: null, wordCount: task.wordCount };
+      return { status: 'PENDING', label: em("Đang chấm"), score: null, wordCount: task.wordCount };
     case 'QUEUED':
-      return { status: 'QUEUED', label: 'Đang chờ chấm', score: null, wordCount: task.wordCount };
+      return { status: 'QUEUED', label: em("Đang chờ chấm"), score: null, wordCount: task.wordCount };
     case 'FAILED':
-      return { status: 'FAILED', label: 'Chấm điểm không thành công', score: null, wordCount: task.wordCount };
+      return { status: 'FAILED', label: em("Chấm điểm không thành công"), score: null, wordCount: task.wordCount };
     case 'UNAVAILABLE':
     default:
-      return { status: 'UNAVAILABLE', label: 'Chưa có thông tin chấm bài', score: null, wordCount: task.wordCount };
+      return { status: 'UNAVAILABLE', label: em("Chưa có thông tin chấm bài"), score: null, wordCount: task.wordCount };
   }
 }

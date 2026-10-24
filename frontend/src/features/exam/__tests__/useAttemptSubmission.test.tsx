@@ -17,11 +17,11 @@ const workspace: WorkspaceResponse = {
   gracePeriodSeconds: 15, lockedSections: [], version: 7, saved_answers: [], serverTimeOffset: 0,
   exam_snapshot: { exam_id: 1, code: 'T', type: 'IELTS', title: 'Exam', sections: [] },
 };
-function setup(data = workspace) {
+function setup(data = workspace, feedbackLanguage: string | null = null) {
   const store = createTestStore({ answers: { ...initialState, attemptId: 42, version: 7, isDirty: true, pendingVersion: 1, answers: { 10: { essay: '  Bài viết B  ', clear: null } } } });
   const hook = renderHook(({ data }) => {
     const autosave = useAutosave(data?.attempt_id ?? null, data ?? undefined);
-    return useAttemptSubmission(data, autosave);
+    return useAttemptSubmission(data, autosave, feedbackLanguage);
   }, { initialProps: { data: data as WorkspaceResponse | null }, wrapper: ({ children }) => <Provider store={store}>{children}</Provider> });
   return { ...hook, store };
 }
@@ -32,6 +32,12 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('useAttemptSubmission', () => {
+  it('freezes the selected feedback language into the first manual submit only', async () => {
+    const { result } = setup(workspace, 'ja');
+    await act(async () => { await result.current.submit('MANUAL'); });
+    expect(vi.mocked(submitAttempt).mock.calls[0][1]).toMatchObject({ feedbackLanguage: 'ja' });
+  });
+
   it('posts full finalAnswers without an extra PUT and keeps the backup after success', async () => {
     const { result } = setup();
     await act(async () => { await result.current.submit('MANUAL'); });

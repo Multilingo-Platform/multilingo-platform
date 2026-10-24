@@ -1,4 +1,7 @@
+import { examErrorMessage as ee } from '../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   CreateAttemptRequest,
   LearnerExamStructureSection,
@@ -104,7 +107,7 @@ const StepHeader = ({ num, label }: { num: number; label: string }) => (
       fontSize: '0.7rem', fontWeight: 800, flexShrink: 0,
     }}>{num}</span>
     <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#374151' }}>
-      {label}
+      {em(label)}
     </span>
   </div>
 );
@@ -127,6 +130,9 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   isLoading,
   error,
 }) => {
+  useExamLocale();
+  const { t } = useTranslation('exam');
+  const singlePartLabel = t('scope.singlePart');
   const [scope, setScope] = useState<TestScope | ''>(initialScope || '');
   const [mode, setMode] = useState<TestMode | ''>(initialMode || '');
   const [sectionId, setSectionId] = useState('');
@@ -157,7 +163,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      aria-label="Thiết lập phiên thi"
+      aria-label={em("Thiết lập phiên thi")}
       aria-busy={isLoading ? 'true' : 'false'}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0 }}
     >
@@ -166,7 +172,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
 
         {/* Step 1: Scope */}
         <div>
-          <StepHeader num={1} label="Chọn phạm vi bài thi" />
+          <StepHeader num={1} label={em("Chọn phạm vi bài thi")} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
             {SCOPE_OPTIONS.map((opt) => (
               <button
@@ -176,8 +182,8 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
                 onClick={() => { setScope(opt.value); setSectionId(''); setPartId(''); }}
                 style={scope === opt.value ? scopeButtonActive : scopeButtonBase}
               >
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.8rem', color: '#111827', marginBottom: '0.125rem' }}>{opt.label}</div>
-                <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>{opt.desc}</div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.8rem', color: '#111827', marginBottom: '0.125rem' }}>{opt.value === 'SINGLE_PART' ? singlePartLabel : em(opt.label)}</div>
+                <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>{em(opt.desc)}</div>
               </button>
             ))}
           </div>
@@ -187,8 +193,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
         {needsSection && (
           <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
             <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Kỹ năng:
-            </div>
+              {em("Kỹ năng:")}</div>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {sections.map((sec) => (
                 <button
@@ -209,12 +214,10 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
         {needsPart && sectionId && (
           <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
             <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Phần:
-            </div>
+              {em("Phần:")}</div>
             {(!selectedSection || selectedSection.parts.length === 0) ? (
               <div role="status" style={{ fontSize: '0.8rem', color: '#6b7280', fontStyle: 'italic', padding: '0.25rem 0' }}>
-                Kỹ năng này chưa có phần thi nào
-              </div>
+                {em("Kỹ năng này chưa có phần thi nào")}</div>
             ) : (
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {selectedSection.parts.map((part) => (
@@ -235,7 +238,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
 
         {/* Step 2: Mode */}
         <div>
-          <StepHeader num={2} label="Chọn chế độ làm bài" />
+          <StepHeader num={2} label={em("Chọn chế độ làm bài")} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
             {MODE_OPTIONS.map((opt) => {
               const isActive = mode === opt.value;
@@ -255,8 +258,8 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
                     transition: 'background 0.15s',
                   }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.82rem', color: '#111827' }}>{opt.label}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4, marginTop: '0.0625rem' }}>{opt.desc}</div>
+                    <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.82rem', color: '#111827' }}>{em(opt.label)}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4, marginTop: '0.0625rem' }}>{em(opt.desc)}</div>
                   </div>
                 </button>
               );
@@ -272,7 +275,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
             background: '#fee2e2', border: '1px solid #fca5a5',
             borderRadius: '0.5rem', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 500,
           }}>
-            ⚠ {error}
+            ⚠ {ee(error)}
           </div>
         )}
 
@@ -299,9 +302,8 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
         >
           {isLoading ? (
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <Spinner /> Đang tạo phiên thi...
-            </span>
-          ) : 'Bắt đầu làm bài →'}
+              <Spinner /> {em("Đang tạo phiên thi...")}</span>
+          ) : em("Bắt đầu làm bài →")}
         </button>
       </div>
     </form>

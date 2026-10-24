@@ -106,12 +106,37 @@ public record WritingGrade(
      * Factory for short essays (<= 10 words) receiving an automatic 0.0 score without calling provider or quota.
      */
     public static WritingGrade tooShort(String originalEssay) {
+        return tooShort(originalEssay, DEFAULT_LANGUAGE);
+    }
+
+    public static WritingGrade tooShort(String originalEssay, String feedbackLanguage) {
         String safeEssay = (originalEssay == null) ? "" : originalEssay;
+        String canonicalLanguage = feedbackLanguage == null ? "vi" : feedbackLanguage.split("[-_]", 2)[0].toLowerCase(java.util.Locale.ROOT);
+        String prefix = switch (canonicalLanguage) {
+            case "en" -> "The essay is too short to evaluate this criterion.";
+            case "ko" -> "에세이가 너무 짧아 이 기준을 평가하기 어렵습니다.";
+            case "zh" -> "文章太短，无法根据此项标准进行评估。";
+            case "ja" -> "文章が短すぎるため、この基準を評価できません。";
+            case "fr" -> "Le texte est trop court pour évaluer ce critère.";
+            case "de" -> "Der Text ist zu kurz, um dieses Kriterium zu bewerten.";
+            case "es" -> "El texto es demasiado corto para evaluar este criterio.";
+            default -> "Bài viết quá ngắn để đánh giá tiêu chí này.";
+        };
+        String overall = switch (canonicalLanguage) {
+            case "en" -> "The essay is too short to grade reliably (10 words or fewer).";
+            case "ko" -> "에세이가 너무 짧아 신뢰성 있게 평가할 수 없습니다(10단어 이하).";
+            case "zh" -> "文章太短，无法可靠评分（不超过10个词）。";
+            case "ja" -> "文章が短すぎるため、信頼できる採点ができません（10語以下）。";
+            case "fr" -> "Le texte est trop court pour être évalué de façon fiable (10 mots ou moins).";
+            case "de" -> "Der Text ist zu kurz für eine zuverlässige Bewertung (höchstens 10 Wörter).";
+            case "es" -> "El texto es demasiado corto para una evaluación fiable (10 palabras o menos).";
+            default -> "Bài viết của bạn quá ngắn (không quá 10 từ), chưa đủ nội dung để chấm đáng tin cậy.";
+        };
         List<CriterionGrade> zeroCriteria = List.of(
-                new CriterionGrade("TR", BigDecimal.ZERO, "Bài viết quá ngắn (≤ 10 từ), không đủ nội dung để đánh giá Task Response."),
-                new CriterionGrade("CC", BigDecimal.ZERO, "Bài viết quá ngắn (≤ 10 từ), không thể đánh giá tính mạch lạc và liên kết."),
-                new CriterionGrade("LR", BigDecimal.ZERO, "Bài viết quá ngắn (≤ 10 từ), vốn từ vựng chưa đủ để xếp thang điểm."),
-                new CriterionGrade("GRA", BigDecimal.ZERO, "Bài viết quá ngắn (≤ 10 từ), chưa đủ cấu trúc câu để đánh giá ngữ pháp.")
+                new CriterionGrade("TR", BigDecimal.ZERO, prefix),
+                new CriterionGrade("CC", BigDecimal.ZERO, prefix),
+                new CriterionGrade("LR", BigDecimal.ZERO, prefix),
+                new CriterionGrade("GRA", BigDecimal.ZERO, prefix)
         );
         List<DiffSegment> equalDiff = safeEssay.isEmpty()
                 ? List.of()
@@ -119,16 +144,28 @@ public record WritingGrade(
 
         return new WritingGrade(
                 DEFAULT_RUBRIC,
-                DEFAULT_LANGUAGE,
+                feedbackLanguage == null ? DEFAULT_LANGUAGE : feedbackLanguage,
                 BigDecimal.ZERO,
                 zeroCriteria,
-                "Bài viết của bạn quá ngắn (không quá 10 từ), không đủ dung lượng tối thiểu để tiến hành chấm điểm bài luận.",
+                overall,
                 safeEssay,
                 List.of(),
                 equalDiff,
                 null,
                 List.of()
         );
+    }
+
+    public static WritingGrade emptyEssay(String originalEssay, WritingRubricPolicy policy, String feedbackLanguage) {
+        String safeEssay = originalEssay == null ? "" : originalEssay;
+        List<CriterionGrade> emptyCriteria = List.of(
+                new CriterionGrade("TR", BigDecimal.ZERO, ""),
+                new CriterionGrade("CC", BigDecimal.ZERO, ""),
+                new CriterionGrade("LR", BigDecimal.ZERO, ""),
+                new CriterionGrade("GRA", BigDecimal.ZERO, "")
+        );
+        return new WritingGrade(policy.rubricCode(), feedbackLanguage, BigDecimal.ZERO, emptyCriteria,
+                "", safeEssay, List.of(), safeEssay.isEmpty() ? List.of() : List.of(new DiffSegment(DiffType.EQUAL, safeEssay)), null, List.of());
     }
 
     @Override

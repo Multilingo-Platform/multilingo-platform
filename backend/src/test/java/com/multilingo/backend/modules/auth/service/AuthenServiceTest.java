@@ -49,6 +49,9 @@ class AuthenServiceTest {
     @Mock
     private com.multilingo.backend.modules.auth.repository.RefreshTokenRepository refreshTokenRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
+
     @InjectMocks
     private AuthenServiceImpl authenService;
 
@@ -82,6 +85,33 @@ class AuthenServiceTest {
         verify(passwordEncoder).matches("password", "hashedPassword");
         verify(jwtTokenProvider).generateToken(mockUser);
         verify(refreshTokenRepository).save(any(com.multilingo.backend.modules.auth.entity.RefreshToken.class));
+    }
+
+    @Test
+    void login_Success_withIpAndDeviceInfo_PublishesEventAndSavesIp() {
+        // Arrange
+        LoginRequest request = new LoginRequest("test@gmail.com", "password");
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches("password", "hashedPassword")).thenReturn(true);
+        when(jwtTokenProvider.generateToken(mockUser)).thenReturn("mockJwtToken");
+        when(refreshTokenRepository.save(any(com.multilingo.backend.modules.auth.entity.RefreshToken.class))).thenReturn(null);
+
+        // Act
+        AuthenticationResponse response = authenService.login(request, "192.168.1.100", "MacBook Chrome");
+
+        // Assert
+        assertNotNull(response);
+        assertEquals("192.168.1.100", mockUser.getLastLoginIp());
+        verify(userRepository).save(mockUser);
+
+        org.mockito.ArgumentCaptor<com.multilingo.backend.modules.auth.event.UserLoginEvent> eventCaptor =
+                org.mockito.ArgumentCaptor.forClass(com.multilingo.backend.modules.auth.event.UserLoginEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        com.multilingo.backend.modules.auth.event.UserLoginEvent captured = eventCaptor.getValue();
+        assertEquals(1, captured.userId());
+        assertEquals("192.168.1.100", captured.ipAddress());
+        assertEquals("MacBook Chrome", captured.deviceInfo());
+        assertEquals("SUCCESS", captured.status());
     }
 
     @Test

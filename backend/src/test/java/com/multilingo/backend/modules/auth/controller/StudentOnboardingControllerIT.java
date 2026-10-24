@@ -159,6 +159,6 @@ class StudentOnboardingControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(923));
+                .andExpect(jsonPath("$.code").value(ErrorCode.LANGUAGE_SAME.getCode()));
     }
 }

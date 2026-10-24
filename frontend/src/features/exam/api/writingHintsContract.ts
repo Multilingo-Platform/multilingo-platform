@@ -4,6 +4,12 @@ import type {
   WritingHintsResponse,
   WritingHintsVocabularyItem,
 } from '../types/api.types';
+import {
+  canonicalizeBcp47LanguageTag,
+  canonicalizeLearningLanguage,
+} from '../../../core/i18n/learningLanguages';
+
+export const canonicalizeLanguageTag = canonicalizeLearningLanguage;
 
 export class WritingHintsContractError extends Error {
   constructor(message: string = 'Dữ liệu gợi ý bài viết không hợp lệ. Vui lòng thử lại.') {
@@ -12,24 +18,6 @@ export class WritingHintsContractError extends Error {
     Object.setPrototypeOf(this, WritingHintsContractError.prototype);
   }
 }
-
-const SUPPORTED_BASE_LANGUAGES: ReadonlySet<string> = new Set([
-  'en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es',
-]);
-
-const ISO3_ALIASES: Readonly<Record<string, string>> = Object.freeze({
-  eng: 'en',
-  vie: 'vi',
-  fra: 'fr',
-  fre: 'fr',
-  deu: 'de',
-  ger: 'de',
-  spa: 'es',
-  kor: 'ko',
-  zho: 'zh',
-  chi: 'zh',
-  jpn: 'ja',
-});
 
 const UUID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const ISO_TIMESTAMP_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/;
@@ -76,61 +64,6 @@ export function createWritingHintsRequestId(): string {
     return globalThis.crypto.randomUUID().toLowerCase();
   }
   throw new WritingHintsContractError('Không thể tạo định danh yêu cầu an toàn.');
-}
-
-/**
- * Validate the v1 BCP 47 grammar independently of frontend language labels.
- * Backend-resolved languages may be outside the frontend selection catalog.
- */
-function canonicalizeBcp47Tag(rawTag: unknown): string | null {
-  if (typeof rawTag !== 'string') {
-    return null;
-  }
-  const tag = rawTag.trim();
-  if (tag.length === 0) {
-    return null;
-  }
-
-  // Từ chối ký tự gạch dưới, wildcard, dấu gạch đôi, hoặc gạch nối ở đầu/cuối
-  if (
-    tag.includes('_') ||
-    tag.includes('*') ||
-    tag.includes('--') ||
-    tag.startsWith('-') ||
-    tag.endsWith('-')
-  ) {
-    return null;
-  }
-
-  const lowerTag = tag.toLowerCase();
-  if (
-    lowerTag === 'und' ||
-    lowerTag.startsWith('und-') ||
-    lowerTag.startsWith('x-') ||
-    lowerTag.includes('-x-')
-  ) {
-    return null;
-  }
-
-  // One primary language, then at most one script, then at most one region.
-  // Variants, extensions and private-use are outside the approved v1 contract.
-  const match = tag.match(/^([a-zA-Z]{2,8})(?:-([a-zA-Z]{4}))?(?:-([a-zA-Z]{2}|\d{3}))?$/);
-  if (!match) return null;
-  let primary = match[1].toLowerCase();
-  if (primary in ISO3_ALIASES) {
-    primary = ISO3_ALIASES[primary];
-  }
-
-  const formattedSegments: string[] = [primary];
-  if (match[2]) formattedSegments.push(match[2][0].toUpperCase() + match[2].slice(1).toLowerCase());
-  if (match[3]) formattedSegments.push(match[3].toUpperCase());
-  return formattedSegments.join('-');
-}
-
-/** Canonicalize explicit selections from the existing eight-language frontend catalog. */
-export function canonicalizeLanguageTag(rawTag: unknown): string | null {
-  const canonical = canonicalizeBcp47Tag(rawTag);
-  return canonical && SUPPORTED_BASE_LANGUAGES.has(canonical.split('-')[0]) ? canonical : null;
 }
 
 /**
@@ -210,7 +143,7 @@ export function validateWritingHintsRequest(
  */
 export function normalizeWritingHints(
   data: unknown,
-  expected: WritingHintsRequest & { attemptId: number }
+  expected: WritingHintsRequest & { attemptId: number; defaultHintLanguage?: string | null }
 ): WritingHintsResponse {
   if (!isRecord(expected)) {
     throw new WritingHintsContractError('Thông số đối soát không hợp lệ');
@@ -240,28 +173,31 @@ export function normalizeWritingHints(
   const requestId = payload.requestId.trim().toLowerCase();
 
   // 2. Ngôn ngữ (learningLanguage & hintLanguage)
-  const canonicalLearningLang = canonicalizeBcp47Tag(payload.learningLanguage);
+  const canonicalLearningLang = canonicalizeBcp47LanguageTag(payload.learningLanguage);
   if (!canonicalLearningLang) {
     throw new WritingHintsContractError('learningLanguage trong phản hồi không hợp lệ');
   }
   if (expected.learningLanguage) {
-    const expectedCanonical = canonicalizeBcp47Tag(expected.learningLanguage);
+    const expectedCanonical = canonicalizeBcp47LanguageTag(expected.learningLanguage);
     if (expectedCanonical && canonicalLearningLang !== expectedCanonical) {
       throw new WritingHintsContractError('learningLanguage trong phản hồi không khớp yêu cầu');
     }
   }
 
-  const canonicalHintLang = canonicalizeBcp47Tag(payload.hintLanguage);
+  const canonicalHintLang = canonicalizeBcp47LanguageTag(payload.hintLanguage);
   if (!canonicalHintLang) {
     throw new WritingHintsContractError('hintLanguage trong phản hồi không hợp lệ');
   }
   if (expected.hintLanguage) {
-    const expectedCanonicalHint = canonicalizeBcp47Tag(expected.hintLanguage);
+    const expectedCanonicalHint = canonicalizeBcp47LanguageTag(expected.hintLanguage);
     if (expectedCanonicalHint && canonicalHintLang !== expectedCanonicalHint) {
       throw new WritingHintsContractError('hintLanguage trong phản hồi không khớp yêu cầu');
     }
-  } else if (canonicalHintLang !== canonicalLearningLang) {
+  } else {
+    const expectedDefault = canonicalizeBcp47LanguageTag(expected.defaultHintLanguage) ?? canonicalLearningLang;
+    if (canonicalHintLang !== expectedDefault) {
     throw new WritingHintsContractError('hintLanguage mặc định trong phản hồi không khớp ngôn ngữ học');
+    }
   }
 
   // 3. generatedAt

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGradingOutputParser;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGrade;
+import com.multilingo.backend.modules.testing.ai.grading.WritingGradingResultCodec;
+import com.multilingo.backend.modules.testing.ai.grading.WritingRubricPolicy;
 import com.multilingo.backend.modules.testing.dto.response.WritingFeedbackResponse;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
@@ -25,6 +27,7 @@ public class WritingFeedbackMapper {
 
     private final ObjectMapper objectMapper;
     private final WritingGradingOutputParser gradeValidator = new WritingGradingOutputParser();
+    private final WritingGradingResultCodec resultCodec = new WritingGradingResultCodec();
     private final WritingGradingContextReader visualContextReader = new WritingGradingContextReader(true);
     private static final Set<String> IMAGE_UNAVAILABLE_REASONS = Set.of(
             "IMAGE_TOO_LARGE", "IMAGE_INVALID", "IMAGE_UNAVAILABLE", "IMAGE_SOURCE_NOT_ALLOWED");
@@ -69,7 +72,7 @@ public class WritingFeedbackMapper {
                     && job.getContextJson().get("images") instanceof List<?> images && !images.isEmpty());
             String originalText = extractOriginalText(attemptAnswer, questionId);
             com.multilingo.backend.modules.testing.util.WritingLengthCounter.WritingLengthMetric lengthMetric = new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language);
-            int wordCount = lengthMetric.value();
+            int wordCount = com.multilingo.backend.modules.testing.util.WritingWordCounter.count(originalText);
             if (originalText.codePointCount(0, originalText.length()) > WritingGradingContextReader.MAX_ESSAY_CODE_POINTS) {
                 taskFeedbacks.add(createUnavailableTask(questionId, label, wordCount, language, null, hasVisualContext,
                         "ESSAY_TOO_LONG", "Bài viết vượt giới hạn độ dài cho phép."));
@@ -122,6 +125,29 @@ public class WritingFeedbackMapper {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> taskMap = (Map<String, Object>) rawTask;
 
+                if ("EMPTY_ESSAY".equals(taskMap.get("reasonCode")) && "SYSTEM".equals(taskMap.get("status"))) {
+                    try {
+                        var expectedLength = new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language);
+                        WritingGradingResultCodec.Decoded emptyResult = resultCodec.decode(taskMap);
+                        if (WritingWordCounter.count(originalText) == 0 && !emptyResult.legacy()
+                                && "WRITING_GENERIC_V1".equals(emptyResult.policy().rubricCode())
+                                && language.equals(emptyResult.policy().sourceLanguage())
+                                && BigDecimal.ZERO.compareTo(new BigDecimal(taskMap.get("overallScore").toString())) == 0
+                                && taskMap.get("lengthMetric") instanceof Map<?, ?> metric
+                                && metric.get("value") instanceof Number value && value.intValue() == expectedLength.value()
+                                && Objects.equals(metric.get("unit"), expectedLength.unit().name())) {
+                            return new WritingFeedbackResponse.TaskFeedback(questionId, label, "DONE", wordCount,
+                                    expectedLength, language, "SYSTEM", emptyResult.policy().scoreUnit(), emptyResult.policy().rubricCode(),
+                                    String.valueOf(taskMap.get("feedbackLanguage")), BigDecimal.ZERO, emptyResult.policy().maxScore(),
+                                    List.of(), originalText, "", originalText, List.of(),
+                                    originalText.isEmpty() ? List.of() : List.of(new WritingGrade.DiffSegment(WritingGrade.DiffType.EQUAL, originalText)),
+                                    "EMPTY_ESSAY", "Bài viết đang để trống.", hasVisualContext, null);
+                        }
+                    } catch (RuntimeException ignored) {
+                        // Invalid persisted short-circuit results fall through to the malformed-result path.
+                    }
+                }
+
                 // Nếu là local unavailable (ví dụ: VISUAL_CONTEXT_UNSUPPORTED)
                 if ("UNAVAILABLE".equalsIgnoreCase(String.valueOf(taskMap.get("status")))) {
                     String reasonCode = taskMap.get("reasonCode") != null
@@ -134,7 +160,7 @@ public class WritingFeedbackMapper {
                 // Kiểm tra allowlist và tính toàn vẹn của WritingGrade
                 WritingGrade grade = parseAndValidateGrade(taskMap, originalText, hasVisualContext);
                 if (grade != null) {
-                    boolean isTooShort = wordCount <= 10;
+                    boolean isTooShort = WritingGrade.RUBRIC_V1.equals(grade.rubricCode()) && wordCount <= 10;
 
                     if (isTooShort) {
                         return new WritingFeedbackResponse.TaskFeedback(
@@ -167,9 +193,10 @@ public class WritingFeedbackMapper {
                                 new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language),
                                 language,
                                 "AI",
-                                "BAND_0_9",
+                                "WRITING_GENERIC_V1".equals(grade.rubricCode()) ? "PRACTICE_0_10" : "BAND_0_9",
+                                grade.rubricCode(), grade.feedbackLanguage(),
                                 grade.overallScore(),
-                                BigDecimal.valueOf(9.0),
+                                "WRITING_GENERIC_V1".equals(grade.rubricCode()) ? BigDecimal.TEN : BigDecimal.valueOf(9.0),
                                 grade.criteria(),
                                 originalText,
                                 grade.overallFeedback(),
@@ -200,7 +227,7 @@ public class WritingFeedbackMapper {
             case SUCCEEDED -> {
                 WritingGrade grade = parseAndValidateGrade(job.getResultJson(), originalText, hasVisualContext);
                 if (grade != null) {
-                    boolean isTooShort = wordCount <= 10;
+                    boolean isTooShort = WritingGrade.RUBRIC_V1.equals(grade.rubricCode()) && wordCount <= 10;
                     yield new WritingFeedbackResponse.TaskFeedback(
                             questionId,
                             label,
@@ -209,9 +236,10 @@ public class WritingFeedbackMapper {
                             new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(originalText, language),
                             language,
                             isTooShort ? "SYSTEM" : "AI",
-                            "BAND_0_9",
+                            "WRITING_GENERIC_V1".equals(grade.rubricCode()) ? "PRACTICE_0_10" : "BAND_0_9",
+                            grade.rubricCode(), grade.feedbackLanguage(),
                             isTooShort ? BigDecimal.ZERO : grade.overallScore(),
-                            BigDecimal.valueOf(9.0),
+                            "WRITING_GENERIC_V1".equals(grade.rubricCode()) ? BigDecimal.TEN : BigDecimal.valueOf(9.0),
                             grade.criteria(),
                             originalText,
                             grade.overallFeedback(),
@@ -246,8 +274,18 @@ public class WritingFeedbackMapper {
         if (map == null || map.isEmpty()) return null;
         try {
             JsonNode root = objectMapper.valueToTree(map);
-            if (!root.path("rubricCode").isTextual() || !WritingGrade.RUBRIC_V1.equals(root.path("rubricCode").textValue())
-                    || !root.path("overallScore").isNumber() || !root.path("diff").isArray()) return null;
+            if (!root.path("overallScore").isNumber() || !root.path("diff").isArray()) return null;
+
+            WritingRubricPolicy policy = null;
+            String expectedFeedbackLanguage = WritingGrade.DEFAULT_LANGUAGE;
+            if (root.has("schemaVersion")) {
+                WritingGradingResultCodec.Decoded decoded = resultCodec.decode(map);
+                if (decoded.legacy()) return null;
+                policy = decoded.policy();
+                expectedFeedbackLanguage = String.valueOf(map.get("feedbackLanguage"));
+            } else if (!root.path("rubricCode").isTextual() || !WritingGrade.RUBRIC_V1.equals(root.path("rubricCode").textValue())) {
+                return null;
+            }
 
             // Reuse the approved parser for required texts/caps, exact scores and correction reconstruction.
             // Persisted-only metadata (overall, rubric, diff, audit) is validated separately, never sent to a provider.
@@ -255,9 +293,10 @@ public class WritingFeedbackMapper {
             for (String field : List.of("feedbackLanguage", "criteria", "overallFeedback", "correctedEssay", "corrections")) {
                 output.set(field, root.get(field));
             }
-            boolean visual = hasVisualContext && WritingWordCounter.count(originalText) > 10;
+            boolean genericRubric = policy != null && "WRITING_GENERIC_V1".equals(policy.rubricCode());
+            boolean visual = hasVisualContext && (genericRubric || WritingWordCounter.count(originalText) > 10);
             if (root.hasNonNull("visualObservations")) output.set("visualObservations", root.get("visualObservations"));
-            WritingGrade validated = gradeValidator.parse(objectMapper.writeValueAsString(output), originalText, visual);
+            WritingGrade validated = gradeValidator.parse(objectMapper.writeValueAsString(output), originalText, visual, policy, expectedFeedbackLanguage);
             if (root.get("overallScore").decimalValue().compareTo(validated.overallScore()) != 0) return null;
 
             StringBuilder reconstructedOriginal = new StringBuilder();
@@ -276,7 +315,9 @@ public class WritingFeedbackMapper {
             }
             if (!originalText.contentEquals(reconstructedOriginal)
                     || !validated.correctedEssay().contentEquals(reconstructedCorrected)) return null;
-            return objectMapper.convertValue(map, WritingGrade.class);
+            // Return the allowlisted parser projection; persisted v2-only rubric fields must not be
+            // deserialized as provider output (or passed through as arbitrary model fields).
+            return validated;
         } catch (Exception e) {
             return null;
         }

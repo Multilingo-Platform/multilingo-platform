@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useEffect, useRef, useState } from 'react';
 
 export type AudioPlayerVariant = 'native' | 'practice' | 'server';
@@ -42,6 +43,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onSpeedChange,
   onResume,
 }) => {
+  useExamLocale();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [hasError, setHasError] = useState(false);
   const [stalled, setStalled] = useState(false);
@@ -104,30 +106,26 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         onCanPlay={() => setStalled(false)}
         onContextMenu={variant === 'server' ? event => event.preventDefault() : undefined}
       >
-        Trình duyệt của bạn không hỗ trợ phát audio.
-      </audio>
+        {em("Trình duyệt của bạn không hỗ trợ phát audio.")}</audio>
 
       {hasError && (
         <div role="alert" style={{ color: '#c0392b', padding: '8px' }}>
-          ⚠️ Không thể tải audio. Vui lòng thử lại hoặc liên hệ hỗ trợ.
-        </div>
+          {em("⚠️ Không thể tải audio. Vui lòng thử lại hoặc liên hệ hỗ trợ.")}</div>
       )}
 
       {!hasError && stalled && (
         <div role="status" style={{ padding: '4px 8px', color: '#64748b' }}>
-          Đang tải audio…
-        </div>
+          {em("Đang tải audio…")}</div>
       )}
 
       {!hasError && variant === 'practice' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
-          <button type="button" onClick={() => onRewind?.()} disabled={!canRewind} aria-label="Tua lại 10 giây">
-            ⟲ Tua lại 10 giây
-          </button>
+          <button type="button" onClick={() => onRewind?.()} disabled={!canRewind} aria-label={em("Tua lại 10 giây")}>
+            {em("⟲ Tua lại 10 giây")}</button>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <span>Tốc độ phát</span>
+            <span>{em("Tốc độ phát")}</span>
             <select
-              aria-label="Tốc độ phát"
+              aria-label={em("Tốc độ phát")}
               value={String(speed)}
               onChange={event => onSpeedChange?.(Number(event.target.value))}
             >
@@ -141,8 +139,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       {!hasError && variant === 'server' && blocked && (
         <div role="alert" style={{ padding: '8px', color: '#92400e' }}>
-          <span>Trình duyệt đã chặn tự động phát.</span>{' '}
-          <button type="button" onClick={() => onResume?.()}>Tiếp tục phát</button>
+          <span>{em("Trình duyệt đã chặn tự động phát.")}</span>{' '}
+          <button type="button" onClick={() => onResume?.()}>{em("Tiếp tục phát")}</button>
         </div>
       )}
     </div>

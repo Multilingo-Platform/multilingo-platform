@@ -114,7 +114,12 @@ const LoginForm = () => {
       <div>
         <div className="flex-between" style={{ marginBottom: '0.35rem' }}>
           <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>{t('auth.password_label')}</label>
-          <span style={{ fontSize: '0.825rem', color: '#c25e2e', cursor: 'pointer', fontWeight: 600 }}>{t('auth.forgot_password')}</span>
+          <span
+            onClick={() => navigate('/forgot-password')}
+            style={{ fontSize: '0.825rem', color: '#c25e2e', cursor: 'pointer', fontWeight: 600 }}
+          >
+            {t('auth.forgot_password')}
+          </span>
         </div>
         <div style={{ position: 'relative' }}>
           <input
@@ -163,7 +168,7 @@ const LoginForm = () => {
         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '44px' }}>
+      <div className="auth-google-btn-container">
         <GoogleLogin
           onSuccess={(credentialResponse) => {
             if (credentialResponse.credential) {
@@ -176,7 +181,8 @@ const LoginForm = () => {
           text="signin_with"
           shape="rectangular"
           theme="outline"
-          width="100%"
+          size="large"
+          width="400"
         />
       </div>
     </form>

@@ -42,6 +42,9 @@ class UserServiceTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -51,6 +54,7 @@ class UserServiceTest {
     void setUp() {
         mockUser = new User();
         mockUser.setId(1);
+        mockUser.setFullName("Nguyen Van Test");
         mockUser.setEmail("test@gmail.com");
         mockUser.setPasswordHash("hashedPassword");
     }
@@ -59,11 +63,25 @@ class UserServiceTest {
     void forgotPassword_Success() {
         ForgotPasswordRequest request = new ForgotPasswordRequest("test@gmail.com");
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
+        when(stringRedisTemplate.hasKey("OTP_RESET_COOLDOWN:test@gmail.com")).thenReturn(false);
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
 
         userService.forgotPassword(request);
 
         verify(valueOperations).set(eq("OTP_RESET_PWD:test@gmail.com"), anyString(), eq(5L), eq(TimeUnit.MINUTES));
+        verify(valueOperations).set(eq("OTP_RESET_COOLDOWN:test@gmail.com"), eq("1"), eq(60L), eq(TimeUnit.SECONDS));
+        verify(emailService).sendResetPasswordOtp(eq("test@gmail.com"), eq("Nguyen Van Test"), anyString());
+    }
+
+    @Test
+    void forgotPassword_CooldownActive_ThrowsException() {
+        ForgotPasswordRequest request = new ForgotPasswordRequest("test@gmail.com");
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
+        when(stringRedisTemplate.hasKey("OTP_RESET_COOLDOWN:test@gmail.com")).thenReturn(true);
+
+        AppException ex = assertThrows(AppException.class, () -> userService.forgotPassword(request));
+        assertEquals(ErrorCode.OTP_COOLDOWN_ACTIVE, ex.getErrorCode());
+        verifyNoInteractions(emailService);
     }
 
     @Test
@@ -88,17 +106,34 @@ class UserServiceTest {
         verify(userRepository).save(mockUser);
         assertEquals("newHashedPassword", mockUser.getPasswordHash());
         verify(stringRedisTemplate).delete("OTP_RESET_PWD:test@gmail.com");
+        verify(stringRedisTemplate).delete("OTP_RESET_COOLDOWN:test@gmail.com");
+        verify(stringRedisTemplate).delete("OTP_RESET_ATTEMPTS:test@gmail.com");
     }
 
     @Test
-    void resetPassword_InvalidOTP() {
+    void resetPassword_WrongOtp_IncrementsAttempts() {
         ResetPasswordRequest request = new ResetPasswordRequest("test@gmail.com", "123456", "newPassword");
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("OTP_RESET_PWD:test@gmail.com")).thenReturn("654321");
+        when(valueOperations.increment("OTP_RESET_ATTEMPTS:test@gmail.com")).thenReturn(2L);
 
         AppException ex = assertThrows(AppException.class, () -> userService.resetPassword(request));
         assertEquals(ErrorCode.INVALID_OTP, ex.getErrorCode());
+        verify(stringRedisTemplate).expire(eq("OTP_RESET_ATTEMPTS:test@gmail.com"), eq(5L), eq(TimeUnit.MINUTES));
+    }
+
+    @Test
+    void resetPassword_MaxAttemptsExceeded_DeletesOtp() {
+        ResetPasswordRequest request = new ResetPasswordRequest("test@gmail.com", "123456", "newPassword");
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("OTP_RESET_PWD:test@gmail.com")).thenReturn("654321");
+        when(valueOperations.increment("OTP_RESET_ATTEMPTS:test@gmail.com")).thenReturn(5L);
+
+        AppException ex = assertThrows(AppException.class, () -> userService.resetPassword(request));
+        assertEquals(ErrorCode.OTP_MAX_ATTEMPTS_EXCEEDED, ex.getErrorCode());
+        verify(stringRedisTemplate).delete("OTP_RESET_PWD:test@gmail.com");
     }
 
     @Test

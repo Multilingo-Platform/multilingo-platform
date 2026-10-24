@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@EnableConfigurationProperties(TestingLanguageProperties.class)
+@EnableConfigurationProperties({TestingLanguageProperties.class, WritingHintsProperties.class})
 public class TestingLanguageConfiguration {
 
     @Bean

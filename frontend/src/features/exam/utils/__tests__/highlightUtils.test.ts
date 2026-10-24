@@ -54,4 +54,12 @@ describe('highlightUtils', () => {
       { id: 'ok', start: 0, end: 2, text: 'x' },
     ], 'ab')).toEqual([{ id: 'ok', start: 0, end: 2, text: 'ab' }]);
   });
+
+  it('rejects UTF-16 ranges that split an emoji while keeping neighbouring Unicode unchanged', async () => {
+    const { normalizeAgainstText } = await import('../highlightUtils');
+    const text = '水😀e\u0301';
+    expect(normalizeAgainstText([{ id: 'broken', start: 1, end: 2, text: '' }], text)).toEqual([]);
+    expect(normalizeAgainstText([{ id: 'valid', start: 1, end: 3, text: '' }], text))
+      .toEqual([{ id: 'valid', start: 1, end: 3, text: '😀' }]);
+  });
 });

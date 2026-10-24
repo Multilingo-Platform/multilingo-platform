@@ -23,6 +23,8 @@ import java.util.List;
 public class WritingGradingPromptFactory {
 
     private static final String PROMPT_RESOURCE_PATH = "prompts/writing-grading-en-v2.txt";
+    private static final String GENERIC_PROMPT_RESOURCE_PATH = "prompts/writing-grading-generic-v1.txt";
+    private static final String EN_MULTILINGUAL_PROMPT_RESOURCE_PATH = "prompts/writing-grading-en-multilingual-feedback-v1.txt";
     public static final int MAX_OUTPUT_TOKENS = 8192;
 
     private final String systemInstructionTemplate;
@@ -41,7 +43,7 @@ public class WritingGradingPromptFactory {
         }
         String userText = serializeUserText(context);
         long textBytes = (long) userText.getBytes(StandardCharsets.UTF_8).length
-                + systemInstructionTemplate.getBytes(StandardCharsets.UTF_8).length;
+                + systemInstructionFor(context).getBytes(StandardCharsets.UTF_8).length;
         if (textBytes > GeminiProperties.MAX_TEXT_BYTES_WITH_IMAGES) {
             throw new WritingGradingException(
                     WritingGradingFailure.terminal("INVALID_INPUT", "Prompt and essay text exceeds maximum size limit")
@@ -60,7 +62,7 @@ public class WritingGradingPromptFactory {
         // Construction and encoding share the same classified input boundary.
         try {
             GeminiGenerationRequest request = new GeminiGenerationRequest(
-                    systemInstructionTemplate,
+                    systemInstructionFor(context),
                     userText,
                     MAX_OUTPUT_TOKENS,
                     GeminiGenerationRequest.OutputFormat.JSON,
@@ -78,9 +80,13 @@ public class WritingGradingPromptFactory {
 
     public String serializeUserText(WritingGradingContext context) {
         ObjectNode rootNode = objectMapper.createObjectNode();
-        rootNode.put("rubricCode", WritingGrade.DEFAULT_RUBRIC);
+        WritingRubricPolicy policy = context.rubricPolicy();
+        rootNode.put("rubricCode", policy == null ? WritingGrade.DEFAULT_RUBRIC : policy.rubricCode());
         rootNode.put("learningLanguage", context.learningLanguage() != null ? context.learningLanguage() : "en");
-        rootNode.put("feedbackLanguage", WritingGrade.DEFAULT_LANGUAGE);
+        rootNode.put("feedbackLanguage", context.feedbackLanguage() != null ? context.feedbackLanguage() : WritingGrade.DEFAULT_LANGUAGE);
+        if (context.lengthMetric() != null) {
+            rootNode.put("lengthMetric", objectMapper.valueToTree(context.lengthMetric()));
+        }
 
         ObjectNode taskNode = rootNode.putObject("task");
         if (context.partTitle() != null) {
@@ -101,11 +107,24 @@ public class WritingGradingPromptFactory {
     }
 
     private String loadPromptTemplate() {
-        ClassPathResource resource = new ClassPathResource(PROMPT_RESOURCE_PATH);
+        return loadPromptTemplate(PROMPT_RESOURCE_PATH);
+    }
+
+    private String systemInstructionFor(WritingGradingContext context) {
+        WritingRubricPolicy policy = context.rubricPolicy();
+        if (policy == null) return systemInstructionTemplate;
+        String resource = WritingRubricRegistry.GENERIC_RUBRIC.equals(policy.rubricCode())
+                ? GENERIC_PROMPT_RESOURCE_PATH
+                : "vi".equalsIgnoreCase(context.feedbackLanguage()) ? PROMPT_RESOURCE_PATH : EN_MULTILINGUAL_PROMPT_RESOURCE_PATH;
+        return loadPromptTemplate(resource);
+    }
+
+    private String loadPromptTemplate(String path) {
+        ClassPathResource resource = new ClassPathResource(path);
         try (InputStream is = resource.getInputStream()) {
             return new String(is.readAllBytes(), StandardCharsets.UTF_8).trim();
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to load writing grading prompt template from classpath: " + PROMPT_RESOURCE_PATH, e);
+            throw new IllegalStateException("Failed to load writing grading prompt template from classpath: " + path, e);
         }
     }
 }

@@ -1,3 +1,4 @@
+import { examMessage as em } from '../../i18n/examMessages';
 import React from 'react';
 
 export interface WorkspaceFrameProps {
@@ -23,7 +24,7 @@ const WorkspaceFrame: React.FC<WorkspaceFrameProps> = ({
   instruction,
   toolbar,
   header,
-  questionsLabel = 'Câu hỏi',
+  questionsLabel = em("Câu hỏi"),
   children,
 }) => (
   <div data-testid="toeic-workspace-frame" className="toeic-workspace w-full max-w-3xl mx-auto">
@@ -32,7 +33,7 @@ const WorkspaceFrame: React.FC<WorkspaceFrameProps> = ({
         data-testid="toeic-part-instruction"
         className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700 mb-4"
       >
-        <span className="font-bold text-amber-800 block mb-0.5">Hướng dẫn làm bài:</span>
+        <span className="font-bold text-amber-800 block mb-0.5">{em("Hướng dẫn làm bài:")}</span>
         {instruction}
       </div>
     )}

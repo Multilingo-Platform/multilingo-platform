@@ -3,6 +3,11 @@ package com.multilingo.backend.modules.testing.service.support;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGrade;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGradingContext;
+import com.multilingo.backend.modules.testing.ai.grading.WritingGradingContextCodec;
+import com.multilingo.backend.modules.testing.ai.grading.WritingGradingResultCodec;
+import com.multilingo.backend.modules.testing.ai.grading.WritingRubricPolicy;
+import com.multilingo.backend.modules.testing.ai.grading.WritingRubricRegistry;
+import com.multilingo.backend.common.i18n.LearningLanguageCatalog;
 import com.multilingo.backend.modules.testing.config.WritingGradingProperties;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
@@ -40,8 +45,11 @@ public class WritingGradingEnqueuer {
     private final AttemptAnswerRepository attemptAnswerRepository;
     private final WritingGradingProperties properties;
     private final ObjectMapper objectMapper;
+    private final WritingRubricRegistry rubricRegistry;
+    private final WritingGradingContextCodec contextCodec;
+    private final WritingGradingResultCodec resultCodec;
+    private final AttemptLanguageResolver languageResolver;
 
-    @Autowired
     public WritingGradingEnqueuer(
             WritingGradingJobRepository jobRepository,
             WritingGradingContextReader contextReader,
@@ -53,12 +61,41 @@ public class WritingGradingEnqueuer {
         this.attemptAnswerRepository = Objects.requireNonNull(attemptAnswerRepository, "attemptAnswerRepository must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+        this.rubricRegistry = new WritingRubricRegistry(new LearningLanguageCatalog());
+        this.contextCodec = new WritingGradingContextCodec();
+        this.resultCodec = new WritingGradingResultCodec();
+        this.languageResolver = null;
+    }
+
+    @Autowired
+    public WritingGradingEnqueuer(
+            WritingGradingJobRepository jobRepository,
+            WritingGradingContextReader contextReader,
+            AttemptAnswerRepository attemptAnswerRepository,
+            WritingGradingProperties properties,
+            ObjectMapper objectMapper,
+            WritingRubricRegistry rubricRegistry,
+            AttemptLanguageResolver languageResolver) {
+        this.jobRepository = Objects.requireNonNull(jobRepository, "jobRepository must not be null");
+        this.contextReader = Objects.requireNonNull(contextReader, "contextReader must not be null");
+        this.attemptAnswerRepository = Objects.requireNonNull(attemptAnswerRepository, "attemptAnswerRepository must not be null");
+        this.properties = Objects.requireNonNull(properties, "properties must not be null");
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+        this.rubricRegistry = Objects.requireNonNull(rubricRegistry, "rubricRegistry must not be null");
+        this.contextCodec = new WritingGradingContextCodec();
+        this.resultCodec = new WritingGradingResultCodec();
+        this.languageResolver = Objects.requireNonNull(languageResolver, "languageResolver must not be null");
     }
 
     private record WritingTarget(Integer partId, String questionId) {}
 
     @Transactional(propagation = Propagation.MANDATORY)
     public List<WritingGradingJob> enqueue(TestAttempt attempt, List<AttemptAnswer> answers) {
+        return enqueue(attempt, answers, null);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<WritingGradingJob> enqueue(TestAttempt attempt, List<AttemptAnswer> answers, String feedbackLanguage) {
         if (attempt == null || attempt.getExamSnapshot() == null) {
             return Collections.emptyList();
         }
@@ -82,16 +119,41 @@ public class WritingGradingEnqueuer {
             }
 
             ContextDecision decision = contextReader.read(attempt, partId, questionId, answers, properties.isImagesEnabled());
+            if (decision instanceof ContextDecision.Eligible eligible
+                    && requiresGenericRubric(attempt.getExamSnapshot(), eligible.context().learningLanguage())
+                    && !properties.isMultilingualEnabled()) {
+                decision = new ContextDecision.Unavailable("MULTILINGUAL_GRADING_DISABLED",
+                        "Multilingual Writing grading is not enabled");
+            }
 
             if (decision instanceof ContextDecision.Eligible eligible) {
                 WritingGradingContext context = eligible.context();
-                Map<String, Object> contextJson = buildContextJson(context);
+                String examType = attempt.getExamSnapshot().get("type") instanceof String type ? type : "";
+                WritingRubricPolicy policy = rubricRegistry.resolve(examType, context.learningLanguage());
+                String resolvedFeedbackLanguage = resolveFeedbackLanguage(attempt, feedbackLanguage, context.learningLanguage());
+                var metric = context.lengthMetric() != null ? context.lengthMetric()
+                        : new com.multilingo.backend.modules.testing.util.WritingLengthCounter().count(context.originalText(), context.learningLanguage());
+                context = context.withPolicy(policy, resolvedFeedbackLanguage, metric);
+                Map<String, Object> baseContext = buildContextJson(context);
+                Map<String, Object> contextJson = contextCodec.encode(baseContext, policy, resolvedFeedbackLanguage, metric);
                 String inputHash = computeInputHash(contextJson);
 
-                if (context.wordCount() <= 10) {
-                    WritingGrade tooShortGrade = WritingGrade.tooShort(context.originalText());
+                if ((policy.rubricCode().equals(WritingRubricRegistry.ENGLISH_RUBRIC) && context.wordCount() <= 10)
+                        || (policy.rubricCode().equals(WritingRubricRegistry.GENERIC_RUBRIC) && com.multilingo.backend.modules.testing.util.WritingWordCounter.count(context.originalText()) == 0)) {
+                    WritingGrade tooShortGrade = WritingGrade.tooShort(context.originalText(), resolvedFeedbackLanguage);
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> resultMap = objectMapper.convertValue(tooShortGrade, Map.class);
+                    Map<String, Object> legacyResultMap = objectMapper.convertValue(tooShortGrade, Map.class);
+                    Map<String, Object> resultMap;
+                    if (policy.rubricCode().equals(WritingRubricRegistry.GENERIC_RUBRIC)) {
+                        WritingGrade emptyGrade = WritingGrade.emptyEssay(context.originalText(), policy, resolvedFeedbackLanguage);
+                        Map<String, Object> emptyGradeMap = objectMapper.convertValue(emptyGrade, Map.class);
+                        resultMap = new LinkedHashMap<>(resultCodec.encode(emptyGradeMap, policy, resolvedFeedbackLanguage, metric));
+                        resultMap.put("status", "SYSTEM");
+                        resultMap.put("reasonCode", "EMPTY_ESSAY");
+                        resultMap.put("score", 0);
+                    } else {
+                        resultMap = resultCodec.encode(legacyResultMap, policy, resolvedFeedbackLanguage, metric);
+                    }
 
                     WritingGradingJob job = WritingGradingJob.builder()
                             .attemptId(attempt.getId())
@@ -105,7 +167,7 @@ public class WritingGradingEnqueuer {
                             .imageCount(0)
                             .nextAttemptAt(null)
                             .quotaReserved(false)
-                            .modelMetadata(Map.of("rubric", WritingGrade.DEFAULT_RUBRIC, "source", "LOCAL_SHORT_CIRCUIT"))
+                            .modelMetadata(Map.of("rubric", policy.rubricCode(), "source", "LOCAL_SHORT_CIRCUIT"))
                             .resultJson(resultMap)
                             .completedAt(Instant.now())
                             .build();
@@ -257,6 +319,19 @@ public class WritingGradingEnqueuer {
             map.put("images", imageList);
         }
         return map;
+    }
+
+    private boolean requiresGenericRubric(Map<String, Object> snapshot, String language) {
+        if (language != null && !"en".equalsIgnoreCase(language.split("-", 2)[0])) return true;
+        Object type = snapshot == null ? null : snapshot.get("type");
+        return type instanceof String examType && "LANGUAGE_PRACTICE".equalsIgnoreCase(examType);
+    }
+
+    private String resolveFeedbackLanguage(TestAttempt attempt, String requested, String sourceLanguage) {
+        if (languageResolver != null) {
+            return languageResolver.resolveFeedbackLanguage(attempt.getExamSnapshot(), attempt.getUserId(), requested);
+        }
+        return requested == null || requested.isBlank() ? sourceLanguage : requested;
     }
 
     private String computeInputHash(Map<String, Object> map) {

@@ -150,6 +150,10 @@ class Tv3LifecycleContractIT {
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> field = fields.next();
                 String key = field.getKey();
+                if ("defaultExplanationLanguage".equals(key) || "supportedExplanationLanguages".equals(key)) {
+                    assertThat(field.getValue().isTextual() || field.getValue().isArray() || field.getValue().isNull()).isTrue();
+                    continue; // Public language metadata, not a question explanation.
+                }
                 assertThat(key)
                         .withFailMessage("Workspace response leaked sensitive property: %s", key)
                         .doesNotMatch("(?i).*(correct_answer|correctAnswer|explanation|grading_key|gradingKey|grading_keys|gradingKeys|answer_key|answerKey|accepted_answers|acceptedAnswers).*");

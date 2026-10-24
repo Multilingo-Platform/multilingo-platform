@@ -31,3 +31,5 @@ application-dev.properties
 
 # Test & Superpowers Runtime Evidence
 .superpowers/
+.playwright-cli/
+output/

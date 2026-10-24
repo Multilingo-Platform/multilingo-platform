@@ -3,10 +3,12 @@ import { initReactI18next } from 'react-i18next';
 
 import translationEN from './locales/en/translation.json';
 import translationVI from './locales/vi/translation.json';
+import examEN from './locales/en/exam.json';
+import examVI from './locales/vi/exam.json';
 
 const resources = {
-  en: { translation: translationEN },
-  vi: { translation: translationVI }
+  en: { translation: translationEN, exam: examEN },
+  vi: { translation: translationVI, exam: examVI }
 };
 
 const savedLanguage =
@@ -18,6 +20,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
+    ns: ['translation', 'exam'],
     lng: savedLanguage,
     fallbackLng: 'vi',
     interpolation: {

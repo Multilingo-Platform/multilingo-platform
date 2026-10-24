@@ -6,6 +6,9 @@ import com.multilingo.backend.modules.testing.dto.response.ResultSummaryResponse
 import com.multilingo.backend.modules.testing.dto.response.ResultSummaryResponse.*;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
+import com.multilingo.backend.modules.testing.entity.WritingGradingJob;
+import com.multilingo.backend.modules.testing.entity.enums.WritingGradingJobStatus;
+import com.multilingo.backend.modules.testing.ai.grading.WritingGradingResultCodec;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope.ScopedPart;
@@ -28,8 +31,13 @@ public class AttemptResultSummaryMapper {
     private static final BigDecimal MAX_COLUMN_SCORE = new BigDecimal("99999999.99");
 
     private final ObjectMapper objectMapper;
+    private final WritingGradingResultCodec writingResultCodec = new WritingGradingResultCodec();
 
     public ResultSummaryResponse map(TestAttempt attempt, List<AttemptAnswer> savedAnswers) {
+        return map(attempt, savedAnswers, List.of());
+    }
+
+    public ResultSummaryResponse map(TestAttempt attempt, List<AttemptAnswer> savedAnswers, List<WritingGradingJob> writingJobs) {
         if (attempt == null || attempt.getResultSummary() == null || attempt.getResultSummary().isBlank()) {
             return null;
         }
@@ -328,6 +336,14 @@ public class AttemptResultSummaryMapper {
 
             // Build Writing summary
             List<WritingTaskSummary> writingTasks = new ArrayList<>();
+            Map<String, WritingGradingJob> jobsByIdentity = new HashMap<>();
+            if (writingJobs != null) {
+                for (WritingGradingJob job : writingJobs) {
+                    if (job != null && job.getPartId() != null && job.getQuestionId() != null) {
+                        jobsByIdentity.put(job.getPartId() + "\u0000" + job.getQuestionId(), job);
+                    }
+                }
+            }
             String writingStatus = resolveWritingStatus(attempt.getStatus());
             String examLanguage = extractExamLanguage(attempt.getExamSnapshot());
             com.multilingo.backend.modules.testing.util.WritingLengthCounter lengthCounter = new com.multilingo.backend.modules.testing.util.WritingLengthCounter();
@@ -341,16 +357,32 @@ public class AttemptResultSummaryMapper {
                                 ? sq.getLabel()
                                 : sp.getLabel();
 
-                        writingTasks.add(WritingTaskSummary.builder()
+                        WritingGradingJob job = jobsByIdentity.get(sp.getPartId() + "\u0000" + sq.getQuestionId());
+                        WritingTaskSummary.WritingTaskSummaryBuilder taskBuilder = WritingTaskSummary.builder()
                                 .partId(sp.getPartId())
                                 .questionId(sq.getQuestionId())
                                 .label(taskLabel)
                                 .status(writingStatus)
-                                .wordCount(lengthMetric.value())
+                                .wordCount(com.multilingo.backend.modules.testing.util.WritingWordCounter.count(rawText))
                                 .lengthMetric(lengthMetric)
                                 .score(null)
-                                .maxScore(null)
-                                .build());
+                                .maxScore(null);
+                        if (job != null && job.getStatus() == WritingGradingJobStatus.SUCCEEDED && job.getResultJson() != null) {
+                            try {
+                                WritingGradingResultCodec.Decoded decoded = writingResultCodec.decode(job.getResultJson());
+                                if (!decoded.legacy()) {
+                                    taskBuilder.status("DONE")
+                                            .score(new BigDecimal(String.valueOf(job.getResultJson().get("overallScore"))))
+                                            .maxScore(decoded.policy().maxScore())
+                                            .rubricCode(decoded.policy().rubricCode())
+                                            .feedbackLanguage(String.valueOf(job.getResultJson().get("feedbackLanguage")))
+                                            .scoreUnit(decoded.policy().scoreUnit());
+                                }
+                            } catch (RuntimeException ignored) {
+                                // Malformed persisted result is not surfaced as a score.
+                            }
+                        }
+                        writingTasks.add(taskBuilder.build());
                     }
                 }
             }

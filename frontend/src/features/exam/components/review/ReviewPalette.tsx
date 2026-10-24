@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ReviewQuestionDto, ReviewVerdict, ResultSummary } from '../../types/api.types';
 import { getWritingEvaluationStatus, type ReviewFilter } from '../../utils/reviewPresentation';
@@ -25,6 +26,7 @@ export const ReviewPalette: React.FC<ReviewPaletteProps> = ({
   activeFilter = 'ALL',
   onFilterChange,
 }) => {
+  useExamLocale();
   let correctCount = 0;
   let incorrectCount = 0;
   let blankCount = 0;
@@ -99,46 +101,46 @@ export const ReviewPalette: React.FC<ReviewPaletteProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-xs border border-slate-200 p-4">
-      <h3 className="text-base font-bold text-slate-900 mb-3">Bảng câu hỏi</h3>
+      <h3 className="text-base font-bold text-slate-900 mb-3">{em("Bảng câu hỏi")}</h3>
 
       {/* Legend */}
       <div className="grid grid-cols-3 gap-2 text-xs mb-3 pb-3 border-b border-slate-100">
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-[#16A34A] shrink-0" />
-          <span className="text-slate-700 font-medium">{correctCount} Đúng</span>
+          <span className="text-slate-700 font-medium">{correctCount} {em("Đúng")}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-[#DC2626] shrink-0" />
-          <span className="text-slate-700 font-medium">{incorrectCount} Sai</span>
+          <span className="text-slate-700 font-medium">{incorrectCount} {em("Sai")}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-slate-300 shrink-0" />
-          <span className="text-slate-600 font-medium">{blankCount} Chưa làm</span>
+          <span className="text-slate-600 font-medium">{blankCount} {em("Chưa làm")}</span>
         </div>
         {pendingCount > 0 && (
           <div className="flex items-center gap-1.5 col-span-3">
             <span className="w-3 h-3 rounded-full bg-amber-400 shrink-0" />
             <span className="text-amber-800 font-medium">
-              {pendingCount} {partId !== undefined && resultSummary ? 'Đang chấm' : 'Chờ kết quả'}
+              {pendingCount} {partId !== undefined && resultSummary ? em("Đang chấm") : em("Chờ kết quả")}
             </span>
           </div>
         )}
         {queuedCount > 0 && (
           <div className="flex items-center gap-1.5 col-span-3">
             <span className="w-3 h-3 rounded-full bg-blue-400 shrink-0" />
-            <span className="text-blue-800 font-medium">{queuedCount} Đang chờ chấm</span>
+            <span className="text-blue-800 font-medium">{queuedCount} {em("Đang chờ chấm")}</span>
           </div>
         )}
         {failedWritingCount > 0 && (
           <div className="flex items-center gap-1.5 col-span-3">
             <span className="w-3 h-3 rounded-full bg-red-400 shrink-0" />
-            <span className="text-red-800 font-medium">{failedWritingCount} Chấm không thành công</span>
+            <span className="text-red-800 font-medium">{failedWritingCount} {em("Chấm không thành công")}</span>
           </div>
         )}
         {unavailableWritingCount > 0 && (
           <div className="flex items-center gap-1.5 col-span-3">
             <span className="w-3 h-3 rounded-full bg-slate-400 shrink-0" />
-            <span className="text-slate-700 font-medium">{unavailableWritingCount} Chưa có thông tin</span>
+            <span className="text-slate-700 font-medium">{unavailableWritingCount} {em("Chưa có thông tin")}</span>
           </div>
         )}
       </div>
@@ -155,11 +157,10 @@ export const ReviewPalette: React.FC<ReviewPaletteProps> = ({
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
-            Tất cả
-          </button>
+            {em("Tất cả")}</button>
           <button
             type="button"
-            aria-label="Chỉ xem câu đúng"
+            aria-label={em("Chỉ xem câu đúng")}
             onClick={() => onFilterChange('CORRECT')}
             className={`px-2 py-1 rounded font-medium transition cursor-pointer ${
               activeFilter === 'CORRECT'
@@ -167,11 +168,11 @@ export const ReviewPalette: React.FC<ReviewPaletteProps> = ({
                 : 'bg-green-50 text-green-800 hover:bg-green-100'
             }`}
           >
-            Đúng ({correctCount})
+            {em("Đúng (")}{correctCount})
           </button>
           <button
             type="button"
-            aria-label="Chỉ xem câu sai"
+            aria-label={em("Chỉ xem câu sai")}
             onClick={() => onFilterChange('WRONG')}
             className={`px-2 py-1 rounded font-medium transition cursor-pointer ${
               activeFilter === 'WRONG'
@@ -183,7 +184,7 @@ export const ReviewPalette: React.FC<ReviewPaletteProps> = ({
           </button>
           <button
             type="button"
-            aria-label="Chỉ xem câu chưa làm"
+            aria-label={em("Chỉ xem câu chưa làm")}
             onClick={() => onFilterChange('BLANK')}
             className={`px-2 py-1 rounded font-medium transition cursor-pointer ${
               activeFilter === 'BLANK'
@@ -191,7 +192,7 @@ export const ReviewPalette: React.FC<ReviewPaletteProps> = ({
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
-            Chưa làm ({blankCount})
+            {em("Chưa làm (")}{blankCount})
           </button>
         </div>
       )}
@@ -221,8 +222,8 @@ export const ReviewPalette: React.FC<ReviewPaletteProps> = ({
               type="button"
               onClick={() => onSelectQuestion?.(q.rawId)}
               className={`h-9 rounded-md text-sm font-semibold transition-colors flex items-center justify-center cursor-pointer ${colorClasses} ${ringClass}`}
-              aria-label={`Câu ${q.label}`}
-              title={`Câu ${q.label}`}
+              aria-label={em("Câu {{v0}}", { v0: q.label })}
+              title={em("Câu {{v0}}", { v0: q.label })}
             >
               {q.label}
             </button>

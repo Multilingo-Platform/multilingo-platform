@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../../i18n/examMessages';
 import React from 'react';
 import type { WritingCorrection } from '../../../types/api.types';
 
@@ -10,18 +11,18 @@ export const WritingCorrectionsList: React.FC<WritingCorrectionsListProps> = ({
   corrections,
   className = '',
 }) => {
+  useExamLocale();
   if (!corrections || corrections.length === 0) {
     return (
       <div className={`p-4 rounded-lg border bg-muted/30 text-sm text-muted-foreground italic ${className}`}>
-        Không có lỗi cần sửa đổi hoặc chưa có gợi ý chỉnh sửa.
-      </div>
+        {em("Không có lỗi cần sửa đổi hoặc chưa có gợi ý chỉnh sửa.")}</div>
     );
   }
 
   return (
     <div className={`space-y-3 ${className}`}>
       <h4 className="text-sm font-semibold text-foreground">
-        Chi tiết các điểm cần sửa đổi ({corrections.length})
+        {em("Chi tiết các điểm cần sửa đổi (")}{corrections.length})
       </h4>
       <ol className="space-y-3" role="list">
         {corrections.map((item, index) => {
@@ -39,11 +40,10 @@ export const WritingCorrectionsList: React.FC<WritingCorrectionsListProps> = ({
                   </span>
                   {isDeletion ? (
                     <span className="inline-flex items-center rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-950/60 dark:text-red-300">
-                      (Xóa đoạn này)
-                    </span>
+                      {em("(Xóa đoạn này)")}</span>
                   ) : (
                     <div className="text-sm font-medium text-foreground min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
-                      <span>Thay bằng: </span>
+                      <span>{em("Thay bằng:")}</span>
                       <span
                         data-testid="correction-replacement"
                         className="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
@@ -55,7 +55,7 @@ export const WritingCorrectionsList: React.FC<WritingCorrectionsListProps> = ({
                 </div>
 
                 <span className="text-xs text-muted-foreground font-mono shrink-0">
-                  Vị trí: {item.start} - {item.end}
+                  {em("Vị trí:")}{' '}{item.start} - {item.end}
                 </span>
               </div>
 

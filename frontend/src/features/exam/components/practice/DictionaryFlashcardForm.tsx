@@ -1,6 +1,8 @@
+import { examErrorMessage as ee } from '../../i18n/examMessages';
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import { useEffect, useRef, useState } from 'react';
 import type { DeckSummary } from '../../../vocab/types/vocab.types';
-import type { DictionaryLookupResponse } from '../../types/api.types';
+import type { DictionaryLookupV2Response } from '../../types/api.types';
 import {
   addDictionaryFlashcard,
   createDictionaryDeck,
@@ -9,10 +11,21 @@ import {
   getDictionaryDecks,
 } from '../../api/dictionaryFlashcardApi';
 
-interface Props { ownerId: number | null; result: DictionaryLookupResponse; onSaved?: () => void; }
+interface Props { ownerId: number | null; result: DictionaryLookupV2Response; onSaved?: () => void; }
 type FormPhase = 'loading' | 'ready' | 'saving' | 'saved' | 'error' | 'uncertain';
 
-export function DictionaryFlashcardForm({ ownerId, result, onSaved }: Props) {
+export function DictionaryFlashcardForm(props: Props) {
+  const { ownerId, result } = props;
+  return <DictionaryFlashcardFormContent key={`${ownerId}:${result.requestId}:${result.definition.learningLanguage}:${result.definition.meaningLanguage}`} {...props} />;
+}
+
+function DictionaryFlashcardFormContent({ ownerId, result, onSaved }: Props) {
+  useExamLocale();
+  const targetLanguage = result.definition.learningLanguage;
+  const sourceLanguage = result.definition.meaningLanguage;
+  const identity = `${ownerId ?? 'none'}:${result.requestId}:${targetLanguage}:${sourceLanguage}`;
+  const currentIdentity = useRef(identity);
+  currentIdentity.current = identity;
   const [decks, setDecks] = useState<DeckSummary[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [newName, setNewName] = useState('');
@@ -25,17 +38,17 @@ export function DictionaryFlashcardForm({ ownerId, result, onSaved }: Props) {
   useEffect(() => {
     active.current = true;
     if (!ownerId) { setPhase('error'); setMessage('Không xác định được tài khoản.'); return () => { active.current = false; }; }
-    void getDictionaryDecks(ownerId).then(items => {
-      if (!active.current) return;
+    void getDictionaryDecks(ownerId, targetLanguage, sourceLanguage).then(items => {
+      if (!active.current || currentIdentity.current !== identity) return;
       setDecks(items);
       setSelectedId(items[0] ? String(items[0].id) : '');
       setPhase('ready');
-      setMessage(items.length ? null : 'Chưa có bộ thẻ tiếng Anh → tiếng Việt riêng tư.');
+      setMessage(items.length ? null : em("Chưa có bộ thẻ {{v0}} → {{v1}} riêng tư.", { v0: targetLanguage, v1: sourceLanguage }));
     }).catch(() => {
       if (active.current) { setPhase('error'); setMessage('Không tải được danh sách bộ thẻ.'); }
     });
     return () => { active.current = false; };
-  }, [ownerId]);
+  }, [identity, ownerId, sourceLanguage, targetLanguage]);
 
   const save = async (deck: DeckSummary) => {
     if (mutex.current || !ownerId) return;
@@ -43,9 +56,9 @@ export function DictionaryFlashcardForm({ ownerId, result, onSaved }: Props) {
     setPhase('saving'); setMessage(null);
     try {
       await addDictionaryFlashcard(deck, ownerId, result);
-      if (active.current) { setPhase('saved'); setMessage('Đã lưu vào bộ thẻ.'); onSaved?.(); }
+      if (active.current && currentIdentity.current === identity) { setPhase('saved'); setMessage('Đã lưu vào bộ thẻ.'); onSaved?.(); }
     } catch (error) {
-      if (!active.current) return;
+      if (!active.current || currentIdentity.current !== identity) return;
       if (error instanceof DictionaryFlashcardDuplicateError) {
         setPhase('error'); setMessage(error.message);
       } else if (error instanceof DictionaryFlashcardSaveUncertainError) {
@@ -53,7 +66,7 @@ export function DictionaryFlashcardForm({ ownerId, result, onSaved }: Props) {
       } else {
         const code = (error as any)?.response?.data?.code;
         setPhase('error');
-        setMessage(code === 1210 ? 'Từ đã có trong bộ thẻ này.' : 'Không thể lưu thẻ. Kết quả tra từ vẫn được giữ.');
+        setMessage(code === 1210 ? em("Từ đã có trong bộ thẻ này.") : em("Không thể lưu thẻ. Kết quả tra từ vẫn được giữ."));
       }
     } finally { mutex.current = false; }
   };
@@ -68,14 +81,14 @@ export function DictionaryFlashcardForm({ ownerId, result, onSaved }: Props) {
     mutex.current = true;
     setPhase('saving'); setMessage(null);
     try {
-      const deck = await createDictionaryDeck(ownerId, newName);
-      if (!active.current) return;
+      const deck = await createDictionaryDeck(ownerId, newName, targetLanguage, sourceLanguage);
+      if (!active.current || currentIdentity.current !== identity) return;
       setDecks(current => [...current, deck]);
       setSelectedId(String(deck.id));
       await addDictionaryFlashcard(deck, ownerId, result);
-      if (active.current) { setPhase('saved'); setMessage('Đã lưu vào bộ thẻ mới.'); onSaved?.(); }
+      if (active.current && currentIdentity.current === identity) { setPhase('saved'); setMessage('Đã lưu vào bộ thẻ mới.'); onSaved?.(); }
     } catch (error) {
-      if (!active.current) return;
+      if (!active.current || currentIdentity.current !== identity) return;
       if (error instanceof DictionaryFlashcardSaveUncertainError) {
         setPhase('uncertain'); setMessage(error.message);
       } else if (error instanceof DictionaryFlashcardDuplicateError) {
@@ -87,39 +100,39 @@ export function DictionaryFlashcardForm({ ownerId, result, onSaved }: Props) {
   };
 
   return (
-    <section className="space-y-2 border-t border-slate-100 pt-3" aria-label="Lưu Flashcard">
-      <p className="text-xs text-slate-600">Lưu “{result.selectedText}” — {result.meaningVi}</p>
-      {phase === 'loading' ? <p role="status">Đang tải bộ thẻ…</p> : null}
-      {phase === 'ready' && decks.length === 0 && message && <p role="status">{message}</p>}
+    <section className="space-y-2 border-t border-slate-100 pt-3" aria-label={em("Lưu Flashcard")}>
+      <p className="text-xs text-slate-600">{em("Lưu “")}{' '}{result.selectedText}” — {result.definition.meaning}</p>
+      {phase === 'loading' ? <p role="status">{em("Đang tải bộ thẻ…")}</p> : null}
+      {phase === 'ready' && decks.length === 0 && <p role="status">{em('Chưa có bộ thẻ {{v0}} → {{v1}} riêng tư.', { v0: targetLanguage, v1: sourceLanguage })}</p>}
       {decks.length > 0 && phase !== 'saved' && (
         <div className="flex gap-2">
-          <label className="sr-only" htmlFor="dictionary-deck-select">Chọn bộ thẻ</label>
+          <label className="sr-only" htmlFor="dictionary-deck-select">{em("Chọn bộ thẻ")}</label>
           <select id="dictionary-deck-select" value={selectedId} onChange={event => setSelectedId(event.target.value)} disabled={phase === 'saving'}
             className="min-h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 text-sm">
             {decks.map(deck => <option key={deck.id} value={deck.id}>{deck.name}</option>)}
           </select>
           <button type="button" onClick={saveSelected} disabled={!selectedId || phase === 'saving' || phase === 'uncertain'}
             className="min-h-11 rounded-lg bg-amber-600 px-3 text-sm font-semibold text-white disabled:opacity-50">
-            {phase === 'saving' ? 'Đang lưu…' : '+ Lưu Flashcard'}
+            {phase === 'saving' ? em("Đang lưu…") : em("+ Lưu Flashcard")}
           </button>
         </div>
       )}
       {decks.length === 0 && phase !== 'loading' && !creating && (
-        <button type="button" onClick={() => setCreating(true)} className="min-h-11 rounded-lg border border-amber-500 px-3 text-sm font-medium text-amber-800">Tạo bộ thẻ</button>
+        <button type="button" onClick={() => setCreating(true)} className="min-h-11 rounded-lg border border-amber-500 px-3 text-sm font-medium text-amber-800">{em("Tạo bộ thẻ")}</button>
       )}
       {creating && phase !== 'saved' && (
         <div className="space-y-2">
-          <label className="block text-xs font-medium" htmlFor="dictionary-new-deck">Tên bộ thẻ mới</label>
+          <label className="block text-xs font-medium" htmlFor="dictionary-new-deck">{em("Tên bộ thẻ mới")}</label>
           <input id="dictionary-new-deck" value={newName} maxLength={100} onChange={event => setNewName(event.target.value)}
             className="min-h-11 w-full rounded-lg border border-slate-300 px-3 text-sm" />
           <button type="button" onClick={() => void createAndSave()} disabled={!newName.trim() || phase === 'saving'}
             className="min-h-11 rounded-lg bg-amber-600 px-3 text-sm font-semibold text-white disabled:opacity-50">
-            {phase === 'saving' ? 'Đang lưu…' : 'Tạo và lưu'}
+            {phase === 'saving' ? em("Đang lưu…") : em("Tạo và lưu")}
           </button>
         </div>
       )}
-      {phase === 'saved' && <p role="status" className="text-sm font-medium text-emerald-700">{message}</p>}
-      {(phase === 'error' || phase === 'uncertain') && message && <p role="alert" className="text-sm text-red-700">{message}</p>}
+      {phase === 'saved' && <p role="status" className="text-sm font-medium text-emerald-700">{ee(message)}</p>}
+      {(phase === 'error' || phase === 'uncertain') && message && <p role="alert" className="text-sm text-red-700">{ee(message)}</p>}
     </section>
   );
 }

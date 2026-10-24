@@ -1,3 +1,4 @@
+import { examMessage as em } from '../../i18n/examMessages';
 import React from 'react';
 
 interface Props {
@@ -11,7 +12,7 @@ const DiagramLabelingRenderer: React.FC<Props> = ({ value, onChange, placeholder
     type="text"
     value={value ?? ''}
     onChange={e => onChange(e.target.value)}
-    placeholder={placeholder ?? 'Điền nhãn...'}
+    placeholder={placeholder ?? em("Điền nhãn...")}
     style={{ width: '160px', padding: '4px 8px', border: '1px solid #ccc', borderRadius: '4px' }}
   />
 );

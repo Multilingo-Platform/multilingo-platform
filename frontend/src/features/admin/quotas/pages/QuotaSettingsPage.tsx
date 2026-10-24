@@ -94,7 +94,7 @@ export const QuotaSettingsPage = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Cấu Hình Hạn Mức Quota AI (UC15.3)
+          Cấu Hình Hạn Mức Quota AI
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           Thiết lập số lượt sử dụng tối đa trong ngày cho từng tính năng AI theo nhóm tài khoản Free và VIP. Mọi thay đổi đều được lưu vết trong Nhật ký kiểm toán.

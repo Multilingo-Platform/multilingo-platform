@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ExamOption } from '../../types/exam.types';
 
@@ -23,6 +24,7 @@ const SingleChoiceRenderer: React.FC<Props> = ({
   labelOnly = false,
   revealText = false,
 }) => {
+  useExamLocale();
   const normalizedOptions: ExamOption[] = (options ?? []).map((opt: any, idx: number) => {
     const letter = String.fromCharCode(65 + idx);
     if (typeof opt === 'string') {
@@ -65,7 +67,7 @@ const SingleChoiceRenderer: React.FC<Props> = ({
               value={opt.id}
               checked={isChecked}
               onChange={() => onChange(opt.id)}
-              aria-label={showText ? opt.text : `Lựa chọn ${letter}`}
+              aria-label={showText ? opt.text : em("Lựa chọn {{v0}}", { v0: letter })}
               className="mt-1 h-4 w-4 border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
             />
             <span
@@ -86,7 +88,7 @@ const SingleChoiceRenderer: React.FC<Props> = ({
               </span>
             ) : (
               <span className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1">
-                {opt.text ? opt.text : `Lựa chọn ${letter}`}
+                {opt.text ? opt.text : em("Lựa chọn {{v0}}", { v0: letter })}
               </span>
             )}
           </label>

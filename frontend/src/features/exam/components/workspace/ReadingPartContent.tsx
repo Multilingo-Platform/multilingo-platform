@@ -1,3 +1,4 @@
+import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { AnswerValue } from '../../types/answer.types';
 import type { Question } from '../../types/exam.types';
@@ -134,6 +135,7 @@ const ReadingPartContent: React.FC<ReadingPartContentProps> = ({
   onToggleFlag,
   toolbar,
 }) => {
+  useExamLocale();
   const renderCard = (view: ReadingQuestionView) => (
     <QuestionCard
       key={view.question.question_id}
@@ -179,7 +181,7 @@ const ReadingPartContent: React.FC<ReadingPartContentProps> = ({
 
   const instructionCallout = partInstruction ? (
     <div className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700">
-      <span className="font-bold text-amber-800 block mb-0.5">Hướng dẫn làm bài:</span>
+      <span className="font-bold text-amber-800 block mb-0.5">{em("Hướng dẫn làm bài:")}</span>
       {partInstruction}
     </div>
   ) : null;

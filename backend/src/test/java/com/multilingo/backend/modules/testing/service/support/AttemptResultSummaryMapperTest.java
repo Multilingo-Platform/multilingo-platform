@@ -5,6 +5,8 @@ import com.multilingo.backend.modules.testing.dto.response.ResultSummaryResponse
 import com.multilingo.backend.modules.testing.dto.response.ResultSummaryResponse.*;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
+import com.multilingo.backend.modules.testing.entity.WritingGradingJob;
+import com.multilingo.backend.modules.testing.entity.enums.WritingGradingJobStatus;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -1153,7 +1155,7 @@ class AttemptResultSummaryMapperTest {
         assertThat(resZh).isNotNull();
         assertThat(resZh.getWriting()).isNotNull();
         WritingTaskSummary taskZh = resZh.getWriting().getTasks().get(0);
-        assertThat(taskZh.getWordCount()).isEqualTo(5);
+        assertThat(taskZh.getWordCount()).isEqualTo(2); // Legacy field remains whitespace-delimited; the metric carries CJK characters.
         assertThat(taskZh.getLengthMetric()).isNotNull();
         assertThat(taskZh.getLengthMetric().value()).isEqualTo(5);
         assertThat(taskZh.getLengthMetric().unit()).isEqualTo(com.multilingo.backend.modules.testing.util.WritingLengthCounter.Unit.CHARACTERS);
@@ -1162,5 +1164,43 @@ class AttemptResultSummaryMapperTest {
         String serializedZh = objectMapper.writeValueAsString(resZh);
         assertThat(serializedZh).contains("\"unit\":\"CHARACTERS\"");
         assertThat(serializedZh).contains("\"policyVersion\":\"TV3_LENGTH_V1\"");
+    }
+
+    @Test
+    void map_writingTasks_exposesOnlyValidatedVersionedScore() {
+        Map<String, Object> snapshot = Map.of(
+                "examLanguage", "vi",
+                "sections", List.of(Map.of("name", "Writing", "parts", List.of(Map.of(
+                        "id", 31, "title", "Writing", "questions", List.of(Map.of("id", "essay_vi", "type", "ESSAY", "title", "Bài viết"))
+                ))))
+        );
+        TestAttempt attempt = buildAttempt(88, AttemptStatus.COMPLETED, BigDecimal.ZERO, snapshot, """
+                {"totalObjectiveCount":0,"correctCount":0,"totalScore":0.0,"sectionScores":{},"partResults":{}}
+                """);
+        Map<String, Object> result = new HashMap<>();
+        result.put("schemaVersion", 2);
+        result.put("rubricCode", "WRITING_GENERIC_V1");
+        result.put("scoreUnit", "PRACTICE_0_10");
+        result.put("maxScore", 10.0);
+        result.put("sourceLanguage", "vi");
+        result.put("feedbackLanguage", "en");
+        result.put("overallScore", 10.0);
+        result.put("diff", List.of());
+        result.put("lengthMetric", Map.of("value", 0, "unit", "WORDS", "policyVersion", "TV3_LENGTH_V1"));
+        result.put("criteria", List.of(
+                Map.of("code", "TR", "score", 10.0, "feedback", "Clear response"),
+                Map.of("code", "CC", "score", 10.0, "feedback", "Clear structure"),
+                Map.of("code", "LR", "score", 10.0, "feedback", "Strong vocabulary"),
+                Map.of("code", "GRA", "score", 10.0, "feedback", "Accurate grammar")));
+        WritingGradingJob job = WritingGradingJob.builder().attemptId(88).partId(31).questionId("essay_vi")
+                .status(WritingGradingJobStatus.SUCCEEDED).resultJson(result).build();
+
+        WritingTaskSummary task = mapper.map(attempt, List.of(), List.of(job)).getWriting().getTasks().get(0);
+        assertThat(task.getStatus()).isEqualTo("DONE");
+        assertThat(task.getScore()).isEqualByComparingTo("10.0");
+        assertThat(task.getMaxScore()).isEqualByComparingTo("10.0");
+        assertThat(task.getRubricCode()).isEqualTo("WRITING_GENERIC_V1");
+        assertThat(task.getFeedbackLanguage()).isEqualTo("en");
+        assertThat(task.getScoreUnit()).isEqualTo("PRACTICE_0_10");
     }
 }

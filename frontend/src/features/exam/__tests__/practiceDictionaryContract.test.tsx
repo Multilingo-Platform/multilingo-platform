@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,6 +24,7 @@ const workspace: WorkspaceResponse = {
   attempt_id: 42, status: 'IN_PROGRESS', test_scope: 'FULL_EXAM', test_mode: 'PRACTICE',
   startTime: '2026-10-20T07:00:00Z', serverTime: '2026-10-20T07:00:00Z', deadline: null,
   gracePeriodSeconds: 15, lockedSections: [], version: 7, saved_answers: [], serverTimeOffset: 0,
+  languageContext: { policyVersion: 'TV3_LANG_V1', examLanguage: 'en', defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es'] },
   exam_snapshot: { exam_id: 1, code: 'READING', title: 'Reading', type: 'IELTS', examLanguage: 'en', sections: [{
     id: 2, skill_type: 'READING', title: 'Reading', duration_minutes: 60,
     parts: [{ id: 7, question_groups: [{ group_id: 'g1', instruction: null, context_html: 'The elms grow beside the river.', shared_audio: null, shared_media: null, questions: [] }], questions: [] }],
@@ -31,9 +32,9 @@ const workspace: WorkspaceResponse = {
 };
 
 function Harness() {
-  const dictionary = usePracticeDictionary({ workspace, partId: 7, isLocked: () => false });
+  const dictionary = usePracticeDictionary({ workspace, partId: 7, ownerId: 21, isLocked: () => false });
   return dictionary.data
-    ? <><p>{dictionary.data.meaningVi}</p><DictionaryFlashcardForm ownerId={21} result={dictionary.data} /></>
+    ? <><p>{dictionary.data.definition.meaning}</p><DictionaryFlashcardForm ownerId={21} result={dictionary.data} /></>
     : <><button type="button" onClick={() => void dictionary.lookup(selection)}>Tra từ</button><p role="status">{dictionary.phase}</p></>;
 }
 
@@ -43,11 +44,11 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     http.get.mockResolvedValue({ success: true, data: [deck] } as never);
     http.post.mockImplementation(async (url, payload) => {
       if (String(url).endsWith('/dictionary-lookups')) {
-        const { contextText: _contextText, ...request } = payload as any;
+        const request = payload as any;
         return { success: true, data: {
-        ...request, requestId: (payload as any).requestId, attemptId: 42, partId: 7, documentId: 'g1', selectedText: 'elms',
-        sourceContext: 'The elms grow beside the river.', learningLanguage: 'en', meaningLanguage: 'vi', meaningVi: 'cây du',
-        phonetic: '/elm/', partOfSpeech: 'noun', exampleEn: 'The elms grow.', exampleVi: 'Cây du mọc.',
+        requestId: request.requestId, attemptId: 42, partId: 7, documentId: 'g1', selectedText: 'elms',
+        sourceContext: 'The elms grow beside the river.', definition: { schemaVersion: 2, learningLanguage: 'en', meaningLanguage: request.meaningLanguage ?? 'vi', meaning: 'cây du',
+        phonetic: '/elm/', partOfSpeech: 'noun', example: 'The elms grow.', exampleTranslation: 'Cây du mọc.' },
         } } as never;
       }
       return { success: true, data: { id: 18, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow beside the river.' } } as never;
@@ -62,7 +63,7 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     expect(screen.getByText('cây du')).toBeInTheDocument();
     await act(async () => { screen.getByRole('button', { name: /lưu flashcard/i }).click(); });
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/đã lưu/i));
-    expect(http.post.mock.calls[0][0]).toBe('/v1/attempts/42/dictionary-lookups');
+    expect(http.post.mock.calls[0][0]).toBe('/v2/attempts/42/dictionary-lookups');
     expect(http.post.mock.calls[1][0]).toBe('/v1/vocab/decks/3/cards');
     expect(http.post.mock.calls[1][1]).toMatchObject({ customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow beside the river.' });
     expect(store.getState().answers).toMatchObject({ attemptId: 42, version: 7, isDirty: false });
@@ -83,8 +84,16 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     } } as never);
     if (outcome === 'unavailable') {
       http.post.mockRejectedValueOnce({ response: { status: 503 } });
+    } else {
+      http.post.mockImplementationOnce(async (_url, payload) => ({ success: true, data: {
+        requestId: (payload as any).requestId, attemptId: 42, partId: 7, documentId: 'g1', selectedText: 'elms',
+        sourceContext: 'The elms grow beside the river.', definition: {
+          schemaVersion: 2, learningLanguage: 'en', meaningLanguage: 'vi', meaning: 'cây du', phonetic: null,
+          partOfSpeech: 'noun', example: 'The elms grow.', exampleTranslation: 'Cây du mọc.',
+        },
+      } }) as never);
     }
-    const store = createTestStore();
+    const store = createTestStore({ auth: { user: { id: 21 }, token: 'test-token', isAuthenticated: true } });
     const page = render(<Provider store={store}><MemoryRouter initialEntries={['/attempts/42']}>
       <Routes><Route path="/attempts/:attemptId" element={<WorkspacePage />} /></Routes>
     </MemoryRouter></Provider>);
@@ -101,9 +110,10 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     fireEvent.mouseUp(passage);
     fireEvent.click(await screen.findByRole('button', { name: 'Tra từ AI' }));
     const dialog = await screen.findByRole('dialog', { name: 'Tra từ AI: elms' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tra từ' }));
     await waitFor(() => expect(dialog).toHaveTextContent(outcome === 'ready' ? 'cây du' : 'Tra từ AI hiện chưa khả dụng.'));
     expect(dialog).not.toHaveTextContent('Đang tra nghĩa');
-    expect(http.post).toHaveBeenCalledWith('/v1/attempts/42/dictionary-lookups', expect.objectContaining({
+    expect(http.post).toHaveBeenCalledWith('/v2/attempts/42/dictionary-lookups', expect.objectContaining({
       partId: 7, documentId: 'g1', selectedText: 'elms', contextText: 'The elms grow beside the river.',
     }), expect.any(Object));
     expect(store.getState().answers).toMatchObject({ version: 7, isDirty: false });
