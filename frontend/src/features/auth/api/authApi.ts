@@ -1,5 +1,5 @@
 import axiosClient from '../../../core/api/axiosClient';
-import type { LoginRequest, GoogleLoginRequest, RegisterRequest, AuthResponse, UserResponse, UpdateProfileRequest, ChangePasswordRequest } from '../types';
+import type { LoginRequest, GoogleLoginRequest, RegisterRequest, AuthResponse, UserResponse, UpdateProfileRequest, ChangePasswordRequest, ForgotPasswordRequest, ResetPasswordRequest } from '../types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -35,6 +35,14 @@ export const authApi = {
   },
   changePassword: async (data: ChangePasswordRequest) => {
     const res = await axiosClient.put<any, ApiResponse<null>>('/users/me/password', data);
+    return res;
+  },
+  forgotPassword: async (data: ForgotPasswordRequest) => {
+    const res = await axiosClient.post<any, ApiResponse<null>>('/auth/forgot-password', data);
+    return res;
+  },
+  resetPassword: async (data: ResetPasswordRequest) => {
+    const res = await axiosClient.post<any, ApiResponse<null>>('/auth/reset-password', data);
     return res;
   }
 };

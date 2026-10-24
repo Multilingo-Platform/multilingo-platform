@@ -130,6 +130,22 @@ class AuthenControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/auth/forgot-password - Cooldown Active 429")
+    void forgotPassword_CooldownActive() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest("test@gmail.com");
+
+        org.mockito.Mockito.doThrow(new AppException(ErrorCode.OTP_COOLDOWN_ACTIVE))
+                .when(userService).forgotPassword(any(ForgotPasswordRequest.class));
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(923));
+    }
+
+    @Test
     @DisplayName("POST /api/auth/reset-password - Success")
     void resetPassword_Success() throws Exception {
         ResetPasswordRequest request = new ResetPasswordRequest("test@gmail.com", "123456", "newPassword");
@@ -141,5 +157,37 @@ class AuthenControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/reset-password - Invalid OTP 400")
+    void resetPassword_InvalidOtp() throws Exception {
+        ResetPasswordRequest request = new ResetPasswordRequest("test@gmail.com", "999999", "newPassword");
+
+        org.mockito.Mockito.doThrow(new AppException(ErrorCode.INVALID_OTP))
+                .when(userService).resetPassword(any(ResetPasswordRequest.class));
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(913));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/reset-password - Max Attempts Exceeded 400")
+    void resetPassword_MaxAttemptsExceeded() throws Exception {
+        ResetPasswordRequest request = new ResetPasswordRequest("test@gmail.com", "999999", "newPassword");
+
+        org.mockito.Mockito.doThrow(new AppException(ErrorCode.OTP_MAX_ATTEMPTS_EXCEEDED))
+                .when(userService).resetPassword(any(ResetPasswordRequest.class));
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(924));
     }
 }
