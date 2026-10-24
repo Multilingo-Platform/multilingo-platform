@@ -32,4 +32,11 @@ public class UserTarget extends BaseEntity {
 
     @Column(name = "target_score", precision = 4, scale = 1, nullable = false)
     BigDecimal targetScore;
+
+    @Builder.Default
+    @Column(name = "daily_minutes", nullable = false)
+    Integer dailyMinutes = 30;
+
+    @Column(name = "current_level", length = 30)
+    String currentLevel;
 }

@@ -1,114 +1,192 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { OnboardingStepIndicator } from '../../components/OnboardingStepIndicator';
+import { Step1LanguageSelect } from '../../components/Step1LanguageSelect';
+import { Step2CertificateGoal } from '../../components/Step2CertificateGoal';
+import { Step4RoadmapSummary } from '../../components/Step4RoadmapSummary';
+import { onboardingApi } from '../../api/onboardingApi';
+import type { OnboardingData, TargetCertificate } from '../../types';
+import { alertUtil } from '../../../../utils/alert';
+import '../../components/Onboarding.css';
 
-const OnboardingPage = () => {
+const STEP_TITLES = [
+  'Chọn Ngôn Ngữ',
+  'Mục Tiêu Chứng Chỉ',
+  'Lộ Trình Cá Nhân',
+];
+
+const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [nativeLang, setNativeLang] = useState('vi');
-  const [targetLang, setTargetLang] = useState('en');
-  const [targetCert, setTargetCert] = useState('IELTS');
-  const [targetBand, setTargetBand] = useState('7.0');
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [checkingStatus, setCheckingStatus] = useState<boolean>(true);
 
-  const handleFinish = () => {
-    navigate('/student/library'); // Cập nhật theo UC05: Chuyển thẳng vào Kho đề thi
+  const [formData, setFormData] = useState<OnboardingData>({
+    nativeLanguage: 'vi',
+    targetLanguage: 'en',
+    targetCertificate: 'IELTS_ACADEMIC',
+    targetScore: 7.0,
+    dailyMinutes: 30,
+    currentLevel: 'INTERMEDIATE',
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        const res = await onboardingApi.getStatus();
+        if (isMounted && res.data?.hasCompletedOnboarding) {
+          navigate('/student/dashboard');
+        }
+      } catch (err) {
+        // If unauthenticated or token expired, redirect to login
+        console.warn('Lỗi kiểm tra trạng thái onboarding:', err);
+      } finally {
+        if (isMounted) {
+          setCheckingStatus(false);
+        }
+      }
+    };
+
+    checkStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
+
+  const handleNext = () => {
+    if (currentStep === 1) {
+      if (formData.nativeLanguage === formData.targetLanguage) {
+        alertUtil.toast('Ngôn ngữ mẹ đẻ và ngôn ngữ muốn học không được trùng nhau!', 'warning');
+        return;
+      }
+    }
+    if (currentStep < 3) {
+      setCurrentStep((prev) => prev + 1);
+    }
   };
 
-  return (
-    <div className="flex-center slide-up" style={{ minHeight: '100vh', padding: '2rem', background: 'var(--bg-primary)' }}>
-      <div className="ed-card" style={{ width: '100%', maxWidth: '600px', padding: '3rem', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>Cá nhân hóa lộ trình</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem' }}>Hãy cho chúng tôi biết mục tiêu học tập của bạn để hệ thống gợi ý bài thi phù hợp.</p>
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+    }
+  };
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', textAlign: 'left' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 700, fontSize: '1.125rem' }}>1. Ngôn ngữ mẹ đẻ của bạn là gì?</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div 
-                className="ed-card flex-center" 
-                style={{ padding: '1rem', cursor: 'pointer', border: nativeLang === 'vi' ? '2px solid var(--primary)' : '1px solid var(--border-dark)', background: nativeLang === 'vi' ? 'var(--primary-light)' : 'var(--bg-secondary)', color: nativeLang === 'vi' ? 'var(--primary)' : 'var(--text-primary)', fontWeight: nativeLang === 'vi' ? 600 : 500, boxShadow: 'none' }}
-                onClick={() => setNativeLang('vi')}
-              >
-                Tiếng Việt
-              </div>
-              <div 
-                className="ed-card flex-center" 
-                style={{ padding: '1rem', cursor: 'pointer', border: nativeLang === 'en' ? '2px solid var(--primary)' : '1px solid var(--border-dark)', background: nativeLang === 'en' ? 'var(--primary-light)' : 'var(--bg-secondary)', color: nativeLang === 'en' ? 'var(--primary)' : 'var(--text-primary)', fontWeight: nativeLang === 'en' ? 600 : 500, boxShadow: 'none' }}
-                onClick={() => setNativeLang('en')}
-              >
-                Tiếng Anh
-              </div>
-            </div>
-          </div>
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const res = await onboardingApi.submitOnboarding(formData);
+      if (res.code === 200 || res.data) {
+        alertUtil.toast('Thiết lập mục tiêu học tập thành công!', 'success');
+        navigate('/student/library');
+      } else {
+        alertUtil.toast(res.message || 'Thiết lập không thành công', 'error');
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Có lỗi xảy ra khi lưu mục tiêu';
+      alertUtil.toast(msg, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 700, fontSize: '1.125rem' }}>2. Bạn muốn học/thi ngôn ngữ nào?</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div 
-                className="ed-card flex-center" 
-                style={{ padding: '1rem', cursor: 'pointer', border: targetLang === 'en' ? '2px solid var(--primary)' : '1px solid var(--border-dark)', background: targetLang === 'en' ? 'var(--primary-light)' : 'var(--bg-secondary)', color: targetLang === 'en' ? 'var(--primary)' : 'var(--text-primary)', fontWeight: targetLang === 'en' ? 600 : 500, boxShadow: 'none' }}
-                onClick={() => setTargetLang('en')}
-              >
-                Tiếng Anh
-              </div>
-              <div 
-                className="ed-card flex-center" 
-                style={{ padding: '1rem', cursor: 'pointer', border: targetLang === 'vi' ? '2px solid var(--primary)' : '1px solid var(--border-dark)', background: targetLang === 'vi' ? 'var(--primary-light)' : 'var(--bg-secondary)', color: targetLang === 'vi' ? 'var(--primary)' : 'var(--text-primary)', fontWeight: targetLang === 'vi' ? 600 : 500, boxShadow: 'none' }}
-                onClick={() => setTargetLang('vi')}
-              >
-                Tiếng Việt
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 700, fontSize: '1.125rem' }}>3. Chứng chỉ mục tiêu & Điểm kỳ vọng (Target Band)</label>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <select 
-                className="input-field" 
-                value={targetCert} 
-                onChange={(e) => setTargetCert(e.target.value)}
-                style={{ flex: 1, cursor: 'pointer' }}
-              >
-                <option value="IELTS">IELTS Academic</option>
-                <option value="TOEIC">TOEIC L&R</option>
-                <option value="NLTV">NLTV B1-C1</option>
-              </select>
-              
-              <select 
-                className="input-field" 
-                value={targetBand} 
-                onChange={(e) => setTargetBand(e.target.value)}
-                style={{ flex: 1, cursor: 'pointer' }}
-              >
-                {targetCert === 'IELTS' && (
-                  <>
-                    <option value="5.5">Band 5.5+</option>
-                    <option value="6.5">Band 6.5+</option>
-                    <option value="7.5">Band 7.5+</option>
-                  </>
-                )}
-                {targetCert === 'TOEIC' && (
-                  <>
-                    <option value="500">500+ Điểm</option>
-                    <option value="750">750+ Điểm</option>
-                    <option value="900">900+ Điểm</option>
-                  </>
-                )}
-                {targetCert === 'NLTV' && (
-                  <>
-                    <option value="B1">Bậc 3 (B1)</option>
-                    <option value="B2">Bậc 4 (B2)</option>
-                    <option value="C1">Bậc 5 (C1)</option>
-                  </>
-                )}
-              </select>
-            </div>
-          </div>
-
-          <button className="btn btn-primary" style={{ marginTop: '1.5rem', padding: '1rem', fontSize: '1.125rem' }} onClick={handleFinish}>
-            Hoàn tất & Vào thư viện đề thi
-          </button>
+  if (checkingStatus) {
+    return (
+      <div className="onboarding-page-wrapper">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: '#6366f1' }}>
+          <Loader2 className="animate-spin" size={40} />
+          <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Đang tải thiết lập mục tiêu...</span>
         </div>
       </div>
+    );
+  }
+
+  const isSameLanguage = formData.nativeLanguage === formData.targetLanguage;
+
+  return (
+    <div className="onboarding-page-wrapper">
+      <main className="onboarding-card">
+        <OnboardingStepIndicator
+          currentStep={currentStep}
+          totalSteps={3}
+          stepTitles={STEP_TITLES}
+        />
+
+        {currentStep === 1 && (
+          <Step1LanguageSelect
+            nativeLanguage={formData.nativeLanguage}
+            targetLanguage={formData.targetLanguage}
+            onNativeChange={(lang) => setFormData((prev) => ({ ...prev, nativeLanguage: lang }))}
+            onTargetChange={(lang) => setFormData((prev) => ({ ...prev, targetLanguage: lang }))}
+          />
+        )}
+
+        {currentStep === 2 && (
+          <Step2CertificateGoal
+            targetLanguage={formData.targetLanguage}
+            targetCertificate={formData.targetCertificate}
+            targetScore={formData.targetScore}
+            onCertChange={(cert: TargetCertificate) => setFormData((prev) => ({ ...prev, targetCertificate: cert }))}
+            onScoreChange={(score: number) => setFormData((prev) => ({ ...prev, targetScore: score }))}
+          />
+        )}
+
+        {currentStep === 3 && <Step4RoadmapSummary data={formData} />}
+
+        <div className="onboarding-actions">
+          {currentStep > 1 ? (
+            <button
+              type="button"
+              className="onboarding-btn onboarding-btn-outline"
+              onClick={handleBack}
+              disabled={submitting}
+            >
+              <ArrowLeft size={18} />
+              <span>Quay lại</span>
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {currentStep < 3 ? (
+            <button
+              type="button"
+              className="onboarding-btn onboarding-btn-primary"
+              onClick={handleNext}
+              disabled={currentStep === 1 && isSameLanguage}
+            >
+              <span>Tiếp tục</span>
+              <ArrowRight size={18} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="onboarding-btn onboarding-btn-primary"
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  <span>Đang khởi tạo...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} />
+                  <span>Bắt đầu hành trình học</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

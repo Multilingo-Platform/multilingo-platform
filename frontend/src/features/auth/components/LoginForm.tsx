@@ -41,6 +41,8 @@ const LoginForm = () => {
         
         if (res.data?.user?.role === 'ADMIN') {
           navigate('/admin/dashboard');
+        } else if (res.data?.user?.hasCompletedOnboarding === false) {
+          navigate('/onboarding');
         } else {
           navigate('/student/dashboard');
         }
@@ -76,6 +78,8 @@ const LoginForm = () => {
         // Redirect based on role
         if (res.data?.user?.role === 'ADMIN') {
           navigate('/admin/dashboard');
+        } else if (res.data?.user?.hasCompletedOnboarding === false) {
+          navigate('/onboarding');
         } else {
           navigate('/student/dashboard');
         }

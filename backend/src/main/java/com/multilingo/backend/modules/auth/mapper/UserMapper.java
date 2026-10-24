@@ -21,6 +21,7 @@ public interface UserMapper {
     @Mapping(target = "googleId", ignore = true)
     @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "lastLoginIp", ignore = true)
+    @Mapping(target = "hasCompletedOnboarding", ignore = true)
     User toUser(UserCreationRequest request);
 
     @Mapping(source = "role.name", target = "role")
@@ -40,5 +41,6 @@ public interface UserMapper {
     @Mapping(target = "googleId", ignore = true)
     @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "lastLoginIp", ignore = true)
+    @Mapping(target = "hasCompletedOnboarding", ignore = true)
     void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

@@ -25,7 +25,7 @@ describe('language-practice builder', () => {
     await screen.findByDisplayValue('日本語 読解');
     expect(screen.getByRole('combobox', { name: 'Kỹ năng Part 1' })).toHaveValue('READING');
     expect(screen.getByRole('spinbutton', { name: 'Thời lượng Part 1' })).toHaveValue(35);
-    fireEvent.click(screen.getByRole('button', { name: /lưu nháp/i }));
+    fireEvent.click(screen.getByRole('button', { name: /lưu đề thi/i }));
     await screen.findByText('Saved');
 
     const payload = vi.mocked(axiosClient.put).mock.calls[0][1] as any;

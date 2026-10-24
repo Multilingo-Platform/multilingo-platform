@@ -48,6 +48,9 @@ public enum ErrorCode {
     ID_TOKEN_REQUIRED(922, HttpStatus.BAD_REQUEST, "ID Token Google không được để trống"),
     OTP_COOLDOWN_ACTIVE(923, HttpStatus.TOO_MANY_REQUESTS, "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại mã"),
     OTP_MAX_ATTEMPTS_EXCEEDED(924, HttpStatus.BAD_REQUEST, "Bạn đã nhập sai OTP quá 5 lần, mã xác nhận đã bị hủy"),
+    LANGUAGE_SAME(925, HttpStatus.BAD_REQUEST, "Ngôn ngữ mẹ đẻ và ngôn ngữ muốn học không được trùng nhau"),
+    INVALID_TARGET_SCORE(926, HttpStatus.BAD_REQUEST, "Điểm mục tiêu không hợp lệ với chứng chỉ đã chọn"),
+    TARGET_CERTIFICATE_REQUIRED(927, HttpStatus.BAD_REQUEST, "Chứng chỉ mục tiêu không được để trống"),
 
     // Vocab & Flashcards module (12xx)
     DECK_NAME_REQUIRED(1201, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được để trống"),
