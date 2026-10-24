@@ -23,7 +23,10 @@ public class AdminExamController {
     // Keep denials on these solution-bearing admin endpoints as 403, not a generic 500.
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> accessDenied() {
-        return ResponseEntity.status(403).body(ApiResponse.error(403, "Không có quyền thực hiện thao tác."));
+        return ResponseEntity.status(403).body(ApiResponse.error(
+                com.multilingo.backend.common.exception.ErrorCode.FORBIDDEN.getCode(),
+                com.multilingo.backend.common.exception.ErrorCode.FORBIDDEN.getMessage()
+        ));
     }
 
     @PostMapping("/import/preview")

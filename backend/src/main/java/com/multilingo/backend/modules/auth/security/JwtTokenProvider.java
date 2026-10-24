@@ -29,13 +29,43 @@ public class JwtTokenProvider {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
-        return Jwts.builder()
+        String roleName = (user.getRole() != null && user.getRole().getName() != null)
+                ? user.getRole().getName()
+                : "USER";
+
+        var builder = Jwts.builder()
                 .subject(user.getEmail())
                 .id(UUID.randomUUID().toString())
-                .issuedAt(new Date())
+                .claim("role", roleName)
+                .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
+                .signWith(getSigningKey());
+
+        if (user.getId() != null) {
+            builder.claim("userId", user.getId());
+        }
+
+        return builder.compact();
+    }
+
+    public String getRoleFromJWT(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.get("role", String.class);
+    }
+
+    public Integer getUserIdFromJWT(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.get("userId", Integer.class);
     }
 
     public String getEmailFromJWT(String token) {
