@@ -30,6 +30,7 @@ import TransactionReconciliationPage from "../features/admin/transactions/pages/
 import LandingPage from "../features/public/pages/LandingPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
+import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage";
 import { SettingsPage } from "../features/auth/pages/SettingsPage";
 import ProtectedRoute from "../features/auth/components/ProtectedRoute";
 import { FlashcardsPage } from "../features/vocab";
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: <RegisterPage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
   },
   {
     path: "/onboarding",

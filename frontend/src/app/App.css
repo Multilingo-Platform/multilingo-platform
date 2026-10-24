@@ -133,8 +133,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 0%, #fef5ee 0%, #fdfbf9 50%, #f7f4f1 100%);
-  padding: 1.25rem 1rem;
+  background-color: #faf6f2;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(254, 248, 243, 0.45) 0%, rgba(250, 244, 238, 0.65) 100%),
+    url('/images/auth-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  padding: 1.5rem 1rem;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
@@ -220,13 +227,36 @@
 
 .auth-card {
   width: 100%;
-  background: #ffffff;
-  border: 1px solid #eeded5;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(238, 222, 213, 0.95);
   border-radius: 20px;
   padding: 1.75rem 2.25rem;
-  box-shadow: 0 20px 45px -15px rgba(194, 94, 46, 0.12), 0 0 1px 1px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 20px 45px -12px rgba(194, 94, 46, 0.16), 0 0 1px 1px rgba(0, 0, 0, 0.03);
   box-sizing: border-box;
 }
+
+.auth-google-btn-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
+
+.auth-google-btn-container > div {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.auth-google-btn-container iframe {
+  width: 100% !important;
+  max-width: 400px !important;
+  border-radius: var(--radius-md) !important;
+}
+
 
 .auth-input-field {
   width: 100%;

@@ -216,7 +216,7 @@ const RegisterForm = () => {
         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '44px' }}>
+      <div className="auth-google-btn-container">
         <GoogleLogin
           onSuccess={(credentialResponse) => {
             if (credentialResponse.credential) {
@@ -229,7 +229,8 @@ const RegisterForm = () => {
           text="signup_with"
           shape="rectangular"
           theme="outline"
-          width="100%"
+          size="large"
+          width="400"
         />
       </div>
     </form>
