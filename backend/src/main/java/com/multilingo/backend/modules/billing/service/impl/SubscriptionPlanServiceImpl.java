@@ -34,6 +34,14 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SubscriptionPlanResponse> getActivePlans() {
+        return planRepository.findByIsActiveTrue().stream()
+                .map(planMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public SubscriptionPlanResponse createPlan(SubscriptionPlanRequest request) {
         if (planRepository.existsByCode(request.getCode())) {

@@ -34,6 +34,9 @@ class BillingControllerTest {
 
     @MockBean
     private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+
+    @MockBean
+    private com.multilingo.backend.modules.billing.service.SubscriptionPlanService planService;
     
     @Test
     void createPayment_shouldReturnUrl() throws Exception {
@@ -155,5 +158,26 @@ class BillingControllerTest {
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/billing/my-history"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getActivePlans_shouldReturnOkAndList() throws Exception {
+        com.multilingo.backend.modules.billing.dto.response.SubscriptionPlanResponse plan =
+                com.multilingo.backend.modules.billing.dto.response.SubscriptionPlanResponse.builder()
+                        .id(1)
+                        .code("PRO_1M")
+                        .name("Gói 1 Tháng")
+                        .price(new java.math.BigDecimal("99000"))
+                        .durationDays(30)
+                        .isActive(true)
+                        .build();
+
+        when(planService.getActivePlans()).thenReturn(java.util.List.of(plan));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/billing/plans"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code").value(200))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data[0].code").value("PRO_1M"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.data[0].isActive").value(true));
     }
 }

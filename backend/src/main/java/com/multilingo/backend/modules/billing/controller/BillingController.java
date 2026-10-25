@@ -23,6 +23,13 @@ public class BillingController {
 
     VNPayService vnPayService;
     com.multilingo.backend.modules.billing.service.TransactionService transactionService;
+    com.multilingo.backend.modules.billing.service.SubscriptionPlanService planService;
+
+    @GetMapping({"/plans", "/vnpay/plans"})
+    public ResponseEntity<com.multilingo.backend.common.dto.ApiResponse<java.util.List<com.multilingo.backend.modules.billing.dto.response.SubscriptionPlanResponse>>> getActivePlans() {
+        java.util.List<com.multilingo.backend.modules.billing.dto.response.SubscriptionPlanResponse> responses = planService.getActivePlans();
+        return ResponseEntity.ok(com.multilingo.backend.common.dto.ApiResponse.success("Lấy danh sách gói cước thành công", responses));
+    }
     
     @PostMapping({"/vnpay/create-payment", "/create-payment"})
     public com.multilingo.backend.common.dto.ApiResponse<com.multilingo.backend.modules.billing.dto.response.PaymentCreateResponse> createPayment(

@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface SubscriptionPlanService {
     List<SubscriptionPlanResponse> getAllPlans();
+    List<SubscriptionPlanResponse> getActivePlans();
     SubscriptionPlanResponse createPlan(SubscriptionPlanRequest request);
     SubscriptionPlanResponse updatePlan(Integer id, SubscriptionPlanRequest request);
     SubscriptionPlanResponse changeStatus(Integer id, boolean isActive);
