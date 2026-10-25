@@ -76,4 +76,32 @@ class StudentExamServiceImplTest {
         assertThat(item.getLevel()).isEqualTo("Đa bậc");
         assertThat(item.getTags()).containsExactly("Nghe hiểu", "Đọc hiểu", "Viết");
     }
+
+    @Test
+    void searchExams_WithUserId_PopulatesUserAttempts() {
+        Exam exam = new Exam();
+        exam.setId(10);
+        exam.setCode("IELTS-18-01");
+        exam.setTitle("IELTS 18 Test 1");
+        exam.setType("IELTS_ACADEMIC");
+        exam.setIsPublished(true);
+        exam.setDurationMinutes(60);
+
+        when(examRepository.findPublishedExams(eq(""), eq(null), eq(false), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(exam)));
+        when(testAttemptRepository.countAttemptsGroupByExamId())
+                .thenReturn(List.<Object[]>of(new Object[]{10, 15L}));
+        when(testAttemptRepository.findUserAttemptSummariesByUserId(1))
+                .thenReturn(List.<Object[]>of(new Object[]{10, 2L, 7.5}));
+
+        PageResponse<StudentExamSummaryResponse> response = studentExamService.searchExams(null, null, 0, 10, "newest", null, 1);
+
+        assertThat(response.getItems()).hasSize(1);
+        StudentExamSummaryResponse item = response.getItems().get(0);
+        assertThat(item.getId()).isEqualTo(10);
+        assertThat(item.getJoins()).isEqualTo(15);
+        assertThat(item.getIsAttempted()).isTrue();
+        assertThat(item.getUserAttemptsCount()).isEqualTo(2);
+        assertThat(item.getUserHighestScore()).isEqualTo(7.5);
+    }
 }

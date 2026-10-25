@@ -21,4 +21,8 @@ public class StudentExamSummaryResponse {
     private Integer joins;
     private List<String> tags;
     private String thumbnailUrl;
+    private Boolean isAttempted;
+    private Integer userAttemptsCount;
+    private Double userHighestScore;
+    private Double userLatestScore;
 }
