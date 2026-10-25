@@ -38,4 +38,22 @@ class SecurityRbacAuthorizationIT {
                 .andExpect(jsonPath("$.code").value(403))
                 .andExpect(jsonPath("$.message").value("Không có quyền thực hiện thao tác"));
     }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("User thường gọi API admin plans phải nhận 403 FORBIDDEN")
+    void userAccessAdminPlans_ShouldReturn403() throws Exception {
+        mockMvc.perform(get("/api/admin/plans"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403))
+                .andExpect(jsonPath("$.message").value("Không có quyền thực hiện thao tác"));
+    }
+
+    @Test
+    @DisplayName("Guest hoặc User gọi API public billing plans phải nhận 200 OK")
+    void guestAccessPublicBillingPlans_ShouldReturn200() throws Exception {
+        mockMvc.perform(get("/api/v1/billing/plans"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
 }

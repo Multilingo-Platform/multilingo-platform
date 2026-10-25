@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPlan, Integer> {
     Optional<SubscriptionPlan> findByCode(String code);
     boolean existsByCode(String code);
+    java.util.List<SubscriptionPlan> findByIsActiveTrue();
 }

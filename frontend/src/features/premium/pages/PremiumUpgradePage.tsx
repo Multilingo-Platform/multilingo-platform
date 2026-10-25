@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next';
 import axiosClient from '../../../core/api/axiosClient';
 import { PaymentConfirmationModal } from '../components/PaymentConfirmationModal';
 
-// API lấy danh sách gói
+// API lấy danh sách gói cho học viên
 const fetchPlans = async () => {
-  const res = await axiosClient.get('/admin/plans');
+  const res = await axiosClient.get('/v1/billing/plans');
   return res.data;
 };
 
