@@ -85,7 +85,7 @@ describe('OnboardingWizard UI & Flow', () => {
     });
 
     // Step 1: Default is Native: vi, Target: en
-    expect(screen.getByText('Bước 1 / 3: Chọn Ngôn Ngữ')).toBeInTheDocument();
+    expect(screen.getByText('Bước 1 / 4: Chọn Ngôn Ngữ')).toBeInTheDocument();
 
     // Click "Tiếp tục" -> Step 2
     fireEvent.click(screen.getByRole('button', { name: /tiếp tục/i }));
@@ -106,18 +106,41 @@ describe('OnboardingWizard UI & Flow', () => {
     // Click "Tiếp tục" -> Step 3
     fireEvent.click(screen.getByRole('button', { name: /tiếp tục/i }));
 
-    // Step 3: Lộ trình cá nhân
+    // Step 3: Thói quen & Trình độ
+    await waitFor(() => {
+      expect(screen.getByText('Trình độ & Thói quen học tập')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Bước 3 / 4: Thói Quen & Trình Độ')).toBeInTheDocument();
+
+    // Select 45 minutes / day
+    fireEvent.click(screen.getByText('45 phút / ngày'));
+
+    // Click "Tiếp tục" -> Step 4
+    fireEvent.click(screen.getByRole('button', { name: /tiếp tục/i }));
+
+    // Step 4: Lộ trình cá nhân
     await waitFor(() => {
       expect(screen.getByText('Lộ trình của bạn đã sẵn sàng!')).toBeInTheDocument();
     });
-    expect(screen.getByText('Bước 3 / 3: Lộ Trình Cá Nhân')).toBeInTheDocument();
+    expect(screen.getByText('Bước 4 / 4: Lộ Trình Cá Nhân')).toBeInTheDocument();
     expect(screen.getByText('TOEIC Listening & Reading')).toBeInTheDocument();
+    expect(screen.getByText('45 phút / ngày')).toBeInTheDocument();
 
     // Click "Bắt đầu hành trình học"
     fireEvent.click(screen.getByRole('button', { name: /bắt đầu hành trình học/i }));
 
     await waitFor(() => {
       expect(onboardingApi.submitOnboarding).toHaveBeenCalledTimes(1);
+      expect(onboardingApi.submitOnboarding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nativeLanguage: 'vi',
+          targetLanguage: 'en',
+          targetCertificate: 'TOEIC_LR',
+          targetScore: 750,
+          dailyMinutes: 45,
+          currentLevel: 'INTERMEDIATE',
+        })
+      );
       expect(alertUtil.toast).toHaveBeenCalledWith('Thiết lập mục tiêu học tập thành công!', 'success');
       expect(screen.getByText('Exam Library Screen')).toBeInTheDocument();
     });

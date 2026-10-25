@@ -2673,7 +2673,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         setImportIssues(preview.issues);
         setActivePartIndex(0);
         setWizardMode('BUILDER');
-      } catch (backendErr) {
+      } catch {
         if (controller.signal.aborted) return;
         // Fallback to client-side parser so ANY valid Excel file (including TOEIC templates or custom formats) can be imported
         await handleImportOtherExcel(file);

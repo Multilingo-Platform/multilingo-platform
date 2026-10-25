@@ -46,6 +46,8 @@ const RegisterForm = () => {
         
         if (res.data?.user?.role === 'ADMIN') {
           navigate('/admin/dashboard');
+        } else if (res.data?.user?.hasCompletedOnboarding === false) {
+          navigate('/onboarding');
         } else {
           navigate('/student/dashboard');
         }

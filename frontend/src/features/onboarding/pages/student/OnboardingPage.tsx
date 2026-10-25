@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { OnboardingStepIndicator } from '../../components/OnboardingStepIndicator';
 import { Step1LanguageSelect } from '../../components/Step1LanguageSelect';
 import { Step2CertificateGoal } from '../../components/Step2CertificateGoal';
+import { Step3HabitAndLevel } from '../../components/Step3HabitAndLevel';
 import { Step4RoadmapSummary } from '../../components/Step4RoadmapSummary';
 import { onboardingApi } from '../../api/onboardingApi';
 import type { OnboardingData, TargetCertificate } from '../../types';
@@ -13,6 +14,7 @@ import '../../components/Onboarding.css';
 const STEP_TITLES = [
   'Chọn Ngôn Ngữ',
   'Mục Tiêu Chứng Chỉ',
+  'Thói Quen & Trình Độ',
   'Lộ Trình Cá Nhân',
 ];
 
@@ -68,7 +70,7 @@ const OnboardingPage: React.FC = () => {
         return;
       }
     }
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -115,7 +117,7 @@ const OnboardingPage: React.FC = () => {
       <main className="onboarding-card">
         <OnboardingStepIndicator
           currentStep={currentStep}
-          totalSteps={3}
+          totalSteps={4}
           stepTitles={STEP_TITLES}
         />
 
@@ -138,7 +140,16 @@ const OnboardingPage: React.FC = () => {
           />
         )}
 
-        {currentStep === 3 && <Step4RoadmapSummary data={formData} />}
+        {currentStep === 3 && (
+          <Step3HabitAndLevel
+            currentLevel={formData.currentLevel || 'INTERMEDIATE'}
+            dailyMinutes={formData.dailyMinutes ?? 30}
+            onLevelChange={(level) => setFormData((prev) => ({ ...prev, currentLevel: level }))}
+            onMinutesChange={(minutes) => setFormData((prev) => ({ ...prev, dailyMinutes: minutes }))}
+          />
+        )}
+
+        {currentStep === 4 && <Step4RoadmapSummary data={formData} />}
 
         <div className="onboarding-actions">
           {currentStep > 1 ? (
@@ -155,7 +166,7 @@ const OnboardingPage: React.FC = () => {
             <div />
           )}
 
-          {currentStep < 3 ? (
+          {currentStep < 4 ? (
             <button
               type="button"
               className="onboarding-btn onboarding-btn-primary"

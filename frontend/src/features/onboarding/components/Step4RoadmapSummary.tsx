@@ -24,6 +24,13 @@ const CERT_LABELS: Record<string, string> = {
   NLTV: 'Năng Lực Tiếng Việt (NLTV)',
 };
 
+const LEVEL_LABELS: Record<string, string> = {
+  BEGINNER: 'Mới bắt đầu (A1 - A2)',
+  ELEMENTARY: 'Sơ cấp (B1)',
+  INTERMEDIATE: 'Trung cấp (B2)',
+  ADVANCED: 'Nâng cao (C1 - C2)',
+};
+
 export const Step4RoadmapSummary: React.FC<Step4RoadmapSummaryProps> = ({ data }) => {
   const formatScore = () => {
     if (data.targetCertificate.startsWith('IELTS')) return `Band ${data.targetScore.toFixed(1)}`;
@@ -73,6 +80,26 @@ export const Step4RoadmapSummary: React.FC<Step4RoadmapSummaryProps> = ({ data }
           </span>
           <span className="onboarding-summary-val" style={{ color: '#4f46e5', fontSize: '1.15rem' }}>
             {formatScore()}
+          </span>
+        </div>
+
+        <div className="onboarding-summary-row">
+          <span className="onboarding-summary-label">
+            <Sparkles size={18} color="#4f46e5" />
+            <span>Trình độ xuất phát</span>
+          </span>
+          <span className="onboarding-summary-val">
+            {data.currentLevel ? (LEVEL_LABELS[data.currentLevel] || data.currentLevel) : 'Trung cấp (B2)'}
+          </span>
+        </div>
+
+        <div className="onboarding-summary-row">
+          <span className="onboarding-summary-label">
+            <CheckCircle2 size={18} color="#4f46e5" />
+            <span>Thời lượng học mỗi ngày</span>
+          </span>
+          <span className="onboarding-summary-val" style={{ color: '#059669' }}>
+            {data.dailyMinutes} phút / ngày
           </span>
         </div>
       </div>
