@@ -4,8 +4,10 @@ import com.multilingo.backend.common.dto.ApiResponse;
 import com.multilingo.backend.common.dto.PageResponse;
 import com.multilingo.backend.modules.exam.dto.response.StudentExamSummaryResponse;
 import com.multilingo.backend.modules.exam.service.StudentExamService;
+import com.multilingo.backend.modules.auth.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,9 +26,11 @@ public class StudentExamController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
-            @RequestParam(required = false) String examLanguage
+            @RequestParam(required = false) String examLanguage,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        PageResponse<StudentExamSummaryResponse> response = studentExamService.searchExams(search, types, page, size, sort, examLanguage);
+        Integer userId = (userDetails != null && userDetails.getUser() != null) ? userDetails.getUser().getId() : null;
+        PageResponse<StudentExamSummaryResponse> response = studentExamService.searchExams(search, types, page, size, sort, examLanguage, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

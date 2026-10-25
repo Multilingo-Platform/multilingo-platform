@@ -65,4 +65,7 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
 
     @Query("SELECT a.examId, COUNT(a) FROM TestAttempt a GROUP BY a.examId")
     List<Object[]> countAttemptsGroupByExamId();
+
+    @Query("SELECT a.examId, COUNT(a), MAX(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.status = 'COMPLETED' GROUP BY a.examId")
+    List<Object[]> findUserAttemptSummariesByUserId(@Param("userId") Integer userId);
 }

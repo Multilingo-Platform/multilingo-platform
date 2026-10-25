@@ -1,115 +1,204 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Play, Clock, BookOpen } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { 
+  Search, 
+  Play, 
+  Clock, 
+  BookOpen, 
+  Headphones, 
+  PenTool, 
+  CheckCircle2, 
+  Sparkles, 
+  X, 
+  ArrowRight, 
+  Users, 
+  RotateCcw,
+  Compass
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosClient from '../../../../core/api/axiosClient';
+import { onboardingApi } from '../../../onboarding/api/onboardingApi';
+import type { OnboardingStatusResponse } from '../../../onboarding/types';
+import './ExamLibrary.css';
 
-const CERTIFICATES = [
-  { value: 'IELTS', labelKey: 'library.filters.cert.ielts', labelDefault: 'IELTS' },
-  { value: 'TOEIC', labelKey: 'library.filters.cert.toeic', labelDefault: 'TOEIC' },
-  { value: 'NLTV', labelKey: 'library.filters.cert.nltv', labelDefault: 'Năng Lực Tiếng Việt (NLTV)' },
-  { value: 'LANGUAGE_PRACTICE', labelKey: 'library.filters.cert.languagePractice', labelDefault: 'Luyện ngôn ngữ' },
+export interface ExamItem {
+  id: number;
+  code: string;
+  title: string;
+  type: string;
+  examLanguage?: string;
+  level: string;
+  durationMinutes: number;
+  joins: number;
+  tags: string[];
+  thumbnailUrl?: string | null;
+  isAttempted?: boolean;
+  userAttemptsCount?: number;
+  userHighestScore?: number | null;
+  userLatestScore?: number | null;
+}
+
+// 1. Certificate Tabs (No GB/VN, No Luyện Ngôn Ngữ)
+const CERT_TABS = [
+  { id: 'RECOMMENDED', label: '✨ Dành Cho Bạn' },
+  { id: 'ALL', label: 'Tất Cả' },
+  { id: 'IELTS', label: 'IELTS' },
+  { id: 'TOEIC', label: 'TOEIC' },
+  { id: 'NLTV', label: 'NLTV' },
 ];
 
-const LEARNING_LANGUAGES = [
-  ['en', 'English'], ['vi', 'Tiếng Việt'], ['ko', '한국어'], ['zh', '中文'],
-  ['ja', '日本語'], ['fr', 'Français'], ['de', 'Deutsch'], ['es', 'Español'],
-] as const;
+// 2. Skill Filter Options
+const SKILL_OPTIONS = [
+  { id: '', label: 'Tất cả kỹ năng' },
+  { id: 'LISTENING', label: 'Nghe hiểu', icon: <Headphones size={13} /> },
+  { id: 'READING', label: 'Đọc hiểu', icon: <BookOpen size={13} /> },
+  { id: 'WRITING', label: 'Viết', icon: <PenTool size={13} /> },
+];
 
-const SKILLS_MAP: Record<string, any[]> = {
-  'IELTS': [
-    { value: 'LISTENING', labelKey: 'library.filters.skills.listening', labelDefault: 'Listening', parts: [
-      { id: 'L1', label: 'Part 1' }, { id: 'L2', label: 'Part 2' }, { id: 'L3', label: 'Part 3' }, { id: 'L4', label: 'Part 4' }
-    ]},
-    { value: 'READING', labelKey: 'library.filters.skills.reading', labelDefault: 'Reading', parts: [
-      { id: 'R1', label: 'Passage 1' }, { id: 'R2', label: 'Passage 2' }, { id: 'R3', label: 'Passage 3' }
-    ]},
-    { value: 'WRITING', labelKey: 'library.filters.skills.writing', labelDefault: 'Writing', parts: [
-      { id: 'W1', label: 'Task 1' }, { id: 'W2', label: 'Task 2' }
-    ]},
-  ],
-  'TOEIC': [
-    { value: 'LISTENING', labelKey: 'library.filters.skills.listening', labelDefault: 'Listening', parts: [
-      { id: 'P1', label: 'Part 1: Photographs' }, { id: 'P2', label: 'Part 2: Question-Response' }, { id: 'P3', label: 'Part 3: Conversations' }, { id: 'P4', label: 'Part 4: Talks' }
-    ]},
-    { value: 'READING', labelKey: 'library.filters.skills.reading', labelDefault: 'Reading', parts: [
-      { id: 'P5', label: 'Part 5: Incomplete Sentences' }, { id: 'P6', label: 'Part 6: Text Completion' }, { id: 'P7', label: 'Part 7: Reading Comprehension' }
-    ]},
-    { value: 'WRITING', labelKey: 'library.filters.skills.writing', labelDefault: 'Writing', parts: [
-      { id: 'TW_P1', label: 'Part 1: Write a Sentence' }, { id: 'TW_P2', label: 'Part 2: Respond to Request' }
-    ]}
-  ],
-  'NLTV': [
-    { value: 'LISTENING', labelKey: 'library.filters.skills.listening', labelDefault: 'Nghe hiểu', parts: [
-      { id: 'NLTV_L', label: 'Kỹ năng Nghe' }
-    ]},
-    { value: 'READING', labelKey: 'library.filters.skills.reading', labelDefault: 'Đọc hiểu', parts: [
-      { id: 'NLTV_R', label: 'Kỹ năng Đọc' }
-    ]},
-    { value: 'WRITING', labelKey: 'library.filters.skills.writing', labelDefault: 'Viết', parts: [
-      { id: 'NLTV_W', label: 'Kỹ năng Viết' }
-    ]}
-  ]
+// 3. Attempt Status Chips
+const ATTEMPT_STATUS_CHIPS = [
+  { id: 'ALL', label: 'Tất cả đề' },
+  { id: 'UNATTEMPTED', label: 'Chưa làm' },
+  { id: 'ATTEMPTED', label: 'Đã làm' },
+];
+
+const CERT_LABELS_MAP: Record<string, string> = {
+  IELTS_ACADEMIC: 'IELTS Academic',
+  TOEIC_LR: 'TOEIC L&R',
+  TOEIC_WRITING: 'TOEIC Writing',
+  NLTV: 'Năng Lực Tiếng Việt (NLTV)',
 };
 
-const ExamLibrary = () => {
+const ExamLibrary: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  
-  const [exams, setExams] = useState<any[]>([]);
+
+  const [exams, setExams] = useState<ExamItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCert, setSelectedCert] = useState<string>('');
+  
+  // Filter States
+  const [activeTab, setActiveTab] = useState<string>('ALL');
   const [selectedSkill, setSelectedSkill] = useState<string>('');
-  const [selectedPart, setSelectedPart] = useState<string>('');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
+  const [selectedAttemptStatus, setSelectedAttemptStatus] = useState<string>('ALL');
+  const [sortParam, setSortParam] = useState('createdAt');
+  
+  // Pagination
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [sortParam, setSortParam] = useState('createdAt');
 
-  const fetchExams = async (currentPage = page) => {
+  // User target from onboarding
+  const [userTarget, setUserTarget] = useState<OnboardingStatusResponse | null>(null);
+
+  // Check onboarding target on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTarget = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const res = await onboardingApi.getStatus();
+          if (isMounted && res.data?.hasCompletedOnboarding) {
+            setUserTarget(res.data);
+            setActiveTab('RECOMMENDED');
+          }
+        }
+      } catch (e) {
+        // Guest user or unauthenticated
+      }
+    };
+    fetchTarget();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Determine current active certificate
+  const currentCert = useMemo(() => {
+    if (activeTab === 'RECOMMENDED' && userTarget) {
+      if (userTarget.targetCertificate?.startsWith('IELTS')) return 'IELTS';
+      if (userTarget.targetCertificate?.startsWith('TOEIC')) return 'TOEIC';
+      if (userTarget.targetCertificate === 'NLTV') return 'NLTV';
+      return '';
+    }
+    if (activeTab !== 'ALL' && activeTab !== 'RECOMMENDED') {
+      return activeTab;
+    }
+    return '';
+  }, [activeTab, userTarget]);
+
+  const fetchExams = useCallback(async (currentPage = page) => {
     try {
       setLoading(true);
       const params: any = { page: currentPage, size: 12, sort: sortParam };
-      if (searchTerm) params.search = searchTerm;
-      if (selectedLanguage) params.examLanguage = selectedLanguage;
+      if (searchTerm.trim()) params.search = searchTerm.trim();
+
+      // Language filter if recommended
+      if (activeTab === 'RECOMMENDED' && userTarget?.targetLanguage) {
+        params.examLanguage = userTarget.targetLanguage;
+      }
+
       let typesToFetch: string[] = [];
 
-      if (selectedCert) {
-        if (selectedCert === 'LANGUAGE_PRACTICE') {
-          typesToFetch = ['LANGUAGE_PRACTICE'];
-        } else if (selectedSkill) {
-          const skillObj = SKILLS_MAP[selectedCert].find(s => s.value === selectedSkill);
-          if (selectedPart) {
-            if (selectedCert === 'TOEIC' && selectedSkill === 'WRITING') {
-              typesToFetch = [selectedPart];
-            } else if (selectedCert === 'NLTV') {
-              typesToFetch = ['NLTV', selectedPart];
-            } else {
-              typesToFetch = [`${selectedCert}_${selectedPart}`];
+      if (currentCert) {
+        if (selectedSkill) {
+          if (currentCert === 'IELTS') {
+            if (selectedSkill === 'LISTENING') {
+              typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_LISTENING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4'];
+            } else if (selectedSkill === 'READING') {
+              typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_READING', 'IELTS_R1', 'IELTS_R2', 'IELTS_R3'];
+            } else if (selectedSkill === 'WRITING') {
+              typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_WRITING', 'IELTS_W1', 'IELTS_W2'];
             }
-          } else {
-            if (selectedCert === 'IELTS') {
-              typesToFetch = [`IELTS_${selectedSkill}`, ...skillObj.parts.map((p: any) => `IELTS_${p.id}`)];
-            } else if (selectedCert === 'TOEIC') {
-              if (selectedSkill === 'WRITING') {
-                typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
-              } else {
-                typesToFetch = [`TOEIC_${selectedSkill}`, ...skillObj.parts.map((p: any) => `TOEIC_${p.id}`)];
-              }
-            } else if (selectedCert === 'NLTV') {
-              typesToFetch = ['NLTV', `NLTV_${selectedSkill}`, ...skillObj.parts.map((p: any) => p.id)];
+          } else if (currentCert === 'TOEIC') {
+            if (selectedSkill === 'LISTENING') {
+              typesToFetch = ['TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
+            } else if (selectedSkill === 'READING') {
+              typesToFetch = ['TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
+            } else if (selectedSkill === 'WRITING') {
+              typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+            }
+          } else if (currentCert === 'NLTV') {
+            if (selectedSkill === 'LISTENING') {
+              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_L'];
+            } else if (selectedSkill === 'READING') {
+              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_READING', 'NLTV_R'];
+            } else if (selectedSkill === 'WRITING') {
+              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_WRITING', 'NLTV_W'];
             }
           }
         } else {
-          if (selectedCert === 'IELTS') {
-            typesToFetch = ['IELTS_ACADEMIC', 'IELTS_LISTENING', 'IELTS_READING', 'IELTS_WRITING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4', 'IELTS_R1', 'IELTS_W1', 'IELTS_W2'];
-          } else if (selectedCert === 'TOEIC') {
+          // No skill selected -> show all exams for this cert
+          if (currentCert === 'IELTS') {
+            typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS', 'IELTS_LISTENING', 'IELTS_READING', 'IELTS_WRITING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4', 'IELTS_R1', 'IELTS_R2', 'IELTS_R3', 'IELTS_W1', 'IELTS_W2'];
+          } else if (currentCert === 'TOEIC') {
             typesToFetch = ['TOEIC_LR', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2'];
-          } else if (selectedCert === 'NLTV') {
+          } else if (currentCert === 'NLTV') {
             typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_READING', 'NLTV_WRITING', 'NLTV_L', 'NLTV_R', 'NLTV_W'];
+          }
+        }
+      } else {
+        // All certs: if a skill is selected, fetch all exams containing that skill
+        if (selectedSkill) {
+          if (selectedSkill === 'LISTENING') {
+            typesToFetch = [
+              'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_LISTENING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4',
+              'TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4',
+              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_L'
+            ];
+          } else if (selectedSkill === 'READING') {
+            typesToFetch = [
+              'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_READING', 'IELTS_R1', 'IELTS_R2', 'IELTS_R3',
+              'TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7',
+              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_READING', 'NLTV_R'
+            ];
+          } else if (selectedSkill === 'WRITING') {
+            typesToFetch = [
+              'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_WRITING', 'IELTS_W1', 'IELTS_W2',
+              'TOEIC_WRITING', 'TW_P1', 'TW_P2',
+              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_WRITING', 'NLTV_W'
+            ];
           }
         }
       }
@@ -125,249 +214,403 @@ const ExamLibrary = () => {
         setTotalElements(res.data.totalElements || 0);
       }
     } catch (err) {
-      console.error('Failed to fetch library exams', err);
+      console.error('Lỗi khi tải đề thi:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, sortParam, searchTerm, activeTab, userTarget, currentCert, selectedSkill]);
 
   useEffect(() => {
     fetchExams(0);
-  }, [selectedCert, selectedSkill, selectedPart, selectedLanguage, sortParam]);
+  }, [fetchExams]);
 
-  const handleApplyFilter = () => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setPage(0);
     fetchExams(0);
   };
 
-  const handleCertChange = (cert: string) => {
-    setSelectedCert(cert);
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setPage(0);
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setActiveTab(userTarget ? 'RECOMMENDED' : 'ALL');
     setSelectedSkill('');
-    setSelectedPart('');
+    setSelectedAttemptStatus('ALL');
+    setSortParam('createdAt');
+    setPage(0);
   };
 
-  const handleSkillChange = (skill: string) => {
-    setSelectedSkill(skill);
-    setSelectedPart('');
+  // Filter exams by attempt status client-side
+  const displayedExams = useMemo(() => {
+    if (selectedAttemptStatus === 'ALL') return exams;
+    if (selectedAttemptStatus === 'ATTEMPTED') return exams.filter(e => e.isAttempted === true);
+    if (selectedAttemptStatus === 'UNATTEMPTED') return exams.filter(e => !e.isAttempted);
+    return exams;
+  }, [exams, selectedAttemptStatus]);
+
+  const formatScore = (score: number | null | undefined, type: string) => {
+    if (score === null || score === undefined) return '';
+    if (type.startsWith('IELTS')) return `Band ${score.toFixed(1)}`;
+    if (type.startsWith('TOEIC')) return `${Math.round(score)} Điểm`;
+    if (type.startsWith('NLTV')) return `Bậc ${Math.round(score)}`;
+    return `${score}`;
   };
 
+  const getThumbnailGradient = (type: string) => {
+    if (type.startsWith('IELTS')) return 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)';
+    if (type.startsWith('TOEIC')) return 'linear-gradient(135deg, #059669 0%, #0d9488 100%)';
+    if (type.startsWith('NLTV')) return 'linear-gradient(135deg, #d97706 0%, #ea580c 100%)';
+    return 'linear-gradient(135deg, #475569 0%, #1e293b 100%)';
+  };
+
+  const getWatermark = (type: string) => {
+    if (type.startsWith('IELTS')) return 'IELTS';
+    if (type.startsWith('TOEIC')) return 'TOEIC';
+    if (type.startsWith('NLTV')) return 'NLTV';
+    return 'EXAM';
+  };
+
+  const isMatchUserTarget = (examType: string) => {
+    if (!userTarget?.targetCertificate) return false;
+    const cert = userTarget.targetCertificate;
+    if (cert.startsWith('IELTS') && examType.startsWith('IELTS')) return true;
+    if (cert.startsWith('TOEIC') && examType.startsWith('TOEIC')) return true;
+    if (cert === 'NLTV' && examType.startsWith('NLTV')) return true;
+    return false;
+  };
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-secondary)', minHeight: '100vh', paddingBottom: '3rem' }}>
-      {/* Hero Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, var(--primary) 0%, #ea580c 100%)',
-        padding: '3rem 0',
-        color: 'white',
-        marginBottom: '2rem'
-      }}>
-        <div className="container">
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem' }}>{t('library.hero.title', 'Thư viện Đề thi')}</h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.9, maxWidth: '600px' }}>{t('library.hero.subtitle', 'Hàng ngàn đề thi chuẩn hóa IELTS, TOEIC và Năng Lực Tiếng Việt (NLTV). Luyện tập ngay hôm nay để đạt mục tiêu của bạn.')}</p>
+    <div className="exam-library-container">
+      {/* 1. Hero Section - Warm Orange Gradient On-Brand */}
+      <header className="exam-library-hero">
+        <div className="exam-library-hero-bg-shapes">
+          <div className="exam-library-hero-circle-1" />
+          <div className="exam-library-hero-circle-2" />
         </div>
-      </div>
 
-      <div className="container" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-        {/* Left Sidebar Filter */}
-        <aside style={{ width: '280px', flexShrink: 0, position: 'sticky', top: '2rem' }}>
-          <div className="ed-card" style={{ padding: '1.5rem', borderTop: '4px solid var(--primary)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-              <Filter size={20} color="var(--primary)" /> {t('library.filters.title', 'Lọc Đề Thi')}
-            </h3>
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>{t('library.filters.search', 'TÌM KIẾM')}</label>
-              <div style={{ position: 'relative' }}>
-                <input type="text" className="input-field" placeholder={t('library.filters.searchPlaceholder', 'Nhập tên đề thi...')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleApplyFilter()} style={{ paddingLeft: '1rem', paddingRight: '3rem', borderRadius: 'var(--radius-full)' }} />
-                <button 
-                  onClick={handleApplyFilter}
-                  style={{ position: 'absolute', top: '50%', right: '6px', transform: 'translateY(-50%)', background: 'var(--primary)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
-                  <Search size={16} color="white" />
-                </button>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
-                {t('library.filters.cert_title', '1. CHỌN CHỨNG CHỈ')}
-              </label>
-              <select className="input-field" value={selectedCert} onChange={(e) => handleCertChange(e.target.value)} style={{ borderRadius: 'var(--radius-md)', width: '100%', padding: '0.75rem' }}>
-                 <option value="">{t('library.filters.all', 'Tất cả chứng chỉ')}</option>
-                 {CERTIFICATES.map(c => (
-                   <option key={c.value} value={c.value}>{t(c.labelKey, c.labelDefault) as string}</option>
-                 ))}
-              </select>
-            </div>
-
-            {selectedCert && selectedCert !== 'LANGUAGE_PRACTICE' && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {t('library.filters.skill_title', '2. CHỌN KỸ NĂNG')}
-                </label>
-                <select className="input-field" value={selectedSkill} onChange={(e) => handleSkillChange(e.target.value)} style={{ borderRadius: 'var(--radius-md)', width: '100%', padding: '0.75rem' }}>
-                   <option value="">{t('library.filters.all_skills', 'Tất cả kỹ năng (Full Test & Parts)')}</option>
-                   {SKILLS_MAP[selectedCert].map(s => (
-                     <option key={s.value} value={s.value}>{t(s.labelKey, s.labelDefault) as string}</option>
-                   ))}
-                </select>
-              </div>
-            )}
-
-            {selectedCert && selectedCert !== 'LANGUAGE_PRACTICE' && selectedSkill && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {t('library.filters.part_title', '3. CHỌN PHẦN THI (PART)')}
-                </label>
-                <select className="input-field" value={selectedPart} onChange={(e) => setSelectedPart(e.target.value)} style={{ borderRadius: 'var(--radius-md)', width: '100%', padding: '0.75rem' }}>
-                   <option value="">{t('library.filters.all_parts', 'Tất cả phần thi')}</option>
-                   {SKILLS_MAP[selectedCert].find(s => s.value === selectedSkill)?.parts.map((p: any) => (
-                     <option key={p.id} value={p.id}>{p.label}</option>
-                   ))}
-                </select>
-              </div>
-            )}
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
-                {t('library.filters.language', 'NGÔN NGỮ ĐỀ')}
-              </label>
-              <select aria-label={t('library.filters.language', 'Ngôn ngữ đề')} className="input-field" value={selectedLanguage}
-                onChange={event => setSelectedLanguage(event.target.value)} style={{ borderRadius: 'var(--radius-md)', width: '100%', padding: '0.75rem' }}>
-                <option value="">{t('library.filters.allLanguages', 'Tất cả ngôn ngữ')}</option>
-                {LEARNING_LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-              </select>
-            </div>
-
-            <button className="btn btn-outline" onClick={() => {
-              setSearchTerm('');
-              setSelectedCert('');
-              setSelectedSkill('');
-              setSelectedPart('');
-              setSelectedLanguage('');
-              setPage(0);
-            }} style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: 'var(--radius-full)', color: 'var(--text-secondary)', borderColor: 'var(--border-light)' }}>
-              {t('library.filters.clear', 'Xoá bộ lọc')}
-            </button>
+        <div className="exam-library-hero-content">
+          <div className="exam-library-hero-badge">
+            <Compass size={14} />
+            <span>Thư Viện Đề Thi Chuẩn Hóa</span>
           </div>
-        </aside>
 
-        {/* Right Main Grid */}
-        <main style={{ flex: 1 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {t('library.results.showing', 'Hiển thị')} <strong>{totalElements}</strong> {t('library.results.results', 'kết quả')}
+          <h1 className="exam-library-hero-title">
+            {t('library.hero.title', 'Thư viện Đề thi')}
+          </h1>
+
+          <p className="exam-library-hero-desc">
+            {t('library.hero.subtitle', 'Hàng ngàn đề thi chuẩn hóa IELTS, TOEIC và Năng Lực Tiếng Việt (NLTV). Luyện tập ngay hôm nay để đạt mục tiêu của bạn.')}
+          </p>
+
+          {/* User Target Banner if completed onboarding */}
+          {userTarget?.hasCompletedOnboarding && userTarget.targetCertificate && (
+            <div className="exam-library-target-banner">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                <Sparkles size={16} color="#fde047" />
+                <span>Mục tiêu của bạn: <strong>{CERT_LABELS_MAP[userTarget.targetCertificate] || userTarget.targetCertificate}</strong> {userTarget.targetScore ? `(Band / Điểm: ${userTarget.targetScore})` : ''}</span>
+              </span>
+              <button
+                type="button"
+                className="exam-library-target-banner-btn"
+                onClick={() => {
+                  setActiveTab('RECOMMENDED');
+                  setPage(0);
+                }}
+              >
+                Xem đề mục tiêu
+              </button>
             </div>
-            <select className="input-field" value={sortParam} onChange={e => setSortParam(e.target.value)} style={{ width: 'auto', padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)' }}>
+          )}
+
+          {/* Big Search Bar */}
+          <form onSubmit={handleSearchSubmit} className="exam-library-search-wrapper">
+            <Search className="exam-library-search-icon" size={20} />
+            <input
+              type="text"
+              className="exam-library-search-input"
+              placeholder={t('library.filters.searchPlaceholder', 'Nhập tên đề thi...')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button type="button" onClick={handleClearSearch} className="exam-library-search-clear">
+                <X size={18} />
+              </button>
+            )}
+          </form>
+        </div>
+      </header>
+
+      {/* 2. Main Content */}
+      <main className="exam-library-main">
+        {/* Certificate Segmented Tabs (Clean: IELTS, TOEIC, NLTV) */}
+        <div className="exam-library-tabs-bar" role="tablist">
+          {CERT_TABS.map((tab) => {
+            if (tab.id === 'RECOMMENDED' && !userTarget?.hasCompletedOnboarding) {
+              return null;
+            }
+            const isActive = activeTab === tab.id;
+            const isRec = tab.id === 'RECOMMENDED';
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                className={`exam-library-tab-btn ${isActive ? 'active' : ''} ${isRec ? 'recommended' : ''}`}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSelectedSkill('');
+                  setPage(0);
+                }}
+              >
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Filter Panel (Skills, Attempt Status, Sort) */}
+        <div className="exam-library-filter-panel">
+          {/* Row 1: Chọn Kỹ Năng & Sắp xếp */}
+          <div className="exam-library-filter-row">
+            <span className="exam-library-filter-label">Kỹ năng:</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', flex: 1 }}>
+              {SKILL_OPTIONS.map((opt) => {
+                const isActive = selectedSkill === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`exam-library-chip ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedSkill(opt.id);
+                      setPage(0);
+                    }}
+                  >
+                    {opt.icon}
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sắp xếp */}
+            <select
+              className="exam-library-sort-select"
+              value={sortParam}
+              onChange={(e) => {
+                setSortParam(e.target.value);
+                setPage(0);
+              }}
+              aria-label="Sắp xếp danh sách đề thi"
+            >
               <option value="createdAt">{t('library.sort.newest', 'Mới nhất')}</option>
-              <option value="popular">{t('library.sort.popular', 'Được thi nhiều nhất')}</option>
+              <option value="popular">{t('library.sort.popular', 'Thi nhiều nhất')}</option>
             </select>
           </div>
 
-          {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>{t('library.status.loading', 'Đang tải đề thi...')}</div>
-          ) : exams.length === 0 ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem', color: 'var(--text-muted)' }}>{t('library.status.empty', 'Không tìm thấy đề thi nào phù hợp.')}</div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-              {exams.map((exam) => {
-                const isIelts = exam.type.startsWith('IELTS');
-                const isToeic = exam.type.startsWith('TOEIC');
-                const isLanguagePractice = exam.type === 'LANGUAGE_PRACTICE';
-                const displayType = isIelts ? 'IELTS' : isToeic ? 'TOEIC' : isLanguagePractice ? 'LANGUAGE' : exam.type.startsWith('NLTV') ? 'NLTV' : 'EXAM';
-                
+          {/* Row 2: Trạng thái làm bài */}
+          <div className="exam-library-filter-row" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
+            <span className="exam-library-filter-label">Trạng thái:</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {ATTEMPT_STATUS_CHIPS.map((chip) => {
+                const isActive = selectedAttemptStatus === chip.id;
                 return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className={`exam-library-chip status-chip ${isActive ? 'active' : ''}`}
+                    onClick={() => setSelectedAttemptStatus(chip.id)}
+                  >
+                    <span>{chip.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Meta Header */}
+        <div className="exam-library-meta-header">
+          <span className="exam-library-count">
+            {t('library.results.showing', 'Hiển thị')} <strong>{displayedExams.length}</strong> {t('library.results.results', 'đề thi')}
+          </span>
+          {(searchTerm || selectedSkill || selectedAttemptStatus !== 'ALL') && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontSize: '0.85rem',
+                color: '#ea580c',
+                fontWeight: 600,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <RotateCcw size={14} />
+              <span>Xóa bộ lọc</span>
+            </button>
+          )}
+        </div>
+
+        {/* Grid or Status View */}
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '5rem 0', color: '#ea580c' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '40px', height: '40px', border: '3px solid #ffedd5', borderTopColor: '#ea580c', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#64748b' }}>Đang tải danh sách đề thi...</span>
+            </div>
+          </div>
+        ) : displayedExams.length === 0 ? (
+          <div className="exam-library-empty">
+            <div className="exam-library-empty-icon">
+              <BookOpen size={30} />
+            </div>
+            <h3 className="exam-library-empty-title">Không tìm thấy đề thi nào</h3>
+            <p className="exam-library-empty-desc">
+              Không có đề thi nào khớp với bộ lọc hiện tại của bạn. Hãy thử chọn kỹ năng khác hoặc bấm nút bên dưới để xem lại tất cả đề thi.
+            </p>
+            <button type="button" className="btn btn-primary" onClick={handleResetFilters}>
+              Xem tất cả đề thi
+            </button>
+          </div>
+        ) : (
+          <div className="exam-grid">
+            {displayedExams.map((exam) => {
+              const gradientBg = getThumbnailGradient(exam.type);
+              const watermark = getWatermark(exam.type);
+              const isMatch = isMatchUserTarget(exam.type);
+
+              return (
+                <div
+                  key={exam.id}
+                  className="exam-card"
+                  onClick={() => navigate(`/student/exam/${exam.id}`)}
+                >
+                  {/* Thumbnail Area */}
                   <div
-                    key={exam.id}
-                className="ed-card"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: hoveredId === exam.id ? 'translateY(-8px)' : 'none',
-                  boxShadow: hoveredId === exam.id ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' : 'var(--shadow-sm)',
-                  cursor: 'pointer',
-                  border: '1px solid var(--border-light)'
-                }}
-                onMouseEnter={() => setHoveredId(exam.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={() => navigate(`/student/exam/${exam.id}`)}
-              >
-                {/* Card Thumbnail */}
-                <div style={{
-                  height: '160px',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: exam.thumbnailUrl ? `url(${exam.thumbnailUrl}) center/cover no-repeat` : (exam.type.startsWith('IELTS') ? 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)' : exam.type.startsWith('TOEIC') ? 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' : isLanguagePractice ? 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' : exam.type.startsWith('NLTV') ? 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)' : 'linear-gradient(135deg, #64748b 0%, #334155 100%)')
-                }}>
-                  {!exam.thumbnailUrl && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Cg/%3E%3C/svg%3E")' }}></div>}
-                  {!exam.thumbnailUrl && <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'white', letterSpacing: '2px', zIndex: 1, textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>{displayType}</h2>}
-                  <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 1 }}>
-                    <span style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', color: 'white', padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.3)' }}>{exam.level}</span>
+                    className="exam-card-thumbnail"
+                    style={{
+                      background: exam.thumbnailUrl ? `url(${exam.thumbnailUrl}) center/cover no-repeat` : gradientBg,
+                    }}
+                  >
+                    {!exam.thumbnailUrl && (
+                      <span className="exam-card-watermark">{watermark}</span>
+                    )}
+
+                    {/* Top Floating Badges */}
+                    <div className="exam-card-badges-top">
+                      {exam.isAttempted ? (
+                        <span className="exam-card-attempt-badge attempted">
+                          <CheckCircle2 size={12} />
+                          <span>Đã làm ({exam.userAttemptsCount || 1} lần) {exam.userHighestScore !== null && exam.userHighestScore !== undefined ? `• ${formatScore(exam.userHighestScore, exam.type)}` : ''}</span>
+                        </span>
+                      ) : (
+                        <span className="exam-card-attempt-badge unattempted">
+                          <span>Chưa làm</span>
+                        </span>
+                      )}
+
+                      <span className="exam-card-level-badge">{exam.level}</span>
+                    </div>
+
+                    {/* Target Match Badge */}
+                    {isMatch && (
+                      <span className="exam-card-target-match">
+                        🎯 Khớp mục tiêu
+                      </span>
+                    )}
+
+                    {/* Play Button Overlay */}
+                    <div className="exam-card-play-overlay">
+                      <div className="exam-card-play-btn">
+                        <Play size={24} fill="#ea580c" style={{ marginLeft: '3px' }} />
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Play Overlay */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: hoveredId === exam.id ? 1 : 0,
-                    transition: 'opacity 0.2s',
-                    zIndex: 2
-                  }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                      <Play size={24} fill="white" style={{ marginLeft: '4px' }} />
+                  {/* Body Content */}
+                  <div className="exam-card-body">
+                    <h3 className="exam-card-title" title={exam.title}>
+                      {exam.title}
+                    </h3>
+
+                    {/* Skills Row */}
+                    <div className="exam-card-tags-row">
+                      {exam.tags?.map((tag) => (
+                        <span key={tag} className="exam-card-skill-pill">
+                          {tag.toLowerCase().includes('nghe') || tag.toLowerCase().includes('listening') ? <Headphones size={11} /> : null}
+                          {tag.toLowerCase().includes('đọc') || tag.toLowerCase().includes('reading') ? <BookOpen size={11} /> : null}
+                          {tag.toLowerCase().includes('viết') || tag.toLowerCase().includes('writing') ? <PenTool size={11} /> : null}
+                          <span>{tag}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Footer Meta */}
+                    <div className="exam-card-footer">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={14} color="#94a3b8" />
+                          <span>{exam.durationMinutes} phút</span>
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Users size={14} color="#94a3b8" />
+                          <span>{exam.joins || 0} lượt thi</span>
+                        </span>
+                      </div>
+
+                      <span className="exam-card-cta-btn">
+                        <span>{exam.isAttempted ? 'Làm lại' : 'Làm bài'}</span>
+                        <ArrowRight size={14} />
+                      </span>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>{exam.title}</h3>
-
-                  {/* Tags */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
-                    {exam.tags.map((tag: string) => (
-                      <span key={tag} style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', borderRadius: '4px' }}>{tag}</span>
-                    ))}
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-light)' }}>
-                    <div className="flex-center" style={{ gap: '0.35rem', fontWeight: 500 }}><Clock size={15} color="var(--text-muted)" /> {exam.durationMinutes} {t('library.card.minutes', 'phút')}</div>
-                    <div className="flex-center" style={{ gap: '0.35rem', fontWeight: 500 }}><BookOpen size={15} color="var(--text-muted)" /> {exam.joins || 0} {t('library.card.attempts', 'lượt thi')}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '2rem' }}>
-                  <button 
-                    disabled={page === 0}
-                    onClick={() => { setPage(p => p - 1); fetchExams(page - 1); }}
-                    className="btn btn-outline" style={{ padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)' }}>
-                    {t('library.pagination.prev', 'Trang trước')}
-                  </button>
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    {t('library.pagination.page', 'Trang')} {page + 1} / {totalPages}
-                  </span>
-                  <button 
-                    disabled={page >= totalPages - 1}
-                    onClick={() => { setPage(p => p + 1); fetchExams(page + 1); }}
-                    className="btn btn-outline" style={{ padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)' }}>
-                    {t('library.pagination.next', 'Trang sau')}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </main>
-      </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="exam-library-pagination">
+            <button
+              type="button"
+              disabled={page === 0}
+              onClick={() => {
+                setPage((p) => p - 1);
+                fetchExams(page - 1);
+              }}
+              className="exam-library-page-btn"
+            >
+              {t('library.pagination.prev', 'Trang trước')}
+            </button>
+            <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>
+              {t('library.pagination.page', 'Trang')} {page + 1} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages - 1}
+              onClick={() => {
+                setPage((p) => p + 1);
+                fetchExams(page + 1);
+              }}
+              className="exam-library-page-btn"
+            >
+              {t('library.pagination.next', 'Trang sau')}
+            </button>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
