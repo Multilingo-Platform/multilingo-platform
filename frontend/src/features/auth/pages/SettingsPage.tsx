@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../app/store';
 import { ProfileForm } from '../components/ProfileForm';
@@ -12,9 +13,20 @@ import { updateUser } from '../store/authSlice';
 
 export const SettingsPage: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState<'general' | 'password'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'password'>(
+    tabParam === 'password' ? 'password' : 'general'
+  );
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'password' || tab === 'general') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const { data: myInfoRes, isLoading } = useQuery({
     queryKey: ['myInfo'],
@@ -71,7 +83,7 @@ export const SettingsPage: React.FC = () => {
 
             <nav className="space-y-2">
               <button
-                onClick={() => setActiveTab('general')}
+                onClick={() => { setActiveTab('general'); setSearchParams({ tab: 'general' }); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                   activeTab === 'general'
                     ? 'bg-orange-50 text-orange-600 shadow-sm ring-1 ring-orange-500/10'
@@ -83,7 +95,7 @@ export const SettingsPage: React.FC = () => {
               </button>
               
               <button
-                onClick={() => setActiveTab('password')}
+                onClick={() => { setActiveTab('password'); setSearchParams({ tab: 'password' }); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                   activeTab === 'password'
                     ? 'bg-orange-50 text-orange-600 shadow-sm ring-1 ring-orange-500/10'
