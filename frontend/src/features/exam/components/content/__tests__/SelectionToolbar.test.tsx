@@ -28,6 +28,10 @@ describe('SelectionToolbar', () => {
 
     expect(highlightBtn).toBeDefined();
     expect(aiBtn).toBeDefined();
+    const pointerDown = new MouseEvent('pointerdown', { bubbles: true, cancelable: true });
+    aiBtn.dispatchEvent(pointerDown);
+    expect(pointerDown.defaultPrevented).toBe(true);
+    expect(aiBtn.closest('[data-selection-toolbar]')).not.toBeNull();
 
     fireEvent.click(highlightBtn);
     expect(onHighlight).toHaveBeenCalledTimes(1);

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { formatHtmlContent } from '../../../../utils/htmlUtils';
 
@@ -31,6 +31,16 @@ const HtmlContent: React.FC<HtmlContentProps> = ({
   prepared = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const clean = useMemo(() => DOMPurify.sanitize(prepared ? (html ?? '') : formatHtmlContent(html ?? ''), {
+    USE_PROFILES: { html: true },
+    FORBID_ATTR: forbidAutoplay ? ['autoplay'] : [],
+    ...(stripMedia
+      ? { FORBID_TAGS: ['audio', 'video', 'iframe', 'object', 'embed', 'source', 'track'] }
+      : {}),
+  }), [html, prepared, forbidAutoplay, stripMedia]);
+  // React must receive the same innerHTML object while content is unchanged:
+  // replacing passage text nodes also resets the browser's live selection anchor.
+  const innerHtml = useMemo(() => ({ __html: clean }), [clean]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -59,20 +69,12 @@ const HtmlContent: React.FC<HtmlContentProps> = ({
   }, [html, forbidAutoplay, stripMedia]);
 
   if (!html) return null;
-  const formatted = prepared ? html : formatHtmlContent(html);
-  const clean = DOMPurify.sanitize(formatted, {
-    USE_PROFILES: { html: true },
-    FORBID_ATTR: forbidAutoplay ? ['autoplay'] : [],
-    ...(stripMedia
-      ? { FORBID_TAGS: ['audio', 'video', 'iframe', 'object', 'embed', 'source', 'track'] }
-      : {}),
-  });
 
   return (
     <div
       ref={containerRef}
       className={className}
-      dangerouslySetInnerHTML={{ __html: clean }}
+      dangerouslySetInnerHTML={innerHtml}
     />
   );
 };

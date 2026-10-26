@@ -716,11 +716,12 @@ const WorkspacePage: React.FC = () => {
     useReferenceDocs: useReferenceDocuments,
   });
   const highlightContextKey = `${ownerId ?? 'anonymous'}:${attemptId}:${partId}:${answersState.contextRevision}`;
-  const { selection, setSelection } = useTextSelection(
+  const { selection, setSelection, interaction, consumeCommittedClick } = useTextSelection(
     readingContainerRef,
-    !!highlightEnabled && !submission.isLocked() && !isCurrentSectionLocked,
+    !!highlightEnabled && readingHighlights.ready && !submission.isLocked() && !isCurrentSectionLocked,
     answersState.contextRevision,
-    highlightContextKey
+    highlightContextKey,
+    { onPointerCommit: commitHighlight },
   );
   const [deleteTooltip, setDeleteTooltip] = useState<{
     highlightId: string; top: number; left: number; namespace: string;
@@ -814,29 +815,40 @@ const WorkspacePage: React.FC = () => {
     [displayQuestionGroups, toeicNumberByQuestion, answersState.answers, answersState.flags, partId]
   );
 
-  const handleHighlight = () => {
-    if (submission.isLocked() || isCurrentSectionLocked || !selection) return;
-    if (selection.contextRevision !== answersState.contextRevision || selection.contextKey !== highlightContextKey) {
-      return setSelection(null);
+  function commitHighlight(snapshot: SelectionState): boolean {
+    if (!highlightEnabled || !activeWorkspace || !readingHighlights.ready || !ownerId
+      || answersState.attemptId !== attemptId || answersState.isLocked || submission.isLocked() || isCurrentSectionLocked) return false;
+    if (snapshot.contextRevision !== answersState.contextRevision || snapshot.contextKey !== highlightContextKey) {
+      return false;
     }
     const doc = readingHighlights.documents.find((item) =>
-      item.partId === partId && item.documentId === selection.documentId &&
-      item.contentHash === selection.contentHash
+      item.partId === partId && item.documentId === snapshot.documentId &&
+      item.contentHash === snapshot.contentHash
     );
-    const namespace = readingHighlights.namespaceFor(selection.documentId, selection.contentHash);
-    if (!doc || !namespace || selection.start >= selection.end) return setSelection(null);
-    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    dispatch(addHighlightRecord({
-      attemptId,
-      contextRevision: answersState.contextRevision,
-      passageId: namespace,
-      contentHash: doc.contentHash,
-      documentText: doc.text,
-      highlight: { id, start: selection.start, end: selection.end, text: selection.text.slice(0, 50) },
-    }));
+    const namespace = readingHighlights.namespaceFor(snapshot.documentId, snapshot.contentHash);
+    if (!doc || !namespace || snapshot.start >= snapshot.end || snapshot.end > doc.text.length
+      || snapshot.scopeText !== doc.text || snapshot.text !== doc.text.slice(snapshot.start, snapshot.end)) return false;
+    const covered = answersState.highlights[namespace]?.items.some((item) => item.start <= snapshot.start && item.end >= snapshot.end);
+    if (!covered) {
+      const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      dispatch(addHighlightRecord({
+        attemptId,
+        contextRevision: answersState.contextRevision,
+        passageId: namespace,
+        contentHash: doc.contentHash,
+        documentText: doc.text,
+        highlight: { id, start: snapshot.start, end: snapshot.end, text: snapshot.text.slice(0, 50) },
+      }));
+    }
     window.getSelection()?.removeAllRanges();
+    setDeleteTooltip(null);
+    return true;
+  }
+
+  const handleHighlight = () => {
+    if (selection) commitHighlight(selection);
     setSelection(null);
   };
 
@@ -859,6 +871,7 @@ const WorkspacePage: React.FC = () => {
   };
 
   const handlePassageClick = (e: React.MouseEvent) => {
+    if (consumeCommittedClick(e.nativeEvent)) return;
     const target = e.target as HTMLElement;
     const mark = target.closest('mark[data-hl-id]');
 
@@ -1256,7 +1269,7 @@ const WorkspacePage: React.FC = () => {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {em("Bôi đen từ để tra từ điển AI")}</span>
+                      {em("Kéo chọn rồi nhả chuột để tô vàng. Chạm vùng vàng để xóa; chọn từ để tra AI.")}</span>
                   </div>
                 )}
               </div>
@@ -1844,7 +1857,7 @@ const WorkspacePage: React.FC = () => {
           isPracticeMode,
           activeWorkspace?.languageContext?.examLanguage ?? null,
         )}
-        showHighlight={showHighlightAction}
+        showHighlight={interaction !== 'pointer-committed' && showHighlightAction}
         onHighlight={handleHighlight}
         onAiLookup={handleAiLookup}
       />

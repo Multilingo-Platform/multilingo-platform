@@ -392,6 +392,7 @@
     "exam_75bb7c": "Bài thi",
     "_using_server_saved_answers_the_local_draft_has_fda6d8": "ℹ️ Đang dùng bản đã lưu trên máy chủ; bản nháp trên thiết bị chưa được khôi phục.",
     "select_a_word_to_use_the_ai_dictionary_5ff0db": "Bôi đen từ để tra từ điển AI",
+    "highlight_release_help": "Kéo chọn rồi nhả chuột để tô vàng. Chạm vùng vàng để xóa; chọn từ để tra AI.",
     "no_passage_is_available_for_this_part_a9ca4e": "Không có nội dung bài đọc cho phần thi này.",
     "resize_prompt_and_answer_panes_316f30": "Thanh điều chỉnh độ rộng đề bài và bài làm",
     "resize_panes_b0c048": "Thanh điều chỉnh độ rộng",

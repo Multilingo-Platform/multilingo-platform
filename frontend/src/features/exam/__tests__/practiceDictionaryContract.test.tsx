@@ -41,6 +41,7 @@ function Harness() {
 describe('Practice dictionary end-to-end frontend contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     http.get.mockResolvedValue({ success: true, data: [deck] } as never);
     http.post.mockImplementation(async (url, payload) => {
       if (String(url).endsWith('/dictionary-lookups')) {
@@ -100,6 +101,12 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     await screen.findByText('The elms grow beside the river.');
     const passage = page.container.querySelector('[data-highlight-scope="g1"]')!;
     const text = passage.querySelector('p')!.firstChild!;
+    const pointer = (type: string, target: Node) => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0 });
+      Object.defineProperties(event, { pointerType: { value: 'mouse' }, pointerId: { value: 1 }, isPrimary: { value: true } });
+      fireEvent(target, event);
+    };
+    pointer('pointerdown', text);
     const range = document.createRange();
     range.setStart(text, 4);
     range.setEnd(text, 8);
@@ -107,7 +114,10 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     const browserSelection = window.getSelection()!;
     browserSelection.removeAllRanges();
     browserSelection.addRange(range);
-    fireEvent.mouseUp(passage);
+    pointer('pointerup', text);
+    expect(passage.querySelector('mark')?.textContent).toBe('elms');
+    expect(screen.queryByRole('button', { name: 'Highlight' })).toBeNull();
+    expect(http.post).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole('button', { name: 'Tra từ AI' }));
     const dialog = await screen.findByRole('dialog', { name: 'Tra từ AI: elms' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Tra từ' }));

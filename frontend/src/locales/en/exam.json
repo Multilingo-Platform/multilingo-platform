@@ -392,6 +392,7 @@
     "exam_75bb7c": "Exam",
     "_using_server_saved_answers_the_local_draft_has_fda6d8": "ℹ️ Using server-saved answers; the local draft has not been restored.",
     "select_a_word_to_use_the_ai_dictionary_5ff0db": "Select a word to use the AI dictionary",
+    "highlight_release_help": "Select text and release the mouse to highlight. Click a highlight to remove it; select a word to look it up with AI.",
     "no_passage_is_available_for_this_part_a9ca4e": "No passage is available for this part.",
     "resize_prompt_and_answer_panes_316f30": "Resize prompt and answer panes",
     "resize_panes_b0c048": "Resize panes",

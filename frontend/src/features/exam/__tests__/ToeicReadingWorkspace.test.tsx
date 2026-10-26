@@ -182,7 +182,7 @@ function workspaceResponse(snapshot: unknown, testMode: 'MOCK_TEST' | 'PRACTICE'
 
 function renderWorkspacePage(workspace: WorkspaceResponse) {
   const store = configureStore({
-    reducer: { answers: answerReducer },
+    reducer: { answers: answerReducer, auth: () => ({ user: { id: 21 } }) },
     preloadedState: { answers: { ...initialState, attemptId: 99, version: 1 } },
   });
   vi.mocked(workspaceHookModule.default).mockReturnValue({
@@ -612,7 +612,7 @@ describe('WorkspacePage TOEIC reading branch', () => {
   it('TC_TW_RD_10: Practice keeps highlight/selection while Mock hides the AI lookup affordance', async () => {
     const practice = renderWorkspacePage(workspaceResponse(toeicReadingSnapshot(PART_7), 'PRACTICE'));
     await screen.findByTestId('toeic-reference-pane');
-    expect(document.body.textContent).toMatch(/tra từ điển ai/i);
+    expect(document.body.textContent).toMatch(/tra AI/i);
     expect(document.querySelector('[data-highlight-scope="p7-g1"]')).not.toBeNull();
     practice.unmount();
 

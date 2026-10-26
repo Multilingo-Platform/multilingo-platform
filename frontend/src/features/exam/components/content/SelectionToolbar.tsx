@@ -30,6 +30,7 @@ export const SelectionToolbar: React.FC<Props> = ({ selection, showAi, showHighl
   return createPortal(
     <div
       role="toolbar"
+      data-selection-toolbar
       aria-label={em("Thao tác với đoạn văn đã chọn")}
       className="fixed z-50 flex items-center bg-gray-900 shadow-lg rounded-md overflow-hidden"
       style={{ top, left, position: 'fixed' }}
