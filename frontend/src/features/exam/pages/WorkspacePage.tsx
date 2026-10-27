@@ -1242,7 +1242,7 @@ const WorkspacePage: React.FC = () => {
                         certLabel = em('Luyện ngôn ngữ');
                       } else if (snapType.includes('TOEIC')) {
                         certLabel = snapType.includes('WRITING') ? 'TOEIC Writing' : 'TOEIC L&R';
-                      } else if (snapType.includes('NLTV') || snapType.includes('VSTEP')) {
+                      } else if (snapType.includes('NLTV')) {
                         certLabel = 'NLTV';
                       }
                       const skillLabel = (currentSkill as string) === 'WRITING' ? 'Writing' : 'Reading';

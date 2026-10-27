@@ -280,6 +280,14 @@ public class AdminExamServiceImpl implements AdminExamService {
             if (("TOEIC_LR".equals(original.getType()) || isRegisteredCambridgeCode(exam.getCode()))
                     && !original.equals(canonical))
                 throw new AppException(ErrorCode.VALIDATION_FAILED, "Hãy lưu lại đề theo định dạng chuẩn trước khi xuất bản.");
+            if (!original.equals(canonical)) {
+                List<Integer> sectionIds = sectionRepository.findByExam_Id(id).stream().map(ExamSection::getId).toList();
+                if (!sectionIds.isEmpty()) {
+                    partRepository.deleteBySection_IdIn(sectionIds);
+                    sectionRepository.deleteByExam_Id(id);
+                }
+                saveSectionsAndParts(exam, canonical.getSections());
+            }
         }
         exam.setIsPublished(isPublished);
         examRepository.save(exam);

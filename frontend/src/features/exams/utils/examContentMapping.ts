@@ -138,35 +138,89 @@ export function toOfficialExamRequest(title: string, type: string, parts: ExamPa
     const contentData: any = { ...content };
     if (sharedContent !== undefined) contentData.content_html = sharedContent;
     delete contentData.shared_content_html;
-    contentData.question_groups = part.question_groups.map(group => ({ ...group, questions: group.questions.map(question => {
-      const metadata = question.metadata || {};
-      const { metadata: ignoredMetadata, ...canonical } = question;
-      void ignoredMetadata;
-      const options: CanonicalOption[] = (metadata.options || []).map((text: string, i: number) => ({
-        id: metadata.option_ids?.[i] || String.fromCharCode(65 + i), text,
-      }));
-      const mappedAnswer = metadata.correct_option_indices !== undefined
-        ? metadata.correct_option_indices.map((optionIndex: number) => options[optionIndex]?.id).filter(Boolean)
-        : metadata.correct_option_index !== undefined
-          ? options[metadata.correct_option_index]?.id ?? null
-          : canonicalAnswer(metadata.correct_answer, options, metadata);
-      const answerGroup = question.answer_group ?? metadata.answer_group;
-      const alternates = (canonical as any).alternates ?? metadata.alternates;
-      return { ...canonical,
-        type: question.type === 'MULTIPLE_CHOICE' ? 'SINGLE_CHOICE'
-          : question.type === 'MULTIPLE_CHOICE_MULTI' ? 'MULTIPLE_CHOICE'
-            : question.type === 'WRITING_ESSAY' ? 'ESSAY' : question.type,
-        options,
-        correct_answer: mappedAnswer,
-        explanation: metadata.explanation,
-        ...(answerGroup ? { answer_group: answerGroup } : {}),
-        ...(canonical.media !== undefined || metadata.media !== undefined ? { media: canonical.media ?? metadata.media } : {}),
-        ...(alternates !== undefined ? { alternates } : {}),
-      };
-    }) }));
+    if (contentData.shared_audio && (!contentData.shared_audio.url || !String(contentData.shared_audio.url).trim())) {
+      delete contentData.shared_audio;
+    }
+    if (contentData.shared_media && (!contentData.shared_media.url || !String(contentData.shared_media.url).trim())) {
+      delete contentData.shared_media;
+    }
+    contentData.question_groups = part.question_groups.map(group => {
+      const groupData: any = { ...group };
+      if (!groupData.content_html && contentData.content_html) {
+        groupData.content_html = contentData.content_html;
+      }
+      if (groupData.shared_media && (!groupData.shared_media.url || !String(groupData.shared_media.url).trim())) {
+        delete groupData.shared_media;
+      }
+      groupData.questions = group.questions.map(question => {
+        const metadata = question.metadata || {};
+        const { metadata: ignoredMetadata, ...canonical } = question;
+        void ignoredMetadata;
+        const isEssay = question.type === 'WRITING_ESSAY' || question.type === 'ESSAY';
+        const options: CanonicalOption[] = isEssay ? [] : (metadata.options || []).map((text: string, i: number) => ({
+          id: metadata.option_ids?.[i] || String.fromCharCode(65 + i), text,
+        }));
+        const mappedAnswer = isEssay ? null : (metadata.correct_option_indices !== undefined
+          ? metadata.correct_option_indices.map((optionIndex: number) => options[optionIndex]?.id).filter(Boolean)
+          : metadata.correct_option_index !== undefined
+            ? options[metadata.correct_option_index]?.id ?? null
+            : canonicalAnswer(metadata.correct_answer, options, metadata));
+        const answerGroup = question.answer_group ?? metadata.answer_group;
+        const alternates = (canonical as any).alternates ?? metadata.alternates;
+        const rawMedia = canonical.media ?? metadata.media;
+        const hasMedia = rawMedia && rawMedia.url && String(rawMedia.url).trim() !== '';
+        const minWords = (canonical as any).min_words ?? metadata.min_words ?? (partNumber === 8 && type === 'NLTV' ? 120 : partNumber === 9 && type === 'NLTV' ? 200 : undefined);
+
+        const qObj: any = {
+          ...canonical,
+          type: question.type === 'MULTIPLE_CHOICE' ? 'SINGLE_CHOICE'
+            : question.type === 'MULTIPLE_CHOICE_MULTI' ? 'MULTIPLE_CHOICE'
+              : question.type === 'WRITING_ESSAY' ? 'ESSAY' : question.type,
+          explanation: metadata.explanation,
+          ...(answerGroup ? { answer_group: answerGroup } : {}),
+          ...(hasMedia ? { media: rawMedia } : {}),
+          ...(alternates !== undefined ? { alternates } : {}),
+        };
+        if (isEssay) {
+          if (minWords !== undefined) qObj.min_words = minWords;
+          qObj.correct_answer = null;
+          delete qObj.options;
+        } else {
+          qObj.options = options;
+          qObj.correct_answer = mappedAnswer;
+        }
+        return qObj;
+      });
+
+      if (type === 'NLTV' && partNumber === 7) {
+        let passage = groupData.content_html || contentData.content_html || '';
+        if (passage) {
+          for (let num = 1; num <= 10; num++) {
+            const markerRegex = new RegExp(`\\(\\s*${num}\\s*\\)\\s*(?:_{2,}|\\.{2,}|[-–—]{2,}|\\u2026+)`, 'g');
+            passage = passage.replace(markerRegex, `(${num}) ____`);
+          }
+          if (Array.isArray(groupData.questions)) {
+            groupData.questions.forEach((q: any, i: number) => {
+              const num = i + 1;
+              const ans = typeof q.correct_answer === 'string' ? q.correct_answer.trim() : '';
+              if (ans) {
+                const regex = new RegExp(`\\(\\s*${num}\\s*\\)\\s+${ans.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi');
+                passage = passage.replace(regex, `(${num}) ____`);
+              }
+              const markerRegex = new RegExp(`\\(\\s*${num}\\s*\\)\\s*(?:_{2,}|\\.{2,}|[-–—]{2,}|\\u2026+)`, 'g');
+              passage = passage.replace(markerRegex, `(${num}) ____`);
+            });
+          }
+          groupData.content_html = passage;
+          contentData.content_html = passage;
+        }
+      }
+
+      return groupData;
+    });
     section.parts.push({ partNumber, contentData });
   });
-  return { title, type, examLanguage: type === 'NLTV' ? 'vi' : 'en', published, sections };
+  return { title, type, examLanguage: type === 'NLTV' ? 'vi' : 'en', published, isPublished: published, sections };
 }
 
 const LEARNING_LANGUAGE_ALIASES: Record<string, string> = {

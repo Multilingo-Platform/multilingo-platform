@@ -403,9 +403,6 @@ export const EXAM_TYPE_OPTIONS: Record<string, string> = {
 export const normalizeExamType = (raw: string): string => {
   if (!raw) return 'IELTS_ACADEMIC';
   const clean = raw.trim().toUpperCase();
-  if (clean === 'NLTV_B1_C1' || clean === 'NLTV_A1_A2') return clean;
-  if (clean === 'NLTV (B1 - C1)' || clean === 'NLTV (B1-C1)') return 'NLTV_B1_C1';
-  if (clean === 'NLTV (A1 - A2)' || clean === 'NLTV (A1-A2)') return 'NLTV_A1_A2';
   if (
     clean === 'TOEIC' ||
     clean === 'TOEIC_LR' ||
@@ -714,7 +711,8 @@ export const getNltvTemplateParts = (
               type: 'WRITING_ESSAY',
               question_text: 'Viết thư/email theo yêu cầu của đề bài (tối thiểu 120 từ).',
               metadata: {
-                correct_answer: '',
+                min_words: 120,
+                correct_answer: null,
                 explanation: ''
               }
             }
@@ -738,7 +736,8 @@ export const getNltvTemplateParts = (
               type: 'WRITING_ESSAY',
               question_text: 'Viết bài luận bày tỏ quan điểm về chủ đề được nêu (tối thiểu 200 từ).',
               metadata: {
-                correct_answer: '',
+                min_words: 200,
+                correct_answer: null,
                 explanation: ''
               }
             }
@@ -2302,7 +2301,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
 
         const isPartReadingPassage = isReadingPassage && currentPart?.shared_content_html && 
           (rawPassage === currentPart.shared_content_html || rawPassage.trim() === currentPart.shared_content_html.trim());
-        const groupPassage = isPartReadingPassage ? '' : rawPassage;
+        const groupPassage = rawPassage || currentPart?.shared_content_html || '';
 
         if (groupName !== lastGroupName || !currentGroup) {
           lastGroupOptions = [];
@@ -2503,8 +2502,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           }
 
           if (detectedNum === null) {
-            // Priority 2: Bracketed number like "[32]" for fill in the blank
-            const bracketMatch = questionText.match(/\[(\d+)\]/);
+            // Priority 2: Bracketed or parenthesized number like "[32]" or "(1)"
+            const bracketMatch = questionText.match(/[\[\(](\d+)[\]\)]/);
             if (bracketMatch) {
               detectedNum = parseInt(bracketMatch[1], 10);
             }
@@ -2518,7 +2517,13 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             qNum = String(fallbackQCounter++).padStart(3, '0');
           }
 
-          const qId = isWriting ? `q_w_${qNum}` : `q_${qNum}`;
+          const isNltv = (importedType || '').toUpperCase().includes('NLTV')
+            || (workbook.subject || '').toUpperCase().includes('NLTV')
+            || (workbook.title || '').toUpperCase().includes('NLTV')
+            || (partName || '').toLowerCase().includes('nltv')
+            || (partName || '').toLowerCase().includes('tiếng việt');
+          const isEssay = type === 'WRITING_ESSAY' || type === 'ESSAY';
+          const qId = (isWriting && !isNltv) ? `q_w_${qNum}` : `q_${qNum}`;
 
           const newQuestion: Question = {
             question_id: qId,
@@ -2526,12 +2531,21 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             question_text: questionText,
             metadata: {
               options: options.length > 0 ? options : undefined,
-              correct_answer: parsedCorrectAnswer,
+              correct_answer: isEssay ? null : parsedCorrectAnswer,
               correct_option_index: correctOptionIndex,
               correct_option_indices: correctOptionIndices,
               explanation: explanation
             }
           };
+
+          if (isNltv && isEssay) {
+            const partNumMatch = (partName || '').match(/(?:part|phần)\s*(\d+)/i);
+            const pNum = partNumMatch ? parseInt(partNumMatch[1], 10) : tempParts.length;
+            const minWords = pNum === 8 ? 120 : (pNum === 9 ? 200 : undefined);
+            if (minWords) {
+              (newQuestion.metadata as any).min_words = minWords;
+            }
+          }
 
           if (qMedia) {
             (newQuestion.metadata as any).media = { type: 'image', url: qMedia };
@@ -2567,7 +2581,6 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           }
         } else if (
           fileNameLower.includes('nltv') ||
-          fileNameLower.includes('vstep') ||
           fileNameLower.includes('tieng viet') ||
           fileNameLower.includes('tiếng việt') ||
           allTitlesLower.includes('nltv') ||
@@ -2609,6 +2622,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         confirmButtonText: 'Bắt đầu xem & chỉnh sửa'
       });
     } catch {
+      setImportError('Không thể đọc file Excel. Hãy kiểm tra định dạng và thử lại.');
       Swal.fire('Lỗi', 'Không thể đọc file Excel. Hãy kiểm tra định dạng và thử lại.', 'error');
     }
   };
@@ -3190,8 +3204,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
                   })()}
                 </div>
 
-                {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC NLTV ĐỌC */}
-                {(part.part_title.toLowerCase().includes('passage') || (examType === 'NLTV' && part.part_title.toLowerCase().includes('đọc'))) && (
+                {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE (NLTV mỗi nhóm có bài đọc riêng) */}
+                {(part.part_title.toLowerCase().includes('passage') && examType !== 'NLTV') && (
                   <div style={{ marginBottom: '1.5rem' }}>
                     <RichTextEditor
                       label="Nội dung Bài Đọc Chung (Shared Reading Passage)"

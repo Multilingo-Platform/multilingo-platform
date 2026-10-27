@@ -25,7 +25,7 @@ const mockHistory = [
   },
   {
     id: 'att-003',
-    examTitle: 'VSTEP B1-C1 - Đề thi thử số 1',
+    examTitle: 'NLTV B1-C1 - Đề thi thử số 1',
     mode: 'MOCK_TEST',
     date: '2026-09-25T09:00:00Z',
     score: 5.5,

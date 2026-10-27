@@ -17,5 +17,6 @@ public class StudentDashboardResponse {
     private VocabStatsDto vocabStats;
     private ActivityHeatmapDto activityHeatmap;
     private ProgressChartDto progressChart;
+    private GoalProgressDto goalProgress;
     private List<SuggestedActionDto> suggestedActions;
 }

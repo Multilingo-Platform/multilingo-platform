@@ -7,6 +7,7 @@ import { MetricStatCard } from '../components/MetricStatCard';
 import { StudyActivityHeatmap } from '../components/StudyActivityHeatmap';
 import { ProgressChart } from '../components/ProgressChart';
 import { SuggestedActionCard } from '../components/SuggestedActionCard';
+import { GoalProgressTrackerCard } from '../components/GoalProgressTrackerCard';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 export const StudentDashboardPage: React.FC = () => {
@@ -24,6 +25,7 @@ export const StudentDashboardPage: React.FC = () => {
     queryFn: () => studentDashboardApi.getDashboard(timeRange, selectedYear),
     placeholderData: keepPreviousData,
     staleTime: 60 * 1000,
+    refetchOnMount: 'always',
   });
 
   if (isLoading) {
@@ -65,7 +67,7 @@ export const StudentDashboardPage: React.FC = () => {
     );
   }
 
-  const { isNewUser, userProfile, streak, examStats, vocabStats, activityHeatmap, progressChart, suggestedActions } = dashboardData;
+  const { isNewUser, userProfile, streak, examStats, vocabStats, activityHeatmap, progressChart, suggestedActions, goalProgress } = dashboardData;
 
   const placementAction = suggestedActions.find((a) => a.type === 'PLACEMENT_TEST');
   const regularActions = suggestedActions.filter((a) => a.type !== 'PLACEMENT_TEST');
@@ -75,9 +77,14 @@ export const StudentDashboardPage: React.FC = () => {
       {/* 1. Header & Greeting */}
       <GreetingHeader userProfile={userProfile} />
 
-      {/* 2. New User Welcome Card (if Cold Start) */}
+      {/* 2. New User Welcome Card (Bắt đầu hành trình ngoại ngữ - if Cold Start) */}
       {isNewUser && (
         <NewUserWelcomeCard placementAction={placementAction} />
+      )}
+
+      {/* 3. Goal Progress Tracker (Mục tiêu học tập - 5 recent exams vs target score) */}
+      {goalProgress && (
+        <GoalProgressTrackerCard goalProgress={goalProgress} />
       )}
 
       {/* 3. Suggested Actions for Active Users */}

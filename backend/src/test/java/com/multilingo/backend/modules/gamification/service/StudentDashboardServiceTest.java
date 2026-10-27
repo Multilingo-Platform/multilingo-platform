@@ -1,10 +1,13 @@
 package com.multilingo.backend.modules.gamification.service;
 
 import com.multilingo.backend.modules.auth.entity.User;
+import com.multilingo.backend.modules.auth.entity.UserTarget;
 import com.multilingo.backend.modules.auth.repository.UserRepository;
+import com.multilingo.backend.modules.auth.repository.UserTargetRepository;
 import com.multilingo.backend.modules.exam.entity.Exam;
 import com.multilingo.backend.modules.exam.repository.ExamRepository;
 import com.multilingo.backend.modules.gamification.constant.TimeRange;
+import com.multilingo.backend.modules.gamification.dto.dashboard.GoalProgressDto;
 import com.multilingo.backend.modules.gamification.dto.dashboard.StudentDashboardResponse;
 import com.multilingo.backend.modules.gamification.entity.DailyStudyLog;
 import com.multilingo.backend.modules.gamification.entity.UserStudyStat;
@@ -57,6 +60,9 @@ class StudentDashboardServiceTest {
 
     @Mock
     private ExamRepository examRepository;
+
+    @Mock
+    private UserTargetRepository userTargetRepository;
 
     @InjectMocks
     private StudentDashboardServiceImpl studentDashboardService;
@@ -360,5 +366,96 @@ class StudentDashboardServiceTest {
         assertThat(chartPoints.get(9).getLearningMinutes()).isEqualTo(90);
         assertThat(chartPoints.get(1).getLabel()).isEqualTo("Th2");
         assertThat(chartPoints.get(1).getLearningMinutes()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("TC_DASHBOARD_GOAL_01: Calculates average score and progress percent from last 5 attempts")
+    void getStudentDashboard_WithGoalProgress_CalculatesAverageAndPercent() {
+        // Given
+        when(userRepository.findById(1)).thenReturn(Optional.of(mockUser));
+        when(userStudyStatRepository.findByUserId(1)).thenReturn(Optional.of(
+                UserStudyStat.builder().userId(1).currentStreak(1).highestStreak(1).totalLearningMinutes(120).totalXp(100L).build()
+        ));
+        when(testAttemptRepository.countByUserIdAndStatus(1, AttemptStatus.COMPLETED)).thenReturn(5L);
+        when(testAttemptRepository.findAverageScoreByUserId(1)).thenReturn(6.1);
+
+        UserVocabStatsProjection vocabProjection = mock(UserVocabStatsProjection.class);
+        when(userFlashcardRepository.getUserVocabStats(eq(1), any(Instant.class))).thenReturn(vocabProjection);
+
+        UserTarget target = UserTarget.builder()
+                .targetCertificate("IELTS_ACADEMIC")
+                .targetScore(BigDecimal.valueOf(7.0))
+                .build();
+        when(userTargetRepository.findFirstByUserId(1)).thenReturn(Optional.of(target));
+
+        TestAttempt a1 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(5.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        a1.setId(1);
+        TestAttempt a2 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        a2.setId(2);
+        TestAttempt a3 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        a3.setId(3);
+        TestAttempt a4 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        a4.setId(4);
+        TestAttempt a5 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        a5.setId(5);
+
+        when(testAttemptRepository.findTopRecentAttemptsByCertCategory(eq(1), eq(AttemptStatus.COMPLETED), eq("IELTS"), eq("IELTS_ACADEMIC"), any()))
+                .thenReturn(List.of(a5, a4, a3, a2, a1));
+
+        // When
+        StudentDashboardResponse response = studentDashboardService.getStudentDashboard(1, "THIS_WEEK", 2026);
+
+        // Then
+        GoalProgressDto goal = response.getGoalProgress();
+        assertThat(goal).isNotNull();
+        assertThat(goal.getTargetCertificate()).isEqualTo("IELTS_ACADEMIC");
+        assertThat(goal.getTargetScore()).isEqualTo(7.0);
+        assertThat(goal.getRecentExamCount()).isEqualTo(5);
+        assertThat(goal.getRecentAverageScore()).isEqualTo(6.1);
+        assertThat(goal.getProgressPercent()).isEqualTo(87);
+        assertThat(goal.getRecentScores()).hasSize(5);
+    }
+
+    @Test
+    @DisplayName("TC_DASHBOARD_GOAL_02: NLTV target filters only NLTV attempts with max score 6.0")
+    void getStudentDashboard_WithNltvGoal_FiltersCorrectCategory() {
+        // Given
+        when(userRepository.findById(1)).thenReturn(Optional.of(mockUser));
+        when(userStudyStatRepository.findByUserId(1)).thenReturn(Optional.of(
+                UserStudyStat.builder().userId(1).currentStreak(1).highestStreak(1).totalLearningMinutes(120).totalXp(100L).build()
+        ));
+        when(testAttemptRepository.countByUserIdAndStatus(1, AttemptStatus.COMPLETED)).thenReturn(2L);
+        when(testAttemptRepository.findAverageScoreByUserId(1)).thenReturn(4.5);
+
+        UserVocabStatsProjection vocabProjection = mock(UserVocabStatsProjection.class);
+        when(userFlashcardRepository.getUserVocabStats(eq(1), any(Instant.class))).thenReturn(vocabProjection);
+
+        UserTarget target = UserTarget.builder()
+                .targetCertificate("NLTV")
+                .targetScore(BigDecimal.valueOf(5.0))
+                .build();
+        when(userTargetRepository.findFirstByUserId(1)).thenReturn(Optional.of(target));
+
+        TestAttempt a1 = TestAttempt.builder().examId(20).overallScore(BigDecimal.valueOf(4.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        a1.setId(10);
+        TestAttempt a2 = TestAttempt.builder().examId(20).overallScore(BigDecimal.valueOf(5.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        a2.setId(11);
+
+        when(testAttemptRepository.findTopRecentAttemptsByCertCategory(eq(1), eq(AttemptStatus.COMPLETED), eq("NLTV"), eq("NLTV"), any()))
+                .thenReturn(List.of(a2, a1));
+
+        // When
+        StudentDashboardResponse response = studentDashboardService.getStudentDashboard(1, "THIS_WEEK", 2026);
+
+        // Then
+        GoalProgressDto goal = response.getGoalProgress();
+        assertThat(goal).isNotNull();
+        assertThat(goal.getTargetCertificate()).isEqualTo("NLTV");
+        assertThat(goal.getTargetScore()).isEqualTo(5.0);
+        assertThat(goal.getRecentExamCount()).isEqualTo(2);
+        assertThat(goal.getRecentAverageScore()).isEqualTo(4.5);
+        assertThat(goal.getProgressPercent()).isEqualTo(90);
+        assertThat(goal.getRecentScores()).hasSize(2);
+        assertThat(goal.getRecentScores().get(0).getMaxScore()).isEqualTo(6.0);
     }
 }

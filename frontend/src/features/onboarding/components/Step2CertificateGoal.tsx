@@ -87,7 +87,7 @@ const CERT_CONFIGS: CertConfig[] = [
     id: 'NLTV',
     language: 'vi',
     title: 'Năng Lực Tiếng Việt',
-    badge: 'NLTV / VSTEP',
+    badge: 'NLTV',
     icon: <Globe size={22} />,
     desc: 'Khung năng lực 6 bậc Việt Nam',
     minScore: 1.0,

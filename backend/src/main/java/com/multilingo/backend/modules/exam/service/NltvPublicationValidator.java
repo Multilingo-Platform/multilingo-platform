@@ -99,8 +99,6 @@ public final class NltvPublicationValidator {
                         validateMaskedPassage(group, questions, issues);
                         validateWordBank(group, questions, issues);
                     }
-                    if (partNumber == 8 && !validMedia(group.get("shared_media")))
-                        add(issues, "IMAGE_REQUIRED", null, "Writing Task 1 thiếu ảnh biểu đồ có cấu trúc.");
                 }
                 if (partCount != QUESTIONS_PER_PART[partNumber - 1])
                     add(issues, "SOURCE_COUNTS_INVALID", null, "Số câu không đúng tại Part " + partNumber + ".");
@@ -119,8 +117,17 @@ public final class NltvPublicationValidator {
     }
 
     public void requirePublishable(ExamBuilderRequest request) {
-        if (!issues(request).isEmpty()) throw new AppException(ErrorCode.VALIDATION_FAILED,
-                "Đề NLTV chưa đạt điều kiện xuất bản; kiểm tra media, nội dung, options và đáp án.");
+        var issues = issues(request);
+        if (!issues.isEmpty()) {
+            String details = issues.stream()
+                    .map(Issue::message)
+                    .filter(msg -> msg != null && !msg.isBlank())
+                    .distinct()
+                    .limit(5)
+                    .collect(java.util.stream.Collectors.joining("; "));
+            throw new AppException(ErrorCode.VALIDATION_FAILED,
+                    "Đề NLTV chưa đạt điều kiện xuất bản: " + details);
+        }
     }
 
     private static void validateQuestion(int part, Map<?, ?> question, Set<String> ids, List<Issue> issues) {
@@ -169,14 +176,25 @@ public final class NltvPublicationValidator {
         String passage = group.get("content_html") instanceof String text ? text : "";
         for (int number = 1; number <= 10; number++) {
             String marker = "(" + number + ") ____";
-            if (!passage.contains(marker)) add(issues, "DICTATION_MARKER_INVALID", null, "Thiếu marker trống tại Part 7.");
+            boolean hasMarker = passage.contains(marker)
+                    || passage.matches("(?s).*\\(\\s*" + number + "\\s*\\)\\s*(?:_{2,}|\\.{2,}|[-–—]{2,}|\\u2026+).*");
+            if (!hasMarker) add(issues, "DICTATION_MARKER_INVALID", null, "Thiếu marker trống tại Part 7.");
         }
-        for (Object raw : questions) if (raw instanceof Map<?, ?> question
-                && question.get("question_id") instanceof String id && question.get("correct_answer") instanceof String answer) {
-            int number;
-            try { number = Integer.parseInt(id.substring(2)); } catch (RuntimeException exception) { continue; }
-            if (passage.contains("(" + number + ") " + answer))
-                add(issues, "ANSWER_KEY_LEAK", id, "Passage chính tả còn lộ đáp án.");
+        for (int i = 0; i < questions.size(); i++) {
+            Object raw = questions.get(i);
+            if (raw instanceof Map<?, ?> question
+                    && question.get("correct_answer") instanceof String answer && !answer.isBlank()) {
+                int number = i + 1;
+                Object idObj = question.get("question_id");
+                String id = idObj instanceof String s ? s : "q_" + number;
+                try {
+                    int parsed = Integer.parseInt(id.replaceAll("^q_0*", ""));
+                    if (parsed >= 1 && parsed <= 10) number = parsed;
+                } catch (RuntimeException ignored) {}
+                String leakedPattern = "(?s).*\\(\\s*" + number + "\\s*\\)\\s+" + java.util.regex.Pattern.quote(answer.trim()) + ".*";
+                if (passage.contains("(" + number + ") " + answer.trim()) || passage.matches(leakedPattern))
+                    add(issues, "ANSWER_KEY_LEAK", id, "Passage chính tả còn lộ đáp án.");
+            }
         }
     }
 

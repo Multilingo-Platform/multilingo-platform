@@ -75,7 +75,7 @@ describe('server-backed Excel import', () => {
     const { container } = render(<ExamBuilder onSave={vi.fn()} onCancel={vi.fn()} />);
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
     await waitFor(() => expect(axiosClient.post).toHaveBeenCalledWith('/v1/admin/exams/import/preview', expect.any(FormData), expect.any(Object)));
-    expect(screen.queryByRole('button', { name: /lưu đề thi/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Question 101')).not.toBeInTheDocument();
   });
   it('correctly imports TOEIC_WRITING Excel without calling backend preview and enforces fixed 8 questions', async () => {
     const workbook = new ExcelJS.Workbook();

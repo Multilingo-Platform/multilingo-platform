@@ -67,6 +67,24 @@ export interface SuggestedAction {
   buttonText: string;
 }
 
+export interface RecentExamScore {
+  attemptId: number;
+  examTitle: string;
+  score: number | null;
+  maxScore: number;
+  percentage: number | null;
+  completedAt: string | null;
+}
+
+export interface GoalProgress {
+  targetCertificate: string;
+  targetScore: number;
+  recentAverageScore: number | null;
+  progressPercent: number;
+  recentExamCount: number;
+  recentScores: RecentExamScore[];
+}
+
 export interface StudentDashboardData {
   isNewUser: boolean;
   userProfile: UserProfileSummary;
@@ -76,4 +94,5 @@ export interface StudentDashboardData {
   activityHeatmap: ActivityHeatmap;
   progressChart: ProgressChart;
   suggestedActions: SuggestedAction[];
+  goalProgress?: GoalProgress | null;
 }

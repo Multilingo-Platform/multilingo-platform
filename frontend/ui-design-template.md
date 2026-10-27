@@ -115,7 +115,7 @@ App.tsx
 #### 4. [OnboardingPage.tsx](file:///d:/Project/University/multilingo-platform/web-ui/src/pages/student/OnboardingPage.tsx)
 * Trắc nghiệm chọn nhanh thiết lập cá nhân:
   1. Ngôn ngữ mẹ đẻ (Tiếng Việt / Tiếng Anh).
-  2. Ngôn ngữ & Chứng chỉ muốn luyện thi (Tiếng Anh IELTS/TOEIC hoặc Tiếng Việt VSTEP).
+  2. Ngôn ngữ & Chứng chỉ muốn luyện thi (Tiếng Anh IELTS/TOEIC hoặc Tiếng Việt NLTV).
 * Nút card tương tác chọn đổi trạng thái active có viền cam 2px và nền cam nhạt.
 
 ---
@@ -136,7 +136,7 @@ App.tsx
 * **Radar Chart Placeholder:** Khung hiển thị biểu đồ mạng nhện kỹ năng mạnh/yếu.
 
 #### 7. [ExamLibrary.tsx](file:///d:/Project/University/multilingo-platform/web-ui/src/pages/student/ExamLibrary.tsx)
-* **Thanh tìm kiếm & Bộ lọc (Filter Sidebar):** Tìm theo tên đề thi, checkbox lọc theo loại chứng chỉ (IELTS, TOEIC, VSTEP).
+* **Thanh tìm kiếm & Bộ lọc (Filter Sidebar):** Tìm theo tên đề thi, checkbox lọc theo loại chứng chỉ (IELTS, TOEIC, NLTV).
 * **Lưới Đề thi (Exam Cards Grid):** Thẻ bài thi hiển thị loại chứng chỉ làm hình nền mờ nghệ thuật, badge cấp độ (Academic / General / B1), thời lượng, số lượt làm bài và nút "Chi tiết đề thi".
 
 #### 8. [MockTestEngine.tsx](file:///d:/Project/University/multilingo-platform/web-ui/src/pages/student/MockTestEngine.tsx) — *(Thành phần Trọng yếu)*
@@ -194,7 +194,7 @@ App.tsx
 * **Tự động áp dụng Template Đề Thi:**
   * **IELTS Template:** Tạo sẵn cấu trúc chuẩn gồm 4 Phần Listening (Questions 1-40), 3 Bài đọc Reading (Passages 1-3) và 2 Bài viết Writing (Task 1 & Task 2).
   * **TOEIC Template:** Tạo sẵn cấu trúc chuẩn 7 Part (Part 1 Photos -> Part 7 Reading Comprehension) kèm số lượng lựa chọn đáp án tương ứng (A-C hoặc A-D).
-  * **TOEIC Writing & VSTEP:** Thiết lập sẵn câu tự luận và nhóm bài kiểm tra.
+  * **TOEIC Writing & NLTV:** Thiết lập sẵn câu tự luận và nhóm bài kiểm tra.
 * **Hỗ trợ 10 loại câu hỏi phong phú:**
   1. `MULTIPLE_CHOICE`: Trắc nghiệm 1 đáp án.
   2. `MULTIPLE_CHOICE_MULTI`: Trắc nghiệm chọn nhiều đáp án.

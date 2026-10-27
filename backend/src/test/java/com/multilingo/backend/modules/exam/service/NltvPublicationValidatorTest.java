@@ -30,13 +30,58 @@ class NltvPublicationValidatorTest {
         assertThat(validator.issues(request)).filteredOn(issue -> "AUDIO_REQUIRED".equals(issue.code()))
                 .hasSize(4);
         assertThatThrownBy(() -> validator.requirePublishable(request))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Thiếu audio gốc cho Part 1.");
 
         for (int partNumber : List.of(1, 2, 3, 4)) {
             var part = request.getSections().stream().flatMap(section -> section.getParts().stream())
                     .filter(candidate -> candidate.getPartNumber() == partNumber).findFirst().orElseThrow();
             part.getContentData().put("shared_audio", Map.of("url", "https://media.example/nltv-part-" + partNumber + ".mp3"));
         }
+        assertThat(validator.issues(request)).isEmpty();
+        validator.requirePublishable(request);
+    }
+
+    @Test
+    void allowsPublicationWithoutPartEightImage() throws Exception {
+        ExamImportPreviewResponse preview = parseSource();
+        ExamBuilderRequest request = preview.request();
+        NltvPublicationValidator validator = new NltvPublicationValidator();
+
+        for (int partNumber : List.of(1, 2, 3, 4)) {
+            var part = request.getSections().stream().flatMap(section -> section.getParts().stream())
+                    .filter(candidate -> candidate.getPartNumber() == partNumber).findFirst().orElseThrow();
+            part.getContentData().put("shared_audio", Map.of("url", "https://media.example/nltv-part-" + partNumber + ".mp3"));
+        }
+
+        // Remove shared_media from Part 8 (Writing Task 1)
+        var partEight = request.getSections().get(2).getParts().get(1);
+        var groups = (List<Map<String, Object>>) partEight.getContentData().get("question_groups");
+        groups.get(0).remove("shared_media");
+
+        assertThat(validator.issues(request)).isEmpty();
+        validator.requirePublishable(request);
+    }
+
+    @Test
+    void allowsPublicationWithDotMarkersInPartSeven() throws Exception {
+        ExamImportPreviewResponse preview = parseSource();
+        ExamBuilderRequest request = preview.request();
+        NltvPublicationValidator validator = new NltvPublicationValidator();
+
+        for (int partNumber : List.of(1, 2, 3, 4)) {
+            var part = request.getSections().stream().flatMap(section -> section.getParts().stream())
+                    .filter(candidate -> candidate.getPartNumber() == partNumber).findFirst().orElseThrow();
+            part.getContentData().put("shared_audio", Map.of("url", "https://media.example/nltv-part-" + partNumber + ".mp3"));
+        }
+
+        // Replace (1) ____ with (1) ................ in Part 7
+        var partSeven = request.getSections().get(2).getParts().get(0);
+        @SuppressWarnings("unchecked")
+        var groups = (List<Map<String, Object>>) partSeven.getContentData().get("question_groups");
+        String currentHtml = groups.get(0).get("content_html").toString();
+        groups.get(0).put("content_html", currentHtml.replace("(1) ____", "(1) ................"));
+
         assertThat(validator.issues(request)).isEmpty();
         validator.requirePublishable(request);
     }

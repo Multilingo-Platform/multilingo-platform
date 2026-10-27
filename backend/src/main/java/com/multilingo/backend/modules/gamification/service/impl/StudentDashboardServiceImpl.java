@@ -4,6 +4,8 @@ import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.auth.entity.User;
 import com.multilingo.backend.modules.auth.repository.UserRepository;
+import com.multilingo.backend.modules.auth.entity.UserTarget;
+import com.multilingo.backend.modules.auth.repository.UserTargetRepository;
 import com.multilingo.backend.modules.exam.entity.Exam;
 import com.multilingo.backend.modules.exam.repository.ExamRepository;
 import com.multilingo.backend.modules.gamification.constant.TimeRange;
@@ -26,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,6 +45,7 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
         private final TestAttemptRepository testAttemptRepository;
         private final UserFlashcardRepository userFlashcardRepository;
         private final ExamRepository examRepository;
+        private final UserTargetRepository userTargetRepository;
 
         @Override
         @Transactional(readOnly = true)
@@ -326,6 +331,93 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
                                                 .buttonText("Vào thư viện đề")
                                                 .build());
 
+                // 9. Tính toán GoalProgressDto từ mục tiêu và 5 bài thi gần nhất
+                Optional<UserTarget> userTargetOpt = userTargetRepository.findFirstByUserId(userId);
+                GoalProgressDto goalProgress = null;
+                if (userTargetOpt.isPresent()) {
+                        UserTarget target = userTargetOpt.get();
+                        String targetCertificate = target.getTargetCertificate();
+                        Double targetScore = target.getTargetScore() != null ? target.getTargetScore().doubleValue() : null;
+
+                        String certCategory = resolveCertCategory(targetCertificate);
+                        List<TestAttempt> top5Attempts = testAttemptRepository
+                                        .findTopRecentAttemptsByCertCategory(
+                                                userId,
+                                                AttemptStatus.COMPLETED,
+                                                certCategory,
+                                                targetCertificate != null ? targetCertificate.toUpperCase() : "",
+                                                org.springframework.data.domain.PageRequest.of(0, 5)
+                                        );
+
+                        List<TestAttempt> chronologicalAttempts = new ArrayList<>(top5Attempts);
+                        Collections.reverse(chronologicalAttempts);
+
+                        List<RecentExamScoreDto> recentScores = new ArrayList<>();
+                        double sumScore = 0.0;
+                        int validScoreCount = 0;
+
+                        Double maxScore = 9.0;
+                        if ("TOEIC_LR".equals(certCategory)) {
+                                maxScore = 990.0;
+                        } else if ("TOEIC_WRITING".equals(certCategory)) {
+                                maxScore = 200.0;
+                        } else if ("NLTV".equals(certCategory)) {
+                                maxScore = 6.0;
+                        }
+
+                        for (TestAttempt attempt : chronologicalAttempts) {
+                                String title = "Bài thi";
+                                if (attempt.getExamId() != null) {
+                                        title = examRepository.findById(attempt.getExamId())
+                                                        .map(Exam::getTitle)
+                                                        .orElse("Bài thi #" + attempt.getExamId());
+                                }
+                                Double score = attempt.getOverallScore() != null ? attempt.getOverallScore().doubleValue() : null;
+                                Double pct = (score != null && maxScore > 0) ? Math.round((score / maxScore * 100.0) * 10.0) / 10.0 : null;
+                                LocalDateTime completedAt = attempt.getEndTime() != null
+                                                ? LocalDateTime.ofInstant(attempt.getEndTime(), ZoneId.systemDefault())
+                                                : (attempt.getCreatedAt() != null ? LocalDateTime.ofInstant(attempt.getCreatedAt(), ZoneId.systemDefault()) : null);
+
+                                if (score != null) {
+                                        sumScore += score;
+                                        validScoreCount++;
+                                }
+
+                                recentScores.add(RecentExamScoreDto.builder()
+                                                .attemptId(attempt.getId())
+                                                .examTitle(title)
+                                                .score(score)
+                                                .maxScore(maxScore)
+                                                .percentage(pct)
+                                                .completedAt(completedAt)
+                                                .build());
+                        }
+
+                        Double recentAverageScore = null;
+                        Integer progressPercent = 0;
+                        if (validScoreCount > 0) {
+                                double rawAvg = sumScore / validScoreCount;
+                                if ("TOEIC_LR".equals(certCategory) || "TOEIC_WRITING".equals(certCategory)) {
+                                        recentAverageScore = (double) Math.round(rawAvg);
+                                } else {
+                                        recentAverageScore = Math.round(rawAvg * 10.0) / 10.0;
+                                }
+
+                                if (targetScore != null && targetScore > 0) {
+                                        progressPercent = (int) Math.min(100, Math.round((recentAverageScore / targetScore) * 100));
+                                }
+                        }
+
+                        goalProgress = GoalProgressDto.builder()
+                                        .targetCertificate(targetCertificate)
+                                        .targetScore(targetScore)
+                                        .recentAverageScore(recentAverageScore)
+                                        .progressPercent(progressPercent)
+                                        .recentExamCount(top5Attempts.size())
+                                        .recentScores(recentScores)
+                                        .build();
+                }
+
                 return StudentDashboardResponse.builder()
                                 .isNewUser(isNewUser)
                                 .userProfile(userProfile)
@@ -335,6 +427,7 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
                                 .activityHeatmap(activityHeatmap)
                                 .progressChart(progressChart)
                                 .suggestedActions(actions)
+                                .goalProgress(goalProgress)
                                 .build();
         }
 
@@ -370,5 +463,15 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
                         default:
                                 return date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.getDefault());
                 }
+        }
+
+        private String resolveCertCategory(String targetCertificate) {
+                if (targetCertificate == null) return "OTHER";
+                String upper = targetCertificate.toUpperCase();
+                if (upper.startsWith("IELTS")) return "IELTS";
+                if (upper.equals("TOEIC_WRITING") || upper.equals("TW")) return "TOEIC_WRITING";
+                if (upper.startsWith("TOEIC")) return "TOEIC_LR";
+                if (upper.startsWith("NLTV")) return "NLTV";
+                return "OTHER";
         }
 }
