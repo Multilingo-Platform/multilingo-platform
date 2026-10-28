@@ -9,6 +9,7 @@ import WorkspacePage, { shouldShowAiLookup } from '../pages/WorkspacePage';
 import HtmlContent from '../components/content/HtmlContent';
 import ReferencePane from '../components/workspace/ReferencePane';
 import { readReferenceDocs } from '../components/workspace/ReadingPartContent';
+import { buildWorkspaceTextDocuments } from '../utils/workspaceTextDocuments';
 import { buildHighlightNamespace } from '../utils/highlightUtils';
 import { resolveHighlightScope, resolveHighlightScopeElement } from '../hooks/useTextSelection';
 import * as workspaceHookModule from '../hooks/useWorkspace';
@@ -749,5 +750,23 @@ describe('WorkspacePage TOEIC reading branch', () => {
         delete (Range.prototype as any).getBoundingClientRect;
       }
     }
+  });
+
+  it('TC_TW_RD_14: Part 6 reference pane renders canonical contentHash and matches workspaceTextDocuments for dictionary lookup', async () => {
+    const { container } = renderWorkspacePage(workspaceResponse(toeicReadingSnapshot(PART_6)));
+    await screen.findByTestId('toeic-reference-pane');
+
+    const g1Element = container.querySelector('[data-highlight-scope="p6-g1"]')!;
+    expect(g1Element).toBeDefined();
+
+    const renderedHash = g1Element.getAttribute('data-highlight-hash');
+    expect(renderedHash).toBeTruthy();
+
+    const canonicalDocs = buildWorkspaceTextDocuments(PART_6, 106);
+    const canonicalGroup = canonicalDocs.find(d => d.source.kind === 'GROUP_CONTENT' && d.source.groupId === 'p6-g1')!;
+    expect(canonicalGroup).toBeDefined();
+
+    // Rendered DOM hash must match the canonical workspace document hash exactly
+    expect(renderedHash).toBe(canonicalGroup.contentHash);
   });
 });

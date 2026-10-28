@@ -48,7 +48,7 @@ export const WorkspaceText: React.FC<WorkspaceTextProps> = ({
   }, [content, format]);
   const hash = contentHash ?? workspaceTextHash(prepared.text);
   const activeHighlights = highlights ?? context?.getHighlights(source, hash) ?? [];
-  const highlightedHtml = activeHighlights.length > 0 ? applyHighlights(prepared.html, activeHighlights) : prepared.html;
+  const highlightedHtml = activeHighlights.length > 0 ? applyHighlights(prepared.html, activeHighlights) : (context ? prepared.html : (/<mark\b/i.test(content) ? content : prepared.html));
   const innerHtml = useMemo(() => ({ __html: highlightedHtml }), [highlightedHtml]);
 
   if (format === 'HTML' || activeHighlights.length > 0) {

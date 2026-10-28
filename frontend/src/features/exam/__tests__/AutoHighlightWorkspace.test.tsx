@@ -60,7 +60,7 @@ async function open(mode: 'PRACTICE' | 'MOCK_TEST', shape: 'group' | 'part' = 'g
     </Routes>
   </MemoryRouter></Provider>);
   await screen.findAllByText(/^Choose\./);
-  const scope = page.container.querySelector('[data-highlight-scope]')! as HTMLElement;
+  const scope = (shape === 'part' ? page.container.querySelector('[data-highlight-scope="part"]') : page.container.querySelector('[data-highlight-scope="g1"]'))! as HTMLElement;
   return { page, store, scope };
 }
 

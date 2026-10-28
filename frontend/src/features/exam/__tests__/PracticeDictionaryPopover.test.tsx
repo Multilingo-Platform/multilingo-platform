@@ -41,4 +41,17 @@ describe('PracticeDictionaryPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
     expect(props.onRetry).toHaveBeenCalledOnce();
   });
+
+  it('renders quota exhaustion error with warning icon and helpful limit guidance', () => {
+    const props = { ...base, onRetry: vi.fn() };
+    render(<PracticeDictionaryPopover {...props} phase="error" error={{
+      kind: 'quota',
+      message: 'Bạn đã dùng hết lượt tra từ hôm nay.',
+      retryAfterSeconds: null,
+      retryable: false,
+    }} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/bạn đã dùng hết lượt tra từ hôm nay/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/hạn mức tra từ ai trong ngày đã hết/i);
+    expect(screen.queryByRole('button', { name: 'Thử lại' })).toBeNull();
+  });
 });
