@@ -312,3 +312,17 @@ Không có nút nào thỏa điều kiện → không render toolbar.
 | TC_EXAM_HL_30 | Mobile | Xoay màn hình khi tooltip mở | Tooltip đóng hoặc tính lại vị trí |
 | TC_EXAM_HL_31 | Selection | Triple-click, double-click (trim whitespace), Shift+mũi tên | Tooltip hiện đúng sau mỗi kiểu chọn |
 | TC_EXAM_HL_32 | Regression | Luồng AI Dictionary sau refactor | Kết quả y hệt trước refactor |
+
+## Revision R1 — Nhả chuột để tự tô vàng (duyệt 2026-10-26)
+
+Quyết định mới của chủ dự án thay luồng xác nhận desktop ở mục 5/7/11:
+
+- Reading Practice và Mock: primary mouse/trackpad chọn đoạn rồi nhả tự tô đúng snapshot cuối. Không chờ selection ổn định theo thời gian, không commit trong lúc kéo.
+- DOM passage giữ text-node identity qua timer/state rerenders khi HTML không đổi. Chỉ thay DOM khi nội dung/marks thực sự thay đổi.
+- Automatic selection phải bắt đầu và kết thúc trong cùng document; không clip boundary ngoài passage thành vùng từ đầu.
+- Practice chỉ còn Tra từ AI sau auto nếu đủ điều kiện; phải bấm riêng để tra. Mock không hiện toolbar sau auto.
+- Touch/pen và selection bàn phím vẫn xác nhận Highlight; native handles không tự tạo mark.
+- Click phát sinh từ gesture vừa tô được consume; click mới trên vùng vàng mở Xóa. Hủy gesture khi context/lock, Escape, blur, hidden hoặc pointercancel.
+- Persistence/review theo UC08.1 completion đã duyệt: archive riêng `exam_highlights_v1_<ownerId>_<attemptId>`, không ghi answers/draft hoặc đổi version.
+
+Plan/handoff execution: `docs/superpowers/plans/ndt/UC08.1-HIGHLIGHT-AUTO-R1-{plan,handoff}.md`.

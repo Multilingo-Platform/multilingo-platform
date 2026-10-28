@@ -1,5 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 import type { AnswerValue } from '../../types/answer.types';
 import type { Question } from '../../types/exam.types';
 import type { PracticeQuestionFeedback } from '../../hooks/usePracticeFeedback';
@@ -172,7 +173,12 @@ const ReadingPartContent: React.FC<ReadingPartContentProps> = ({
       >
         {group.instruction && (
           <div className="p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-sm text-slate-700">
-            {group.instruction}
+            <WorkspaceText
+              source={{ kind: 'GROUP_INSTRUCTION', groupId: group.groupId }}
+              format="TEXT"
+              content={group.instruction}
+              as="div"
+            />
           </div>
         )}
         {group.questions.map(renderCard)}
@@ -182,7 +188,7 @@ const ReadingPartContent: React.FC<ReadingPartContentProps> = ({
   const instructionCallout = partInstruction ? (
     <div className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700">
       <span className="font-bold text-amber-800 block mb-0.5">{em("Hướng dẫn làm bài:")}</span>
-      {partInstruction}
+      <WorkspaceText source={{ kind: 'PART_INSTRUCTION' }} content={partInstruction} />
     </div>
   ) : null;
 

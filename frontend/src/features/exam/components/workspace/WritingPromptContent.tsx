@@ -1,7 +1,7 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React, { useState } from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 import type { QuestionGroup, Question, SharedMedia, SharedAudio } from '../../types/exam.types';
-import HtmlContent from '../content/HtmlContent';
 import AudioPlayer from '../AudioPlayer';
 
 export interface WritingPromptContentProps {
@@ -85,11 +85,21 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
       {/* 1. Header & Primary Instruction */}
       <div className="space-y-3">
         <h2 className="font-heading text-xl font-bold text-slate-900 tracking-tight">
-          {partTitle}
+          <WorkspaceText
+            source={{ kind: 'PART_TITLE' }}
+            format="TEXT"
+            content={partTitle}
+            as="span"
+          />
         </h2>
         {showTopPartInstruction && (
           <div className="p-4 bg-amber-50/70 rounded-xl border border-amber-200 text-slate-700 text-sm leading-relaxed">
-            {partInst}
+            <WorkspaceText
+              source={{ kind: 'PART_INSTRUCTION' }}
+              format="TEXT"
+              content={partInst || ''}
+              as="div"
+            />
           </div>
         )}
       </div>
@@ -141,7 +151,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
             >
               {showGroupInstruction && (
                 <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium">
-                  {groupInstruction}
+                  <WorkspaceText source={{ kind: 'GROUP_INSTRUCTION', groupId: String(group.group_id) }} content={group.instruction || ''} />
                 </div>
               )}
 
@@ -163,8 +173,9 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
 
               {/* Group HTML Content */}
               {groupHtml && (
-                <HtmlContent
-                  html={groupHtml}
+                <WorkspaceText
+                  source={{ kind: 'GROUP_CONTENT', groupId: String(group.group_id) }} format="HTML"
+                  content={groupHtml}
                   className="prose prose-slate max-w-none text-slate-800 font-medium text-[15px] leading-relaxed"
                 />
               )}
@@ -209,7 +220,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
 
                     {shouldRenderQuestionText && (
                       <div className="prose prose-slate max-w-none text-slate-800 font-medium whitespace-pre-wrap text-[15px] leading-relaxed">
-                        {questionText}
+                        <WorkspaceText source={{ kind: 'QUESTION_TEXT', questionId: q.question_id }} content={q.question_text || ''} />
                       </div>
                     )}
                   </div>
@@ -243,7 +254,7 @@ export const WritingPromptContent: React.FC<WritingPromptContentProps> = ({
               })()}
               {shouldRender && (
                 <div className="prose prose-slate max-w-none text-slate-800 font-medium whitespace-pre-wrap text-[15px] leading-relaxed">
-                  {questionText}
+                  <WorkspaceText source={{ kind: 'QUESTION_TEXT', questionId: q.question_id }} content={q.question_text || ''} />
                 </div>
               )}
             </div>

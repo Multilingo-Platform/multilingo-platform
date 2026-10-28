@@ -262,8 +262,9 @@ const ExamReviewPage: React.FC = () => {
             </div>
           )}
           <PartReviewContent
+            key={`${ownerId}:${attemptId}:${selectedPartId}`}
             reviewData={reviewData}
-          ownerId={ownerId}
+            ownerId={ownerId}
             resultSummary={result.data?.resultSummary}
             selectedQuestionId={selectedQuestionId}
             onSelectQuestion={scrollToQuestion}

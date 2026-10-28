@@ -2,7 +2,7 @@ import { examErrorMessage as ee } from '../../i18n/examMessages';
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import { useEffect, useRef, useState } from 'react';
 import type { DeckSummary } from '../../../vocab/types/vocab.types';
-import type { DictionaryLookupV2Response } from '../../types/api.types';
+import type { DictionaryResult } from '../../types/api.types';
 import {
   addDictionaryFlashcard,
   createDictionaryDeck,
@@ -11,7 +11,7 @@ import {
   getDictionaryDecks,
 } from '../../api/dictionaryFlashcardApi';
 
-interface Props { ownerId: number | null; result: DictionaryLookupV2Response; onSaved?: () => void; }
+interface Props { ownerId: number | null; result: DictionaryResult; onSaved?: () => void; }
 type FormPhase = 'loading' | 'ready' | 'saving' | 'saved' | 'error' | 'uncertain';
 
 export function DictionaryFlashcardForm(props: Props) {

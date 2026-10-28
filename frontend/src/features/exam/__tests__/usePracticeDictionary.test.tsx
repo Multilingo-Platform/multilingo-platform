@@ -39,6 +39,48 @@ function deferred<T>() {
 }
 
 describe('usePracticeDictionary', () => {
+  function v3Options() {
+    const ws = workspace();
+    ws.dictionaryLanguage = { policyVersion: 'NATIVE_PROFILE_V1', available: true, nativeLanguage: 'vi' };
+    const documents = [{ partId: 7, source: { kind: 'GROUP_CONTENT' as const, groupId: 'g1' }, sourceKey: 'GROUP_CONTENT:2:g1', text: selected.scopeText!, contentHash: 'h1', format: 'TEXT' as const, html: null }];
+    return { version: 3 as const, documents, workspace: ws, partId: 7, ownerId: 21, isLocked: () => false };
+  }
+  function v3Envelope(body: any) {
+    const value = envelope(body);
+    const { documentId: _id, ...data } = value.data;
+    return { success: true, data: { ...data, source: body.source, policyVersion: 'NATIVE_PROFILE_V1' } };
+  }
+  it('RD07 blocks missing native metadata without falling back to UI language', async () => {
+    const options = v3Options(); options.workspace.dictionaryLanguage = null;
+    const store = createTestStore({ answers: { ...initialState, attemptId: 42, contextRevision: 1 } });
+    const hook = renderHook(() => usePracticeDictionary(options), { wrapper: ({children}) => <Provider store={store}>{children}</Provider> });
+    await act(async () => hook.result.current.lookup(selected));
+    expect(post).not.toHaveBeenCalled(); expect(hook.result.current.phase).toBe('error');
+    expect(hook.result.current.error?.retryable).toBe(false);
+  });
+  it('RD07 deduplicates in-flight v3 clicks and retries a timeout with the same frozen request', async () => {
+    vi.useFakeTimers(); post.mockReturnValueOnce(new Promise(() => {}) as never).mockImplementationOnce(async (_url, body) => v3Envelope(body) as never);
+    const store = createTestStore({ answers: { ...initialState, attemptId: 42, contextRevision: 1 } });
+    const hook = renderHook(() => usePracticeDictionary(v3Options()), { wrapper: ({children}) => <Provider store={store}>{children}</Provider> });
+    act(() => { void hook.result.current.lookup(selected); void hook.result.current.lookup(selected); });
+    expect(post).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(DICTIONARY_LOOKUP_TIMEOUT_MS + 1); });
+    expect(hook.result.current.phase).toBe('error');
+    await act(async () => hook.result.current.retry());
+    expect(post.mock.calls[1][1]).toEqual(post.mock.calls[0][1]);
+    expect(hook.result.current.phase).toBe('ready');
+    expect(hook.result.current.data?.definition.meaningLanguage).toBe('vi');
+  });
+  it('RD07 ignores late v3 results after popup cancellation', async () => {
+    const pending = deferred<any>(); post.mockReturnValue(pending.promise as never);
+    const store = createTestStore({ answers: { ...initialState, attemptId: 42, contextRevision: 1 } });
+    const hook = renderHook(() => usePracticeDictionary(v3Options()), { wrapper: ({children}) => <Provider store={store}>{children}</Provider> });
+    act(() => { void hook.result.current.lookup(selected); });
+    act(() => hook.result.current.cancel());
+    await act(async () => { pending.resolve(v3Envelope(post.mock.calls[0][1])); });
+    expect(hook.result.current.data).toBeNull(); expect(hook.result.current.phase).toBe('idle');
+    expect((post.mock.calls[0][2]!.signal as AbortSignal).aborted).toBe(true);
+  });
   it('cancels the previous language intent for the same selection and ignores its late response', async () => {
     const pending = deferred<any>();
     post.mockReturnValueOnce(pending.promise as never).mockImplementationOnce(async (_url, payload) => envelope(payload) as never);

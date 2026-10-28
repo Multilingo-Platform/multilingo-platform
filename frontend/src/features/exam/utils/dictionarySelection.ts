@@ -48,3 +48,16 @@ export function buildDictionaryLookupRequest(
     selectedText, contextText,
   };
 }
+
+export function resolveDictionaryDocument(selection: SelectionState, documents: readonly import('../types/workspaceText.types').WorkspaceTextDocument[]) {
+  return documents.find(doc => doc.contentHash === selection.contentHash && doc.text === selection.scopeText &&
+    (doc.sourceKey === selection.documentId || (doc.source.kind === 'PART_CONTENT' && selection.documentId === 'part') ||
+      (doc.source.kind === 'GROUP_CONTENT' && doc.source.groupId === selection.documentId)));
+}
+export function buildDictionaryLookupV3Request(selection: SelectionState, partId: number, language: string,
+  documents: readonly import('../types/workspaceText.types').WorkspaceTextDocument[]): import('../types/api.types').DictionaryLookupV3Request {
+  const doc = resolveDictionaryDocument(selection, documents);
+  if (!doc || doc.partId !== partId) throw new DictionarySelectionError();
+  const legacy = buildDictionaryLookupRequest({ ...selection, documentId: 'v3' }, partId, language, doc.text);
+  return { requestId: legacy.requestId, partId, source: Object.freeze({ ...doc.source }), selectedText: legacy.selectedText, contextText: legacy.contextText };
+}

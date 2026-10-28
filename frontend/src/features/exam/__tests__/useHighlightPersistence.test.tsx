@@ -7,7 +7,7 @@ import answerReducer, { addHighlightRecord, setAttemptContext } from '../store/a
 import authReducer from '../../auth/store/authSlice';
 import { useHighlightPersistence } from '../hooks/useHighlightPersistence';
 import { buildHighlightNamespace } from '../utils/highlightUtils';
-import { highlightArchiveKey } from '../utils/highlightStorage';
+import { highlightArchiveKey, highlightArchiveKeyV1 } from '../utils/highlightStorage';
 
 describe('useHighlightPersistence', () => {
   beforeEach(() => { localStorage.clear(); vi.useFakeTimers(); });
@@ -16,7 +16,7 @@ describe('useHighlightPersistence', () => {
   it('waits for validated workspace context, then restores and debounces scoped highlight writes without dirtying answers', async () => {
     const store = configureStore({ reducer: { answers: answerReducer, auth: authReducer } });
     store.dispatch(setAttemptContext({ attemptId: 41, version: 7, savedAnswers: [] }));
-    localStorage.setItem(highlightArchiveKey('user-1', 41), JSON.stringify({
+    localStorage.setItem(highlightArchiveKeyV1('user-1', 41), JSON.stringify({
       schemaVersion: 1, ownerId: 'user-1', attemptId: 41, updatedAt: new Date().toISOString(),
       documents: [{ partId: 7, documentId: 'part', contentHash: 'hash-7', items: [{ id: 'restored', start: 0, end: 4, text: 'old' }] }],
     }));
@@ -43,7 +43,7 @@ describe('useHighlightPersistence', () => {
       passageId: namespace, contentHash: 'hash-7', documentText: 'read passage',
       highlight: { id: 'new', start: 5, end: 12, text: 'stale' },
     })));
-    expect(localStorage.getItem(highlightArchiveKey('user-1', 41))).not.toContain('new');
+    expect(localStorage.getItem(highlightArchiveKey('user-1', 41)) ?? '').not.toContain('new');
     await act(async () => { vi.advanceTimersByTime(500); });
     expect(localStorage.getItem(highlightArchiveKey('user-1', 41))).toContain('new');
     expect(store.getState().answers).toMatchObject({ isDirty: false, pendingVersion: 0, version: 7 });
@@ -72,5 +72,58 @@ describe('useHighlightPersistence', () => {
       partId: 7, documentId: 'group-a', contentHash: 'hash-a',
       items: [expect.objectContaining({ id: 'before-switch', start: 0, end: 5 })],
     }));
+  });
+it('restores schema 2 multi-colored highlights and saves with schemaVersion 2', async () => {
+    const store = configureStore({ reducer: { answers: answerReducer, auth: authReducer } });
+    store.dispatch(setAttemptContext({ attemptId: 43, version: 1, savedAnswers: [] }));
+    const documents = [{ partId: 8, documentId: 'passage-8', contentHash: 'hash-8', text: 'Colors: yellow green blue pink purple' }];
+    localStorage.setItem(highlightArchiveKey('user-2', 43), JSON.stringify({
+      schemaVersion: 2,
+      ownerId: 'user-2',
+      attemptId: 43,
+      updatedAt: new Date().toISOString(),
+      documents: [{
+        partId: 8,
+        documentId: 'passage-8',
+        contentHash: 'hash-8',
+        items: [
+          { id: 'hl-y', start: 8, end: 14, text: 'yellow', color: 'yellow' },
+          { id: 'hl-g', start: 15, end: 20, text: 'green', color: 'green' },
+          { id: 'hl-p', start: 26, end: 30, text: 'pink', color: 'pink' },
+        ],
+      }],
+    }));
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => <Provider store={store}>{children}</Provider>;
+    const { result } = renderHook(() => useHighlightPersistence({
+      ownerId: 'user-2', attemptId: 43, contextRevision: store.getState().answers.contextRevision,
+      enabled: true, documents,
+    }), { wrapper });
+
+    expect(result.current.ready).toBe(true);
+    const namespace = buildHighlightNamespace({ ownerId: 'user-2', attemptId: 43, partId: 8, groupId: 'passage-8', contentHash: 'hash-8' });
+    const loadedItems = store.getState().answers.highlights[namespace].items;
+    expect(loadedItems).toEqual([
+      { id: 'hl-y', start: 8, end: 14, text: 'yellow', color: 'yellow' },
+      { id: 'hl-g', start: 15, end: 20, text: 'green', color: 'green' },
+      { id: 'hl-p', start: 26, end: 30, text: 'pink', color: 'pink' },
+    ]);
+    expect(store.getState().answers.isDirty).toBe(false);
+
+    // Add another purple highlight and flush
+    act(() => store.dispatch(addHighlightRecord({
+      attemptId: 43,
+      contextRevision: store.getState().answers.contextRevision,
+      passageId: namespace,
+      contentHash: 'hash-8',
+      documentText: documents[0].text,
+      highlight: { id: 'hl-pur', start: 31, end: 37, text: 'purple', color: 'purple' },
+    })));
+    await act(async () => { vi.advanceTimersByTime(500); });
+
+    const savedArchive = JSON.parse(localStorage.getItem(highlightArchiveKey('user-2', 43)) ?? '{}');
+    expect(savedArchive.schemaVersion).toBe(2);
+    expect(savedArchive.documents[0].items).toHaveLength(4);
+    expect(savedArchive.documents[0].items.map((i: any) => i.color)).toEqual(['yellow', 'green', 'pink', 'purple']);
   });
 });

@@ -9,6 +9,7 @@ import {
   pruneExpiredHighlightArchives,
   readHighlightArchive,
   writeHighlightArchive,
+  HIGHLIGHT_ARCHIVE_SCHEMA_VERSION,
   type HighlightArchive,
   type HighlightDocumentArchive,
 } from '../utils/highlightStorage';
@@ -104,7 +105,7 @@ export function useHighlightPersistence({
       else merged.delete(key);
     }
     const archive: HighlightArchive = {
-      schemaVersion: 1,
+      schemaVersion: HIGHLIGHT_ARCHIVE_SCHEMA_VERSION,
       ownerId: scope.ownerId,
       attemptId: scope.attemptId,
       updatedAt: new Date().toISOString(),

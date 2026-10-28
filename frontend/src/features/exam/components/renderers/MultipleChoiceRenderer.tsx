@@ -1,5 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 import type { ExamOption } from '../../types/exam.types';
 
 interface Props {
@@ -7,9 +8,10 @@ interface Props {
   value: string[];
   onChange: (v: string[]) => void;
   maxSelections?: number;
+  questionId?: string;
 }
 
-const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, maxSelections }) => {
+const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, maxSelections, questionId = "unknown" }) => {
   useExamLocale();
   const safeValue: string[] = Array.isArray(value)
     ? value
@@ -39,7 +41,7 @@ const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, max
               e.preventDefault();
               toggle(opt);
             }}
-            className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+            className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
               isChecked
                 ? 'bg-amber-50/80 border-amber-400 text-amber-950 shadow-xs'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
@@ -61,9 +63,13 @@ const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, max
             >
               {letter}
             </span>
-            <span className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1">
-              {opt.text ? opt.text : em("Lựa chọn {{v0}}", { v0: letter })}
-            </span>
+            <WorkspaceText
+              source={{ kind: 'OPTION_TEXT', questionId, optionId: opt.id }}
+              format="TEXT"
+              content={opt.text ? opt.text : em("Lựa chọn {{v0}}", { v0: letter })}
+              className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1"
+              as="span"
+            />
           </label>
         );
       })}

@@ -2,7 +2,6 @@ import { examErrorMessage as ee } from '../i18n/examMessages';
 import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import LanguageSwitcher from '../../../components/common/LanguageSwitcher';
-import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import useWorkspace from '../hooks/useWorkspace';
@@ -16,14 +15,19 @@ import { SubmitConfirmModal } from '../components/SubmitConfirmModal';
 import { TimeUpModal } from '../components/TimeUpModal';
 import { QuestionPalette } from '../components/QuestionPalette';
 import QuestionRenderer from '../components/renderers/QuestionRenderer';
+import WorkspaceText from '../components/content/WorkspaceText';
 import AudioPlayer from '../components/AudioPlayer';
 import HtmlContent from '../components/content/HtmlContent';
 import MediaDisplay from '../components/content/MediaDisplay';
 import { lockSection } from '../api/attemptApi';
-import { setAnswer, lockAnswers, toggleFlag, addHighlightRecord, removeHighlightRecord } from '../store/answerSlice';
+import { setAnswer, lockAnswers, toggleFlag, addHighlightRecord, removeHighlightRecord, deleteHighlightSelection } from '../store/answerSlice';
 import { useTextSelection, type SelectionState } from '../hooks/useTextSelection';
 import { SelectionToolbar } from '../components/content/SelectionToolbar';
+import { WorkspaceSelectionPopover } from '../components/content/WorkspaceSelectionPopover';
+import { useWorkspaceSelectionPopover } from '../hooks/useWorkspaceSelectionPopover';
+import { DEFAULT_HIGHLIGHT_COLOR, type HighlightColor } from '../utils/highlightColors';
 import { useReadingHighlights } from '../hooks/useReadingHighlights';
+import { useWorkspaceAnnotations, WorkspaceAnnotationsContext } from '../hooks/useWorkspaceAnnotations';
 import { isAnswered } from '../utils/answerUtils';
 import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
 import { usePracticeFeedback } from '../hooks/usePracticeFeedback';
@@ -49,12 +53,48 @@ import { AlertCircle } from 'lucide-react';
 import { useStore } from 'react-redux';
 import type { AppDispatch, RootState } from '../../../app/store';
 import type { Question, ExamOption } from '../types/exam.types';
+import type { WorkspaceResponse } from '../types/api.types';
 
 interface DictTooltip {
   word: string;
   x: number;
   y: number;
   selection: SelectionState;
+}
+
+function PracticeDictionaryHost({ tooltip, workspace, partId, ownerId, locked, onClose, documents }: {
+  documents: readonly import('../types/workspaceText.types').WorkspaceTextDocument[];
+  tooltip: DictTooltip; workspace: WorkspaceResponse | null; partId: number | null;
+  ownerId: number | null; locked: boolean; onClose: () => void;
+}) {
+  const dictionary = usePracticeDictionary({ version: 3, documents, workspace, partId, ownerId, isLocked: () => locked });
+  const lookup = dictionary.lookup;
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => { if (active) void lookup(tooltip.selection); });
+    return () => { active = false; };
+  }, [tooltip, lookup]);
+  useEffect(() => {
+    const dismiss = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest('[data-dictionary-popover]')) return;
+      onClose();
+    };
+    document.addEventListener('pointerdown', dismiss);
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
+    };
+  }, [onClose]);
+  return <PracticeDictionaryPopover {...tooltip} nativeOnly ownerId={ownerId}
+    learningLanguage={workspace?.languageContext?.examLanguage ?? null}
+    defaultExplanationLanguage={workspace?.languageContext?.defaultExplanationLanguage ?? null}
+    supportedExplanationLanguages={workspace?.languageContext?.supportedExplanationLanguages ?? []}
+    phase={dictionary.phase} data={dictionary.data} error={dictionary.error}
+    onClose={() => { dictionary.cancel(); onClose(); }} onRetry={() => void dictionary.retry()}
+    onLookup={(language) => void dictionary.lookup(tooltip.selection, language)} />;
 }
 
 function isRecordedId(value: unknown): value is number {
@@ -688,15 +728,9 @@ const WorkspacePage: React.FC = () => {
     currentSectionId != null &&
     lockedSections.includes(currentSectionId)
   );
-  const dictionary = usePracticeDictionary({
-    workspace: activeWorkspace,
-    partId: isPracticeMode && currentSkill === 'READING' ? partId : null,
-    ownerId: dictionaryOwnerId,
-    isLocked: () => submission.isLocked() || isCurrentSectionLocked,
-  });
   const isToeicExam = isToeicExamSnapshot((activeWorkspace as any)?.exam_snapshot);
   const isToeicReading = currentSkill === 'READING' && isToeicExam;
-  const highlightEnabled = currentSkill === 'READING' &&
+  const highlightEnabled = ['READING', 'LISTENING', 'WRITING'].includes(currentSkill) &&
     (activeWorkspace?.test_mode === 'PRACTICE' || activeWorkspace?.test_mode === 'MOCK_TEST');
 
   // TOEIC reference panes and IELTS passages share one prepared-document/highlight pipeline.
@@ -710,47 +744,37 @@ const WorkspacePage: React.FC = () => {
     attemptId,
     partId,
     contextRevision: answersState.contextRevision,
-    enabled: !!highlightEnabled && !!activeWorkspace && !loading && !error,
+    // Render historical Reading offsets only; the registry below owns all archive writes.
+    enabled: false,
     partHtml: passageHtml,
     referenceDocs,
     useReferenceDocs: useReferenceDocuments,
   });
-  const highlightContextKey = `${ownerId ?? 'anonymous'}:${attemptId}:${partId}:${answersState.contextRevision}`;
-  const { selection, setSelection } = useTextSelection(
+  const workspaceAnnotations = useWorkspaceAnnotations({
+    ownerId,
+    attemptId,
+    partId,
+    contextRevision: answersState.contextRevision,
+    enabled: !!highlightEnabled && !!activeWorkspace && !loading && !error,
+    currentPart,
+    learningLanguage: activeWorkspace?.languageContext?.examLanguage ?? 'en',
+    legacyDocuments: readingHighlights.documents,
+  });
+  const documentRevision = workspaceAnnotations.selectionDocuments.map(doc => `${doc.documentId}:${doc.contentHash}`).join('|');
+  const highlightContextKey = `${ownerId ?? 'anonymous'}:${attemptId}:${partId}:${answersState.contextRevision}:${activeWorkspace?.test_mode}:${activeWorkspace?.status}:${documentRevision}`;
+  const [highlightColor, setHighlightColor] = useState<HighlightColor>(DEFAULT_HIGHLIGHT_COLOR);
+  useEffect(() => { setHighlightColor(DEFAULT_HIGHLIGHT_COLOR); }, [ownerId, attemptId]);
+  const selectionEnabled = !!highlightEnabled && workspaceAnnotations.ready && activeWorkspace?.status === 'IN_PROGRESS' && !answersState.isLocked && !submission.isLocked() && !isCurrentSectionLocked && !showConfirm && !showOverlay && !showTimeUp;
+  const { selection, setSelection, interaction, confirmSelection, consumeCommittedClick } = useTextSelection(
     readingContainerRef,
-    !!highlightEnabled && !submission.isLocked() && !isCurrentSectionLocked,
+    selectionEnabled,
     answersState.contextRevision,
-    highlightContextKey
+    highlightContextKey,
+    { onPointerCommit: commitHighlight },
   );
-  const [deleteTooltip, setDeleteTooltip] = useState<{
-    highlightId: string; top: number; left: number; namespace: string;
-  } | null>(null);
-  useEffect(() => {
-    if (!highlightEnabled || submission.isLocked() || isCurrentSectionLocked) {
-      setDeleteTooltip(null);
-      setSelection(null);
-    }
-  }, [highlightEnabled, submission, isCurrentSectionLocked, setSelection]);
-
-  useEffect(() => {
-    setDeleteTooltip(null);
-  }, [partId, answersState.contextRevision, ownerId, attemptId]);
-
-  useEffect(() => {
-    if (!deleteTooltip) return;
-    const close = () => setDeleteTooltip(null);
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [deleteTooltip]);
+  const popover = useWorkspaceSelectionPopover(selection, setSelection, highlightContextKey, selectionEnabled);
+  useEffect(() => { setDictTooltip(null); }, [highlightContextKey, selectionEnabled]);
+  useEffect(() => { if (selection) setDictTooltip(null); }, [selection]);
 
   const toeicNumberByQuestion = useMemo(() => {
     const map = new Map<string, number>();
@@ -814,36 +838,43 @@ const WorkspacePage: React.FC = () => {
     [displayQuestionGroups, toeicNumberByQuestion, answersState.answers, answersState.flags, partId]
   );
 
-  const handleHighlight = () => {
-    if (submission.isLocked() || isCurrentSectionLocked || !selection) return;
-    if (selection.contextRevision !== answersState.contextRevision || selection.contextKey !== highlightContextKey) {
-      return setSelection(null);
+  function commitHighlight(snapshot: SelectionState, color: HighlightColor = highlightColor): boolean {
+    if (!highlightEnabled || !activeWorkspace || !workspaceAnnotations.ready || !ownerId
+      || answersState.attemptId !== attemptId || answersState.isLocked || submission.isLocked() || isCurrentSectionLocked) return false;
+    if (snapshot.contextRevision !== answersState.contextRevision || snapshot.contextKey !== highlightContextKey) {
+      return false;
     }
-    const doc = readingHighlights.documents.find((item) =>
-      item.partId === partId && item.documentId === selection.documentId &&
-      item.contentHash === selection.contentHash
+    const doc = workspaceAnnotations.selectionDocuments.find((item) =>
+      item.partId === partId && item.documentId === snapshot.documentId &&
+      item.contentHash === snapshot.contentHash
     );
-    const namespace = readingHighlights.namespaceFor(selection.documentId, selection.contentHash);
-    if (!doc || !namespace || selection.start >= selection.end) return setSelection(null);
-    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    dispatch(addHighlightRecord({
-      attemptId,
-      contextRevision: answersState.contextRevision,
-      passageId: namespace,
-      contentHash: doc.contentHash,
-      documentText: doc.text,
-      highlight: { id, start: selection.start, end: selection.end, text: selection.text.slice(0, 50) },
-    }));
+    const namespace = workspaceAnnotations.namespaceForDocument(snapshot.documentId, snapshot.contentHash);
+    if (!doc || !namespace || snapshot.start >= snapshot.end || snapshot.end > doc.text.length
+      || snapshot.scopeText !== doc.text || snapshot.text !== doc.text.slice(snapshot.start, snapshot.end)) return false;
+      const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      dispatch(addHighlightRecord({
+        attemptId,
+        contextRevision: answersState.contextRevision,
+        passageId: namespace,
+        contentHash: doc.contentHash,
+        documentText: doc.text,
+        highlight: { id, start: snapshot.start, end: snapshot.end, text: snapshot.text.slice(0, 50), color },
+      }));
     window.getSelection()?.removeAllRanges();
-    setSelection(null);
+    setDictTooltip(null);
+    popover.setCluster(null);
+    return true;
+  }
+
+  const handleHighlight = () => {
+    if (selection && commitHighlight(selection)) confirmSelection();
   };
 
   const handleAiLookup = () => {
     const examLanguage = activeWorkspace?.languageContext?.examLanguage ?? null;
     if (!selection || !shouldShowAiLookup(selection, isPracticeMode, examLanguage) || submission.isLocked() || isCurrentSectionLocked) return;
-    dictionary.cancel();
     setDictTooltip({
       word: selection.text,
       x: Math.max(16, selection.rect.left + selection.rect.width / 2 - 140),
@@ -854,11 +885,19 @@ const WorkspacePage: React.FC = () => {
   };
 
   const closeDictionary = () => {
-    dictionary.cancel();
     setDictTooltip(null);
   };
 
+  const handleWorkspaceClickCapture = (e: React.MouseEvent) => {
+    if (consumeCommittedClick(e.nativeEvent)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   const handlePassageClick = (e: React.MouseEvent) => {
+    if (consumeCommittedClick(e.nativeEvent)) return;
+    if (!selectionEnabled) return;
     const target = e.target as HTMLElement;
     const mark = target.closest('mark[data-hl-id]');
 
@@ -866,37 +905,35 @@ const WorkspacePage: React.FC = () => {
       const scopeEl = mark.closest('[data-highlight-scope]') as HTMLElement | null;
       const documentId = scopeEl?.getAttribute('data-highlight-scope') ?? 'part';
       const contentHash = scopeEl?.getAttribute('data-highlight-hash') ?? null;
-      const namespace = readingHighlights.namespaceFor(documentId, contentHash);
+      const namespace = workspaceAnnotations.namespaceForDocument(documentId, contentHash);
       const highlightId = mark.getAttribute('data-hl-id');
       if (namespace && highlightId) {
-        setSelection(null);
-        setDeleteTooltip({ highlightId, top: e.clientY + 8, left: e.clientX, namespace });
+        setDictTooltip(null);
+        popover.openCluster({ highlightId, namespace, rect: mark.getBoundingClientRect() });
         return;
       }
     }
-    setDeleteTooltip(null);
+    popover.setCluster(null);
   };
 
   const handleDeleteHighlight = () => {
     if (submission.isLocked() || isCurrentSectionLocked) return;
-    if (deleteTooltip) {
+    if (popover.cluster && popover.cluster.contextKey === highlightContextKey) {
       dispatch(removeHighlightRecord({
         attemptId, contextRevision: answersState.contextRevision,
-        passageId: deleteTooltip.namespace, highlightId: deleteTooltip.highlightId,
+        passageId: popover.cluster.namespace, highlightId: popover.cluster.highlightId,
       }));
-      setDeleteTooltip(null);
+    } else if (selection) {
+      const doc = workspaceAnnotations.selectionDocuments.find(item => item.partId === partId && item.documentId === selection.documentId && item.contentHash === selection.contentHash);
+      const namespace = workspaceAnnotations.namespaceForDocument(selection.documentId, selection.contentHash);
+      if (doc && namespace && selection.contextKey === highlightContextKey && selection.contextRevision === answersState.contextRevision && selection.scopeText === doc.text && selection.text === doc.text.slice(selection.start, selection.end)) {
+        dispatch(deleteHighlightSelection({ attemptId, contextRevision: answersState.contextRevision, passageId: namespace, contentHash: doc.contentHash, documentText: doc.text, start: selection.start, end: selection.end }));
+      }
     }
+    popover.close();
   };
 
-  const selectionNamespace = selection
-    ? readingHighlights.namespaceFor(selection.documentId, selection.contentHash)
-    : null;
-  const selectionHighlightRecord = selectionNamespace
-    ? answersState.highlights[selectionNamespace]
-    : undefined;
-  const showHighlightAction = !selection || !selectionHighlightRecord?.items.some((item) =>
-    item.start <= selection.start && item.end >= selection.end
-  );
+  const currentCluster = popover.cluster?.contextKey === highlightContextKey ? popover.cluster : null;
 
   if (loading) {
     return (
@@ -938,10 +975,10 @@ const WorkspacePage: React.FC = () => {
   }
 
   const partInstruction = (currentPart as any)?.instruction || currentPart?.content?.instruction;
-  const partTitle = currentPart?.title
+  const authoredPartTitle = currentPart?.title
     || (currentPart as any)?.partTitle
-    || currentPart?.content?.part_title
-    || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
+    || currentPart?.content?.part_title;
+  const partTitle = authoredPartTitle || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
   const isMockFull = activeWorkspace.test_mode === 'MOCK_TEST' && activeWorkspace.test_scope === 'FULL_EXAM';
 
   const handleReload = () => {
@@ -1187,9 +1224,9 @@ const WorkspacePage: React.FC = () => {
 
       {/* Notice Banners */}
       {draftWarning && <div role="alert" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">{ee(draftWarning)}</div>}
-      {readingHighlights.warning && highlightEnabled && (
+      {workspaceAnnotations.warning && highlightEnabled && (
         <div role="alert" data-testid="highlight-storage-warning" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800">
-          {ee(readingHighlights.warning)}
+          {ee(workspaceAnnotations.warning)}
         </div>
       )}
       {(refreshError || pendingLockError) && (
@@ -1210,6 +1247,7 @@ const WorkspacePage: React.FC = () => {
       )}
 
       {/* 2. MAIN BODY: SPLIT-PANE WORKSPACE */}
+      <WorkspaceAnnotationsContext.Provider value={workspaceAnnotations.contextValue}>
       <div
         className={`flex flex-1 overflow-hidden relative ${
           isPracticeMode ? 'flex-col md:flex-row' : ''
@@ -1218,6 +1256,8 @@ const WorkspacePage: React.FC = () => {
         {/* Content area: Left Pane + Divider + Main */}
         <div
           ref={workspaceContainerRef}
+          onClickCapture={handleWorkspaceClickCapture}
+          onClick={handlePassageClick}
           className="flex flex-1 min-w-0 overflow-hidden relative"
         >
           {/* LEFT PANE: Reading Passage or Writing Prompt Workspace */}
@@ -1232,7 +1272,7 @@ const WorkspacePage: React.FC = () => {
               <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wider bg-white px-2.5 py-1 rounded border border-slate-200">
-                    {partTitle}
+                    {authoredPartTitle ? <WorkspaceText source={{ kind: 'PART_TITLE' }} content={authoredPartTitle} /> : partTitle}
                   </span>
                   <span className="text-xs text-slate-500">
                     {(() => {
@@ -1256,7 +1296,7 @@ const WorkspacePage: React.FC = () => {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {em("Bôi đen từ để tra từ điển AI")}</span>
+                      {em("Kéo chọn rồi nhả chuột để tô vàng. Chạm vùng vàng để xóa; chọn từ để tra AI.")}</span>
                   </div>
                 )}
               </div>
@@ -1267,12 +1307,12 @@ const WorkspacePage: React.FC = () => {
                 className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 text-slate-800 leading-relaxed font-sans text-[15px]"
               >
                 {showToeicReference ? (
-                  isDesktopReadingViewport ? <div onClick={handlePassageClick}>
+                  isDesktopReadingViewport ? <div>
                     <ReferencePane docs={referenceDocsRendered} />
                   </div> : null
                 ) : currentSkill === 'READING' && useReferenceDocuments ? (
-                  isDesktopReadingViewport ? <div onClick={handlePassageClick} data-testid="reading-reference-pane">
-                    {partInstruction && <div className="mb-4 p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-sm text-slate-700">{partInstruction}</div>}
+                  isDesktopReadingViewport ? <div data-testid="reading-reference-pane">
+                    {partInstruction && <div className="mb-4 p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-sm text-slate-700"><WorkspaceText source={{ kind: 'PART_INSTRUCTION' }} content={partInstruction} /></div>}
                     <ReferencePane docs={referenceDocsRendered} testId="reading-reference-documents" />
                   </div> : null
                 ) : currentSkill === 'WRITING' ? (
@@ -1292,7 +1332,6 @@ const WorkspacePage: React.FC = () => {
                   {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
                   {passageHtml ? (
                     <div
-                      onClick={handlePassageClick}
                       data-highlight-scope="part"
                       data-highlight-hash={readingHighlights.preparedPart?.contentHash}
                     >
@@ -1305,10 +1344,10 @@ const WorkspacePage: React.FC = () => {
                   ) : partInstruction ? (
                     <div>
                       <h2 className="font-heading text-lg font-bold text-slate-900">
-                        {partTitle}
+                        {authoredPartTitle ? <WorkspaceText source={{ kind: 'PART_TITLE' }} content={authoredPartTitle} /> : partTitle}
                       </h2>
                       <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 text-slate-700 text-sm">
-                        {partInstruction}
+                        <WorkspaceText source={{ kind: 'PART_INSTRUCTION' }} content={partInstruction} />
                       </div>
                     </div>
                   ) : (
@@ -1371,13 +1410,13 @@ const WorkspacePage: React.FC = () => {
           {/* Scrollable Questions Container */}
           <div className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 w-full ${currentSkill === 'LISTENING' ? 'max-w-4xl' : ''}`}>
             {showToeicReference && !isDesktopReadingViewport && (
-              <div data-testid="mobile-reading-reference" onClick={handlePassageClick}>
+              <div data-testid="mobile-reading-reference">
                 <ReferencePane docs={referenceDocsRendered} />
               </div>
             )}
             {!isToeicReading && currentSkill === 'READING' && useReferenceDocuments && !isDesktopReadingViewport && (
-              <div data-testid="mobile-reading-reference" onClick={handlePassageClick}>
-                {partInstruction && <div className="mb-4 p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-sm text-slate-700">{partInstruction}</div>}
+              <div data-testid="mobile-reading-reference">
+                {partInstruction && <div className="mb-4 p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-sm text-slate-700"><WorkspaceText source={{ kind: 'PART_INSTRUCTION' }} content={partInstruction} /></div>}
                 <ReferencePane docs={referenceDocsRendered} testId="reading-reference-documents" />
               </div>
             )}
@@ -1467,7 +1506,7 @@ const WorkspacePage: React.FC = () => {
                 {currentSkill !== 'WRITING' && partInstruction && (
                   <div className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700">
                     <span className="font-bold text-amber-800 block mb-0.5">{em("Hướng dẫn làm bài:")}</span>
-                    {partInstruction}
+                    <WorkspaceText source={{ kind: 'PART_INSTRUCTION' }} content={partInstruction} />
                   </div>
                 )}
 
@@ -1475,7 +1514,7 @@ const WorkspacePage: React.FC = () => {
                   <>
                     {partSharedAudio?.url && <AudioPlayer url={partSharedAudio.url} isActive={true} />}
                     {partSharedMedia && <MediaDisplay media={partSharedMedia} alt={`${partTitle} media`} />}
-                    {passageHtml && <HtmlContent html={passageHtml} className="prose prose-slate max-w-none" />}
+                    {passageHtml && <WorkspaceText source={{ kind: 'PART_CONTENT' }} format="HTML" content={passageHtml} className="prose prose-slate max-w-none" />}
                   </>
                 )}
 
@@ -1490,14 +1529,15 @@ const WorkspacePage: React.FC = () => {
                   >
                     {currentSkill !== 'WRITING' && group.instruction && group.instruction.trim() !== (partInstruction || '').trim() && (
                       <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
-                        {group.instruction}
+                        <WorkspaceText source={{ kind: 'GROUP_INSTRUCTION', groupId: String(group.group_id) }} content={group.instruction} />
                       </div>
                     )}
                     {currentSkill !== 'WRITING' && currentSkill !== 'READING' && group.shared_audio?.url && <AudioPlayer url={group.shared_audio.url} isActive={true} />}
                     {currentSkill !== 'WRITING' && currentSkill !== 'READING' && group.shared_media && <MediaDisplay media={group.shared_media} alt={`${group.group_id} media`} />}
                     {currentSkill !== 'WRITING' && currentSkill !== 'READING' && (group.content_html || group.context_html) && (
-                      <HtmlContent
-                        html={group.content_html || group.context_html}
+                      <WorkspaceText
+                        source={{ kind: 'GROUP_CONTENT', groupId: String(group.group_id) }} format="HTML"
+                        content={group.content_html || group.context_html}
                         className="prose prose-slate max-w-none"
                       />
                     )}
@@ -1561,7 +1601,7 @@ const WorkspacePage: React.FC = () => {
                                 {isPrimaryMulti && nextQ ? `${q.question_number} - ${nextQ.question_number}` : q.question_number}
                               </span>
                               <div className={`font-heading font-semibold text-slate-900 text-sm sm:text-[15px] leading-relaxed flex-1 ${currentSkill === 'WRITING' ? 'hidden' : ''}`}>
-                                {q.question_text}
+                                <WorkspaceText source={{ kind: 'QUESTION_TEXT', questionId: qId }} content={q.question_text || ''} />
                               </div>
                             </div>
 
@@ -1818,52 +1858,32 @@ const WorkspacePage: React.FC = () => {
           </div>
         </aside>
       </div>
+      </WorkspaceAnnotationsContext.Provider>
 
       {/* 4. FLOATING AI DICTIONARY POPUP */}
-      {dictTooltip && (
-        <PracticeDictionaryPopover
-          {...dictTooltip}
-          ownerId={dictionaryOwnerId}
-          learningLanguage={activeWorkspace?.languageContext?.examLanguage ?? null}
-          defaultExplanationLanguage={activeWorkspace?.languageContext?.defaultExplanationLanguage ?? null}
-          supportedExplanationLanguages={activeWorkspace?.languageContext?.supportedExplanationLanguages ?? []}
-          phase={dictionary.phase}
-          data={dictionary.data}
-          error={dictionary.error}
-          onClose={closeDictionary}
-          onRetry={() => void dictionary.retry()}
-          onLookup={(language) => { if (dictTooltip) void dictionary.lookup(dictTooltip.selection, language); }}
-        />
-      )}
+      {dictTooltip && dictTooltip.selection.contextKey === highlightContextKey && isPracticeMode && selectionEnabled && <PracticeDictionaryHost
+        tooltip={dictTooltip} workspace={activeWorkspace} partId={partId} documents={workspaceAnnotations.documents}
+        ownerId={dictionaryOwnerId} locked={submission.isLocked() || isCurrentSectionLocked} onClose={closeDictionary} />}
 
       {/* 4b. SELECTION TOOLBAR & DELETE TOOLTIP */}
       <SelectionToolbar
-        selection={selection}
-        showAi={shouldShowAiLookup(
-          selection,
-          isPracticeMode,
-          activeWorkspace?.languageContext?.examLanguage ?? null,
-        )}
-        showHighlight={showHighlightAction}
+        selection={selectionEnabled && interaction === 'manual' && selection?.contextKey === highlightContextKey ? selection : null}
+        showAi={false}
+        showHighlight
         onHighlight={handleHighlight}
         onAiLookup={handleAiLookup}
       />
-
-      {deleteTooltip && createPortal(
-        <button
-          type="button"
-          aria-label={em("Xóa highlight")}
-          className="fixed z-50 min-h-11 flex items-center bg-white border border-gray-200 shadow-lg rounded-md px-3 py-1 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600"
-          style={{
-            top: Math.max(8, Math.min(window.innerHeight - 52, deleteTooltip.top)),
-            left: Math.max(8, Math.min(window.innerWidth - 180, deleteTooltip.left)),
-          }}
-          onClick={handleDeleteHighlight}
-        >
-          <span className="text-sm font-medium text-red-600">{em("Xóa highlight")}</span>
-        </button>,
-        document.body
-      )}
+      {selectionEnabled && (currentCluster || (selection?.contextKey === highlightContextKey && (interaction === 'pointer-committed' || interaction === 'manual-confirmed'))) && <WorkspaceSelectionPopover
+        anchor={currentCluster?.rect ?? selection!.rect}
+        color={highlightColor}
+        cluster={!!currentCluster}
+        practice={isPracticeMode}
+        lookupAllowed={shouldShowAiLookup(selection, isPracticeMode, activeWorkspace?.languageContext?.examLanguage ?? null)}
+        focusOnOpen={!!selection && interaction === 'manual-confirmed'}
+        onColor={(color) => { if (selection && commitHighlight(selection, color)) setHighlightColor(color); }}
+        onDelete={handleDeleteHighlight}
+        onLookup={handleAiLookup}
+      />}
 
       {/* 5. MODALS & SUBMIT OVERLAYS */}
       <SubmitConfirmModal

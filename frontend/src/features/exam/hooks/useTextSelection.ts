@@ -1,166 +1,158 @@
-import { useState, useEffect, type RefObject } from 'react';
-import { rangeToOffsets, trimOffsets } from '../utils/domOffsetUtils';
+import { useState, useEffect, useRef, useCallback, type RefObject } from 'react';
+import { captureSelectionSnapshot, highlightScopeFor, type SelectionState } from '../utils/selectionSnapshot';
+export { HIGHLIGHT_SCOPE_ATTRIBUTE, resolveHighlightScope, resolveHighlightScopeElement } from '../utils/selectionSnapshot';
+export type { SelectionState } from '../utils/selectionSnapshot';
 
-export interface SelectionState {
-  rect: DOMRect;
-  text: string;
-  start: number;
-  end: number;
-  documentId: string;
-  contentHash: string | null;
-  contextRevision: number;
-  contextKey: string;
-  /** Nearest `data-highlight-scope` id of the selection, or null when the region is unscoped. */
-  scopeId?: string | null;
-  /** Passage text captured with the selection so an action never re-reads mutable browser selection. */
-  scopeText?: string;
+interface TextSelectionOptions {
+  onPointerCommit?: (snapshot: SelectionState) => boolean;
 }
-
-/** Attribute used to scope a selection (and its highlight offsets) to one reference document. */
-export const HIGHLIGHT_SCOPE_ATTRIBUTE = 'data-highlight-scope';
-
-const SCOPE_SELECTOR = `[${HIGHLIGHT_SCOPE_ATTRIBUTE}]`;
-
-function elementFor(node: Node | null): Element | null {
-  if (!node) return null;
-  if (node.nodeType === 1) return node as Element;
-  return node.parentElement ?? null;
-}
-
-/**
- * Resolves the nearest ancestor (or the start element itself) carrying `data-highlight-scope`.
- * Returns null when the range is outside the container or lives in an unscoped region, so callers
- * never attribute a selection (or its offsets) to the wrong document.
- */
-export function resolveHighlightScopeElement(
-  range: Range,
-  container?: HTMLElement | null
-): HTMLElement | null {
-  const start = elementFor(range.startContainer);
-  const end = elementFor(range.endContainer);
-  if (!start || !end) return null;
-  if (container && (!container.contains(start) || !container.contains(end))) return null;
-
-  const startScoped = start.closest(SCOPE_SELECTOR);
-  const endScoped = end.closest(SCOPE_SELECTOR);
-  if (!startScoped || !(startScoped instanceof HTMLElement)) return null;
-  if (!endScoped || !(endScoped instanceof HTMLElement)) return null;
-
-  if (startScoped !== endScoped) return null;
-  if (container && !container.contains(startScoped)) return null;
-  return startScoped;
-}
-
-/** Scope id for a range; see {@link resolveHighlightScopeElement}. */
-export function resolveHighlightScope(range: Range, container?: HTMLElement | null): string | null {
-  return resolveHighlightScopeElement(range, container)?.getAttribute(HIGHLIGHT_SCOPE_ATTRIBUTE) ?? null;
-}
+type Interaction = 'manual' | 'manual-confirmed' | 'pointer-committed' | null;
 
 export function useTextSelection(
   containerRef: RefObject<HTMLElement | null>,
   enabled: boolean,
   contextRevision = 0,
-  contextKey = String(contextRevision)
+  contextKey = String(contextRevision),
+  options: TextSelectionOptions = {},
 ) {
   const [selection, setSelection] = useState<SelectionState | null>(null);
+  const [interaction, setInteraction] = useState<Interaction>(null);
+  const commitRef = useRef(options.onPointerCommit);
+  commitRef.current = options.onPointerCommit;
+  const trailingClick = useRef<number | null>(null);
+  const manualCommitted = useRef(false);
+  const confirmSelection = useCallback(() => {
+    manualCommitted.current = true;
+    setInteraction('manual-confirmed');
+  }, []);
+  // Cancellation must survive effect replacement during same-attempt hydration.
+  // A late mouseup must not turn an old native range into a new-context snapshot.
+  const requireFreshInput = useRef(false);
+  const consumeCommittedClick = useCallback((event: MouseEvent) => {
+    if (trailingClick.current === null || event.detail === 0) return false;
+    if ('pointerId' in event && event.pointerId !== trailingClick.current) return false;
+    trailingClick.current = null;
+    return true;
+  }, []);
 
   useEffect(() => {
     setSelection(null);
-    if (!enabled) {
-      return;
-    }
+    setInteraction(null);
+    trailingClick.current = null;
+    if (!enabled) return;
 
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    const handleSelectionChange = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        const sel = window.getSelection();
-        if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
-          setSelection(null);
-          return;
-        }
-
-        const range = sel.getRangeAt(0);
-        const container = containerRef.current;
-        if (!container) return setSelection(null);
-        if (!container.contains(range.startContainer) || !container.contains(range.endContainer)) {
-          setSelection(null);
-          return;
-        }
-        const startElement = elementFor(range.startContainer);
-        const endElement = elementFor(range.endContainer);
-        const startScope = startElement?.closest(SCOPE_SELECTOR);
-        const endScope = endElement?.closest(SCOPE_SELECTOR);
-        if (startScope && endScope && startScope !== endScope) return setSelection(null);
-        const scope = (startScope ?? endScope) as HTMLElement | null;
-        if (!scope || !container.contains(scope)) return setSelection(null);
-        const clippedRange = range.cloneRange();
-        if (!scope.contains(clippedRange.startContainer)) clippedRange.setStart(scope, 0);
-        if (!scope.contains(clippedRange.endContainer)) clippedRange.setEnd(scope, scope.childNodes.length);
-        const offsetBase = scope;
-        let offsets: { start: number; end: number };
-        try {
-          offsets = rangeToOffsets(offsetBase, clippedRange);
-        } catch {
-          return setSelection(null);
-        }
-        const rawText = clippedRange.toString();
-        offsets = trimOffsets(rawText, offsets);
-        const text = (offsetBase.textContent ?? '').slice(offsets.start, offsets.end);
-        if (!text.trim() || offsets.start >= offsets.end) return setSelection(null);
-
-        const rect = typeof clippedRange.getBoundingClientRect === 'function'
-          ? clippedRange.getBoundingClientRect()
-          : range.getBoundingClientRect();
-        if (rect.width === 0 && rect.height === 0) return setSelection(null);
-
-        setSelection({
-          rect,
-          text,
-          start: offsets.start,
-          end: offsets.end,
-          scopeId: scope?.getAttribute(HIGHLIGHT_SCOPE_ATTRIBUTE) ?? null,
-          scopeText: offsetBase.textContent ?? '',
-          documentId: scope?.getAttribute(HIGHLIGHT_SCOPE_ATTRIBUTE) ?? 'part',
-          contentHash: scope?.getAttribute('data-highlight-hash') ?? null,
-          contextRevision,
-          contextKey,
-        });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let gesture: { pointerId: number; scope: HTMLElement; hash: string | null } | null = null;
+    let committed = false;
+    let cancelled = requireFreshInput.current;
+    const clear = () => {
+      clearTimeout(timer);
+      manualCommitted.current = false;
+      setSelection(null);
+      setInteraction(null);
+      committed = false;
+    };
+    const cancel = () => {
+      gesture = null;
+      cancelled = true;
+      requireFreshInput.current = true;
+      trailingClick.current = null;
+      clear();
+    };
+    const captureManual = () => {
+      clearTimeout(timer);
+      if (document.activeElement instanceof Element && document.activeElement.closest('[data-selection-toolbar]')) return;
+      if (gesture || committed || cancelled || manualCommitted.current) return;
+      timer = setTimeout(() => {
+        if (gesture || committed || cancelled || manualCommitted.current) return;
+        if (document.activeElement instanceof Element && document.activeElement.closest('[data-selection-toolbar]')) return;
+        const snapshot = captureSelectionSnapshot(containerRef.current, contextRevision, contextKey);
+        setSelection(snapshot);
+        setInteraction(snapshot ? 'manual' : null);
       }, 100);
     };
-
-    const clearSelection = () => setSelection(null);
-
-    document.addEventListener('selectionchange', handleSelectionChange);
-    document.addEventListener('mouseup', handleSelectionChange);
-    const activeContainer = containerRef.current;
-    activeContainer?.addEventListener('touchend', handleSelectionChange);
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') clearSelection();
+    const isControl = (target: EventTarget | null) => target instanceof Element
+      && !!target.closest('[data-selection-toolbar]');
+    const pointerDown = (event: PointerEvent) => {
+      // A toolbar button uses the frozen snapshot; its pointerdown must not discard it.
+      if (isControl(event.target)) return;
+      gesture = null;
+      cancelled = false;
+      requireFreshInput.current = false;
+      trailingClick.current = null;
+      clear();
+      if (event.pointerType !== 'mouse' || event.button !== 0 || !event.isPrimary) return;
+      const scope = highlightScopeFor(event.target instanceof Node ? event.target : null);
+      if (!scope || !containerRef.current?.contains(scope)) return;
+      gesture = { pointerId: event.pointerId, scope, hash: scope.getAttribute('data-highlight-hash') };
     };
-    const closeOnViewportChange = () => clearSelection();
-    document.addEventListener('keydown', handleEscape);
-    window.addEventListener('scroll', closeOnViewportChange, true);
-    window.addEventListener('resize', closeOnViewportChange);
-    const handleMouseDown = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        clearSelection();
+    const pointerUp = (event: PointerEvent) => {
+      if (!gesture) { captureManual(); return; }
+      if (event.pointerId !== gesture.pointerId) return;
+      const completed = gesture;
+      gesture = null;
+      clearTimeout(timer);
+      if (event.button !== 0 || !completed.scope.isConnected
+        || completed.scope.getAttribute('data-highlight-hash') !== completed.hash) { cancel(); return; }
+      const snapshot = captureSelectionSnapshot(containerRef.current, contextRevision, contextKey, completed.scope);
+      if (!snapshot) { cancel(); return; }
+      if (!commitRef.current) {
+        setSelection(snapshot); setInteraction('manual'); return;
+      }
+      if (!commitRef.current(snapshot)) { cancel(); return; }
+      committed = true;
+      trailingClick.current = event.pointerId;
+      setSelection(snapshot);
+      setInteraction('pointer-committed');
+    };
+    const keyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { cancel(); return; }
+      if (event.shiftKey || /^(Arrow|Home|End)/.test(event.key) || ((event.ctrlKey || event.metaKey) && event.key === 'a')) {
+        manualCommitted.current = false;
+        committed = false; cancelled = false; requireFreshInput.current = false; trailingClick.current = null;
       }
     };
-    document.addEventListener('mousedown', handleMouseDown);
+    const viewportChange = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest('[data-selection-toolbar]')) return;
+      // Native drag autoscroll must keep the original anchor and the pending gesture.
+      if (!gesture) clear();
+    };
+    const mouseDown = (event: MouseEvent) => {
+      if (!isControl(event.target) && event.target instanceof Node && !containerRef.current?.contains(event.target)) clear();
+    };
+    const visibilityChange = () => { if (document.visibilityState === 'hidden') cancel(); };
 
+    document.addEventListener('pointerdown', pointerDown);
+    document.addEventListener('pointerup', pointerUp);
+    document.addEventListener('pointercancel', cancel);
+    document.addEventListener('selectionchange', captureManual);
+    document.addEventListener('mouseup', captureManual);
+    document.addEventListener('touchend', captureManual);
+    document.addEventListener('mousedown', mouseDown);
+    document.addEventListener('keydown', keyDown);
+    document.addEventListener('visibilitychange', visibilityChange);
+    window.addEventListener('blur', cancel);
+    window.addEventListener('scroll', viewportChange, true);
+    window.addEventListener('resize', cancel);
     return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener('selectionchange', handleSelectionChange);
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mouseup', handleSelectionChange);
-      activeContainer?.removeEventListener('touchend', handleSelectionChange);
-      document.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('scroll', closeOnViewportChange, true);
-      window.removeEventListener('resize', closeOnViewportChange);
+      clearTimeout(timer);
+      gesture = null;
+      requireFreshInput.current = true;
+      trailingClick.current = null;
+      document.removeEventListener('pointerdown', pointerDown);
+      document.removeEventListener('pointerup', pointerUp);
+      document.removeEventListener('pointercancel', cancel);
+      document.removeEventListener('selectionchange', captureManual);
+      document.removeEventListener('mouseup', captureManual);
+      document.removeEventListener('touchend', captureManual);
+      document.removeEventListener('mousedown', mouseDown);
+      document.removeEventListener('keydown', keyDown);
+      document.removeEventListener('visibilitychange', visibilityChange);
+      window.removeEventListener('blur', cancel);
+      window.removeEventListener('scroll', viewportChange, true);
+      window.removeEventListener('resize', cancel);
     };
   }, [containerRef, enabled, contextRevision, contextKey]);
 
-  return { selection, setSelection };
+  return { selection, setSelection, interaction, confirmSelection, consumeCommittedClick };
 }

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
+import { applyHighlights } from '../utils/htmlHighlight';
+import { writeHighlightArchive, readHighlightArchive } from '../utils/highlightStorage';
 import answerReducer, {
   setAttemptContext,
   setAnswer,
@@ -17,6 +19,9 @@ import answerReducer, {
   clearFlags,
   selectIsQuestionFlagged,
   addHighlightRecord,
+  recolorHighlightSelection,
+  deleteHighlightSelection,
+  deleteHighlightCluster,
   removeHighlightRecord,
   restoreHighlightRecords,
 } from '../store/answerSlice';
@@ -371,7 +376,304 @@ describe('answerSlice', () => {
       highlight: { id: 'new-selection-id', start: 2, end: 6, text: 'also wrong' },
     }));
     expect(state.highlights['stable-cluster'].items).toEqual([
-      { id: 'existing-id', start: 2, end: 9, text: '2345678' },
+      { id: 'existing-id', start: 2, end: 9, text: '2345678', color: 'yellow' },
     ]);
+  });
+it('recolorHighlightSelection recolors subrange and preserves outer ranges without dirtying answers', () => {
+    let state = reducer(initialState, setAttemptContext({ attemptId: 80, version: 1, savedAnswers: [] }));
+    const context = { attemptId: 80, contextRevision: state.contextRevision };
+    const docText = 'The quick brown fox jumps over the lazy dog';
+    // Add initial yellow highlight: 'brown fox jumps' (10..25)
+    state = reducer(state, addHighlightRecord({
+      ...context,
+      passageId: 'doc-1',
+      contentHash: 'hash-doc-1',
+      documentText: docText,
+      highlight: { id: 'hl-1', start: 10, end: 25, text: 'brown fox jumps', color: 'yellow' },
+    }));
+    expect(state.isDirty).toBe(false);
+    expect(state.pendingVersion).toBe(0);
+
+    // Recolor 'fox' (16..19) to 'green'
+    state = reducer(state, recolorHighlightSelection({
+      ...context,
+      passageId: 'doc-1',
+      contentHash: 'hash-doc-1',
+      documentText: docText,
+      highlight: { id: 'hl-green', start: 16, end: 19, text: 'fox', color: 'green' },
+    }));
+
+    expect(state.isDirty).toBe(false);
+    expect(state.pendingVersion).toBe(0);
+    const items = state.highlights['doc-1'].items;
+    expect(items).toEqual([
+      { id: 'hl-1', start: 10, end: 16, text: 'brown ', color: 'yellow' },
+      { id: 'hl-green', start: 16, end: 19, text: 'fox', color: 'green' },
+      { id: expect.any(String), start: 19, end: 25, text: ' jumps', color: 'yellow' },
+    ]);
+  });
+
+  it('deleteHighlightSelection cuts out subrange and deleteHighlightCluster removes entire cluster', () => {
+    let state = reducer(initialState, setAttemptContext({ attemptId: 81, version: 1, savedAnswers: [] }));
+    const context = { attemptId: 81, contextRevision: state.contextRevision };
+    const docText = '0123456789abcdefghij';
+    state = reducer(state, addHighlightRecord({
+      ...context,
+      passageId: 'doc-cut',
+      contentHash: 'hash-cut',
+      documentText: docText,
+      highlight: { id: 'c1', start: 0, end: 10, text: '0123456789', color: 'pink' },
+    }));
+    state = reducer(state, addHighlightRecord({
+      ...context,
+      passageId: 'doc-cut',
+      contentHash: 'hash-cut',
+      documentText: docText,
+      highlight: { id: 'c2', start: 15, end: 20, text: 'fghij', color: 'blue' },
+    }));
+
+    // Cut subrange 4..7 from c1
+    state = reducer(state, deleteHighlightSelection({
+      ...context,
+      passageId: 'doc-cut',
+      contentHash: 'hash-cut',
+      documentText: docText,
+      start: 4,
+      end: 7,
+    }));
+    expect(state.isDirty).toBe(false);
+    expect(state.pendingVersion).toBe(0);
+    expect(state.highlights['doc-cut'].items).toEqual([
+      { id: 'c1', start: 0, end: 4, text: '0123', color: 'pink' },
+      { id: expect.any(String), start: 7, end: 10, text: '789', color: 'pink' },
+      { id: 'c2', start: 15, end: 20, text: 'fghij', color: 'blue' },
+    ]);
+
+    // Delete cluster c2
+    state = reducer(state, deleteHighlightCluster({
+      ...context,
+      passageId: 'doc-cut',
+      highlightId: 'c2',
+    }));
+    expect(state.isDirty).toBe(false);
+    expect(state.highlights['doc-cut'].items).toHaveLength(2);
+    expect(state.highlights['doc-cut'].items.find(h => h.id === 'c2')).toBeUndefined();
+  });
+
+  it('RD04-R01: recoloring middle creates distinct cluster IDs and deleting one cluster leaves the other intact', () => {
+    let state = reducer(initialState, setAttemptContext({ attemptId: 82, version: 1, savedAnswers: [] }));
+    const context = { attemptId: 82, contextRevision: state.contextRevision };
+    const docText = 'abcdefghij';
+    state = reducer(state, addHighlightRecord({
+      ...context,
+      passageId: 'doc-r1',
+      contentHash: 'hash-r1',
+      documentText: docText,
+      highlight: { id: 'old', start: 0, end: 10, text: 'abcdefghij', color: 'yellow' },
+    }));
+
+    // Recolor def (3..6) to blue
+    state = reducer(state, recolorHighlightSelection({
+      ...context,
+      passageId: 'doc-r1',
+      contentHash: 'hash-r1',
+      documentText: docText,
+      highlight: { id: 'blue', start: 3, end: 6, text: 'def', color: 'blue' },
+    }));
+
+    const items = state.highlights['doc-r1'].items;
+    expect(items).toHaveLength(3);
+    expect(items[0]).toMatchObject({ id: 'old', start: 0, end: 3, text: 'abc', color: 'yellow' });
+    expect(items[1]).toMatchObject({ id: 'blue', start: 3, end: 6, text: 'def', color: 'blue' });
+    expect(items[2]).toMatchObject({ start: 6, end: 10, text: 'ghij', color: 'yellow' });
+
+    const rightClusterId = items[2].id;
+    expect(rightClusterId).not.toBe('old');
+    expect(rightClusterId).not.toBe('blue');
+
+    // Deleting cluster 'old' must ONLY remove [0, 3) and preserve [6, 10) and [3, 6)
+    state = reducer(state, deleteHighlightCluster({
+      ...context,
+      passageId: 'doc-r1',
+      highlightId: 'old',
+    }));
+    expect(state.highlights['doc-r1'].items).toHaveLength(2);
+    expect(state.highlights['doc-r1'].items.find(h => h.id === 'old')).toBeUndefined();
+    expect(state.highlights['doc-r1'].items.find(h => h.id === 'blue')).toBeDefined();
+    expect(state.highlights['doc-r1'].items.find(h => h.id === rightClusterId)).toBeDefined();
+
+    // Deleting cluster rightClusterId must ONLY remove [6, 10) and preserve [3, 6)
+    state = reducer(state, deleteHighlightCluster({
+      ...context,
+      passageId: 'doc-r1',
+      highlightId: rightClusterId,
+    }));
+    expect(state.highlights['doc-r1'].items).toHaveLength(1);
+    expect(state.highlights['doc-r1'].items[0].id).toBe('blue');
+  });
+
+  it('RD04-R02: deleteHighlightSelection handles surrogate boundaries without corrupting or dropping highlights', () => {
+    let state = reducer(initialState, setAttemptContext({ attemptId: 83, version: 1, savedAnswers: [] }));
+    const context = { attemptId: 83, contextRevision: state.contextRevision };
+    const docText = 'A😀B';
+    state = reducer(state, addHighlightRecord({
+      ...context,
+      passageId: 'doc-surrogate',
+      contentHash: 'hash-surrogate',
+      documentText: docText,
+      highlight: { id: 'emoji', start: 0, end: 4, text: 'A😀B', color: 'yellow' },
+    }));
+
+    // Invalid deletion that splits the surrogate pair of 😀 (offset 2)
+    state = reducer(state, deleteHighlightSelection({
+      ...context,
+      passageId: 'doc-surrogate',
+      contentHash: 'hash-surrogate',
+      documentText: docText,
+      start: 1,
+      end: 2,
+    }));
+    // Highlights must remain intact
+    expect(state.highlights['doc-surrogate'].items).toHaveLength(1);
+    expect(state.highlights['doc-surrogate'].items[0]).toMatchObject({
+      id: 'emoji',
+      start: 0,
+      end: 4,
+      text: 'A😀B',
+      color: 'yellow',
+    });
+
+    // Invalid out-of-bounds deletion
+    state = reducer(state, deleteHighlightSelection({
+      ...context,
+      passageId: 'doc-surrogate',
+      contentHash: 'hash-surrogate',
+      documentText: docText,
+      start: 1,
+      end: 10,
+    }));
+    expect(state.highlights['doc-surrogate'].items).toHaveLength(1);
+
+    // Valid deletion that deletes the entire emoji [1, 3)
+    state = reducer(state, deleteHighlightSelection({
+      ...context,
+      passageId: 'doc-surrogate',
+      contentHash: 'hash-surrogate',
+      documentText: docText,
+      start: 1,
+      end: 3,
+    }));
+    // Must preserve both A [0, 1) and B [3, 4)
+    expect(state.highlights['doc-surrogate'].items).toHaveLength(2);
+    expect(state.highlights['doc-surrogate'].items[0]).toMatchObject({
+      id: 'emoji',
+      start: 0,
+      end: 1,
+      text: 'A',
+      color: 'yellow',
+    });
+    expect(state.highlights['doc-surrogate'].items[1]).toMatchObject({
+      start: 3,
+      end: 4,
+      text: 'B',
+      color: 'yellow',
+    });
+  });
+
+  it('RD04-R03: chain of splits creating long IDs (>100 chars) preserves DOM identity and delete-cluster target', () => {
+    let state = reducer(initialState, setAttemptContext({ attemptId: 84, version: 1, savedAnswers: [] }));
+    const context = { attemptId: 84, contextRevision: state.contextRevision };
+    const docText = 'x'.repeat(200);
+    const initialUuid = '12345678-1234-1234-1234-123456789abc';
+
+    // 1. Initial highlight: [0, 200) yellow with 36-char UUID
+    state = reducer(state, addHighlightRecord({
+      ...context,
+      passageId: 'doc-long-id',
+      contentHash: 'hash-long',
+      documentText: docText,
+      highlight: { id: initialUuid, start: 0, end: 200, text: docText, color: 'yellow' },
+    }));
+
+    // 2. Perform 25 recolor operations: [1, 2), [3, 4), ..., [49, 50) recolored to blue
+    for (let i = 0; i < 25; i++) {
+      const start = 2 * i + 1;
+      const end = 2 * i + 2;
+      state = reducer(state, recolorHighlightSelection({
+        ...context,
+        passageId: 'doc-long-id',
+        contentHash: 'hash-long',
+        documentText: docText,
+        highlight: { id: `blue-${i}`, start, end, text: 'x', color: 'blue' },
+      }));
+    }
+
+    const items = state.highlights['doc-long-id'].items;
+    // 25 blue clusters + 26 yellow clusters = 51 clusters total
+    expect(items).toHaveLength(51);
+
+    // The last yellow cluster has inherited multiple _r suffixes, making its ID > 100 characters
+    const lastYellow = items[items.length - 1];
+    expect(lastYellow.color).toBe('yellow');
+    expect(lastYellow.id.length).toBeGreaterThan(100);
+
+    // 3. Render highlights via applyHighlights
+    const html = `<p>${docText}</p>`;
+    const renderedHtml = applyHighlights(html, items);
+
+    // Parse the rendered HTML into DOM
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(renderedHtml, 'text/html');
+    const marks = doc.querySelectorAll('mark[data-hl-id]');
+
+    // Find the mark corresponding to the last yellow cluster (the last mark in DOM)
+    const targetMark = marks[marks.length - 1];
+    expect(targetMark).toBeDefined();
+
+    // The DOM attribute data-hl-id must match the full store ID without truncation
+    const domId = targetMark.getAttribute('data-hl-id');
+    expect(domId).toBe(lastYellow.id);
+    expect(domId!.length).toBe(lastYellow.id.length);
+    expect(domId!.length).toBeGreaterThan(100);
+
+    // 4. Dispatch delete action using the ID retrieved from the DOM attribute (like click handler)
+    state = reducer(state, deleteHighlightCluster({
+      ...context,
+      passageId: 'doc-long-id',
+      highlightId: domId!,
+    }));
+
+    // Exactly one cluster removed: beforeCount was 51, afterCount is 50
+    const remainingItems = state.highlights['doc-long-id'].items;
+    expect(remainingItems).toHaveLength(50);
+    // The target cluster is completely removed
+    expect(remainingItems.find((h) => h.id === lastYellow.id)).toBeUndefined();
+    // All other 50 clusters remain intact
+    for (let i = 0; i < 50; i++) {
+      expect(remainingItems[i].id).toBe(items[i].id);
+    }
+
+    // 5. Verify round-trip storage with the remaining 50 clusters (some with length > 100)
+    const archive = {
+      schemaVersion: 2 as const,
+      ownerId: 'user-r03',
+      attemptId: 84,
+      updatedAt: new Date().toISOString(),
+      documents: [
+        {
+          partId: 1,
+          documentId: 'doc-long-id',
+          contentHash: 'hash-long',
+          items: remainingItems,
+        },
+      ],
+    };
+
+    expect(writeHighlightArchive(archive)).toBe(true);
+    const read = readHighlightArchive('user-r03', 84);
+    expect(read.failed).toBe(false);
+    expect(read.archive?.documents[0].items).toHaveLength(50);
+    expect(read.archive?.documents[0].items[0].id).toBe(remainingItems[0].id);
+    expect(read.archive?.documents[0].items[49].id).toBe(remainingItems[49].id);
   });
 });

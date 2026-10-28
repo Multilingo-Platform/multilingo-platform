@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { SelectionToolbar } from '../SelectionToolbar';
+
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('SelectionToolbar', () => {
   it('renders Highlight and AI buttons when selection is present and showAi is true', () => {
@@ -28,6 +30,10 @@ describe('SelectionToolbar', () => {
 
     expect(highlightBtn).toBeDefined();
     expect(aiBtn).toBeDefined();
+    const pointerDown = new MouseEvent('pointerdown', { bubbles: true, cancelable: true });
+    aiBtn.dispatchEvent(pointerDown);
+    expect(pointerDown.defaultPrevented).toBe(true);
+    expect(aiBtn.closest('[data-selection-toolbar]')).not.toBeNull();
 
     fireEvent.click(highlightBtn);
     expect(onHighlight).toHaveBeenCalledTimes(1);
@@ -43,6 +49,16 @@ describe('SelectionToolbar', () => {
     expect(toolbar).toHaveStyle({ position: 'fixed' });
     expect(Number.parseFloat((toolbar as HTMLElement).style.left)).toBeLessThan(window.innerWidth);
     expect(Number.parseFloat((toolbar as HTMLElement).style.top)).toBeLessThan(window.innerHeight);
+  });
+
+  it('measures the manual confirmation toolbar and gives it keyboard focus', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 80));
+    vi.stubGlobal('innerWidth', 320); vi.stubGlobal('innerHeight', 400);
+    const selection = { rect: new DOMRect(300, 370, 10, 10), text: 'word', start: 0, end: 4,
+      documentId: 'part', contentHash: 'hash', contextRevision: 0, contextKey: 'key' };
+    render(<SelectionToolbar selection={selection} showAi={false} onHighlight={vi.fn()} onAiLookup={vi.fn()} />);
+    expect(screen.getByRole('toolbar')).toHaveStyle({ left: '112px', top: '282px', maxWidth: '304px', maxHeight: '384px' });
+    expect(screen.getByRole('button', { name: 'Highlight' })).toHaveFocus();
   });
 
   it('can hide Highlight while keeping an independently eligible AI action', () => {

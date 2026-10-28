@@ -39,6 +39,8 @@ import com.multilingo.backend.modules.testing.service.support.AttemptReviewMappe
 import com.multilingo.backend.modules.testing.service.support.ToeicWorkspaceProjection;
 import com.multilingo.backend.modules.testing.service.support.WritingGradingAttemptStateResolver;
 import com.multilingo.backend.modules.testing.service.support.AttemptLanguageResolver;
+import com.multilingo.backend.modules.testing.dto.response.DictionaryLanguageContextResponse;
+import com.multilingo.backend.modules.testing.service.support.DictionaryNativeLanguageResolver;
 import com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer;
 import com.multilingo.backend.modules.testing.util.AttemptDuration;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
@@ -89,6 +91,13 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
     public void setListeningPlaybackService(com.multilingo.backend.modules.testing.service.ListeningPlaybackService listeningPlaybackService) {
         this.listeningPlaybackService = listeningPlaybackService;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private DictionaryNativeLanguageResolver dictionaryNativeLanguageResolver;
+
+    public void setDictionaryNativeLanguageResolver(DictionaryNativeLanguageResolver dictionaryNativeLanguageResolver) {
+        this.dictionaryNativeLanguageResolver = dictionaryNativeLanguageResolver;
     }
 
     public TestAttemptServiceImpl(
@@ -786,6 +795,23 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             playbackSummary = listeningPlaybackService.getPlaybackSummary(attempt);
         }
 
+        Integer currentUserId = null;
+        try {
+            currentUserId = identityAdapter != null ? identityAdapter.getCurrentUserId() : null;
+        } catch (Exception ignored) {
+            // Unauthenticated or background thread context
+        }
+
+        DictionaryLanguageContextResponse dictionaryLanguage = null;
+        if (dictionaryNativeLanguageResolver != null) {
+            try {
+                dictionaryLanguage = dictionaryNativeLanguageResolver.resolve(attempt.getUserId(), currentUserId);
+            } catch (Exception e) {
+                log.warn("Failed to resolve dictionary native language for attempt {}: {}", attempt.getId(), e.getMessage());
+                dictionaryLanguage = DictionaryLanguageContextResponse.unavailable(DictionaryLanguageContextResponse.REASON_REQUIRED);
+            }
+        }
+
         return WorkspaceResponse.builder()
                 .attemptId(attempt.getId())
                 .status(attempt.getStatus())
@@ -802,6 +828,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                         : attemptLanguageResolver.resolve(attempt.getExamSnapshot(), attempt.getUserId()))
                 .lockedSections(attempt.getLockedSections() != null ? attempt.getLockedSections() : new java.util.ArrayList<>())
                 .listeningPlayback(playbackSummary)
+                .dictionaryLanguage(dictionaryLanguage)
                 .build();
     }
 

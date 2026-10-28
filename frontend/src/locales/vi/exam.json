@@ -20,6 +20,10 @@
     "lookup": "Tra từ",
     "saveFlashcard": "Lưu Flashcard"
   },
+  "selection": {
+    "colors": { "yellow": "Vàng", "green": "Xanh lá", "blue": "Xanh dương", "pink": "Hồng", "purple": "Tím" },
+    "lookupUnavailable": "Chọn từ hoặc cụm từ hợp lệ, tối đa 80 ký tự; một số ngôn ngữ giới hạn 5 từ."
+  },
   "status": {
     "done": "Đã có kết quả Writing",
     "pending": "Đang chờ chấm",
@@ -37,6 +41,7 @@
     "hideFeedback": "Ẩn nhận xét AI"
   },
   "ui": {
+    "dictionary_native_required": "Cần cập nhật ngôn ngữ mẹ đẻ trong hồ sơ để tra từ.",
     "language_practice": "Luyện ngôn ngữ",
     "your_browser_does_not_support_audio_playback_b6773f": "Trình duyệt của bạn không hỗ trợ phát audio.",
     "_unable_to_load_audio_try_again_or_contact_suppo_577fa4": "⚠️ Không thể tải audio. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
@@ -392,6 +397,7 @@
     "exam_75bb7c": "Bài thi",
     "_using_server_saved_answers_the_local_draft_has_fda6d8": "ℹ️ Đang dùng bản đã lưu trên máy chủ; bản nháp trên thiết bị chưa được khôi phục.",
     "select_a_word_to_use_the_ai_dictionary_5ff0db": "Bôi đen từ để tra từ điển AI",
+    "highlight_release_help": "Kéo chọn rồi nhả chuột để tô vàng. Chạm vùng vàng để xóa; chọn từ để tra AI.",
     "no_passage_is_available_for_this_part_a9ca4e": "Không có nội dung bài đọc cho phần thi này.",
     "resize_prompt_and_answer_panes_316f30": "Thanh điều chỉnh độ rộng đề bài và bài làm",
     "resize_panes_b0c048": "Thanh điều chỉnh độ rộng",

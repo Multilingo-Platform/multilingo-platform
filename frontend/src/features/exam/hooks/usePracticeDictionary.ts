@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector, useStore } from 'react-redux';
 import type { RootState } from '../../../app/store';
-import type { DictionaryLookupFailure, DictionaryLookupV2Request, DictionaryLookupV2Response, WorkspaceResponse } from '../types/api.types';
+import type { DictionaryLookupFailure, DictionaryLookupV2Request, DictionaryLookupV3Request, DictionaryResult, WorkspaceResponse } from '../types/api.types';
 import type { SelectionState } from './useTextSelection';
-import { lookupPracticeDictionaryV2 } from '../api/dictionaryLookupApi';
+import { lookupPracticeDictionaryV2, lookupPracticeDictionaryV3 } from '../api/dictionaryLookupApi';
 import { DictionaryLookupV2ContractError } from '../api/dictionaryLookupV2Contract';
-import { buildDictionaryLookupRequest } from '../utils/dictionarySelection';
+import { buildDictionaryLookupRequest, buildDictionaryLookupV3Request, resolveDictionaryDocument } from '../utils/dictionarySelection';
 import { canonicalizeLearningLanguage } from '../../../core/i18n/learningLanguages';
 
 type Phase = 'idle' | 'loading' | 'ready' | 'error';
-interface Operation { readonly attemptId: number; readonly key: string; readonly request: DictionaryLookupV2Request; readonly selection: SelectionState; readonly sourceLanguage: string; }
+interface Operation { readonly attemptId: number; readonly key: string; readonly request: DictionaryLookupV2Request | DictionaryLookupV3Request; readonly nativeLanguage: string | null; readonly selection: SelectionState; readonly sourceLanguage: string; }
 export interface UsePracticeDictionaryOptions {
+  version?: 3;
+  documents?: readonly import('../types/workspaceText.types').WorkspaceTextDocument[];
   workspace: WorkspaceResponse | null;
   partId: number | null;
   ownerId: number | null;
@@ -18,7 +20,7 @@ export interface UsePracticeDictionaryOptions {
 }
 export interface PracticeDictionaryController {
   phase: Phase;
-  data: DictionaryLookupV2Response | null;
+  data: DictionaryResult | null;
   error: DictionaryLookupFailure | null;
   lookup(selection: SelectionState, meaningLanguage?: string | null): Promise<void>;
   retry(): Promise<void>;
@@ -35,7 +37,7 @@ function contextKey(options: UsePracticeDictionaryOptions, state: RootState['ans
   const language = options.workspace?.languageContext;
   return JSON.stringify([options.ownerId, options.workspace?.attempt_id ?? null, options.partId, state.attemptId, state.contextRevision,
     language?.policyVersion ?? null, language?.examLanguage ?? null, language?.defaultExplanationLanguage ?? null,
-    language?.supportedExplanationLanguages ?? null]);
+    language?.supportedExplanationLanguages ?? null, options.version, options.version === 3 ? options.workspace?.dictionaryLanguage : null, options.version === 3 ? options.documents?.map(d => [d.sourceKey, d.contentHash]) : null]);
 }
 function sourceLanguage(options: UsePracticeDictionaryOptions): string | null {
   const context = options.workspace?.languageContext;
@@ -43,6 +45,7 @@ function sourceLanguage(options: UsePracticeDictionaryOptions): string | null {
   const declared = snapshot?.examLanguage ?? snapshot?.exam_language ?? null;
   const contextLanguage = canonicalizeLearningLanguage(context?.examLanguage);
   const snapshotLanguage = canonicalizeLearningLanguage(declared);
+  if (options.version === 3) return snapshotLanguage;
   if (context?.policyVersion !== 'TV3_LANG_V1' || !contextLanguage || contextLanguage !== snapshotLanguage) return null;
   const supported = context.supportedExplanationLanguages.map(canonicalizeLearningLanguage).filter(Boolean);
   return supported.includes(contextLanguage) ? contextLanguage : null;
@@ -59,7 +62,9 @@ function validScope(options: UsePracticeDictionaryOptions, selection: SelectionS
   const { section, part } = matches[0];
   const sectionId = section.section_id ?? section.sectionId ?? section.id;
   const skill = section.skill_type ?? (section as unknown as Record<string, unknown>).name;
-  if (String(skill).toUpperCase() !== 'READING' || workspace.lockedSections.includes(sectionId)) return false;
+  if (workspace.lockedSections.includes(sectionId)) return false;
+  if (options.version === 3) return !!resolveDictionaryDocument(selection, options.documents ?? []);
+  if (String(skill).toUpperCase() !== 'READING') return false;
   const rawPart = part as unknown as Record<string, any>;
   if (selection.documentId === 'part') return Boolean(rawPart.contentHtml || rawPart.content_html || rawPart.context_html || rawPart.passage ||
     (record(rawPart.content) && (rawPart.content.content_html || rawPart.content.context_html)));
@@ -92,7 +97,7 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
   live.current = options;
   const reduxContext = useSelector((state: RootState) => JSON.stringify([state.answers.attemptId, state.answers.contextRevision]));
   const locked = options.isLocked();
-  const [state, setState] = useState<{ phase: Phase; data: DictionaryLookupV2Response | null; error: DictionaryLookupFailure | null }>({ phase: 'idle', data: null, error: null });
+  const [state, setState] = useState<{ phase: Phase; data: DictionaryResult | null; error: DictionaryLookupFailure | null }>({ phase: 'idle', data: null, error: null });
   const epoch = useRef(0);
   const flight = useRef<{ operation: Operation; controller: AbortController } | null>(null);
   const lastOperation = useRef<Operation | null>(null);
@@ -130,9 +135,9 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
     lastOperation.current = operation;
     setState({ phase: 'loading', data: null, error: null });
     try {
-      const data = await lookupPracticeDictionaryV2(operation.attemptId, operation.request, {
-        signal: controller.signal, learningLanguage: operation.sourceLanguage,
-      });
+      const data = 'source' in operation.request
+        ? await lookupPracticeDictionaryV3(operation.attemptId, operation.request, { signal: controller.signal, learningLanguage: operation.sourceLanguage, nativeLanguage: operation.nativeLanguage! })
+        : await lookupPracticeDictionaryV2(operation.attemptId, operation.request, { signal: controller.signal, learningLanguage: operation.sourceLanguage });
       if (flight.current !== ticket || requestEpoch !== epoch.current || contextKey(live.current, store.getState().answers) !== operation.key ||
           !validScope(live.current, operation.selection, store.getState().answers)) return;
       setState({ phase: 'ready', data, error: null });
@@ -150,7 +155,7 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
     if (running && running.contextKey === selection.contextKey && running.contextRevision === selection.contextRevision &&
         running.documentId === selection.documentId && running.contentHash === selection.contentHash &&
         running.start === selection.start && running.end === selection.end && running.text === selection.text &&
-        flight.current?.operation.request.meaningLanguage === requestedIntent) return;
+        ('source' in flight.current!.operation.request || flight.current!.operation.request.meaningLanguage === requestedIntent)) return;
     if (flight.current) cancel();
     const current = live.current;
     const answers = store.getState().answers;
@@ -166,13 +171,18 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
     try {
       const source = sourceLanguage(current);
       if (!source) throw new Error('Ngôn ngữ đề chưa được xác nhận.');
-      const request = buildDictionaryLookupRequest(selection, current.partId!, source);
+      const native = current.workspace?.dictionaryLanguage;
+      if (current.version === 3 && (native?.policyVersion !== 'NATIVE_PROFILE_V1' || !native.available || !canonicalizeLearningLanguage(native.nativeLanguage))) {
+        setState({ phase: 'error', data: null, error: { kind: 'context', message: 'Cần cập nhật ngôn ngữ mẹ đẻ trong hồ sơ để tra từ.', retryAfterSeconds: null, retryable: false } });
+        return;
+      }
+      const request = current.version === 3 ? buildDictionaryLookupV3Request(selection, current.partId!, source, current.documents ?? []) : buildDictionaryLookupRequest(selection, current.partId!, source);
       const supported = current.workspace!.languageContext?.supportedExplanationLanguages
         .map(canonicalizeLearningLanguage).filter(Boolean) ?? [];
       const resolvedIntent = meaningLanguage ? canonicalizeLearningLanguage(meaningLanguage) : undefined;
       if (meaningLanguage && (!resolvedIntent || !supported.includes(resolvedIntent))) throw new Error('Ngôn ngữ giải thích không được hỗ trợ.');
-      if (resolvedIntent) request.meaningLanguage = resolvedIntent;
-      const operation: Operation = { attemptId: current.workspace!.attempt_id, key, request: Object.freeze(request), selection, sourceLanguage: source };
+      if (resolvedIntent && !('source' in request)) request.meaningLanguage = resolvedIntent;
+      const operation: Operation = { attemptId: current.workspace!.attempt_id, key, request: Object.freeze(request), selection: Object.freeze({ ...selection }), sourceLanguage: source, nativeLanguage: current.version === 3 ? native!.nativeLanguage : null };
       await run(operation);
     } catch (error) {
       setState({ phase: 'error', data: null, error: classify(error) });
