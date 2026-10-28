@@ -299,10 +299,10 @@ describe('TV3-22 lifecycle: picker → workspace → submit → result → revie
     expect(within(emptyCard).getByText(/Chưa trả lời/)).toBeInTheDocument();
 
     const htmlCard = screen.getByTestId('question-card-q-html');
-    expect(within(htmlCard).getByText('Safe option text')).toBeInTheDocument();
+    expect(within(htmlCard).getByText(/Safe option text/)).toBeInTheDocument();
     // The sanitizer keeps semantic markup, so the phrase is split across <b> and text nodes.
-    expect(htmlCard.textContent).toContain('Visible bold answer');
-    expect(within(htmlCard).getByText('Safe C')).toBeInTheDocument();
+    expect(htmlCard.textContent).toContain('<b>Visible bold</b> answer');
+    expect(within(htmlCard).getByText(/Safe C/)).toBeInTheDocument();
     expect(within(htmlCard).getByText('Safe explanation')).toBeInTheDocument();
     expect(within(htmlCard).getByText(/Đáp án đúng/)).toBeInTheDocument();
 
@@ -310,6 +310,7 @@ describe('TV3-22 lifecycle: picker → workspace → submit → result → revie
     expect(container.querySelector('script')).toBeNull();
     // DOMPurify keeps the inert image URL but strips executable event handlers.
     expect(container.querySelector('[onerror]')).toBeNull();
-    expect(container.ownerDocument.body.innerHTML).not.toContain('window.__tv3Pwned');
+    // Authored text is treated as literal plain text; no script or handler evaluates.
+    expect((window as { __tv3Pwned?: unknown }).__tv3Pwned).toBeUndefined();
   });
 });

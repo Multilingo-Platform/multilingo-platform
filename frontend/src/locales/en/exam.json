@@ -1,5 +1,7 @@
 {
-  "scope": { "singlePart": "Single part" },
+  "scope": {
+    "singlePart": "Single part"
+  },
   "language": {
     "source": "Exam language",
     "explanation": "Explanation language",
@@ -21,7 +23,13 @@
     "saveFlashcard": "Save flashcard"
   },
   "selection": {
-    "colors": { "yellow": "Yellow", "green": "Green", "blue": "Blue", "pink": "Pink", "purple": "Purple" },
+    "colors": {
+      "yellow": "Yellow",
+      "green": "Green",
+      "blue": "Blue",
+      "pink": "Pink",
+      "purple": "Purple"
+    },
     "lookupUnavailable": "Select a valid word or phrase of up to 80 characters; some languages are limited to 5 words."
   },
   "status": {
@@ -465,7 +473,7 @@
     "unable_to_verify_this_passage_select_the_word_ag_f7df75": "Unable to verify this passage. Select the word again in the passage.",
     "the_ai_dictionary_is_currently_unavailable_b9b77a": "The AI dictionary is currently unavailable.",
     "unable_to_look_up_this_word_you_can_try_again_c1d12c": "Unable to look up this word. You can try again.",
-    "unable_to_look_up_this_selection_select_the_word_f7d947": "Unable to look up this selection. Select the word again in the passage.",
+    "unable_to_look_up_this_selection_select_the_word_f7d947": "Unable to look up this selection. Please select the word or phrase again in the reading passage.",
     "the_exam_language_has_not_been_verified_e46d7c": "The exam language has not been verified.",
     "this_explanation_language_is_not_supported_9ddcaa": "This explanation language is not supported.",
     "invalid_paired_question_structure_reload_the_pag_8ee835": "Invalid paired-question structure. Reload the page.",
@@ -522,7 +530,8 @@
     "the_request_exceeds_the_size_limit_reload_the_pa_bc5724": "The request exceeds the size limit. Reload the page.",
     "you_cannot_access_hints_for_this_attempt_65ab63": "You cannot access hints for this attempt.",
     "unable_to_connect_to_the_ai_hints_service_please_beb9be": "Unable to connect to the AI hints service. Please try again.",
-    "the_hints_request_timed_out_please_try_again_98758a": "The hints request timed out. Please try again."
+    "the_hints_request_timed_out_please_try_again_98758a": "The hints request timed out. Please try again.",
+    "daily_ai_dictionary_quota_exhausted_hint_8b2a1c": "Daily AI dictionary lookup limit reached. You can continue the test and look up words again tomorrow."
   },
   "errors": {
     "unexpected": "Unable to complete this request. Please try again."

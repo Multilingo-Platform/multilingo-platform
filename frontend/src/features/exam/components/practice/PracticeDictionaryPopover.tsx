@@ -66,8 +66,20 @@ export function PracticeDictionaryPopover({
       )}
       {phase === 'loading' && <p role="status" aria-live="polite">{em("Đang tra nghĩa theo ngữ cảnh bài đọc…")}</p>}
       {phase === 'error' && error && (
-        <div role="alert" className="space-y-3 text-sm text-red-700">
-          <p>{ee(error.message)}</p>
+        <div role="alert" className={`space-y-2 rounded-lg p-3 text-sm ${error.kind === 'quota' ? 'bg-amber-50 text-amber-900 border border-amber-200' : 'text-red-700'}`}>
+          <div className="flex items-start gap-2">
+            {error.kind === 'quota' && (
+              <span className="text-base leading-none select-none" aria-hidden="true">⚠️</span>
+            )}
+            <div className="space-y-1">
+              <p className={error.kind === 'quota' ? 'font-semibold' : ''}>{ee(error.message)}</p>
+              {error.kind === 'quota' && (
+                <p className="text-xs text-amber-800">
+                  {em("Hạn mức tra từ AI trong ngày đã hết. Bạn có thể tiếp tục làm bài và tra từ lại vào ngày mai.")}
+                </p>
+              )}
+            </div>
+          </div>
           {error.retryAfterSeconds !== null && <p>{em("Thử lại sau")}{' '}{error.retryAfterSeconds} {em("giây.")}</p>}
           {error.retryable && <button type="button" onClick={onRetry} className="min-h-11 rounded-lg bg-amber-600 px-3 font-medium text-white">{em("Thử lại")}</button>}
         </div>

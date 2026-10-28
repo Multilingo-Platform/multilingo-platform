@@ -796,7 +796,24 @@ const WorkspacePage: React.FC = () => {
     ? { min: WRITING_SPLIT_MIN, max: WRITING_SPLIT_MAX }
     : DEFAULT_SPLIT_BOUNDS;
 
-  const referenceDocsRendered = readingHighlights.renderedReferences;
+  const referenceDocsRendered = useMemo(() => {
+    return referenceDocs.map((doc) => {
+      const canonicalDoc = workspaceAnnotations.documents.find((d) =>
+        (d.source.kind === 'GROUP_CONTENT' && d.source.groupId === doc.groupId) ||
+        (d.source.kind === 'PART_CONTENT' && doc.groupId === 'part')
+      );
+      if (!canonicalDoc) {
+        const legacy = readingHighlights.renderedReferences.find((r) => r.groupId === doc.groupId);
+        return legacy ?? doc;
+      }
+      return {
+        ...doc,
+        html: canonicalDoc.html ?? doc.html,
+        contentHash: canonicalDoc.contentHash,
+        text: canonicalDoc.text,
+      };
+    });
+  }, [referenceDocs, workspaceAnnotations.documents, readingHighlights.renderedReferences]);
 
   const adjustSplitRatio = (delta: number) => {
     setSplitRatio(prev => Math.min(TOEIC_READING_SPLIT_MAX, Math.max(TOEIC_READING_SPLIT_MIN, prev + delta)));
@@ -1333,7 +1350,7 @@ const WorkspacePage: React.FC = () => {
                   {passageHtml ? (
                     <div
                       data-highlight-scope="part"
-                      data-highlight-hash={readingHighlights.preparedPart?.contentHash}
+                      data-highlight-hash={workspaceAnnotations.documents.find(d => d.source.kind === 'PART_CONTENT')?.contentHash ?? readingHighlights.preparedPart?.contentHash}
                     >
                       <HtmlContent
                         html={readingHighlights.renderedPartHtml}

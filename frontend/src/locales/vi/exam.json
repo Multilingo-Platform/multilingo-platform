@@ -1,5 +1,7 @@
 {
-  "scope": { "singlePart": "Một phần" },
+  "scope": {
+    "singlePart": "Một phần"
+  },
   "language": {
     "source": "Ngôn ngữ đề",
     "explanation": "Ngôn ngữ giải thích",
@@ -21,7 +23,13 @@
     "saveFlashcard": "Lưu Flashcard"
   },
   "selection": {
-    "colors": { "yellow": "Vàng", "green": "Xanh lá", "blue": "Xanh dương", "pink": "Hồng", "purple": "Tím" },
+    "colors": {
+      "yellow": "Vàng",
+      "green": "Xanh lá",
+      "blue": "Xanh dương",
+      "pink": "Hồng",
+      "purple": "Tím"
+    },
     "lookupUnavailable": "Chọn từ hoặc cụm từ hợp lệ, tối đa 80 ký tự; một số ngôn ngữ giới hạn 5 từ."
   },
   "status": {
@@ -465,7 +473,7 @@
     "unable_to_verify_this_passage_select_the_word_ag_f7df75": "Không xác minh được đoạn văn. Hãy chọn lại từ trong bài đọc.",
     "the_ai_dictionary_is_currently_unavailable_b9b77a": "Tra từ AI hiện chưa khả dụng.",
     "unable_to_look_up_this_word_you_can_try_again_c1d12c": "Chưa tra được từ. Bạn có thể thử lại.",
-    "unable_to_look_up_this_selection_select_the_word_f7d947": "Không thể tra từ trong đoạn này. Hãy chọn lại từ trong bài đọc.",
+    "unable_to_look_up_this_selection_select_the_word_f7d947": "Chưa thể tra từ cho vùng chọn này. Vui lòng chọn lại từ hoặc cụm từ trong bài đọc.",
     "the_exam_language_has_not_been_verified_e46d7c": "Ngôn ngữ đề chưa được xác nhận.",
     "this_explanation_language_is_not_supported_9ddcaa": "Ngôn ngữ giải thích không được hỗ trợ.",
     "invalid_paired_question_structure_reload_the_pag_8ee835": "Cấu trúc cặp câu hỏi không hợp lệ. Vui lòng tải lại trang.",
@@ -522,7 +530,8 @@
     "the_request_exceeds_the_size_limit_reload_the_pa_bc5724": "Dung lượng yêu cầu vượt quá giới hạn cho phép. Vui lòng tải lại trang.",
     "you_cannot_access_hints_for_this_attempt_65ab63": "Bạn không có quyền truy cập gợi ý cho bài thi này.",
     "unable_to_connect_to_the_ai_hints_service_please_beb9be": "Không thể kết nối đến dịch vụ gợi ý AI lúc này. Vui lòng thử lại.",
-    "the_hints_request_timed_out_please_try_again_98758a": "Yêu cầu gợi ý đã quá thời gian chờ. Vui lòng thử lại."
+    "the_hints_request_timed_out_please_try_again_98758a": "Yêu cầu gợi ý đã quá thời gian chờ. Vui lòng thử lại.",
+    "daily_ai_dictionary_quota_exhausted_hint_8b2a1c": "Hạn mức tra từ AI trong ngày đã hết. Bạn có thể tiếp tục làm bài và tra từ lại vào ngày mai."
   },
   "errors": {
     "unexpected": "Không thể hoàn tất yêu cầu. Vui lòng thử lại."

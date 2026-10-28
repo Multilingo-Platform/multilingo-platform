@@ -56,12 +56,30 @@ export function useWorkspaceAnnotations({
   }, [currentPart, partId]);
 
   const persistenceDocuments = useMemo<HighlightPersistenceDocument[]>(() => {
-    const current = documents.map((doc) => ({
-      partId: doc.partId,
-      documentId: doc.sourceKey,
-      contentHash: doc.contentHash,
-      text: doc.text,
-    }));
+    const current: HighlightPersistenceDocument[] = [];
+    for (const doc of documents) {
+      current.push({
+        partId: doc.partId,
+        documentId: doc.sourceKey,
+        contentHash: doc.contentHash,
+        text: doc.text,
+      });
+      if (doc.source.kind === 'GROUP_CONTENT' && doc.source.groupId) {
+        current.push({
+          partId: doc.partId,
+          documentId: doc.source.groupId,
+          contentHash: doc.contentHash,
+          text: doc.text,
+        });
+      } else if (doc.source.kind === 'PART_CONTENT') {
+        current.push({
+          partId: doc.partId,
+          documentId: 'part',
+          contentHash: doc.contentHash,
+          text: doc.text,
+        });
+      }
+    }
     return [...current, ...(legacyDocuments ?? [])];
   }, [documents, legacyDocuments]);
 

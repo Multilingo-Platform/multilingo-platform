@@ -79,11 +79,17 @@ function classify(error: unknown): DictionaryLookupFailure {
   const status = response?.status;
   const code = response?.data?.code;
   const retryAfter = Number(response?.headers?.['retry-after']);
-  if (status === 429) return {
-    kind: code === 429 ? 'quota' : 'rate-limited',
-    message: code === 429 ? 'Bạn đã dùng hết lượt tra từ hôm nay.' : 'Vui lòng đợi một chút rồi thử lại.',
-    retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null, retryable: code !== 429,
-  };
+  if (status === 429) {
+    const isQuota = code === 429 || code === '429' || code === 'QUOTA_EXCEEDED' ||
+      String(response?.data?.message ?? '').toLowerCase().includes('hạn mức') ||
+      (!Number.isFinite(retryAfter) && code !== 1617 && code !== '1617');
+    return {
+      kind: isQuota ? 'quota' : 'rate-limited',
+      message: isQuota ? 'Bạn đã dùng hết lượt tra từ hôm nay.' : 'Vui lòng đợi một chút rồi thử lại.',
+      retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+      retryable: !isQuota,
+    };
+  }
   if (status === 403 || status === 404) return { kind: 'access', message: 'Không thể tra từ trong đoạn này.', retryAfterSeconds: null, retryable: false };
   if (status === 409) return { kind: 'ended', message: 'Phiên thi đã thay đổi. Hãy tải lại trước khi tra tiếp.', retryAfterSeconds: null, retryable: false };
   if (status === 422) return { kind: 'context', message: 'Không xác minh được đoạn văn. Hãy chọn lại từ trong bài đọc.', retryAfterSeconds: null, retryable: false };
@@ -163,7 +169,7 @@ export function usePracticeDictionary(options: UsePracticeDictionaryOptions): Pr
     if (!validScope(current, selection, answers)) {
       lastOperation.current = null;
       setState({ phase: 'error', data: null, error: {
-        kind: 'context', message: 'Không thể tra từ trong đoạn này. Hãy chọn lại từ trong bài đọc.',
+        kind: 'context', message: 'Chưa thể tra từ cho vùng chọn này. Vui lòng chọn lại từ hoặc cụm từ trong bài đọc.',
         retryAfterSeconds: null, retryable: false,
       } });
       return;

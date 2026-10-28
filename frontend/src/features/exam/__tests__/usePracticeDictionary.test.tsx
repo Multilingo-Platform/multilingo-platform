@@ -156,6 +156,44 @@ describe('usePracticeDictionary', () => {
     expect(post).not.toHaveBeenCalled();
     expect(hook.result.current.phase).toBe('error');
     expect(hook.result.current.error?.retryable).toBe(false);
+    expect(hook.result.current.error?.message).toBe('Chưa thể tra từ cho vùng chọn này. Vui lòng chọn lại từ hoặc cụm từ trong bài đọc.');
+  });
+
+  it('classifies 429 quota exceeded properly as non-retryable quota error', async () => {
+    post.mockRejectedValueOnce({
+      response: {
+        status: 429,
+        data: { success: false, code: 429, message: 'Đã vượt quá hạn mức sử dụng tính năng' },
+      },
+    });
+    const store = createTestStore({ answers: { ...initialState, attemptId: 42, contextRevision: 1 } });
+    const hook = renderHook(() => usePracticeDictionary({ workspace: workspace(), partId: 7, ownerId: 21, isLocked: () => false }), {
+      wrapper: ({ children }) => <Provider store={store}>{children}</Provider>,
+    });
+    await act(async () => hook.result.current.lookup(selected));
+    expect(hook.result.current.phase).toBe('error');
+    expect(hook.result.current.error?.kind).toBe('quota');
+    expect(hook.result.current.error?.message).toBe('Bạn đã dùng hết lượt tra từ hôm nay.');
+    expect(hook.result.current.error?.retryable).toBe(false);
+  });
+
+  it('classifies 429 rate limited with retry-after header as retryable rate-limited error', async () => {
+    post.mockRejectedValueOnce({
+      response: {
+        status: 429,
+        headers: { 'retry-after': '5' },
+        data: { success: false, code: 1617, message: 'Vui lòng chờ trước khi tra từ tiếp theo' },
+      },
+    });
+    const store = createTestStore({ answers: { ...initialState, attemptId: 42, contextRevision: 1 } });
+    const hook = renderHook(() => usePracticeDictionary({ workspace: workspace(), partId: 7, ownerId: 21, isLocked: () => false }), {
+      wrapper: ({ children }) => <Provider store={store}>{children}</Provider>,
+    });
+    await act(async () => hook.result.current.lookup(selected));
+    expect(hook.result.current.phase).toBe('error');
+    expect(hook.result.current.error?.kind).toBe('rate-limited');
+    expect(hook.result.current.error?.retryAfterSeconds).toBe(5);
+    expect(hook.result.current.error?.retryable).toBe(true);
   });
 
   it('leaves loading at the deadline when the HTTP transport never settles', async () => {
