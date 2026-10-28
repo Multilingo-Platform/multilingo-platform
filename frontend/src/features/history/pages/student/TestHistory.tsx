@@ -1,231 +1,476 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Calendar, Clock, CheckCircle, Target, ArrowRight, BarChart2, Flame, BookOpen } from 'lucide-react';
+import {
+  BarChart2,
+  Search,
+  Calendar,
+  Clock,
+  CheckCircle,
+  RotateCcw,
+  ArrowRight,
+  Play,
+  FileQuestion,
+  Target,
+  Percent,
+} from 'lucide-react';
+import { historyApi } from '../../api/historyApi';
+import type {
+  HistoryStatsResponse,
+  HistoryAttemptItem,
+  PageResponse,
+} from '../../types/history.types';
+import { HistoryKpiCards } from '../../components/HistoryKpiCards';
+import { ScoreTrendChart } from '../../components/ScoreTrendChart';
+import './TestHistory.css';
 
-const mockHistory = [
-  {
-    id: '3',
-    examTitle: 'Cambridge IELTS 18 - Test 1',
-    mode: 'MOCK_TEST',
-    date: '2026-10-01T08:30:00Z',
-    score: 7.5,
-    maxScore: 9.0,
-    duration: '115 phút',
-    status: 'COMPLETED'
-  },
-  {
-    id: 'att-002',
-    examTitle: 'TOEIC ETS 2024 - Test 3 (Reading Part 5)',
-    mode: 'PRACTICE',
-    date: '2026-09-28T14:15:00Z',
-    score: 85,
-    maxScore: 100,
-    duration: '15 phút',
-    status: 'COMPLETED'
-  },
-  {
-    id: 'att-003',
-    examTitle: 'NLTV B1 - Đề thi thử số 1',
-    mode: 'MOCK_TEST',
-    date: '2026-09-25T09:00:00Z',
-    score: 5.5,
-    maxScore: 10.0,
-    duration: '120 phút',
-    status: 'COMPLETED'
-  }
+const CERT_TABS = [
+  { id: 'ALL', label: 'Tất Cả Chứng Chỉ' },
+  { id: 'IELTS', label: 'IELTS' },
+  { id: 'TOEIC', label: 'TOEIC' },
+  { id: 'NLTV', label: 'NLTV' },
 ];
 
-const TestHistory = () => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+const MODE_OPTIONS = [
+  { id: 'ALL', label: 'Tất cả chế độ' },
+  { id: 'MOCK_TEST', label: '📝 Thi thử' },
+  { id: 'PRACTICE', label: '🎯 Luyện tập' },
+];
 
-  const formatDate = (dateString: string) => {
-    const d = new Date(dateString);
-    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const STATUS_OPTIONS = [
+  { id: 'ALL', label: 'Tất cả trạng thái' },
+  { id: 'COMPLETED', label: '✓ Hoàn thành' },
+  { id: 'IN_PROGRESS', label: '⏳ Đang làm dở' },
+  { id: 'GRADING_FAILED', label: '⚠️ Lỗi chấm' },
+];
+
+const TestHistory: React.FC = () => {
+  const navigate = useNavigate();
+
+  // Stats state
+  const [stats, setStats] = useState<HistoryStatsResponse | null>(null);
+  const [statsLoading, setStatsLoading] = useState<boolean>(true);
+
+  // History list state
+  const [historyData, setHistoryData] = useState<PageResponse<HistoryAttemptItem> | null>(null);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(true);
+
+  // Filters state
+  const [cert, setCert] = useState<string>('ALL');
+  const [mode, setMode] = useState<string>('ALL');
+  const [status, setStatus] = useState<string>('ALL');
+  const [search, setSearch] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [sort, setSort] = useState<string>('newest');
+  const [page, setPage] = useState<number>(0);
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Load KPI stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const res = await historyApi.getStats();
+        if (res.code === 200 && res.data) {
+          setStats(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load history stats:', err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Load paginated history list
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        setHistoryLoading(true);
+        const res = await historyApi.getHistory({
+          cert: cert !== 'ALL' ? cert : undefined,
+          mode: mode !== 'ALL' ? mode : undefined,
+          status: status !== 'ALL' ? status : undefined,
+          search: debouncedSearch.trim() || undefined,
+          sort,
+          page,
+          size: 10,
+        });
+
+        if (res.code === 200 && res.data) {
+          setHistoryData(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load history list:', err);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [cert, mode, status, debouncedSearch, sort, page]);
+
+  // Format date helper
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
-  const statCards = [
-    { title: 'Tổng bài đã làm', value: '34', icon: <BookOpen size={32} />, color: 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)' },
-    { title: 'Điểm trung bình', value: '7.5', icon: <Target size={32} />, color: 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' },
-    { title: 'Thời gian luyện tập', value: '42h', icon: <Clock size={32} />, color: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)' },
-    { title: 'Chuỗi ngày học', value: '12', icon: <Flame size={32} />, color: 'linear-gradient(135deg, #ec4899 0%, #e11d48 100%)' },
-  ];
+  // Resolve score circle styling class
+  const getScoreCircleClass = (item: HistoryAttemptItem) => {
+    if (item.status === 'GRADING_FAILED') return 'failed';
+    if (item.status === 'IN_PROGRESS') return 'in-progress';
+    const type = item.examType ? item.examType.toUpperCase() : '';
+    if (type.startsWith('IELTS')) return 'ielts';
+    if (type.startsWith('TOEIC')) return 'toeic';
+    if (type.startsWith('NLTV')) return 'nltv';
+    return 'ielts';
+  };
+
+  // Render score inside circle
+  const renderScoreValue = (item: HistoryAttemptItem) => {
+    if (item.status === 'GRADING_FAILED') {
+      return (
+        <>
+          <span className="history-score-number" style={{ fontSize: '1.25rem' }}>⚠️</span>
+          <span className="history-score-scale">Lỗi chấm</span>
+        </>
+      );
+    }
+
+    if (item.status === 'IN_PROGRESS') {
+      return (
+        <>
+          <span className="history-score-number" style={{ fontSize: '1.25rem' }}>⏳</span>
+          <span className="history-score-scale">Chưa nộp</span>
+        </>
+      );
+    }
+
+    if (item.overallScore === null) {
+      return (
+        <>
+          <span className="history-score-number">—</span>
+          <span className="history-score-scale">/ {item.maxScore}</span>
+        </>
+      );
+    }
+
+    const type = item.examType ? item.examType.toUpperCase() : '';
+    if (type.startsWith('NLTV')) {
+      return (
+        <>
+          <span className="history-score-number">{item.overallScore}</span>
+          <span className="history-score-scale">Bậc / {item.maxScore}</span>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <span className="history-score-number">{item.overallScore}</span>
+        <span className="history-score-scale">/ {item.maxScore}</span>
+      </>
+    );
+  };
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-secondary)', minHeight: '100vh', paddingBottom: '4rem' }}>
-      {/* Top Banner / Dashboard */}
-      <div style={{ background: 'var(--bg-primary)', padding: '2rem 0 3rem', borderBottom: '1px solid var(--border-light)' }}>
-        <div className="container" style={{ maxWidth: '1100px' }}>
-          <div style={{ marginBottom: '2rem' }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <BarChart2 size={32} color="var(--primary)" /> Báo Cáo Học Tập
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
-              Theo dõi tiến trình, đánh giá năng lực và chinh phục mục tiêu của bạn.
-            </p>
+    <div className="history-page-root">
+      {/* 1. Hero Banner */}
+      <section className="history-hero">
+        <div className="history-hero-decor" />
+        <div className="history-hero-container">
+          <div className="history-hero-badge">
+            <BarChart2 size={16} /> Báo Cáo Học Tập & Lịch Sử
           </div>
+          <h1 className="history-hero-title">
+            Hành Trình Chinh Phục Mục Tiêu
+          </h1>
+          <p className="history-hero-desc">
+            Theo dõi sự tiến bộ, đánh giá điểm mạnh - điểm yếu và duy trì chuỗi học tập đều đặn mỗi ngày.
+          </p>
+        </div>
+      </section>
 
-          {/* Stats Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-            {statCards.map((stat, idx) => (
-              <div key={idx} className="ed-card" style={{
-                background: stat.color,
-                color: 'white',
-                padding: '1.5rem',
-                border: 'none',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{ position: 'absolute', right: '-15px', top: '-10px', opacity: 0.2, transform: 'scale(2.5)' }}>
-                  {stat.icon}
-                </div>
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>{stat.title}</div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>{stat.value}</div>
-                </div>
-              </div>
+      {/* 2. Main Container */}
+      <main className="history-main-container">
+        {/* KPI Cards */}
+        <HistoryKpiCards stats={stats} loading={statsLoading} />
+
+        {/* Score Trend Chart */}
+        <ScoreTrendChart
+          trends={stats?.recentScoreTrends || []}
+          loading={statsLoading}
+        />
+
+        {/* Filter & Search Panel */}
+        <div className="history-filter-panel">
+          {/* Certificate Tabs */}
+          <div className="history-tabs-bar">
+            {CERT_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                className={`history-tab-btn ${cert === tab.id ? 'active' : ''}`}
+                onClick={() => {
+                  setCert(tab.id);
+                  setPage(0);
+                }}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
-        </div>
-      </div>
 
-      <div className="container" style={{ maxWidth: '1100px', marginTop: '2rem' }}>
-        <div className="flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Lịch sử làm bài gần đây</h2>
+          {/* Controls Row: Mode, Status, Search & Sort */}
+          <div className="history-filter-controls-row">
+            {/* Mode & Status Chips */}
+            <div className="history-chips-group">
+              {MODE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  className={`history-filter-chip ${mode === opt.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setMode(opt.id);
+                    setPage(0);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
 
-          <div className="flex-center" style={{ gap: '1rem' }}>
-            <div style={{ position: 'relative', width: '280px' }}>
-              <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder="Tìm tên đề thi..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 1rem 0.6rem 2.5rem',
-                  borderRadius: 'var(--radius-full)',
-                  border: '1px solid var(--border-light)',
-                  background: 'var(--bg-primary)',
-                  outline: 'none',
-                  fontSize: '0.95rem'
-                }}
-              />
+              <span style={{ color: '#cbd5e1', margin: '0 0.25rem' }}>|</span>
+
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  className={`history-filter-chip status-chip ${status === opt.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setStatus(opt.id);
+                    setPage(0);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
-            <button className="btn btn-outline flex-center" style={{ gap: '0.5rem', borderRadius: 'var(--radius-full)', padding: '0.6rem 1.2rem' }}>
-              <Filter size={16} /> Lọc
-            </button>
+
+            {/* Search and Sort */}
+            <div className="history-search-sort-group">
+              <div className="history-search-wrap">
+                <Search size={16} className="history-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo tên đề thi..."
+                  className="history-search-input"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <select
+                className="history-sort-select"
+                value={sort}
+                onChange={(e) => {
+                  setSort(e.target.value);
+                  setPage(0);
+                }}
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="highestScore">Điểm cao nhất</option>
+                <option value="duration">Thời gian lâu nhất</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {mockHistory.map((item) => (
-            <div
-              key={item.id}
-              className="ed-card"
-              style={{
-                display: 'flex',
-                gap: '1.5rem',
-                alignItems: 'center',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: hoveredId === item.id ? 'translateY(-4px)' : 'none',
-                boxShadow: hoveredId === item.id ? '0 10px 15px -3px rgba(0,0,0,0.05)' : 'var(--shadow-sm)',
-                border: hoveredId === item.id ? '1px solid var(--primary)' : '1px solid var(--border-light)',
-                padding: '1.25rem 1.5rem',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={() => setHoveredId(item.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              onClick={() => navigate(`/attempts/${item.id}/result`)}
-            >
-              {/* Score Box */}
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                background: item.score >= (item.maxScore * 0.8) ? 'var(--success-light)' : item.score >= (item.maxScore * 0.5) ? 'var(--warning-light)' : 'var(--danger-light)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: `3px solid ${item.score >= (item.maxScore * 0.8) ? 'var(--success)' : item.score >= (item.maxScore * 0.5) ? 'var(--warning)' : 'var(--danger)'}`,
-                flexShrink: 0
-              }}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: item.score >= (item.maxScore * 0.8) ? 'var(--success-dark)' : item.score >= (item.maxScore * 0.5) ? 'var(--warning-dark)' : 'var(--danger-dark)', lineHeight: 1 }}>
-                  {item.score}
-                </span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  / {item.maxScore}
-                </span>
-              </div>
-
-              {/* Content */}
-              <div style={{ flex: 1 }}>
-                <div className="flex-center" style={{ gap: '0.75rem', marginBottom: '0.4rem' }}>
-                  <span style={{
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    background: item.mode === 'MOCK_TEST' ? 'var(--primary)' : 'var(--success)',
-                    color: 'white',
-                    letterSpacing: '0.5px'
-                  }}>
-                    {item.mode === 'MOCK_TEST' ? 'Thi thử' : 'Luyện tập'}
-                  </span>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }} className="flex-center">
-                    <Calendar size={14} style={{ marginRight: '6px' }} color="var(--text-muted)" /> {formatDate(item.date)}
-                  </span>
-                </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  {item.examTitle}
-                </h3>
-                <div className="flex-center" style={{ gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>
-                  <div className="flex-center" style={{ gap: '0.4rem' }}>
-                    <Clock size={16} color="var(--text-muted)" /> {item.duration}
-                  </div>
-                  <div className="flex-center" style={{ gap: '0.4rem' }}>
-                    <CheckCircle size={16} color="var(--success)" /> Hoàn thành
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div className="flex-center" style={{ paddingLeft: '1.5rem' }}>
-                <div
-                  className="flex-center"
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: hoveredId === item.id ? 'var(--primary)' : 'var(--bg-tertiary)',
-                    color: hoveredId === item.id ? 'white' : 'var(--text-secondary)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <ArrowRight size={20} />
-                </div>
-              </div>
+        {/* Attempt Cards List */}
+        <div className="history-list-section">
+          {historyLoading ? (
+            <div style={{ textAlign: 'center', padding: '3rem 0', color: '#64748b' }}>
+              <div className="history-kpi-skeleton" style={{ width: '100%', height: '100px', marginBottom: '1rem' }} />
+              <div className="history-kpi-skeleton" style={{ width: '100%', height: '100px' }} />
             </div>
-          ))}
+          ) : historyData && historyData.items.length > 0 ? (
+            historyData.items.map((item) => (
+              <div key={item.attemptId} className="history-attempt-card">
+                {/* Score Circle */}
+                <div className={`history-score-circle ${getScoreCircleClass(item)}`}>
+                  {renderScoreValue(item)}
+                </div>
 
-          {mockHistory.length === 0 && (
-            <div className="ed-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-              <Target size={48} color="var(--border-light)" style={{ margin: '0 auto 1rem' }} />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>Chưa có lịch sử làm bài</h3>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
-                Bạn chưa hoàn thành bất kỳ bài thi hay luyện tập nào.
+                {/* Card Body */}
+                <div className="history-card-body">
+                  <div className="history-card-meta-row">
+                    <span className={`history-badge ${item.testMode === 'MOCK_TEST' ? 'mock' : 'practice'}`}>
+                      {item.testMode === 'MOCK_TEST' ? 'Thi thử' : 'Luyện tập'}
+                    </span>
+
+                    {item.status === 'COMPLETED' ? (
+                      <span className="history-badge completed">✓ Hoàn thành</span>
+                    ) : item.status === 'GRADING_FAILED' ? (
+                      <span className="history-badge failed">⚠️ Lỗi chấm</span>
+                    ) : item.status === 'AI_GRADING' || item.status === 'AI_GRADING_QUEUED' || item.status === 'SUBMITTED' ? (
+                      <span className="history-badge grading">🤖 Đang chấm</span>
+                    ) : (
+                      <span className="history-badge in-progress">⏳ Đang làm dở</span>
+                    )}
+
+                    {item.isExamDeleted && (
+                      <span className="history-badge deleted-exam" title="Đề thi này không còn trong thư viện đề thi">
+                        Đã ngừng phát hành
+                      </span>
+                    )}
+
+                    {item.targetAchieved && (
+                      <span className="history-badge target-met">
+                        <Target size={12} /> Đạt mục tiêu
+                      </span>
+                    )}
+
+                    <span className="history-card-date">
+                      <Calendar size={14} /> {formatDate(item.startTime)}
+                    </span>
+                  </div>
+
+                  <h3 className="history-card-title" title={item.examTitle}>
+                    {item.examTitle}
+                  </h3>
+
+                  <div className="history-card-details-row">
+                    <span className="history-detail-item">
+                      <Clock size={15} /> {item.durationMinutes} phút
+                    </span>
+
+                    {item.accuracyPercentage !== null && (
+                      <span className="history-detail-item">
+                        <Percent size={15} /> Chính xác: {item.accuracyPercentage}%
+                      </span>
+                    )}
+
+                    {item.status === 'COMPLETED' && (
+                      <span className="history-detail-item" style={{ color: '#059669' }}>
+                        <CheckCircle size={15} /> Đã nộp bài
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Actions */}
+                <div className="history-card-actions">
+                  {!item.isExamDeleted ? (
+                    <button
+                      className="history-action-btn secondary"
+                      onClick={() => navigate(`/student/exam/${item.examId}`)}
+                      title="Làm lại đề thi này"
+                    >
+                      <RotateCcw size={15} /> Làm lại
+                    </button>
+                  ) : (
+                    <button
+                      className="history-action-btn secondary disabled"
+                      disabled
+                      style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                      title="Đề thi này đã ngừng phát hành"
+                    >
+                      <RotateCcw size={15} /> Đã ngừng
+                    </button>
+                  )}
+
+                  {item.status === 'COMPLETED' || item.status === 'GRADING_FAILED' ? (
+                    <button
+                      className="history-action-btn primary"
+                      onClick={() => navigate(`/attempts/${item.attemptId}/result`)}
+                    >
+                      Xem chi tiết <ArrowRight size={15} />
+                    </button>
+                  ) : item.isExamDeleted ? (
+                    <button
+                      className="history-action-btn primary disabled"
+                      disabled
+                      style={{ opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' }}
+                      title="Đề thi đã bị gỡ bỏ"
+                    >
+                      Không khả dụng
+                    </button>
+                  ) : (
+                    <button
+                      className="history-action-btn primary"
+                      style={{ background: '#d97706' }}
+                      onClick={() => navigate(`/attempts/${item.attemptId}/workspace`)}
+                    >
+                      Tiếp tục <Play size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            /* Empty State */
+            <div className="history-empty-card">
+              <FileQuestion size={54} className="history-empty-icon" />
+              <h3 className="history-empty-title">Chưa tìm thấy lượt thi nào</h3>
+              <p className="history-empty-desc">
+                {debouncedSearch || cert !== 'ALL' || mode !== 'ALL' || status !== 'ALL'
+                  ? 'Không có kết quả nào phù hợp với bộ lọc hiện tại. Bạn hãy thử thay đổi tiêu chí tìm kiếm.'
+                  : 'Bạn chưa thực hiện bài thi hay luyện tập nào. Hãy khám phá kho đề thi chuẩn quốc tế và bắt đầu ngay!'}
               </p>
-              <button className="btn btn-primary" onClick={() => navigate('/student/library')} style={{ borderRadius: 'var(--radius-full)', padding: '0.75rem 2rem' }}>
+              <button
+                className="history-action-btn primary"
+                style={{ margin: '0 auto', padding: '0.75rem 2rem' }}
+                onClick={() => navigate('/student/library')}
+              >
                 Khám phá Thư viện Đề thi
               </button>
             </div>
           )}
         </div>
-      </div>
+
+        {/* Pagination Controls */}
+        {historyData && historyData.totalPages > 1 && (
+          <div className="history-pagination">
+            <button
+              className="history-page-btn"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              ← Trang trước
+            </button>
+
+            {Array.from({ length: historyData.totalPages }, (_, i) => i).map((p) => (
+              <button
+                key={p}
+                className={`history-page-btn ${page === p ? 'active' : ''}`}
+                onClick={() => setPage(p)}
+              >
+                {p + 1}
+              </button>
+            ))}
+
+            <button
+              className="history-page-btn"
+              disabled={page >= historyData.totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Trang sau →
+            </button>
+          </div>
+        )}
+      </main>
     </div>
   );
 };

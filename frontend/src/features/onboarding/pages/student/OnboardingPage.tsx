@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useDispatch } from 'react-redux';
 import { OnboardingStepIndicator } from '../../components/OnboardingStepIndicator';
 import { Step1LanguageSelect } from '../../components/Step1LanguageSelect';
 import { Step2CertificateGoal } from '../../components/Step2CertificateGoal';
 import { Step4RoadmapSummary } from '../../components/Step4RoadmapSummary';
 import { onboardingApi } from '../../api/onboardingApi';
-import type { OnboardingData, TargetCertificate } from '../../types';
+import type { OnboardingData, TargetCertificate, LearnerLevel } from '../../types';
 import { alertUtil } from '../../../../utils/alert';
+import { updateUser } from '../../../auth/store/authSlice';
 import '../../components/Onboarding.css';
 
 const STEP_TITLES = [
@@ -18,6 +21,11 @@ const STEP_TITLES = [
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('mode') === 'edit';
+
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [checkingStatus, setCheckingStatus] = useState<boolean>(true);
@@ -42,8 +50,21 @@ const OnboardingPage: React.FC = () => {
         }
 
         const res = await onboardingApi.getStatus();
-        if (isMounted && res.data?.hasCompletedOnboarding) {
-          navigate('/student/dashboard');
+        if (isMounted) {
+          if (res.data) {
+            setFormData((prev) => ({
+              nativeLanguage: res.data.nativeLanguage || prev.nativeLanguage,
+              targetLanguage: res.data.targetLanguage || prev.targetLanguage,
+              targetCertificate: (res.data.targetCertificate as TargetCertificate) || prev.targetCertificate,
+              targetScore: res.data.targetScore ?? prev.targetScore,
+              dailyMinutes: res.data.dailyMinutes ?? prev.dailyMinutes,
+              currentLevel: (res.data.currentLevel as LearnerLevel) || prev.currentLevel,
+            }));
+          }
+
+          if (res.data?.hasCompletedOnboarding && !isEditMode) {
+            navigate('/student/dashboard');
+          }
         }
       } catch (err) {
         // If unauthenticated or token expired, redirect to login
@@ -59,7 +80,7 @@ const OnboardingPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [navigate]);
+  }, [navigate, isEditMode]);
 
   const handleNext = () => {
     if (currentStep === 1) {
@@ -84,8 +105,35 @@ const OnboardingPage: React.FC = () => {
     try {
       const res = await onboardingApi.submitOnboarding(formData);
       if (res.code === 200 || res.data) {
-        alertUtil.toast('Thiết lập mục tiêu học tập thành công!', 'success');
-        navigate('/student/library');
+        alertUtil.toast(
+          isEditMode ? 'Cập nhật mục tiêu học tập thành công!' : 'Thiết lập mục tiêu học tập thành công!',
+          'success'
+        );
+
+        // Invalidate react-query caches so dashboard and exam library refresh immediately
+        await queryClient.invalidateQueries({ queryKey: ['student-dashboard'] });
+        await queryClient.invalidateQueries({ queryKey: ['student-dashboard-streak'] });
+        await queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
+        await queryClient.invalidateQueries({ queryKey: ['myInfo'] });
+
+        // Synchronize Redux auth state
+        const currentUserStr = localStorage.getItem('user');
+        if (currentUserStr && res.data) {
+          try {
+            const parsed = JSON.parse(currentUserStr);
+            const updated = {
+              ...parsed,
+              hasCompletedOnboarding: true,
+              nativeLanguage: res.data.nativeLanguage,
+              targetLanguage: res.data.targetLanguage,
+            };
+            dispatch(updateUser(updated));
+          } catch (e) {
+            // ignore JSON parse error
+          }
+        }
+
+        navigate('/student/dashboard');
       } else {
         alertUtil.toast(res.message || 'Thiết lập không thành công', 'error');
       }
@@ -175,12 +223,12 @@ const OnboardingPage: React.FC = () => {
               {submitting ? (
                 <>
                   <Loader2 className="animate-spin" size={18} />
-                  <span>Đang khởi tạo...</span>
+                  <span>{isEditMode ? 'Đang cập nhật...' : 'Đang khởi tạo...'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles size={18} />
-                  <span>Bắt đầu hành trình học</span>
+                  <span>{isEditMode ? 'Cập nhật mục tiêu' : 'Bắt đầu hành trình học'}</span>
                 </>
               )}
             </button>

@@ -10,7 +10,7 @@ const ExamLibrary = () => {
     { id: 'cam-18-2', title: 'Cambridge IELTS 18 - Test 2', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 980 },
     { id: 'cam-18-3', title: 'Cambridge IELTS 18 - Test 3', type: 'IELTS', level: 'Academic', time: '180 phút', joins: 1100 },
     { id: 'toeic-ets-2023', title: 'TOEIC ETS 2023 - Test 1', type: 'TOEIC', level: 'General', time: '120 phút', joins: 3450 },
-    { id: 'vstep-b1', title: 'VSTEP B1 - Đề số 1', type: 'VNLTV', level: 'B1', time: '135 phút', joins: 540 },
+    { id: 'nltv-b1', title: 'NLTV B1 - Đề số 1', type: 'NLTV', level: 'B1', time: '135 phút', joins: 540 },
   ];
 
   return (
@@ -43,7 +43,7 @@ const ExamLibrary = () => {
                   <input type="checkbox" /> TOEIC
                 </label>
                 <label className="flex-center" style={{ justifyContent: 'flex-start', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input type="checkbox" /> VSTEP
+                  <input type="checkbox" /> NLTV
                 </label>
               </div>
             </div>

@@ -16,9 +16,9 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import axiosClient from '../../../../core/api/axiosClient';
 import { onboardingApi } from '../../../onboarding/api/onboardingApi';
-import type { OnboardingStatusResponse } from '../../../onboarding/types';
 import './ExamLibrary.css';
 
 export interface ExamItem {
@@ -69,6 +69,52 @@ const CERT_LABELS_MAP: Record<string, string> = {
   NLTV: 'Năng Lực Tiếng Việt (NLTV)',
 };
 
+export const getTargetCertCategory = (targetCert?: string | null): 'IELTS' | 'TOEIC_LR' | 'TOEIC_WRITING' | 'NLTV' | '' => {
+  if (!targetCert) return '';
+  const upper = targetCert.toUpperCase();
+  if (upper.startsWith('IELTS')) return 'IELTS';
+  if (upper === 'TOEIC_WRITING' || upper === 'TW') return 'TOEIC_WRITING';
+  if (upper.startsWith('TOEIC')) return 'TOEIC_LR';
+  if (upper.startsWith('NLTV')) return 'NLTV';
+  return '';
+};
+
+export const isExamMatchingTargetCert = (examType: string, targetCert?: string | null): boolean => {
+  if (!examType || !targetCert) return false;
+  const category = getTargetCertCategory(targetCert);
+  const typeUpper = examType.toUpperCase();
+
+  if (category === 'IELTS') {
+    return typeUpper.startsWith('IELTS');
+  }
+  if (category === 'TOEIC_LR') {
+    return (typeUpper.startsWith('TOEIC') && !typeUpper.includes('WRITING')) || typeUpper.startsWith('TOEIC_P');
+  }
+  if (category === 'TOEIC_WRITING') {
+    return typeUpper.includes('TOEIC_WRITING') || typeUpper.startsWith('TW');
+  }
+  if (category === 'NLTV') {
+    return typeUpper.startsWith('NLTV');
+  }
+  return false;
+};
+
+export const isSameLanguage = (examLang?: string | null, targetLang?: string | null): boolean => {
+  if (!examLang || !targetLang) return true;
+  const cleanExam = examLang.trim().toLowerCase();
+  const cleanTarget = targetLang.trim().toLowerCase();
+
+  const normExam = (cleanExam === 'english' || cleanExam.startsWith('en')) ? 'en'
+    : (cleanExam === 'vietnamese' || cleanExam.startsWith('vi')) ? 'vi'
+    : cleanExam.split('-')[0];
+
+  const normTarget = (cleanTarget === 'english' || cleanTarget.startsWith('en')) ? 'en'
+    : (cleanTarget === 'vietnamese' || cleanTarget.startsWith('vi')) ? 'vi'
+    : cleanTarget.split('-')[0];
+
+  return normExam === normTarget;
+};
+
 const ExamLibrary: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -77,8 +123,17 @@ const ExamLibrary: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // User target from onboarding via React Query
+  const { data: onboardingRes } = useQuery({
+    queryKey: ['onboarding-status'],
+    queryFn: onboardingApi.getStatus,
+    staleTime: 60 * 1000,
+  });
+  const userTarget = onboardingRes?.data;
+  const hasOnboarded = Boolean(userTarget?.hasCompletedOnboarding && userTarget?.targetCertificate);
+
   // Filter States
-  const [activeTab, setActiveTab] = useState<string>('ALL');
+  const [activeTab, setActiveTab] = useState<string>('RECOMMENDED');
   const [selectedSkill, setSelectedSkill] = useState<string>('');
   const [selectedAttemptStatus, setSelectedAttemptStatus] = useState<string>('ALL');
   const [sortParam, setSortParam] = useState('createdAt');
@@ -88,55 +143,65 @@ const ExamLibrary: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // User target from onboarding
-  const [userTarget, setUserTarget] = useState<OnboardingStatusResponse | null>(null);
+  // Target certificate category
+  const targetCategory = useMemo(() => {
+    return getTargetCertCategory(userTarget?.targetCertificate);
+  }, [userTarget]);
 
-  // Check onboarding target on mount
+  // Target language from onboarding or derived from certificate
+  const userTargetLanguage = useMemo(() => {
+    if (userTarget?.targetLanguage) return userTarget.targetLanguage.toLowerCase();
+    if (targetCategory === 'NLTV') return 'vi';
+    if (targetCategory === 'IELTS' || targetCategory === 'TOEIC_LR' || targetCategory === 'TOEIC_WRITING') return 'en';
+    return '';
+  }, [userTarget, targetCategory]);
+
+  // Dynamic tabs filtered by user's target language
+  const visibleTabs = useMemo(() => {
+    if (!userTargetLanguage) return CERT_TABS;
+    const isEn = isSameLanguage(userTargetLanguage, 'en');
+    const isVi = isSameLanguage(userTargetLanguage, 'vi');
+    return CERT_TABS.filter(tab => {
+      if (tab.id === 'RECOMMENDED' || tab.id === 'ALL') return true;
+      if (tab.id === 'NLTV') return isVi;
+      if (tab.id === 'IELTS' || tab.id === 'TOEIC') return isEn;
+      return true;
+    });
+  }, [userTargetLanguage]);
+
+  // Sync activeTab if user has not completed onboarding or tab not visible
   useEffect(() => {
-    let isMounted = true;
-    const fetchTarget = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const res = await onboardingApi.getStatus();
-          if (isMounted && res.data?.hasCompletedOnboarding) {
-            setUserTarget(res.data);
-            setActiveTab('RECOMMENDED');
-          }
-        }
-      } catch (e) {
-        // Guest user or unauthenticated
-      }
-    };
-    fetchTarget();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    if (onboardingRes !== undefined && !hasOnboarded && activeTab === 'RECOMMENDED') {
+      setActiveTab('ALL');
+    } else if (visibleTabs.length > 0 && !visibleTabs.some(t => t.id === activeTab)) {
+      setActiveTab('RECOMMENDED');
+    }
+  }, [onboardingRes, hasOnboarded, visibleTabs, activeTab]);
 
   // Determine current active certificate
   const currentCert = useMemo(() => {
-    if (activeTab === 'RECOMMENDED' && userTarget) {
-      if (userTarget.targetCertificate?.startsWith('IELTS')) return 'IELTS';
-      if (userTarget.targetCertificate?.startsWith('TOEIC')) return 'TOEIC';
-      if (userTarget.targetCertificate === 'NLTV') return 'NLTV';
+    if (activeTab === 'RECOMMENDED') {
+      if (targetCategory === 'IELTS') return 'IELTS';
+      if (targetCategory === 'TOEIC_LR') return 'TOEIC_LR';
+      if (targetCategory === 'TOEIC_WRITING') return 'TOEIC_WRITING';
+      if (targetCategory === 'NLTV') return 'NLTV';
       return '';
     }
     if (activeTab !== 'ALL' && activeTab !== 'RECOMMENDED') {
       return activeTab;
     }
     return '';
-  }, [activeTab, userTarget]);
+  }, [activeTab, targetCategory]);
 
-  const fetchExams = useCallback(async (currentPage = page) => {
+  const fetchExams = useCallback(async (targetPage: number) => {
     try {
       setLoading(true);
-      const params: any = { page: currentPage, size: 12, sort: sortParam };
+      const params: any = { page: targetPage, size: 12, sort: sortParam };
       if (searchTerm.trim()) params.search = searchTerm.trim();
 
-      // Language filter if recommended
-      if (activeTab === 'RECOMMENDED' && userTarget?.targetLanguage) {
-        params.examLanguage = userTarget.targetLanguage;
+      // Luôn lọc theo ngôn ngữ mục tiêu của người dùng để loại bỏ các đề không cùng ngôn ngữ
+      if (userTargetLanguage) {
+        params.examLanguage = userTargetLanguage;
       }
 
       let typesToFetch: string[] = [];
@@ -150,6 +215,20 @@ const ExamLibrary: React.FC = () => {
               typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_READING', 'IELTS_R1', 'IELTS_R2', 'IELTS_R3'];
             } else if (selectedSkill === 'WRITING') {
               typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_WRITING', 'IELTS_W1', 'IELTS_W2'];
+            }
+          } else if (currentCert === 'TOEIC_LR') {
+            if (selectedSkill === 'LISTENING') {
+              typesToFetch = ['TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
+            } else if (selectedSkill === 'READING') {
+              typesToFetch = ['TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
+            } else if (selectedSkill === 'WRITING') {
+              typesToFetch = ['__NONE__'];
+            }
+          } else if (currentCert === 'TOEIC_WRITING') {
+            if (selectedSkill === 'WRITING') {
+              typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+            } else {
+              typesToFetch = ['__NONE__'];
             }
           } else if (currentCert === 'TOEIC') {
             if (selectedSkill === 'LISTENING') {
@@ -172,6 +251,10 @@ const ExamLibrary: React.FC = () => {
           // No skill selected -> show all exams for this cert
           if (currentCert === 'IELTS') {
             typesToFetch = ['IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS', 'IELTS_LISTENING', 'IELTS_READING', 'IELTS_WRITING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4', 'IELTS_R1', 'IELTS_R2', 'IELTS_R3', 'IELTS_W1', 'IELTS_W2'];
+          } else if (currentCert === 'TOEIC_LR') {
+            typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
+          } else if (currentCert === 'TOEIC_WRITING') {
+            typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
           } else if (currentCert === 'TOEIC') {
             typesToFetch = ['TOEIC_LR', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2'];
           } else if (currentCert === 'NLTV') {
@@ -218,9 +301,10 @@ const ExamLibrary: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, sortParam, searchTerm, activeTab, userTarget, currentCert, selectedSkill]);
+  }, [sortParam, searchTerm, activeTab, userTarget, currentCert, selectedSkill, userTargetLanguage]);
 
   useEffect(() => {
+    setPage(0);
     fetchExams(0);
   }, [fetchExams]);
 
@@ -237,20 +321,36 @@ const ExamLibrary: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearchTerm('');
-    setActiveTab(userTarget ? 'RECOMMENDED' : 'ALL');
+    setActiveTab(hasOnboarded ? 'RECOMMENDED' : 'ALL');
     setSelectedSkill('');
     setSelectedAttemptStatus('ALL');
     setSortParam('createdAt');
     setPage(0);
   };
 
-  // Filter exams by attempt status client-side
+  // Filter exams client-side: enforce target language, target certificate, and attempt status
   const displayedExams = useMemo(() => {
-    if (selectedAttemptStatus === 'ALL') return exams;
-    if (selectedAttemptStatus === 'ATTEMPTED') return exams.filter(e => e.isAttempted === true);
-    if (selectedAttemptStatus === 'UNATTEMPTED') return exams.filter(e => !e.isAttempted);
-    return exams;
-  }, [exams, selectedAttemptStatus]);
+    let list = exams;
+
+    // 1. Loại bỏ các đề không cùng ngôn ngữ mục tiêu của học viên
+    if (userTargetLanguage) {
+      list = list.filter(e => isSameLanguage(e.examLanguage, userTargetLanguage));
+    }
+
+    // 2. Nếu ở tab Dành Cho Bạn: lọc chặt chẽ chỉ lấy đề khớp chính xác loại chứng chỉ mục tiêu
+    if (activeTab === 'RECOMMENDED' && userTarget?.targetCertificate) {
+      list = list.filter(e => isExamMatchingTargetCert(e.type, userTarget.targetCertificate));
+    }
+
+    // 3. Lọc theo trạng thái làm bài (đã làm / chưa làm)
+    if (selectedAttemptStatus === 'ATTEMPTED') {
+      list = list.filter(e => e.isAttempted === true);
+    } else if (selectedAttemptStatus === 'UNATTEMPTED') {
+      list = list.filter(e => !e.isAttempted);
+    }
+
+    return list;
+  }, [exams, userTargetLanguage, activeTab, userTarget, selectedAttemptStatus]);
 
   const formatScore = (score: number | null | undefined, type: string) => {
     if (score === null || score === undefined) return '';
@@ -274,14 +374,14 @@ const ExamLibrary: React.FC = () => {
     return 'EXAM';
   };
 
-  const isMatchUserTarget = (examType: string) => {
-    if (!userTarget?.targetCertificate) return false;
-    const cert = userTarget.targetCertificate;
-    if (cert.startsWith('IELTS') && examType.startsWith('IELTS')) return true;
-    if (cert.startsWith('TOEIC') && examType.startsWith('TOEIC')) return true;
-    if (cert === 'NLTV' && examType.startsWith('NLTV')) return true;
-    return false;
-  };
+  const isMatchUserTarget = useCallback((exam: ExamItem) => {
+    const isTargetCert = isExamMatchingTargetCert(exam.type, userTarget?.targetCertificate);
+    if (!isTargetCert) return false;
+    if (userTargetLanguage && exam.examLanguage) {
+      return isSameLanguage(exam.examLanguage, userTargetLanguage);
+    }
+    return true;
+  }, [userTarget, userTargetLanguage]);
 
   return (
     <div className="exam-library-container">
@@ -307,7 +407,7 @@ const ExamLibrary: React.FC = () => {
           </p>
 
           {/* User Target Banner if completed onboarding */}
-          {userTarget?.hasCompletedOnboarding && userTarget.targetCertificate && (
+          {hasOnboarded && userTarget?.targetCertificate && (
             <div className="exam-library-target-banner">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                 <Sparkles size={16} color="#fde047" />
@@ -318,6 +418,7 @@ const ExamLibrary: React.FC = () => {
                 className="exam-library-target-banner-btn"
                 onClick={() => {
                   setActiveTab('RECOMMENDED');
+                  setSelectedSkill('');
                   setPage(0);
                 }}
               >
@@ -347,10 +448,10 @@ const ExamLibrary: React.FC = () => {
 
       {/* 2. Main Content */}
       <main className="exam-library-main">
-        {/* Certificate Segmented Tabs (Clean: IELTS, TOEIC, NLTV) */}
+        {/* Certificate Segmented Tabs (Clean: IELTS, TOEIC, NLTV filtered by target language) */}
         <div className="exam-library-tabs-bar" role="tablist">
-          {CERT_TABS.map((tab) => {
-            if (tab.id === 'RECOMMENDED' && !userTarget?.hasCompletedOnboarding) {
+          {visibleTabs.map((tab) => {
+            if (tab.id === 'RECOMMENDED' && !hasOnboarded) {
               return null;
             }
             const isActive = activeTab === tab.id;
@@ -487,7 +588,7 @@ const ExamLibrary: React.FC = () => {
             {displayedExams.map((exam) => {
               const gradientBg = getThumbnailGradient(exam.type);
               const watermark = getWatermark(exam.type);
-              const isMatch = isMatchUserTarget(exam.type);
+              const isMatch = isMatchUserTarget(exam);
 
               return (
                 <div
@@ -587,8 +688,9 @@ const ExamLibrary: React.FC = () => {
               type="button"
               disabled={page === 0}
               onClick={() => {
-                setPage((p) => p - 1);
-                fetchExams(page - 1);
+                const prev = page - 1;
+                setPage(prev);
+                fetchExams(prev);
               }}
               className="exam-library-page-btn"
             >
@@ -601,8 +703,9 @@ const ExamLibrary: React.FC = () => {
               type="button"
               disabled={page >= totalPages - 1}
               onClick={() => {
-                setPage((p) => p + 1);
-                fetchExams(page + 1);
+                const next = page + 1;
+                setPage(next);
+                fetchExams(next);
               }}
               className="exam-library-page-btn"
             >

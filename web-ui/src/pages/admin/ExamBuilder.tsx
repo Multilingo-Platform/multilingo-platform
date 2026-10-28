@@ -56,7 +56,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
   const generateId = (prefix: string) => `${prefix}_${Math.random().toString(36).substr(2, 6)}`;
 
   // --- FULL TEMPLATE GENERATORS ---
-  const applyTemplate = (type: 'IELTS' | 'TOEIC' | 'TOEIC_WRITING' | 'VSTEP') => {
+  const applyTemplate = (type: 'IELTS' | 'TOEIC' | 'TOEIC_WRITING' | 'NLTV') => {
     if (parts.length > 0 && !window.confirm(`Áp dụng Template ${type} sẽ xóa toàn bộ nội dung hiện tại. Bạn có chắc chắn?`)) return;
 
     const newParts: ExamPart[] = [];
@@ -162,9 +162,9 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
         { group_id: generateId('group'), instruction: '', content_html: '', questions: [{ question_id: 'q_tw_008', type: 'WRITING_ESSAY', question_text: 'Write an essay...', metadata: { correct_answer: '', explanation: '' } }] }
       ] });
     }
-    else if (type === 'VSTEP') {
-      setExamType('VSTEP');
-      setExamTitle('Đánh giá Năng lực Tiếng Việt (VSTEP)');
+    else if (type === 'NLTV') {
+      setExamType('NLTV');
+      setExamTitle('Đánh giá Năng lực Tiếng Việt (NLTV)');
       
       // Listening
       newParts.push({ part_title: 'Kỹ năng Nghe - Phần 1', instruction: 'Hướng dẫn phần 1', shared_audio: { url: '' }, question_groups: [] });
@@ -313,8 +313,8 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
           <button className="btn btn-outline flex-center" style={{ gap: '0.5rem', padding: '0.6rem 1rem', cursor: 'pointer' }} onClick={() => applyTemplate('TOEIC_WRITING')}>
             <Zap size={16} /> Sườn TOEIC Writing
           </button>
-          <button className="btn badge-orange flex-center" style={{ gap: '0.5rem', padding: '0.6rem 1rem', cursor: 'pointer', border: 'none' }} onClick={() => applyTemplate('VSTEP')}>
-            <Zap size={16} /> Sườn VSTEP
+          <button className="btn badge-orange flex-center" style={{ gap: '0.5rem', padding: '0.6rem 1rem', cursor: 'pointer', border: 'none' }} onClick={() => applyTemplate('NLTV')}>
+            <Zap size={16} /> Sườn NLTV
           </button>
         </div>
       </div>
@@ -331,7 +331,7 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
               <option value="IELTS_ACADEMIC">IELTS Academic</option>
               <option value="TOEIC_LISTENING">TOEIC Listening</option>
               <option value="TOEIC_READING">TOEIC Reading</option>
-              <option value="VSTEP">VSTEP (Tiếng Việt)</option>
+              <option value="NLTV">NLTV (Tiếng Việt)</option>
             </select>
           </div>
         </div>
@@ -379,11 +379,11 @@ const ExamBuilder = ({ onSave, onCancel }: { onSave: (json: string) => void, onC
                     )}
                   </div>
 
-                  {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC VSTEP ĐỌC */}
-                  {(part.part_title.toLowerCase().includes('passage') || (examType === 'VSTEP' && part.part_title.toLowerCase().includes('đọc'))) && (
+                  {/* CHỈ HIỆN BÀI ĐỌC CHUNG NẾU LÀ IELTS READING PASSAGE HOẶC NLTV ĐỌC */}
+                  {(part.part_title.toLowerCase().includes('passage') || (examType === 'NLTV' && part.part_title.toLowerCase().includes('đọc'))) && (
                     <div style={{ marginBottom: '1.5rem' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}><AlignLeft size={14} color="var(--primary)" /> Nội dung Bài Đọc (Shared Reading Passage)</label>
-                      <textarea className="input-field" rows={6} value={part.shared_content_html || ''} onChange={e => updatePart(pIndex, 'shared_content_html', e.target.value)} placeholder="<p>Nhập mã HTML của toàn bộ bài đọc IELTS/VSTEP tại đây...</p>"></textarea>
+                      <textarea className="input-field" rows={6} value={part.shared_content_html || ''} onChange={e => updatePart(pIndex, 'shared_content_html', e.target.value)} placeholder="<p>Nhập mã HTML của toàn bộ bài đọc IELTS/NLTV tại đây...</p>"></textarea>
                     </div>
                   )}
 

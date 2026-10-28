@@ -149,6 +149,29 @@ describe('official exam canonical editor mapping', () => {
       .toMatchObject({ type: 'ESSAY', min_words: 120 });
   });
 
+  it('normalizes NLTV Part 7 passage with dots to canonical (number) ____ markers', () => {
+    const parts: any[] = [
+      {
+        partNumber: 7,
+        part_title: 'Kỹ năng Viết - Phần 1',
+        section_skill_type: 'WRITING',
+        section_duration_minutes: 60,
+        question_groups: [{
+          group_id: 'nltv-p7-g1',
+          content_html: 'Hồ Tây là hồ tự nhiên (1) ................ của thành phố Hà Nội. Nơi có nhiều (2) .................... nổi tiếng.',
+          questions: [
+            { question_id: 'q_001', type: 'FILL_IN_THE_BLANK', question_text: 'Chỗ trống (1)', metadata: { correct_answer: 'lớn nhất' } },
+            { question_id: 'q_002', type: 'FILL_IN_THE_BLANK', question_text: 'Chỗ trống (2)', metadata: { correct_answer: 'thắng cảnh' } },
+          ],
+        }],
+      },
+    ];
+
+    const saved = toOfficialExamRequest('Đề NLTV', 'NLTV', parts, false);
+    const p7Group = saved.sections[0].parts[0].contentData.question_groups[0];
+    expect(p7Group.content_html).toBe('Hồ Tây là hồ tự nhiên (1) ____ của thành phố Hà Nội. Nơi có nhiều (2) ____ nổi tiếng.');
+  });
+
   it('round-trips IELTS section timing, part content, structured media, paired keys and explanations', () => {
     const request = {
       title: 'Cambridge IELTS 20 Test 1',

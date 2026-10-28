@@ -7,6 +7,9 @@ export interface UserResponse {
   phone: string;
   subscriptionTier: string;
   premiumExpiresAt: string;
+  hasCompletedOnboarding?: boolean;
+  nativeLanguage?: string;
+  targetLanguage?: string;
 }
 
 export interface AuthResponse {

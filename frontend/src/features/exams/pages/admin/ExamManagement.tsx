@@ -89,7 +89,8 @@ const ExamManagement = () => {
         Swal.fire('Lỗi', res.message, 'error');
       }
     } catch (err: any) {
-      Swal.fire('Lỗi', err.message, 'error');
+      const msg = err.response?.data?.message || err.message;
+      Swal.fire('Lỗi', msg, 'error');
     }
   };
 
@@ -105,7 +106,7 @@ const ExamManagement = () => {
       case 'TOEIC_LISTENING': return 'TOEIC Listening';
       case 'TOEIC_READING': return 'TOEIC Reading';
       case 'TOEIC_WRITING': return 'TOEIC Writing';
-      case 'NLTV': return 'Full NLTV (VSTEP)';
+      case 'NLTV': return 'Full NLTV (Năng Lực Tiếng Việt)';
       case 'NLTV_LISTENING': return 'NLTV Nghe';
       case 'NLTV_READING': return 'NLTV Đọc';
       case 'NLTV_WRITING': return 'NLTV Viết';
@@ -247,7 +248,7 @@ const ExamManagement = () => {
                 <option value="TOEIC_WRITING">TOEIC Writing</option>
               </optgroup>
 
-              <optgroup label="NLTV (VSTEP)">
+              <optgroup label="Năng Lực Tiếng Việt (NLTV)">
                 <option value="NLTV_ALL">NLTV</option>
                 <option value="NLTV">Full NLTV</option>
                 <option value="NLTV_LISTENING">NLTV Nghe</option>

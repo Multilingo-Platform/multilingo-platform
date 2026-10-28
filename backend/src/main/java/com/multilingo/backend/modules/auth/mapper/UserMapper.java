@@ -42,5 +42,6 @@ public interface UserMapper {
     @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "lastLoginIp", ignore = true)
     @Mapping(target = "hasCompletedOnboarding", ignore = true)
+    @Mapping(target = "phone", ignore = true)
     void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

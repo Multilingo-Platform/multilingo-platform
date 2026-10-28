@@ -77,7 +77,7 @@ const UserSettings = () => {
                     <select className="input-field">
                       <option>IELTS Academic</option>
                       <option>TOEIC</option>
-                      <option>Đánh giá Năng lực Tiếng Việt (VSTEP)</option>
+                      <option>Đánh giá Năng lực Tiếng Việt (NLTV)</option>
                     </select>
                   </div>
                   <div>

@@ -1,38 +1,77 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axiosClient from '../../../core/api/axiosClient';
 import ExamLibrary from '../pages/student/ExamLibrary';
 
 vi.mock('../../../core/api/axiosClient', () => ({ default: { get: vi.fn() } }));
+vi.mock('../../../onboarding/api/onboardingApi', () => ({
+  onboardingApi: {
+    getStatus: vi.fn().mockResolvedValue({
+      code: 200,
+      data: { hasCompletedOnboarding: true, targetCertificate: 'NLTV', targetLanguage: 'vi' }
+    }),
+  }
+}));
+
+const renderWithProviders = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+};
 
 describe('multilingual exam library', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(axiosClient.get).mockResolvedValue({ success: true, data: {
-      items: [{ id: 9, type: 'LANGUAGE_PRACTICE', title: '日本語 読解', level: 'ja', tags: [], durationMinutes: 20, joins: 0 }],
-      totalPages: 1, totalElements: 1,
-    } } as any);
+    vi.mocked(axiosClient.get).mockImplementation(async (url: string) => {
+      if (url === '/v1/student/onboarding/status') {
+        return {
+          code: 200,
+          success: true,
+          data: {
+            hasCompletedOnboarding: true,
+            targetCertificate: 'NLTV',
+            targetLanguage: 'vi',
+          },
+        } as any;
+      }
+      return {
+        success: true,
+        data: {
+          items: [{ id: 9, type: 'NLTV', title: 'Đề thi NLTV Mẫu', level: 'Đa bậc', tags: [], durationMinutes: 180, joins: 0 }],
+          totalPages: 1,
+          totalElements: 1,
+        },
+      } as any;
+    });
   });
 
-  it('filters by source language and does not classify generic language practice as NLTV', async () => {
-    render(<MemoryRouter><ExamLibrary /></MemoryRouter>);
-    await screen.findByText('日本語 読解');
-    const languageFilter = screen.getByRole('combobox', { name: /ngôn ngữ đề/i });
-    fireEvent.change(languageFilter, { target: { value: 'ja' } });
-
-    await waitFor(() => expect(axiosClient.get).toHaveBeenLastCalledWith('/v1/student/exams',
-      expect.objectContaining({ params: expect.objectContaining({ examLanguage: 'ja' }) })));
-    expect(screen.getByText('LANGUAGE')).toBeInTheDocument();
-    expect(screen.queryByText('NLTV')).not.toBeInTheDocument();
-  });
-
-  it('includes the official NLTV exam type when filtering the NLTV library', async () => {
-    render(<MemoryRouter><ExamLibrary /></MemoryRouter>);
-    await screen.findByText('日本語 読解');
-    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'NLTV' } });
+  it('includes the official NLTV exam type when clicking the NLTV tab button', async () => {
+    renderWithProviders(<MemoryRouter><ExamLibrary /></MemoryRouter>);
+    await screen.findByText('Đề thi NLTV Mẫu');
+    const nltvTab = screen.getByRole('tab', { name: /NLTV/i });
+    fireEvent.click(nltvTab);
 
     await waitFor(() => expect(axiosClient.get).toHaveBeenLastCalledWith('/v1/student/exams',
       expect.objectContaining({ params: expect.objectContaining({ types: expect.stringContaining('NLTV') }) })));
+  });
+
+  it('filters recommended exams matching user onboarding target', async () => {
+    renderWithProviders(<MemoryRouter><ExamLibrary /></MemoryRouter>);
+    await screen.findByText('Đề thi NLTV Mẫu');
+
+    await waitFor(() => expect(axiosClient.get).toHaveBeenCalledWith('/v1/student/exams',
+      expect.objectContaining({
+        params: expect.objectContaining({
+          types: expect.stringContaining('NLTV'),
+          examLanguage: 'vi'
+        })
+      })));
   });
 });

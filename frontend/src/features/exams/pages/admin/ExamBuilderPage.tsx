@@ -115,8 +115,9 @@ const ExamBuilderPage = () => {
       }
       Swal.fire({ title: 'Thành công!', text: 'Đã lưu đề thi thành công', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/admin/exams');
-    } catch {
-      Swal.fire('Lỗi khi lưu đề thi', 'Không thể lưu đề. Hãy kiểm tra nội dung và thử lại.', 'error');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Không thể lưu đề. Hãy kiểm tra nội dung và thử lại.';
+      Swal.fire('Lỗi khi lưu đề thi', msg, 'error');
     }
   };
 

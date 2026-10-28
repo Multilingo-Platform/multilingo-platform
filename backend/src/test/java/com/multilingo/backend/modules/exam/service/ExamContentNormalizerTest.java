@@ -183,6 +183,156 @@ class ExamContentNormalizerTest {
         assertThat(normalizedQs.get(3)).containsEntry("type", "FILL_IN_THE_BLANK");
     }
 
+    @Test
+    void normalizesContentHtmlImageToSharedMediaWhenSharedMediaIsAbsent() {
+        Map<String, Object> group = new LinkedHashMap<>();
+        group.put("group_id", "nltv-p8-g1");
+        group.put("content_html", "<p>Viết thư theo ảnh minh họa:</p><p><img src=\"https://media.example/letter-prompt.png\" alt=\"prompt\" /></p>");
+        group.put("questions", List.of(Map.of("question_id", "q_001", "type", "WRITING_ESSAY")));
+
+        ExamBuilderRequest source = ExamBuilderRequest.builder()
+                .title("NLTV").type("NLTV").examLanguage("vi")
+                .sections(new ArrayList<>(List.of(SectionBuilderRequest.builder().skillType("WRITING")
+                        .durationMinutes(60).parts(new ArrayList<>(List.of(PartBuilderRequest.builder()
+                                .partNumber(8).contentData(new LinkedHashMap<>(Map.of("question_groups", List.of(group)))).build()))).build())))
+                .build();
+
+        ExamBuilderRequest normalized = new ExamContentNormalizer().normalize(source);
+        Map<String, Object> normalizedContent = normalized.getSections().getFirst().getParts().getFirst().getContentData();
+        List<?> groups = (List<?>) normalizedContent.get("question_groups");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> normalizedGroup = (Map<String, Object>) groups.getFirst();
+
+        assertThat(normalizedGroup).containsKey("shared_media");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> sharedMedia = (Map<String, Object>) normalizedGroup.get("shared_media");
+        assertThat(sharedMedia)
+                .containsEntry("type", "image")
+                .containsEntry("url", "https://media.example/letter-prompt.png");
+    }
+
+    @Test
+    void normalizesNltvPartEightWithoutImageAndCleansBlankMediaAndCorrectAnswer() {
+        Map<String, Object> question = new LinkedHashMap<>();
+        question.put("question_id", "q_001");
+        question.put("type", "WRITING_ESSAY");
+        question.put("correct_answer", "");
+        question.put("options", List.of());
+        question.put("media", Map.of("type", "image", "url", ""));
+
+        Map<String, Object> group = new LinkedHashMap<>();
+        group.put("group_id", "nltv-p8-g1");
+        group.put("content_html", "<p>Viết một bức thư...</p>");
+        group.put("shared_media", Map.of("type", "image", "url", ""));
+        group.put("questions", List.of(question));
+
+        ExamBuilderRequest source = ExamBuilderRequest.builder()
+                .title("NLTV").type("NLTV").examLanguage("vi")
+                .sections(new ArrayList<>(List.of(SectionBuilderRequest.builder().skillType("WRITING")
+                        .durationMinutes(60).parts(new ArrayList<>(List.of(PartBuilderRequest.builder()
+                                .partNumber(8).contentData(new LinkedHashMap<>(Map.of("question_groups", List.of(group)))).build()))).build())))
+                .build();
+
+        ExamBuilderRequest normalized = new ExamContentNormalizer().normalize(source);
+        Map<String, Object> normalizedContent = normalized.getSections().getFirst().getParts().getFirst().getContentData();
+        List<?> groups = (List<?>) normalizedContent.get("question_groups");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> normalizedGroup = (Map<String, Object>) groups.getFirst();
+
+        assertThat(normalizedGroup).doesNotContainKey("shared_media");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> questions = (List<Map<String, Object>>) normalizedGroup.get("questions");
+        Map<String, Object> normalizedQ = questions.getFirst();
+
+        assertThat(normalizedQ.get("type")).isEqualTo("ESSAY");
+        assertThat(normalizedQ).doesNotContainKey("correct_answer");
+        assertThat(normalizedQ).doesNotContainKey("options");
+        assertThat(normalizedQ).doesNotContainKey("media");
+        assertThat(normalizedQ.get("min_words")).isEqualTo(120);
+    }
+
+    @Test
+    void normalizesNltvReadingGroupPassageAndPartSevenDictationMarkers() {
+        // Part 5 reading group with blank content_html but part has content_html
+        Map<String, Object> readingGroup = new LinkedHashMap<>();
+        readingGroup.put("group_id", "nltv-p5-g1");
+        readingGroup.put("content_html", "");
+        readingGroup.put("questions", List.of(Map.of("question_id", "q_001", "type", "MULTIPLE_CHOICE", "options", List.of("A", "B"), "correct_answer", "A")));
+        Map<String, Object> part5Content = new LinkedHashMap<>();
+        part5Content.put("content_html", "<p>Đoạn văn đọc hiểu Part 5</p>");
+        part5Content.put("question_groups", new ArrayList<>(List.of(readingGroup)));
+
+        // Part 7 dictation with unmasked answer "(1) lớn nhất" in passage
+        Map<String, Object> dictationQ = new LinkedHashMap<>();
+        dictationQ.put("question_id", "q_001");
+        dictationQ.put("type", "FILL_IN_THE_BLANK");
+        dictationQ.put("correct_answer", "lớn nhất");
+        Map<String, Object> part7Group = new LinkedHashMap<>();
+        part7Group.put("group_id", "nltv-p7-g1");
+        part7Group.put("content_html", "Việt Nam là nước (1) lớn nhất Đông Nam Á");
+        part7Group.put("questions", new ArrayList<>(List.of(dictationQ)));
+        Map<String, Object> part7Content = new LinkedHashMap<>();
+        part7Content.put("question_groups", new ArrayList<>(List.of(part7Group)));
+
+        ExamBuilderRequest request = ExamBuilderRequest.builder()
+                .title("NLTV")
+                .type("NLTV")
+                .examLanguage("vi")
+                .sections(List.of(
+                        SectionBuilderRequest.builder().skillType("READING").durationMinutes(60)
+                                .parts(List.of(PartBuilderRequest.builder().partNumber(5).contentData(part5Content).build())).build(),
+                        SectionBuilderRequest.builder().skillType("WRITING").durationMinutes(60)
+                                .parts(List.of(PartBuilderRequest.builder().partNumber(7).contentData(part7Content).build())).build()
+                )).build();
+
+        ExamBuilderRequest normalized = new ExamContentNormalizer().normalize(request);
+
+        // Verify Part 5 reading group received the passage
+        var normalizedPart5 = normalized.getSections().get(0).getParts().get(0).getContentData();
+        @SuppressWarnings("unchecked")
+        var p5Groups = (List<Map<String, Object>>) normalizedPart5.get("question_groups");
+        assertThat(p5Groups.get(0).get("content_html")).isEqualTo("<p>Đoạn văn đọc hiểu Part 5</p>");
+
+        // Verify Part 7 dictation passage is masked with (1) ____
+        var normalizedPart7 = normalized.getSections().get(1).getParts().get(0).getContentData();
+        @SuppressWarnings("unchecked")
+        var p7Groups = (List<Map<String, Object>>) normalizedPart7.get("question_groups");
+        assertThat(p7Groups.get(0).get("content_html")).isEqualTo("Việt Nam là nước (1) ____ Đông Nam Á");
+    }
+
+    @Test
+    void normalizesPartSevenDictationWithDotMarkersAndHighQuestionId() {
+        Map<String, Object> dictationQ = new LinkedHashMap<>();
+        dictationQ.put("question_id", "q_071");
+        dictationQ.put("type", "FILL_IN_THE_BLANK");
+        dictationQ.put("correct_answer", "lớn nhất");
+
+        Map<String, Object> part7Group = new LinkedHashMap<>();
+        part7Group.put("group_id", "nltv-p7-g1");
+        part7Group.put("content_html", "Hồ Tây là hồ tự nhiên (1) ................ của thành phố Hà Nội.");
+        part7Group.put("questions", new ArrayList<>(List.of(dictationQ)));
+
+        Map<String, Object> part7Content = new LinkedHashMap<>();
+        part7Content.put("question_groups", new ArrayList<>(List.of(part7Group)));
+
+        ExamBuilderRequest request = ExamBuilderRequest.builder()
+                .title("NLTV")
+                .type("NLTV")
+                .examLanguage("vi")
+                .sections(List.of(
+                        SectionBuilderRequest.builder().skillType("WRITING").durationMinutes(60)
+                                .parts(List.of(PartBuilderRequest.builder().partNumber(7).contentData(part7Content).build())).build()
+                )).build();
+
+        ExamBuilderRequest normalized = new ExamContentNormalizer().normalize(request);
+
+        var normalizedPart7 = normalized.getSections().get(0).getParts().get(0).getContentData();
+        @SuppressWarnings("unchecked")
+        var p7Groups = (List<Map<String, Object>>) normalizedPart7.get("question_groups");
+        assertThat(p7Groups.get(0).get("content_html"))
+                .isEqualTo("Hồ Tây là hồ tự nhiên (1) ____ của thành phố Hà Nội.");
+    }
+
     private static ExamBuilderRequest ieltsRequest(Map<String, Object> partContent) {
         return ExamBuilderRequest.builder().title("IELTS").type("IELTS_ACADEMIC").examLanguage("en")
                 .sections(new ArrayList<>(List.of(SectionBuilderRequest.builder().skillType("READING")

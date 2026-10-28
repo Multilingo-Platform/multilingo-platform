@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   User, 
@@ -12,7 +12,8 @@ import {
   Sparkles, 
   ChevronRight,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Target
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { RootState } from '../../../app/store';
@@ -27,6 +28,7 @@ export const SettingsPage: React.FC = () => {
   const tabParam = searchParams.get('tab');
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'general' | 'password'>(
     tabParam === 'password' ? 'password' : 'general'
   );
@@ -237,15 +239,44 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               {/* Form Content */}
-              <div className="max-w-xl">
+              <div className="max-w-xl space-y-8">
                 {activeTab === 'general' ? (
-                  <ProfileForm 
-                    initialData={{
-                      fullName: currentUser.fullName,
-                      email: currentUser.email,
-                      phone: currentUser.phone
-                    }} 
-                  />
+                  <>
+                    <ProfileForm 
+                      initialData={{
+                        fullName: currentUser.fullName,
+                        email: currentUser.email,
+                        phone: currentUser.phone
+                      }} 
+                    />
+
+                    {/* Learning Goal Section */}
+                    <div className="pt-6 border-t border-slate-100">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100/80">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-indigo-600 text-white shadow-xs">
+                            <Target size={20} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-900">Mục tiêu học tập & Chứng chỉ</h4>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {currentUser.targetLanguage
+                                ? `Ngôn ngữ: ${currentUser.targetLanguage === 'en' ? 'Tiếng Anh 🇬🇧' : 'Tiếng Việt 🇻🇳'}`
+                                : 'Bạn có thể thay đổi mục tiêu chứng chỉ và điểm số bất kỳ lúc nào'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => navigate('/onboarding?mode=edit')}
+                          className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-xs self-start sm:self-auto"
+                        >
+                          Chỉnh sửa mục tiêu
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <PasswordForm />
                 )}

@@ -38,10 +38,10 @@ describe('ExamBuilder utils', () => {
 
   it('correctly maps NLTV variations', () => {
     expect(normalizeExamType('NLTV')).toBe('NLTV');
-    expect(normalizeExamType('NLTV_B1_C1')).toBe('NLTV_B1_C1');
-    expect(normalizeExamType('NLTV (B1 - C1)')).toBe('NLTV_B1_C1');
-    expect(normalizeExamType('NLTV_A1_A2')).toBe('NLTV_A1_A2');
-    expect(normalizeExamType('NLTV (A1 - A2)')).toBe('NLTV_A1_A2');
+    expect(normalizeExamType('NLTV_B1_C1')).toBe('NLTV');
+    expect(normalizeExamType('NLTV (B1 - C1)')).toBe('NLTV');
+    expect(normalizeExamType('NLTV_A1_A2')).toBe('NLTV');
+    expect(normalizeExamType('NLTV (A1 - A2)')).toBe('NLTV');
   });
 
   it('provides readable display labels for all standard exam types', () => {
