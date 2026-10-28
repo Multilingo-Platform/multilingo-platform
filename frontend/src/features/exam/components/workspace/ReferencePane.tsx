@@ -1,5 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 import HtmlContent from '../content/HtmlContent';
 import MediaDisplay from '../content/MediaDisplay';
 import type { SharedMedia } from '../../types/exam.types';
@@ -49,9 +50,13 @@ const ReferencePane: React.FC<ReferencePaneProps> = ({ docs, className, testId =
             className="space-y-3"
           >
             {doc.instruction && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
-                {doc.instruction}
-              </div>
+              <WorkspaceText
+                source={doc.groupId === 'part' ? { kind: 'PART_INSTRUCTION' } : { kind: 'GROUP_INSTRUCTION', groupId: doc.groupId }}
+                format="TEXT"
+                content={doc.instruction}
+                as="div"
+                className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
             )}
 
             {doc.mediaUrls.map((url, mediaIndex) => (
@@ -68,14 +73,14 @@ const ReferencePane: React.FC<ReferencePaneProps> = ({ docs, className, testId =
 
             {doc.html && (
               // Offset base for highlights: contains exactly this document's rendered text.
-              <div data-highlight-scope={doc.groupId} data-highlight-hash={doc.contentHash ?? undefined}>
-                <HtmlContent
-                  html={doc.html}
-                  prepared
-                  stripMedia
-                  className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:font-heading [&_h3]:text-base [&_h3]:font-bold [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700 [&_table]:w-full [&_table]:overflow-x-auto"
-                />
-              </div>
+              <WorkspaceText
+                source={doc.groupId === 'part' ? { kind: 'PART_CONTENT' } : { kind: 'GROUP_CONTENT', groupId: doc.groupId }}
+                documentId={doc.groupId}
+                format="HTML"
+                content={doc.html}
+                contentHash={doc.contentHash}
+                className="prose prose-slate max-w-none [&_h2]:font-heading [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:font-heading [&_h3]:text-base [&_h3]:font-bold [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:text-amber-700 [&_table]:w-full [&_table]:overflow-x-auto"
+              />
             )}
           </section>
         );

@@ -8,6 +8,12 @@ const base = {
 };
 
 describe('PracticeDictionaryPopover', () => {
+  it('RD07 native-only mode has no language selector or second lookup action', () => {
+    render(<PracticeDictionaryPopover {...base} nativeOnly phase="loading" />);
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tra từ' })).toBeNull();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
   it('opens idle with a meaning-language choice and only dispatches on explicit action', () => {
     render(<PracticeDictionaryPopover {...base} phase="idle" />);
     expect(screen.getByRole('dialog', { name: 'Tra từ AI: 水' })).toBeInTheDocument();

@@ -1,5 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 
 import type { SharedMedia } from '../../types/exam.types';
 import { countWritingLength } from '../../utils/writingLength';
@@ -8,6 +9,7 @@ interface Props {
   value: string | null;
   onChange: (v: string) => void;
   questionText: string;
+  questionId?: string;
   media?: SharedMedia | null;
   minWords?: number;
   learningLanguage?: string | null;
@@ -22,6 +24,7 @@ const EssayRenderer: React.FC<Props> = ({
   minWords = 150,
   learningLanguage = 'en',
   showPrompt = true,
+  questionId = "unknown",
 }) => {
   useExamLocale();
   const text = value ?? '';
@@ -37,7 +40,13 @@ const EssayRenderer: React.FC<Props> = ({
     <div className="flex flex-col h-full relative">
       {showPrompt && (
         <div className="lg:hidden mb-4 space-y-4">
-          <p className="font-medium text-slate-800 whitespace-pre-wrap">{questionText}</p>
+          <WorkspaceText
+            source={{ kind: 'QUESTION_TEXT', questionId }}
+            format="TEXT"
+            content={questionText}
+            as="p"
+            className="font-medium text-slate-800 whitespace-pre-wrap"
+          />
           {media?.url && (
             <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
               <img src={media.url} alt="Writing Prompt Graph" className="max-w-full h-auto max-h-[40vh] object-contain" />

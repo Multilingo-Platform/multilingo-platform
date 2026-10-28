@@ -13,6 +13,12 @@ const result: DictionaryLookupV2Response = {
 };
 
 describe('dictionary Flashcard API adapter', () => {
+  it('RD07 reads back a saved card from a v3 definition without changing the language pair', async () => {
+    const { documentId: _id, ...common } = result;
+    const v3 = { ...common, source: { kind: 'OPTION_TEXT' as const, questionId: 'q1', optionId: 'A' }, policyVersion: 'NATIVE_PROFILE_V1' as const };
+    http.post.mockResolvedValueOnce({ success: true, data: { id: 8, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow.' } } as never);
+    await expect(addDictionaryFlashcard(ownedDeck as any, 21, v3)).resolves.toMatchObject({ id: 8, deckId: 3 });
+  });
   beforeEach(() => vi.clearAllMocks());
 
   it('lists only private owner-owned decks with matching language pair', async () => {

@@ -6,7 +6,7 @@ export type { SelectionState } from '../utils/selectionSnapshot';
 interface TextSelectionOptions {
   onPointerCommit?: (snapshot: SelectionState) => boolean;
 }
-type Interaction = 'manual' | 'pointer-committed' | null;
+type Interaction = 'manual' | 'manual-confirmed' | 'pointer-committed' | null;
 
 export function useTextSelection(
   containerRef: RefObject<HTMLElement | null>,
@@ -20,6 +20,11 @@ export function useTextSelection(
   const commitRef = useRef(options.onPointerCommit);
   commitRef.current = options.onPointerCommit;
   const trailingClick = useRef<number | null>(null);
+  const manualCommitted = useRef(false);
+  const confirmSelection = useCallback(() => {
+    manualCommitted.current = true;
+    setInteraction('manual-confirmed');
+  }, []);
   // Cancellation must survive effect replacement during same-attempt hydration.
   // A late mouseup must not turn an old native range into a new-context snapshot.
   const requireFreshInput = useRef(false);
@@ -42,6 +47,7 @@ export function useTextSelection(
     let cancelled = requireFreshInput.current;
     const clear = () => {
       clearTimeout(timer);
+      manualCommitted.current = false;
       setSelection(null);
       setInteraction(null);
       committed = false;
@@ -55,9 +61,11 @@ export function useTextSelection(
     };
     const captureManual = () => {
       clearTimeout(timer);
-      if (gesture || committed || cancelled) return;
+      if (document.activeElement instanceof Element && document.activeElement.closest('[data-selection-toolbar]')) return;
+      if (gesture || committed || cancelled || manualCommitted.current) return;
       timer = setTimeout(() => {
-        if (gesture || committed || cancelled) return;
+        if (gesture || committed || cancelled || manualCommitted.current) return;
+        if (document.activeElement instanceof Element && document.activeElement.closest('[data-selection-toolbar]')) return;
         const snapshot = captureSelectionSnapshot(containerRef.current, contextRevision, contextKey);
         setSelection(snapshot);
         setInteraction(snapshot ? 'manual' : null);
@@ -100,10 +108,12 @@ export function useTextSelection(
     const keyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { cancel(); return; }
       if (event.shiftKey || /^(Arrow|Home|End)/.test(event.key) || ((event.ctrlKey || event.metaKey) && event.key === 'a')) {
+        manualCommitted.current = false;
         committed = false; cancelled = false; requireFreshInput.current = false; trailingClick.current = null;
       }
     };
-    const viewportChange = () => {
+    const viewportChange = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest('[data-selection-toolbar]')) return;
       // Native drag autoscroll must keep the original anchor and the pending gesture.
       if (!gesture) clear();
     };
@@ -144,5 +154,5 @@ export function useTextSelection(
     };
   }, [containerRef, enabled, contextRevision, contextKey]);
 
-  return { selection, setSelection, interaction, consumeCommittedClick };
+  return { selection, setSelection, interaction, confirmSelection, consumeCommittedClick };
 }

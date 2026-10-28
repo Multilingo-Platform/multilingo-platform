@@ -368,7 +368,7 @@ describe('QuestionReviewCard', () => {
     expect(screen.queryByText('Đang chấm')).not.toBeInTheDocument();
   });
 
-  it('renders rich HTML in questionText and options with sanitized markup and images', () => {
+  it('RD08 keeps authored question and option TEXT literal instead of parsing HTML', () => {
     const richQuestion: ReviewQuestionDto = {
       questionId: 'q_rich',
       label: 'Câu 10',
@@ -395,19 +395,10 @@ describe('QuestionReviewCard', () => {
 
     render(<QuestionReviewCard question={richQuestion} index={0} />);
 
-    // 1. Image in questionText is rendered as an HTMLImageElement
-    const chartImg = screen.getByRole('img', { name: 'bar chart' });
-    expect(chartImg).toBeInTheDocument();
-    expect(chartImg).toHaveAttribute('src', 'https://cdn.example.com/chart.png');
-
-    // 2. Image in option is rendered as an HTMLImageElement
-    const growthImg = screen.getByRole('img', { name: 'growth' });
-    expect(growthImg).toBeInTheDocument();
-    expect(growthImg).toHaveAttribute('src', 'https://cdn.example.com/growth.png');
-
-    // 3. Bold text is rendered inside a <b> tag, not literal "<b>" string
-    expect(screen.getByText('High growth')).toBeInTheDocument();
-    expect(screen.queryByText(/<img src=/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'bar chart' })).toBeNull();
+    expect(screen.queryByRole('img', { name: 'growth' })).toBeNull();
+    expect(screen.getByText(richQuestion.questionText!)).toBeInTheDocument();
+    expect(screen.getByText(richQuestion.options![0].text!)).toBeInTheDocument();
   });
 
   it('strips malicious scripts from questionText and options while keeping user answer as plain text', () => {
@@ -431,7 +422,7 @@ describe('QuestionReviewCard', () => {
     expect(screen.getByText(/User wrote literally this text & <script>doNotExecute\(\)<\/script>/i)).toBeInTheDocument();
   });
 
-  it('strips autoplay from embedded video/audio in questionText and options, keeps autoplay=false and controls', () => {
+  it('RD08 does not mount embedded media from authored TEXT fields', () => {
     const mediaQuestion: ReviewQuestionDto = {
       questionId: 'q_media_autoplay',
       label: 'Câu Media',
@@ -453,18 +444,8 @@ describe('QuestionReviewCard', () => {
 
     const { container } = render(<QuestionReviewCard question={mediaQuestion} index={0} />);
 
-    // Video in questionText
-    const video = container.querySelector('video') as HTMLVideoElement;
-    expect(video).toBeInTheDocument();
-    expect(video.autoplay).toBe(false);
-    expect(video.hasAttribute('autoplay')).toBe(false);
-    expect(video.hasAttribute('controls')).toBe(true);
-
-    // Audio in option
-    const audio = container.querySelector('audio') as HTMLAudioElement;
-    expect(audio).toBeInTheDocument();
-    expect(audio.autoplay).toBe(false);
-    expect(audio.hasAttribute('autoplay')).toBe(false);
-    expect(audio.hasAttribute('controls')).toBe(true);
+    expect(container.querySelector('video, audio')).toBeNull();
+    expect(screen.getByText(mediaQuestion.questionText!)).toBeInTheDocument();
+    expect(screen.getByText(mediaQuestion.options![0].text!)).toBeInTheDocument();
   });
 });

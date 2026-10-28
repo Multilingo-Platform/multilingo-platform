@@ -1,16 +1,17 @@
 import { examErrorMessage as ee } from '../../i18n/examMessages';
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import { useEffect, useRef, useState } from 'react';
-import type { DictionaryLookupFailure, DictionaryLookupV2Response } from '../../types/api.types';
+import type { DictionaryLookupFailure, DictionaryResult } from '../../types/api.types';
 import { ExplanationLanguageSelect } from './ExplanationLanguageSelect';
 import { DictionaryFlashcardForm } from './DictionaryFlashcardForm';
 
 interface Props {
+  nativeOnly?: boolean;
   word: string;
   x: number;
   y: number;
   phase: 'idle' | 'loading' | 'ready' | 'error';
-  data: DictionaryLookupV2Response | null;
+  data: DictionaryResult | null;
   error: DictionaryLookupFailure | null;
   learningLanguage: string | null;
   defaultExplanationLanguage: string | null;
@@ -23,7 +24,7 @@ interface Props {
 
 export function PracticeDictionaryPopover({
   word, x, y, phase, data, error, learningLanguage, defaultExplanationLanguage,
-  supportedExplanationLanguages, onClose, onRetry, onLookup, ownerId,
+  supportedExplanationLanguages, onClose, onRetry, onLookup, ownerId, nativeOnly = false,
 }: Props) {
   useExamLocale();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -54,7 +55,8 @@ export function PracticeDictionaryPopover({
           <span aria-hidden="true">×</span>
         </button>
       </header>
-      {phase === 'idle' && (
+      {phase === 'idle' && nativeOnly && <p role="status">{em('Đang tra nghĩa theo ngữ cảnh bài đọc…')}</p>}
+      {phase === 'idle' && !nativeOnly && (
         <div className="space-y-3">
           <ExplanationLanguageSelect value={meaningLanguage} defaultLanguage={defaultExplanationLanguage}
             supportedLanguages={supportedExplanationLanguages} onChange={setMeaningLanguage} id="dictionary-meaning-language" />

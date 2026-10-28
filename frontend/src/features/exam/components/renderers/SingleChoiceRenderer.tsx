@@ -1,5 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 import type { ExamOption } from '../../types/exam.types';
 
 interface Props {
@@ -55,7 +56,7 @@ const SingleChoiceRenderer: React.FC<Props> = ({
           <label
             key={opt.id || idx}
             onClick={() => onChange(opt.id)}
-            className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+            className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
               isChecked
                 ? 'bg-amber-50/80 border-amber-400 text-amber-950 shadow-xs'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
@@ -87,9 +88,13 @@ const SingleChoiceRenderer: React.FC<Props> = ({
                 ({letter})
               </span>
             ) : (
-              <span className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1">
-                {opt.text ? opt.text : em("Lựa chọn {{v0}}", { v0: letter })}
-              </span>
+              <WorkspaceText
+                source={{ kind: 'OPTION_TEXT', questionId, optionId: opt.id }}
+                format="TEXT"
+                content={opt.text ? opt.text : em("Lựa chọn {{v0}}", { v0: letter })}
+                className="text-sm sm:text-[15px] leading-relaxed pt-0.5 flex-1"
+                as="span"
+              />
             )}
           </label>
         );

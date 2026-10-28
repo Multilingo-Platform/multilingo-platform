@@ -20,6 +20,10 @@
     "lookup": "Look up",
     "saveFlashcard": "Save flashcard"
   },
+  "selection": {
+    "colors": { "yellow": "Yellow", "green": "Green", "blue": "Blue", "pink": "Pink", "purple": "Purple" },
+    "lookupUnavailable": "Select a valid word or phrase of up to 80 characters; some languages are limited to 5 words."
+  },
   "status": {
     "done": "Writing result available",
     "pending": "Waiting for grading",
@@ -37,6 +41,7 @@
     "hideFeedback": "Hide AI feedback"
   },
   "ui": {
+    "dictionary_native_required": "Update your native language in your profile to look up words.",
     "language_practice": "Language practice",
     "your_browser_does_not_support_audio_playback_b6773f": "Your browser does not support audio playback.",
     "_unable_to_load_audio_try_again_or_contact_suppo_577fa4": "⚠️ Unable to load audio. Try again or contact support.",

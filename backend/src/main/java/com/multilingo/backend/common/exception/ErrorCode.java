@@ -115,7 +115,8 @@ public enum ErrorCode {
     DICTIONARY_LOOKUP_REQUEST_CONFLICT(1615, HttpStatus.CONFLICT, "Yêu cầu tra từ bị xung đột"),
     DICTIONARY_LOOKUP_TIMEOUT(1616, HttpStatus.GATEWAY_TIMEOUT, "Yêu cầu tra từ đã quá thời gian chờ"),
     DICTIONARY_LOOKUP_RATE_LIMITED(1617, HttpStatus.TOO_MANY_REQUESTS, "Vui lòng chờ trước khi tra từ tiếp theo"),
-    DICTIONARY_LOOKUP_REQUEST_TOO_LARGE(1618, HttpStatus.PAYLOAD_TOO_LARGE, "Dung lượng yêu cầu tra từ vượt giới hạn");
+    DICTIONARY_LOOKUP_REQUEST_TOO_LARGE(1618, HttpStatus.PAYLOAD_TOO_LARGE, "Dung lượng yêu cầu tra từ vượt giới hạn"),
+    DICTIONARY_NATIVE_LANGUAGE_REQUIRED(1619, HttpStatus.UNPROCESSABLE_ENTITY, "Vui lòng thiết lập ngôn ngữ mẹ đẻ được hỗ trợ trong hồ sơ để tra từ");
 
     private final int code;
     private final HttpStatus httpStatus;

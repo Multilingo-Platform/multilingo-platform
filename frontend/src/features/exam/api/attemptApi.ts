@@ -433,6 +433,14 @@ function normalizeWorkspace(
     lockedSections,
     exam_snapshot: normalizedSnapshot,
     languageContext,
+    dictionaryLanguage: (() => {
+      const value = pickField(raw, 'dictionaryLanguage', 'dictionary_language') as Record<string, unknown> | null;
+      if (!value || value.policyVersion !== 'NATIVE_PROFILE_V1') return null;
+      const nativeLanguage = canonicalizeLearningLanguage(value.nativeLanguage);
+      return { policyVersion: 'NATIVE_PROFILE_V1' as const, available: value.available === true && !!nativeLanguage,
+        nativeLanguage: value.available === true ? nativeLanguage : null,
+        reason: typeof value.reason === 'string' ? value.reason : null };
+    })(),
     version,
     saved_answers,
     serverTimeOffset: Number.isFinite(safeOffset) ? safeOffset : 0,

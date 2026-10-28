@@ -456,7 +456,9 @@ describe('WorkspacePage TOEIC reading branch', () => {
     const { container } = renderWorkspacePage(workspaceResponse(toeicReadingSnapshot(PART_7)));
 
     const reference = await screen.findByTestId('toeic-reference-pane');
-    expect(reference.querySelectorAll('[data-highlight-scope]')).toHaveLength(1);
+    // RD-05 annotates the instruction separately; the whole passage still has one scope.
+    expect(reference.querySelectorAll('[data-source-kind="GROUP_CONTENT"]')).toHaveLength(1);
+    expect(reference.querySelector('[data-highlight-scope="p7-g1"]')).not.toBeNull();
     expect(screen.getByTestId('toeic-reference-group-p7-g1')).toBeDefined();
 
     // The three source documents stay inside the single group HTML.

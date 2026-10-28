@@ -1,3 +1,4 @@
+import { normalizeDictionaryLookupV3Response, validateSource, DictionaryLookupV3ContractError } from './dictionaryLookupV3Contract';
 import axiosClient from '../../../core/api/axiosClient';
 import type { ApiResponse, DictionaryLookupRequest, DictionaryLookupResponse, DictionaryLookupV2Request, DictionaryLookupV2Response } from '../types/api.types';
 import { normalizeDictionaryLookupResponse, validateDictionaryLookupRequest } from './dictionaryLookupContract';
@@ -51,4 +52,14 @@ export async function lookupPracticeDictionaryV2(
     { signal, timeout: DICTIONARY_LOOKUP_TIMEOUT_MS },
   ), options.signal);
   return normalizeDictionaryLookupV2Response(response, request, attemptId, options.learningLanguage);
+}
+
+export async function lookupPracticeDictionaryV3(attemptId: number, request: import('../types/api.types').DictionaryLookupV3Request,
+  options: { signal?: AbortSignal; learningLanguage: string; nativeLanguage: string }) {
+  validateSource(request.source);
+  if (Object.keys(request).some(key => !['requestId','partId','source','selectedText','contextText'].includes(key))) throw new DictionaryLookupV3ContractError();
+  validateDictionaryLookupV2Request(attemptId, { ...request, documentId: 'v3' });
+  const response = await bounded(signal => axiosClient.post<unknown, ApiResponse<unknown>>(
+    `/v3/attempts/${attemptId}/dictionary-lookups`, request, { signal, timeout: DICTIONARY_LOOKUP_TIMEOUT_MS }), options.signal);
+  return normalizeDictionaryLookupV3Response(response, request, attemptId, options.learningLanguage, options.nativeLanguage);
 }

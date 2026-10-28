@@ -43,6 +43,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     case 'YES_NO_NOT_GIVEN':
       return (
         <TFNGRenderer
+          questionId={question.question_id}
           variant={type}
           value={currentAnswer as string | null}
           onChange={onChange}
@@ -59,6 +60,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       });
       return (
         <MultipleChoiceRenderer
+          questionId={question.question_id}
           options={normalizedOptions}
           value={(currentAnswer as string[] | null) ?? []}
           onChange={onChange}
@@ -70,6 +72,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     case 'FILL_IN_THE_BLANK':
       return (
         <FillInBlankRenderer
+          questionId={question.question_id}
           value={currentAnswer as string | null}
           onChange={onChange}
           questionText={question_text}
@@ -81,6 +84,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     case 'MATCHING_SENTENCE_ENDINGS':
       return (
         <MatchingRenderer
+          questionId={question.question_id}
           options={options ?? []}
           value={currentAnswer as string | null}
           onChange={onChange}
@@ -91,6 +95,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     case 'MATCHING_INFORMATION':
       return (
         <MatchingInformationRenderer
+          questionId={question.question_id}
           options={options ?? []}
           value={currentAnswer as string | null}
           onChange={onChange}
@@ -100,6 +105,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     case 'ESSAY':
       return (
         <EssayRenderer
+          questionId={question.question_id}
           value={currentAnswer as string | null}
           onChange={onChange}
           questionText={question_text}

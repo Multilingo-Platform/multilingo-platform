@@ -1,32 +1,20 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ExamOption } from '../../types/exam.types';
+import WorkspaceText from '../content/WorkspaceText';
+import { matchingInformationChoices } from '../../utils/workspaceTextDocuments';
 
 interface Props {
   options?: (ExamOption | string)[] | null;
   value: string | null;
   onChange: (v: string) => void;
   disabled?: boolean;
+  questionId?: string;
 }
 
-const MatchingInformationRenderer: React.FC<Props> = ({ options, value, onChange, disabled }) => {
+const MatchingInformationRenderer: React.FC<Props> = ({ options, value, onChange, disabled, questionId }) => {
   useExamLocale();
-  const defaultLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-
-  const normalizedOptions: { letter: string; label: string }[] = (
-    options && options.length > 0
-      ? options.map((opt, idx) => {
-          if (typeof opt === 'string') {
-            const trimmed = opt.trim();
-            const letterMatch = trimmed.match(/^[A-Z]$/i) || trimmed.match(/^(?:Section|Paragraph|Đoạn)\s*([A-Z])/i);
-            const letter = letterMatch ? (letterMatch[1] || letterMatch[0]).toUpperCase() : String.fromCharCode(65 + idx);
-            return { letter, label: trimmed || em("Đoạn {{v0}}", { v0: letter }) };
-          }
-          const letter = (opt.id || String.fromCharCode(65 + idx)).trim().toUpperCase();
-          return { letter, label: opt.text || em("Đoạn {{v0}}", { v0: letter }) };
-        })
-      : defaultLetters.map(letter => ({ letter, label: em("Đoạn {{v0}}", { v0: letter }) }))
-  );
+  const normalizedOptions = matchingInformationChoices(options);
 
   const handleSelect = (letter: string) => {
     if (disabled) return;
@@ -58,14 +46,14 @@ const MatchingInformationRenderer: React.FC<Props> = ({ options, value, onChange
               type="button"
               disabled={disabled}
               onClick={() => handleSelect(opt.letter)}
-              title={opt.label}
+              title={opt.label ?? em("Đoạn {{v0}}", { v0: opt.letter })}
               className={`min-w-11 h-10 px-3.5 rounded-lg font-heading font-bold text-sm flex items-center justify-center transition-all cursor-pointer shadow-2xs ${
                 isSelected
                   ? 'bg-amber-500 text-white border-2 border-amber-600 shadow-sm scale-105 ring-2 ring-amber-300/50'
                   : 'bg-white text-slate-700 border border-slate-300 hover:border-amber-400 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {opt.letter}
+              {questionId ? <WorkspaceText source={{ kind: 'OPTION_TEXT', questionId, optionId: opt.optionId }} content={opt.letter} /> : opt.letter}
             </button>
           );
         })}
