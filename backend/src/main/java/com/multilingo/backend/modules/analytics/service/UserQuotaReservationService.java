@@ -4,6 +4,8 @@ import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.analytics.entity.UserQuota;
 import com.multilingo.backend.modules.analytics.repository.UserQuotaRepository;
+import com.multilingo.backend.modules.auth.entity.SubscriptionTier;
+import com.multilingo.backend.modules.auth.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -23,9 +27,14 @@ public class UserQuotaReservationService {
 
     public static final String FEATURE_CODE = "AI_WRITING_HINTS";
     public static final String GRADING_FEATURE_CODE = "AI_WRITING_GRADING";
+    public static final String DAILY_ZONE_ID = "Asia/Ho_Chi_Minh";
+    private static final ZoneId DAILY_ZONE = ZoneId.of(DAILY_ZONE_ID);
+    private static final int DEFAULT_FREE_HINTS_LIMIT = 5;
+    private static final int DEFAULT_VIP_HINTS_LIMIT = 20;
 
     private final UserQuotaRepository userQuotaRepository;
     private final Clock clock;
+    private final UserRepository userRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -34,15 +43,21 @@ public class UserQuotaReservationService {
     public UserQuotaReservationService(
             UserQuotaRepository userQuotaRepository,
             Clock clock,
-            @Autowired(required = false) EntityManager entityManager
+            @Autowired(required = false) EntityManager entityManager,
+            @Autowired(required = false) UserRepository userRepository
     ) {
         this.userQuotaRepository = userQuotaRepository;
         this.clock = clock;
         this.entityManager = entityManager;
+        this.userRepository = userRepository;
     }
 
     public UserQuotaReservationService(UserQuotaRepository userQuotaRepository, Clock clock) {
-        this(userQuotaRepository, clock, null);
+        this(userQuotaRepository, clock, null, null);
+    }
+
+    public UserQuotaReservationService(UserQuotaRepository userQuotaRepository, Clock clock, EntityManager entityManager) {
+        this(userQuotaRepository, clock, entityManager, null);
     }
 
     public record QuotaAccount(
@@ -156,6 +171,7 @@ public class UserQuotaReservationService {
 
     /**
      * Cố gắng đặt trước quota bằng conditional update theo feature code.
+     * Đối với AI_WRITING_HINTS: tự động cấp quota mặc định nếu chưa có và reset hàng ngày khi bước sang ngày mới.
      */
     @Transactional
     public java.util.Optional<QuotaReservation> tryReserve(Integer userId, String featureCode) {
@@ -163,7 +179,29 @@ public class UserQuotaReservationService {
             return java.util.Optional.empty();
         }
         String effectiveFeatureCode = (featureCode != null && !featureCode.isBlank()) ? featureCode : FEATURE_CODE;
+        Instant now = clock.instant();
+
         List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, effectiveFeatureCode);
+
+        if (FEATURE_CODE.equals(effectiveFeatureCode)) {
+            if (rows.isEmpty()) {
+                int limit = resolveWritingHintsLimit(userId, now);
+                Instant resetAt = nextLocalMidnight(now);
+                userQuotaRepository.insertWritingHintsQuotaIfAbsent(userId, limit, now, resetAt);
+                rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, effectiveFeatureCode);
+            } else if (rows.size() == 1) {
+                UserQuota q = rows.getFirst();
+                if (q.getResetDate() != null && !q.getResetDate().isAfter(now)) {
+                    int limit = resolveWritingHintsLimit(userId, now);
+                    Instant resetAt = nextLocalMidnight(now);
+                    q.setUsedCount(0);
+                    q.setResetDate(resetAt);
+                    q.setMaxLimit(limit);
+                    userQuotaRepository.saveAndFlush(q);
+                }
+            }
+        }
+
         if (rows.size() != 1) {
             return java.util.Optional.empty();
         }
@@ -171,7 +209,6 @@ public class UserQuotaReservationService {
         if (entityManager != null && entityManager.contains(quota)) {
             entityManager.refresh(quota);
         }
-        Instant now = clock.instant();
         if (quota.getUsedCount() == null || quota.getUsedCount() < 0
                 || quota.getMaxLimit() == null || quota.getMaxLimit() <= 0
                 || quota.getResetDate() == null
@@ -183,6 +220,28 @@ public class UserQuotaReservationService {
             return java.util.Optional.empty();
         }
         return java.util.Optional.of(new QuotaReservation(quota.getId(), quota.getResetDate()));
+    }
+
+    private int resolveWritingHintsLimit(Integer userId, Instant now) {
+        if (userRepository == null || userId == null || userId <= 0) {
+            return DEFAULT_FREE_HINTS_LIMIT;
+        }
+        try {
+            return userRepository.findById(userId)
+                    .map(u -> (u.getSubscriptionTier() == SubscriptionTier.PREMIUM
+                            && u.getPremiumExpiresAt() != null
+                            && u.getPremiumExpiresAt().isAfter(now))
+                            ? DEFAULT_VIP_HINTS_LIMIT
+                            : DEFAULT_FREE_HINTS_LIMIT)
+                    .orElse(DEFAULT_FREE_HINTS_LIMIT);
+        } catch (Exception e) {
+            return DEFAULT_FREE_HINTS_LIMIT;
+        }
+    }
+
+    private static Instant nextLocalMidnight(Instant now) {
+        LocalDate localDate = now.atZone(DAILY_ZONE).toLocalDate();
+        return localDate.plusDays(1).atStartOfDay(DAILY_ZONE).toInstant();
     }
 
     @Transactional

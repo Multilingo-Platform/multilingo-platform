@@ -9,7 +9,7 @@ import { SUPPORTED_LEARNING_LANGUAGES } from '../../../../core/i18n/learningLang
 
 export interface WritingHintsPanelProps {
   questionId: string;
-  taskNumber: number | string;
+  taskNumber?: number | string;
   state: QuestionWritingHints;
   busy: boolean;
   disabled: boolean;
@@ -33,7 +33,7 @@ function buttonClass(extra = ''): string {
   return `inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${extra}`;
 }
 
-function HintsContent({ data, taskNumber }: { data: WritingHintsResponse; taskNumber: number | string }) {
+function HintsContent({ data }: { data: WritingHintsResponse }) {
   useExamLocale();
   const contentId = useId();
   return (
@@ -44,7 +44,7 @@ function HintsContent({ data, taskNumber }: { data: WritingHintsResponse; taskNu
     >
       <header className="mb-5 min-w-0 border-b border-slate-100 pb-4">
         <h3 id={`${contentId}-title`} className="break-words text-base font-semibold text-slate-900">
-          {em("Gợi ý Writing — Task")}{' '}{taskNumber}
+          {em("Writing hints")}
         </h3>
         <div className="mt-2 flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
           <span>{em("Ngôn ngữ học:")}{' '}{languageLabel(data.learningLanguage)}</span>
@@ -176,7 +176,7 @@ export function WritingHintsPanel({
       >
         <span className="flex min-w-0 items-center gap-2 break-words">
           <Sparkles className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
-          <span>{em("Gợi ý Writing — Task")}{' '}{taskNumber}</span>
+          <span>{em("Writing hints")}</span>
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-600 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
@@ -270,7 +270,7 @@ export function WritingHintsPanel({
 
           {state.data && (
             <div className="min-w-0 space-y-3">
-              <HintsContent data={state.data} taskNumber={taskNumber} />
+              <HintsContent data={state.data} />
               <p className="break-words text-xs leading-5 text-slate-600">{em("Gợi ý tham khảo, không phải điểm chấm hoặc bài viết mẫu.")}</p>
             </div>
           )}
