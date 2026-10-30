@@ -49,7 +49,8 @@ function setup() {
 }
 
 function open(number = 1) {
-  fireEvent.click(screen.getByRole('button', { name: `Gợi ý Writing — Task ${number}` }));
+  const buttons = screen.getAllByRole('button', { name: 'Writing hints' });
+  fireEvent.click(buttons[number - 1]);
 }
 
 beforeEach(() => {
@@ -90,13 +91,14 @@ beforeEach(() => {
 });
 
 describe('TV3-19-05 Workspace Writing hints wiring', () => {
-  it('places one panel below each ESSAY editor, outside its fieldset, with no old Writing notice', () => {
+  it('places one panel in prompt workspace for each ESSAY question, with no old Writing notice', () => {
     setup();
-    const editors = screen.getAllByRole('textbox');
-    editors.forEach((editor, index) => {
-      const button = screen.getByRole('button', { name: `Gợi ý Writing — Task ${index + 1}` });
+    const prompt = screen.getByTestId('desktop-writing-prompt');
+    const buttons = screen.getAllByRole('button', { name: 'Writing hints' });
+    expect(buttons).toHaveLength(2);
+    buttons.forEach((button) => {
+      expect(prompt).toContainElement(button);
       expect(button.closest('fieldset')).toBeNull();
-      expect(editor.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
     expect(screen.queryByText(/chưa hỗ trợ kiểm tra tức thì/i)).toBeNull();
     expect(hints.generate).not.toHaveBeenCalled();
@@ -128,7 +130,7 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
       ];
       else workspace.status = 'SUBMITTED';
       setup();
-      expect(screen.queryAllByRole('button', { name: /Gợi ý Writing/ })).toHaveLength(0);
+      expect(screen.queryAllByRole('button', { name: 'Writing hints' })).toHaveLength(0);
       expect(hints.generate).not.toHaveBeenCalled();
       expect(hints.retry).not.toHaveBeenCalled();
     },
@@ -192,7 +194,7 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
     const { store } = setup();
     open();
     act(() => { store.dispatch(setAttemptContext({ attemptId: 42, version: 2, savedAnswers: [] })); });
-    expect(screen.getByRole('button', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getAllByRole('button', { name: 'Writing hints' })[0]).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('keeps the global hints block visible when switching to a part without questions', () => {
@@ -209,7 +211,7 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
     open();
     fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' }), { target: { value: 'fr' } });
     fireEvent.click(screen.getByRole('button', { name: /Second part/ }));
-    expect(screen.getByRole('button', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getAllByRole('button', { name: 'Writing hints' })[0]).toHaveAttribute('aria-expanded', 'false');
     expect(vi.mocked(useWritingHints).mock.calls.at(-1)![0].partId).toBe(40);
     open();
     expect(screen.getByRole('combobox', { name: 'Ngôn ngữ học' })).toHaveValue('en');
@@ -256,6 +258,6 @@ describe('TV3-19-05 Workspace Writing hints wiring', () => {
     delete (workspace.exam_snapshot.sections[0] as any).skill_type;
     (workspace.exam_snapshot.sections[0] as any).name = 'WRITING';
     setup();
-    expect(screen.getByRole('button', { name: 'Gợi ý Writing — Task 1' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Writing hints' })[0]).toBeInTheDocument();
   });
 });

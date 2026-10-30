@@ -53,7 +53,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
 
   it('starts collapsed with an accessible disclosure; opening it never requests hints', async () => {
     const { container } = await renderPanel();
-    const toggle = screen.getByRole('button', { name: /gợi ý writing.*task 1/i });
+    const toggle = screen.getByRole('button', { name: /writing hints/i });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     const panelId = toggle.getAttribute('aria-controls');
     expect(panelId).toBeTruthy();
@@ -71,7 +71,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
 
   it('shows snapshot learning language read-only and offers eight explanation choices', async () => {
     await renderPanel();
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     const learning = screen.getByLabelText('Ngôn ngữ học') as HTMLSelectElement;
     const hint = screen.getByLabelText('Ngôn ngữ giải thích') as HTMLSelectElement;
     expect(learning).toBeDisabled();
@@ -83,7 +83,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
   it('keeps first generation explicit and sends only the current language selection to its callback', async () => {
     const onGenerate = vi.fn();
     await renderPanel({ onGenerate });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'vi' } });
     expect(onGenerate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /^tạo gợi ý$/i }));
@@ -93,7 +93,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
   it('shows a short accessible status during loading while keeping both language controls available', async () => {
     const loading = state('loading', { lastSelection: defaults });
     await renderPanel({ state: loading, busy: true });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     expect(screen.getByRole('status')).toHaveTextContent('Đang tạo gợi ý. Có thể tiếp tục viết bài.');
     expect(screen.getByLabelText('Ngôn ngữ học')).toBeDisabled();
     expect(screen.getByLabelText('Ngôn ngữ giải thích')).toBeEnabled();
@@ -102,7 +102,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
 
   it('explains a non-retriable error with an announced safe message and offers no retry control', async () => {
     await renderPanel({ state: state('error', { error: failure('quota', 'none') }) });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     expect(screen.getByRole('alert')).toHaveTextContent('Thông báo lỗi an toàn.');
     expect(screen.queryByRole('button', { name: /thử lại/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^tạo gợi ý$/i })).toBeDisabled();
@@ -118,14 +118,14 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
       state: state('error', { data: readyResponse, error: quota, lastSelection: defaults }),
       onGenerate, onRetry,
     });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Hạn mức sử dụng gợi ý AI của bạn đã hết hoặc chưa khả dụng.');
     expect(alert).toHaveTextContent('Chưa tạo được bộ gợi ý mới. Đang hiển thị bộ trước.');
     expect(alert).not.toHaveTextContent('BACKEND_SENTINEL_QUOTA');
     expect(alert).not.toHaveTextContent(/\d+\s*giây/);
     expect(screen.queryByRole('button', { name: /thử lại/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: /gợi ý writing.*task 1/i })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /writing hints/i })).toBeInTheDocument();
     const create = screen.getByRole('button', { name: /^tạo gợi ý mới$/i });
     expect(create).toBeDisabled();
     fireEvent.click(create);
@@ -146,14 +146,14 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
       }),
       onGenerate, onRetry,
     });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent('Ngôn ngữ yêu cầu không hợp lệ hoặc chưa được hỗ trợ. Vui lòng chọn ngôn ngữ khác.');
     expect(alert).toHaveTextContent('Chưa tạo được bộ gợi ý mới. Đang hiển thị bộ trước.');
     expect(alert).not.toHaveTextContent('BACKEND_SENTINEL_LANGUAGE');
     expect(screen.queryByRole('button', { name: /thử lại/i })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'vi' } });
-    expect(screen.getByRole('region', { name: /gợi ý writing.*task 1/i })).toHaveAttribute('lang', 'en');
+    expect(screen.getByRole('region', { name: /writing hints/i })).toHaveAttribute('lang', 'en');
     expect(onGenerate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: /^đổi ngôn ngữ và tạo gợi ý$/i }));
     expect(screen.getByRole('group', { name: 'Xác nhận tạo gợi ý mới' })).toBeInTheDocument();
@@ -172,7 +172,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
       state: state('loading', { lastSelection: operation }), busy: true, onGenerate, onRetry,
     });
     const { rerender } = await renderPanel(props);
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'vi' } });
     expect(onGenerate).not.toHaveBeenCalled();
     const error = phase === 'error' ? classifyWritingHintsError(new Error('Network Error'), 1700000000000) : null;
@@ -181,7 +181,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     })} />);
     expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
     expect(screen.getByLabelText('Ngôn ngữ giải thích')).toHaveValue('vi');
-    expect(screen.getByRole('region', { name: /gợi ý writing.*task 1/i })).toHaveAttribute('lang', 'en');
+    expect(screen.getByRole('region', { name: /writing hints/i })).toHaveAttribute('lang', 'en');
     expect(onGenerate).not.toHaveBeenCalled();
     expect(onRetry).not.toHaveBeenCalled();
     if (phase === 'error') {
@@ -205,7 +205,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
       onGenerate,
     });
     const { rerender } = await renderPanel(props);
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'fr' } });
     rerender(<WritingHintsPanel {...props} state={state('loading', {
       data: readyResponse, lastSelection: { learningLanguage: 'de', hintLanguage: null },
@@ -219,7 +219,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     ['pending', 4], ['rate-limited', 2],
   ] as const)('shows %s backoff and blocks manual retry at %i seconds', async (kind, seconds) => {
     await renderPanel({ state: state('error', { error: failure(kind, kind === 'pending' ? 'retry' : 'none') }), retryAfterSeconds: seconds });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     expect(screen.getByRole('alert')).toHaveTextContent(`${seconds} giây`);
     const retry = screen.getByRole('button', { name: /thử lại/i });
     expect(retry).toBeDisabled();
@@ -230,7 +230,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     const onRetry = vi.fn();
     const prior = { learningLanguage: 'en', hintLanguage: 'vi' };
     await renderPanel({ state: state('error', { error: failure('request'), lastSelection: prior }), onRetry });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     expect(screen.getByLabelText('Ngôn ngữ học')).toHaveValue('en');
     expect(screen.getByLabelText('Ngôn ngữ giải thích')).toHaveValue('vi');
     fireEvent.click(screen.getByRole('button', { name: /thử lại/i }));
@@ -242,7 +242,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     const prior = { learningLanguage: 'en', hintLanguage: 'vi' };
     const existing = state('ready', { data: readyResponse, lastSelection: prior });
     await renderPanel({ state: existing, onGenerate });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     fireEvent.click(screen.getByRole('button', { name: /tạo gợi ý mới/i }));
     const confirmation = screen.getByRole('group', { name: 'Xác nhận tạo gợi ý mới' });
     expect(within(confirmation).getByText('Tạo mới thành công sẽ dùng thêm một lượt trong hạn mức.')).toBeInTheDocument();
@@ -257,9 +257,9 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     const onGenerate = vi.fn();
     const existing = state('ready', { data: readyResponse, lastSelection: { learningLanguage: 'en', hintLanguage: 'vi' } });
     await renderPanel({ state: existing, onGenerate });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'de' } });
-    const previousContent = screen.getByRole('region', { name: /gợi ý writing.*task 1/i });
+    const previousContent = screen.getByRole('region', { name: /writing hints/i });
     expect(previousContent).toHaveAttribute('lang', 'en');
     expect(within(previousContent).getByText('Ngôn ngữ gợi ý: Tiếng Anh (English)')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /tạo gợi ý mới/i }));
@@ -279,7 +279,7 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     const onGenerate = vi.fn();
     const previous: WritingHintsLanguageSelection = { learningLanguage: 'en', hintLanguage: 'vi' };
     await renderPanel({ state: state('ready', { data: readyResponse, lastSelection: previous }), onGenerate });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     fireEvent.change(screen.getByLabelText('Ngôn ngữ giải thích'), { target: { value: 'fr' } });
     fireEvent.click(screen.getByRole('button', { name: /tạo gợi ý mới/i }));
     fireEvent.click(screen.getByRole('button', { name: /hủy/i }));
@@ -302,9 +302,9 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     };
     const existing = state('error', { data: rich, error: failure('request'), lastSelection: { learningLanguage: 'en', hintLanguage: 'vi' } });
     const { container } = await renderPanel({ state: existing });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     expect(screen.getByRole('alert')).toHaveTextContent('Chưa tạo được bộ gợi ý mới. Đang hiển thị bộ trước.');
-    const region = screen.getByRole('region', { name: /gợi ý writing.*task 1/i });
+    const region = screen.getByRole('region', { name: /writing hints/i });
     expect(region).toHaveAttribute('lang', 'fr');
     expect(within(region).getByRole('heading', { name: '<img src=x onerror=alert(1)>' })).toBeInTheDocument();
     expect(within(region).getByText('<script>bad()</script>')).toBeInTheDocument();
@@ -329,8 +329,8 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
   it('labels generated content from response metadata and falls back to canonical language tags', async () => {
     const resolved: WritingHintsResponse = { ...readyResponse, learningLanguage: 'pt-BR', hintLanguage: 'pt-BR' };
     await renderPanel({ state: state('ready', { data: resolved, lastSelection: defaults }) });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
-    const region = screen.getByRole('region', { name: /gợi ý writing.*task 1/i });
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
+    const region = screen.getByRole('region', { name: /writing hints/i });
     expect(region).toHaveAttribute('lang', 'pt-BR');
     expect(within(region).getByText('Ngôn ngữ học: pt-BR')).toBeInTheDocument();
     expect(within(region).getByText('Ngôn ngữ gợi ý: pt-BR')).toBeInTheDocument();
@@ -339,15 +339,15 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
   it('disables actions during busy, cooldown and external lock without disabling disclosure', async () => {
     const { WritingHintsPanel } = await import('../components/practice/WritingHintsPanel');
     const { rerender } = await renderPanel({ busy: true });
-    fireEvent.click(screen.getByRole('button', { name: /gợi ý writing.*task 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /writing hints/i }));
     expect(screen.getByRole('button', { name: /^tạo gợi ý$/i })).toBeDisabled();
     expect(screen.getByLabelText('Ngôn ngữ học')).toBeDisabled();
     rerender(<WritingHintsPanel {...panelProps({ retryAfterSeconds: 5 })} />);
-    expect(screen.getByRole('button', { name: /gợi ý writing.*task 1/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /writing hints/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^tạo gợi ý$/i })).toBeDisabled();
     rerender(<WritingHintsPanel {...panelProps({ disabled: true })} />);
     expect(screen.getByRole('button', { name: /^tạo gợi ý$/i })).toBeDisabled();
     expect(screen.getByLabelText('Ngôn ngữ học')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /gợi ý writing.*task 1/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /writing hints/i })).toBeEnabled();
   });
 });

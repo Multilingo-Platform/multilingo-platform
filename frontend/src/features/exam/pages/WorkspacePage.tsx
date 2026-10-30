@@ -603,6 +603,11 @@ const WorkspacePage: React.FC = () => {
     ownerId: dictionaryOwnerId,
   });
 
+  const writingEssayQuestions = useMemo(() => {
+    if (currentSkill !== 'WRITING') return [];
+    return partQuestions.filter((q: any) => String(q.type || '').toUpperCase() === 'ESSAY');
+  }, [currentSkill, partQuestions]);
+
   const practiceFeedback = usePracticeFeedback({
     workspace: isPracticeMode ? activeWorkspace : null,
     partId: isPracticeMode ? partId : null,
@@ -1342,6 +1347,29 @@ const WorkspacePage: React.FC = () => {
                       groups={displayQuestionGroups}
                       questions={partQuestions}
                     />
+                    {isWritingHintsPart && isDesktopReadingViewport && writingEssayQuestions.map((eq: any) => {
+                      const eqId = eq.question_id ?? (isRecordedId(eq.id) ? String(eq.id) : null);
+                      if (!eqId) return null;
+                      return (
+                        <WritingHintsPanel
+                          key={JSON.stringify(['desktop', attemptId, answersState.contextRevision, writingPartId, eqId])}
+                          questionId={eqId}
+                          taskNumber={eq.question_number}
+                          state={writingHints.blockedError
+                            ? { ...writingHints.getHints(eqId), error: null }
+                            : writingHints.getHints(eqId)}
+                          busy={writingHints.busy}
+                          disabled={isWritingSectionLocked || submission.isLocked() || Boolean(writingHints.blockedError)}
+                          retryAfterSeconds={writingHints.retryAfterSeconds}
+                          learningLanguage={activeWorkspace?.languageContext?.examLanguage ?? null}
+                          defaultExplanationLanguage={activeWorkspace?.languageContext?.defaultExplanationLanguage ?? null}
+                          supportedExplanationLanguages={activeWorkspace?.languageContext?.supportedExplanationLanguages ?? []}
+                          onGenerate={(selection) => writingHints.generate(eqId, selection)}
+                          onRetry={() => writingHints.retry(eqId)}
+                          onLanguageChange={() => writingHints.suspend()}
+                        />
+                      );
+                    })}
                   </div>
                 ) : (
                 <div className="space-y-4">
@@ -1516,6 +1544,29 @@ const WorkspacePage: React.FC = () => {
                       groups={displayQuestionGroups}
                       questions={partQuestions}
                     />
+                    {isWritingHintsPart && !isDesktopReadingViewport && writingEssayQuestions.map((eq: any) => {
+                      const eqId = eq.question_id ?? (isRecordedId(eq.id) ? String(eq.id) : null);
+                      if (!eqId) return null;
+                      return (
+                        <WritingHintsPanel
+                          key={JSON.stringify(['mobile', attemptId, answersState.contextRevision, writingPartId, eqId])}
+                          questionId={eqId}
+                          taskNumber={eq.question_number}
+                          state={writingHints.blockedError
+                            ? { ...writingHints.getHints(eqId), error: null }
+                            : writingHints.getHints(eqId)}
+                          busy={writingHints.busy}
+                          disabled={isWritingSectionLocked || submission.isLocked() || Boolean(writingHints.blockedError)}
+                          retryAfterSeconds={writingHints.retryAfterSeconds}
+                          learningLanguage={activeWorkspace?.languageContext?.examLanguage ?? null}
+                          defaultExplanationLanguage={activeWorkspace?.languageContext?.defaultExplanationLanguage ?? null}
+                          supportedExplanationLanguages={activeWorkspace?.languageContext?.supportedExplanationLanguages ?? []}
+                          onGenerate={(selection) => writingHints.generate(eqId, selection)}
+                          onRetry={() => writingHints.retry(eqId)}
+                          onLanguageChange={() => writingHints.suspend()}
+                        />
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1672,25 +1723,7 @@ const WorkspacePage: React.FC = () => {
                                 }}
                               />
                             </fieldset>
-                            {isWritingHintsPart && q.type === 'ESSAY' ? (
-                              <WritingHintsPanel
-                                key={JSON.stringify([attemptId, answersState.contextRevision, writingPartId, qId])}
-                                questionId={qId}
-                                taskNumber={q.question_number}
-                                state={writingHints.blockedError
-                                  ? { ...writingHints.getHints(qId), error: null }
-                                  : writingHints.getHints(qId)}
-                                busy={writingHints.busy}
-                                disabled={isWritingSectionLocked || submission.isLocked() || Boolean(writingHints.blockedError)}
-                                retryAfterSeconds={writingHints.retryAfterSeconds}
-                                learningLanguage={activeWorkspace?.languageContext?.examLanguage ?? null}
-                                defaultExplanationLanguage={activeWorkspace?.languageContext?.defaultExplanationLanguage ?? null}
-                                supportedExplanationLanguages={activeWorkspace?.languageContext?.supportedExplanationLanguages ?? []}
-                                onGenerate={(selection) => writingHints.generate(qId, selection)}
-                                onRetry={() => writingHints.retry(qId)}
-                                onLanguageChange={() => writingHints.suspend()}
-                              />
-                            ) : isPracticeMode && (
+                            {isPracticeMode && (!isWritingHintsPart || q.type !== 'ESSAY') && (
                               <PracticeQuestionFeedback
                                 questionId={qId}
                                 questionNumber={q.question_number}
