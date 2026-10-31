@@ -7,6 +7,7 @@
     "register": "Đăng ký miễn phí",
     "footer_desc": "Nền tảng thi thử và đánh giá năng lực ngoại ngữ thực chiến với AI.",
     "products": "Sản phẩm",
+    "toeic_test": "Luyện thi TOEIC",
     "support": "Hỗ trợ",
     "guide": "Hướng dẫn sử dụng",
     "contact": "Liên hệ"
@@ -123,7 +124,9 @@
     "purchase_history": "Lịch sử mua gói",
     "logout": "Đăng xuất",
     "upgrade_pro": "Nâng cấp PRO",
-    "streak_days": "{{count}} ngày"
+    "streak_days": "{{count}} ngày",
+    "streak_title_done": "Chuỗi học: {{count}} ngày • Đã hoàn thành hôm nay!",
+    "streak_title_pending": "Chuỗi học: {{count}} ngày • Chưa học hôm nay!"
   },
   "settings": {
     "title": "Hồ sơ & Cài đặt",
@@ -228,8 +231,18 @@
   },
   "library": {
     "hero": {
+      "badge": "Thư Viện Đề Thi Chuẩn Hóa",
       "title": "Thư viện Đề thi",
       "subtitle": "Hàng ngàn đề thi chuẩn hóa IELTS, TOEIC và Năng Lực Tiếng Việt (NLTV). Luyện tập ngay hôm nay để đạt mục tiêu của bạn."
+    },
+    "target_banner": {
+      "your_goal": "Mục tiêu của bạn:",
+      "band_score": "(Band / Điểm: {{score}})",
+      "view_goal_tests": "Xem đề mục tiêu"
+    },
+    "tabs": {
+      "recommended": "✨ Dành Cho Bạn",
+      "all": "Tất Cả"
     },
     "filters": {
       "title": "Lọc Đề Thi",
@@ -245,35 +258,66 @@
       },
       "skill_title": "2. CHỌN KỸ NĂNG",
       "all_skills": "Tất cả kỹ năng (Full Test & Parts)",
+      "skill_all": "Tất cả kỹ năng",
+      "skill_listening": "Nghe hiểu",
+      "skill_reading": "Đọc hiểu",
+      "skill_writing": "Viết",
       "skills": {
         "listening": "Listening / Nghe hiểu",
         "reading": "Reading / Đọc hiểu",
         "writing": "Writing / Viết"
       },
+      "skill_label": "Kỹ năng:",
+      "status_label": "Trạng thái:",
+      "attempt_all": "Tất cả đề",
+      "attempt_unattempted": "Chưa làm",
+      "attempt_attempted": "Đã làm",
+      "sort_newest": "Mới nhất",
+      "sort_joins": "Tham gia nhiều",
+      "sort_title": "Tên A-Z",
       "part_title": "3. CHỌN PHẦN THI (PART)",
       "all_parts": "Tất cả phần thi",
       "language": "Ngôn ngữ đề",
       "allLanguages": "Tất cả ngôn ngữ",
       "apply": "Áp dụng bộ lọc",
-      "clear": "Xóa bộ lọc"
+      "clear": "Xóa bộ lọc",
+      "clear_filters": "Xóa bộ lọc"
     },
     "results": {
       "showing": "Hiển thị",
-      "results": "kết quả"
+      "results": "đề thi"
     },
     "sort": {
       "newest": "Mới nhất",
       "popular": "Được thi nhiều nhất"
     },
     "status": {
-      "loading": "Đang tải đề thi...",
-      "empty": "Không tìm thấy đề thi nào phù hợp."
+      "loading": "Đang tải danh sách đề thi...",
+      "empty": "Không tìm thấy đề thi nào phù hợp.",
+      "empty_title": "Không tìm thấy đề thi nào",
+      "empty_desc": "Không có đề thi nào khớp với bộ lọc hiện tại của bạn. Hãy thử chọn kỹ năng khác hoặc bấm nút bên dưới để xem lại tất cả đề thi.",
+      "view_all": "Xem tất cả đề thi"
     },
     "card": {
       "minutes": "phút",
       "attempts": "lượt thi",
-      "takeExam": "Làm bài thi",
-      "partsCount": "phần thi"
+      "takeExam": "Làm bài",
+      "start_now": "Làm ngay",
+      "retake": "Làm lại",
+      "view_result": "Xem kết quả",
+      "attempted_count": "Đã làm ({{count}} lần)",
+      "highest_score": "Cao nhất: {{score}}",
+      "latest_score": "Gần nhất: {{score}}",
+      "partsCount": "phần thi",
+      "duration": "{{count}} phút",
+      "joins": "{{count}} lượt thi",
+      "target_match": "🎯 Khớp mục tiêu",
+      "unattempted": "Chưa làm"
+    },
+    "empty": {
+      "title": "Không tìm thấy đề thi nào phù hợp",
+      "desc": "Hãy thử đổi từ khóa tìm kiếm hoặc làm mới bộ lọc chứng chỉ/kỹ năng.",
+      "btn_clear": "Xóa bộ lọc"
     },
     "pagination": {
       "prev": "Trang trước",
@@ -443,6 +487,258 @@
       "min_cards_quiz": "Cần tối thiểu 4 từ vựng trong bộ thẻ để bắt đầu chế độ Ghép từ & Trắc nghiệm.",
       "min_cards_match": "Cần tối thiểu 6 từ vựng trong bộ thẻ để bắt đầu trò chơi Ghép thẻ tốc độ.",
       "min_cards_test": "Cần tối thiểu 4 từ vựng trong bộ thẻ để tạo đề thi thử trắc nghiệm."
+    }
+  },
+  "onboarding": {
+    "loading": "Đang tải thiết lập mục tiêu...",
+    "steps": {
+      "language": "Chọn Ngôn Ngữ",
+      "certificate": "Mục Tiêu Chứng Chỉ",
+      "roadmap": "Lộ Trình Cá Nhân"
+    },
+    "step1": {
+      "title": "Ngôn ngữ của bạn",
+      "subtitle": "Hãy chọn ngôn ngữ mẹ đẻ và ngôn ngữ bạn đang muốn học để cá nhân hóa đề thi và giao diện.",
+      "error_same_lang": "Ngôn ngữ mẹ đẻ và ngôn ngữ muốn học không được trùng nhau!",
+      "native_label": "1. Ngôn ngữ mẹ đẻ (Native Language)",
+      "target_label": "2. Ngôn ngữ muốn học (Target Language)",
+      "lang_vi": "Tiếng Việt",
+      "lang_vi_desc": "Bản ngữ Việt Nam",
+      "lang_en": "Tiếng Anh (English)",
+      "lang_en_desc": "Ngôn ngữ toàn cầu",
+      "tag_native": "Bản ngữ",
+      "tag_target": "Mục tiêu"
+    },
+    "step2": {
+      "title": "Mục tiêu chứng chỉ",
+      "subtitle": "Chọn chứng chỉ và điểm số bạn mong muốn chinh phục để Multilingo đề xuất lộ trình phù hợp.",
+      "cert_label": "1. Chọn chứng chỉ mục tiêu",
+      "recommended_badge": "Khuyên dùng",
+      "score_label": "2. Điểm số / Bậc mục tiêu mong muốn",
+      "score_val": "Mục tiêu: {{score}}",
+      "score_band": "Band {{score}} / 9.0",
+      "score_pts": "{{score}} / 990 điểm",
+      "score_level": "Bậc {{score}} / 10",
+      "cert_ielts_desc": "Đánh giá 4 kỹ năng chuẩn học thuật quốc tế",
+      "cert_toeic_desc": "Tập trung Nghe & Đọc phục vụ môi trường làm việc",
+      "cert_toeic_writing_desc": "Luyện kỹ năng viết chuẩn đề thi TOEIC Writing",
+      "cert_nltv_desc": "Khung năng lực tiếng Việt chuẩn dành cho người học",
+      "cert_nltv_title": "Năng Lực Tiếng Việt",
+      "badge_popular": "Phổ biến",
+      "badge_standard": "Chuẩn DN",
+      "badge_writing": "Kỹ năng Viết",
+      "badge_nltv": "NLTV"
+    },
+    "step4": {
+      "title": "Kế hoạch rèn luyện",
+      "subtitle": "Xác định thời gian học mỗi ngày và tự đánh giá trình độ để tạo lộ trình tối ưu.",
+      "daily_time_label": "1. Thời gian rèn luyện mỗi ngày",
+      "minutes_per_day": "{{count}} phút/ngày",
+      "mins_15_desc": "Duy trì thói quen học tập nhẹ nhàng",
+      "mins_30_desc": "Tốc độ lý tưởng để tiến bộ đều đặn",
+      "mins_60_desc": "Tăng tốc ôn luyện cho kỳ thi sắp tới",
+      "mins_90_desc": "Cường độ cao, bứt phá thần tốc",
+      "level_label": "2. Trình độ hiện tại của bạn",
+      "level_beginner": "Mới bắt đầu (Beginner)",
+      "level_beginner_desc": "Mất gốc hoặc mới tiếp cận, cần củng cố nền tảng",
+      "level_intermediate": "Trung cấp (Intermediate)",
+      "level_intermediate_desc": "Có nền tảng cơ bản, cần rèn luyện phản xạ và từ vựng",
+      "level_advanced": "Nâng cao (Advanced)",
+      "level_advanced_desc": "Đã vững chắc, luyện đề chuyên sâu để đạt điểm tối đa",
+      "summary_box_title": "Tóm tắt mục tiêu của bạn",
+      "summary_target": "Học {{target}} từ {{native}}",
+      "summary_goal": "Mục tiêu {{cert}} ({{score}})"
+    },
+    "actions": {
+      "back": "Quay lại",
+      "continue": "Tiếp tục",
+      "start_journey": "Bắt đầu hành trình học",
+      "update_goal": "Cập nhật mục tiêu",
+      "submitting_start": "Đang khởi tạo...",
+      "submitting_update": "Đang cập nhật..."
+    },
+    "toasts": {
+      "same_lang": "Ngôn ngữ mẹ đẻ và ngôn ngữ muốn học không được trùng nhau!",
+      "success_update": "Cập nhật mục tiêu học tập thành công!",
+      "success_create": "Thiết lập mục tiêu học tập thành công!",
+      "failed": "Thiết lập không thành công",
+      "error_default": "Có lỗi xảy ra khi lưu mục tiêu"
+    }
+  },
+  "history": {
+    "hero": {
+      "badge": "Báo Cáo Học Tập & Lịch Sử",
+      "title": "Hành Trình Chinh Phục Mục Tiêu",
+      "desc": "Theo dõi sự tiến bộ, đánh giá điểm mạnh - điểm yếu và duy trì chuỗi học tập đều đặn mỗi ngày."
+    },
+    "kpi": {
+      "total_attempts": "Tổng bài đã làm",
+      "average_score": "Điểm trung bình",
+      "practice_time": "Thời gian rèn luyện",
+      "study_streak": "Chuỗi ngày học",
+      "completed": "{{count}} hoàn thành",
+      "in_progress": "{{count}} dở dang",
+      "failed": "{{count}} lỗi chấm",
+      "others": "{{count}} khác",
+      "no_attempts": "Chưa có lượt thi",
+      "tests_unit": "{{count}} bài",
+      "no_score": "Chưa có điểm",
+      "highest": "Cao nhất: {{score}}",
+      "scale_band": "Band {{score}} • Thang 9.0",
+      "scale_toeic": "{{score}} đ • Thang 990",
+      "scale_nltv": "Bậc {{score}} • Thang 10",
+      "target_achieved_count": "{{count}} lần đạt mục tiêu",
+      "accumulated_time": "Tích lũy thời gian thi",
+      "streak_active": "Duy trì phong độ tuyệt vời! 🔥",
+      "streak_zero": "Luyện tập mỗi ngày"
+    },
+    "chart": {
+      "title": "Tiến Độ Điểm Số Gần Đây",
+      "subtitle": "Biểu đồ theo dõi % hoàn thành của 10 bài làm gần nhất",
+      "filter_all": "Tất cả",
+      "recent_subtitle": "{{count}} lần làm bài gần nhất",
+      "tooltip_score": "Điểm:",
+      "empty_title": "Chưa có dữ liệu tiến độ điểm số",
+      "empty_desc": "Hãy hoàn thành bài thi thử hoặc bài luyện tập đầu tiên để kích hoạt biểu đồ theo dõi năng lực.",
+      "empty_filter": "Chưa có bài thi nào thuộc chứng chỉ này."
+    },
+    "filters": {
+      "all_certs": "Tất Cả Chứng Chỉ",
+      "mode_all": "Tất cả chế độ",
+      "mode_mock": "📝 Thi thử",
+      "mode_practice": "🎯 Luyện tập",
+      "status_all": "Tất cả trạng thái",
+      "status_completed": "✓ Hoàn thành",
+      "status_in_progress": "⏳ Đang làm dở",
+      "status_failed": "⚠️ Lỗi chấm",
+      "search_placeholder": "Tìm kiếm theo tên đề thi...",
+      "sort_newest": "Mới nhất",
+      "sort_highest_score": "Điểm cao nhất",
+      "sort_duration": "Thời gian lâu nhất"
+    },
+    "card": {
+      "unsubmitted": "Chưa nộp",
+      "grading_failed": "Lỗi chấm",
+      "grading": "Đang chấm",
+      "scale_nltv": "Bậc / {{max}}",
+      "minutes": "{{count}} phút",
+      "accuracy": "Chính xác: {{percent}}%",
+      "submitted": "Đã nộp bài",
+      "target_met": "Đạt mục tiêu",
+      "retake": "Làm lại",
+      "continue": "Tiếp tục",
+      "details": "Xem chi tiết",
+      "discontinued": "Đã ngừng",
+      "discontinued_badge": "Đã ngừng phát hành",
+      "deleted_exam": "Đề thi đã ngừng phát hành (#{{id}})",
+      "unavailable": "Không khả dụng",
+      "empty_title": "Chưa tìm thấy lượt thi nào",
+      "empty_filter": "Không có kết quả nào phù hợp với bộ lọc hiện tại. Bạn hãy thử thay đổi tiêu chí tìm kiếm.",
+      "empty_no_tests": "Bạn chưa thực hiện bài thi hay luyện tập nào. Hãy khám phá kho đề thi chuẩn quốc tế và bắt đầu ngay!",
+      "empty_desc": "Bạn chưa có lượt thi nào khớp với bộ lọc hiện tại. Hãy chọn bộ lọc khác hoặc bắt đầu làm bài mới ngay!",
+      "explore_library": "Khám phá Thư viện Đề thi"
+    },
+    "pagination": {
+      "info": "Trang {{current}} / {{total}} • Tổng {{totalElements}} lượt thi",
+      "prev": "← Trang trước",
+      "next": "Trang sau →"
+    }
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Chào buổi sáng",
+      "afternoon": "Chào buổi chiều",
+      "evening": "Chào buổi tối",
+      "student": "Học viên",
+      "subtitle": "Hôm nay bạn muốn học kỹ năng gì? Hãy cùng duy trì chuỗi học tập nhé!",
+      "learning": "Đang học:",
+      "lang_en": "Tiếng Anh",
+      "lang_vi": "Tiếng Việt"
+    },
+    "time_range": {
+      "this_week": "Tuần này",
+      "this_month": "Tháng này",
+      "this_year": "Cả năm"
+    },
+    "load_error": {
+      "title": "Không thể tải dữ liệu bảng điều khiển",
+      "desc": "Đã có lỗi xảy ra trong quá trình kết nối tới máy chủ. Vui lòng thử lại.",
+      "retry_btn": "Thử lại"
+    },
+    "welcome": {
+      "badge": "Chào mừng học viên mới!",
+      "title": "Bắt đầu hành trình ngoại ngữ cùng Multilingo 🎉",
+      "desc": "Hãy làm một bài kiểm tra đánh giá đầu vào ngắn để hệ thống đo lường trình độ và thiết lập mục tiêu học tập cá nhân hóa cho riêng bạn.",
+      "button": "Bắt đầu làm bài test đầu vào"
+    },
+    "goal": {
+      "badge": "Mục Tiêu Học Tập",
+      "recent_5": "5 bài gần nhất",
+      "edit_btn": "Đổi mục tiêu",
+      "practice_btn": "Luyện đề mục tiêu",
+      "avg_5": "Trung bình 5 bài",
+      "exams_count": "({{count}}/5 bài)",
+      "achievement_rate": "Mức độ đạt được",
+      "progress_label": "Tiến trình hoàn thành mục tiêu",
+      "exam_pill": "Bài {{num}}",
+      "not_taken": "Chưa làm",
+      "advice_title": "Lời khuyên Multilingo: ",
+      "advice_empty": "Bạn chưa có bài thi nào hoàn thành. Hãy làm bài thi đầu tiên để bắt đầu theo dõi thanh đo tiến độ!",
+      "advice_achieved": "Xuất sắc! Điểm trung bình 5 bài gần nhất đã đạt mục tiêu kỳ vọng. Hãy duy trì phong độ này cho kỳ thi thực tế!",
+      "advice_close": "Phong độ rất tốt! Bạn đã đi được phần lớn chặng đường. Hãy rà soát lại các câu sai trong lịch sử làm bài để bứt phá.",
+      "advice_keep_going": "Hãy tiếp tục kiên trì luyện tập đều đặn để nâng cao điểm trung bình và nhanh chóng chạm mốc mục tiêu!",
+      "score_points": "{{score}} Điểm",
+      "score_band": "Band {{score}}",
+      "score_level": "Bậc {{score}}"
+    },
+    "suggested": {
+      "title": "Hành động học tập đề xuất",
+      "vocab_badge": "Từ vựng",
+      "vocab_title": "Ôn tập từ vựng hôm nay",
+      "vocab_desc": "Củng cố trí nhớ dài hạn bằng phương pháp lặp lại ngắt quãng (SRS) cho các thẻ từ vựng của bạn.",
+      "vocab_btn": "Ôn tập ngay",
+      "exam_badge": "Luyện tập",
+      "exam_title": "Luyện đề thi thử tiếp theo",
+      "exam_desc": "Cải thiện kỹ năng làm bài, duy trì phản xạ phòng thi và đánh giá sự tiến bộ qua từng bộ đề.",
+      "exam_btn": "Vào thư viện đề"
+    },
+    "metrics": {
+      "study_time": "Thời lượng học",
+      "minutes": "phút",
+      "record_days": "Kỷ lục: {{days}} ngày",
+      "xp_accumulated": "Tích lũy XP",
+      "xp_desc": "Điểm kinh nghiệm học tập",
+      "exams_taken": "Thi thử & Đánh giá",
+      "exams_unit": "đề thi",
+      "avg_score": "TB: {{score}}",
+      "latest_exam": "Gần nhất: {{title}}",
+      "no_exams": "Chưa hoàn thành đề thi nào",
+      "vocab_handbook": "Sổ tay từ vựng",
+      "words_saved": "từ đã lưu",
+      "mastery_rate": "Thuộc {{percent}}%",
+      "words_due": "⚡ Có {{count}} từ đến hạn ôn",
+      "all_cards_done": "Đã hoàn thành toàn bộ thẻ"
+    },
+    "heatmap": {
+      "title": "Bản đồ nhiệt hoạt động học tập",
+      "subtitle": "Mỗi ô vuông thể hiện mức độ học tập thực tế trong ngày của bạn",
+      "tooltip": "{{date}}: {{minutes}} phút học tập • {{words}} từ đã ôn • {{xp}} XP",
+      "footer": "{{days}} ngày học tập trong năm {{year}}",
+      "less": "Ít hơn",
+      "more": "Nhiều hơn"
+    },
+    "chart": {
+      "title": "Tiến độ học tập trong kỳ",
+      "total_time": "Tổng thời gian: {{minutes}} phút",
+      "average": "Trung bình: {{average}} {{unit}}",
+      "peak": "Cao nhất: {{label}} ({{minutes}}p)",
+      "unit_day": "phút/ngày",
+      "unit_week": "phút/tuần",
+      "unit_month": "phút/tháng",
+      "week_num": "Tuần {{num}}",
+      "month_num": "Tháng {{num}}",
+      "tooltip_min": "{{count}} phút học",
+      "tooltip_questions": "{{count}} câu hỏi hoàn thành"
     }
   }
 }

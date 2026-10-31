@@ -37,7 +37,7 @@ const Footer = () => {
             <div>
               <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem', fontWeight: 700 }}>{t('publicLayout.products')}</h4>
               <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }}>{t('publicLayout.ielts_test')}</p>
-              <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }}>Luyện thi TOEIC</p>
+              <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }}>{t('publicLayout.toeic_test', 'Luyện thi TOEIC')}</p>
             </div>
             <div>
               <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem', fontWeight: 700 }}>{t('publicLayout.support')}</h4>

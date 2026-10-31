@@ -27,6 +27,54 @@ describe('HistoryKpiCards', () => {
     expect(screen.getByText('6.5')).toBeInTheDocument();
   });
 
+  it('formats average score appropriately according to active certificate', () => {
+    const mockStats: HistoryStatsResponse = {
+      totalAttempts: 10,
+      completedAttempts: 10,
+      inProgressAttempts: 0,
+      averageScore: 7.2,
+      highestScore: 8.5,
+      totalPracticeMinutes: 120,
+      currentStreak: 2,
+      targetAchievedCount: 4,
+      recentScoreTrends: [],
+      averageScoresByType: {
+        IELTS: 7.2,
+        TOEIC: 750.0,
+      },
+    };
+
+    const { rerender } = render(<HistoryKpiCards stats={mockStats} loading={false} activeCert="IELTS" />);
+    expect(screen.getByText('Band 7.2')).toBeInTheDocument();
+    expect(screen.getByText(/Thang 9.0/)).toBeInTheDocument();
+
+    rerender(<HistoryKpiCards stats={mockStats} loading={false} activeCert="TOEIC" />);
+    expect(screen.getByText('750 đ')).toBeInTheDocument();
+    expect(screen.getByText(/Thang 990/)).toBeInTheDocument();
+  });
+
+  it('displays breakdown subtext when ALL is selected and multiple exam types exist', () => {
+    const mockStats: HistoryStatsResponse = {
+      totalAttempts: 12,
+      completedAttempts: 12,
+      inProgressAttempts: 0,
+      averageScore: 7.2,
+      highestScore: 8.5,
+      totalPracticeMinutes: 150,
+      currentStreak: 4,
+      targetAchievedCount: 5,
+      recentScoreTrends: [],
+      averageScoresByType: {
+        IELTS: 7.2,
+        TOEIC: 750.0,
+      },
+    };
+
+    render(<HistoryKpiCards stats={mockStats} loading={false} activeCert="ALL" />);
+    expect(screen.getByText('Band 7.2')).toBeInTheDocument();
+    expect(screen.getByText('IELTS: Band 7.2 • TOEIC: 750đ')).toBeInTheDocument();
+  });
+
   it('renders fallback when stats is null', () => {
     render(<HistoryKpiCards stats={null} loading={false} />);
 

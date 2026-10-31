@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import i18n from '../../../i18n';
 import authReducer from '../../auth/store/authSlice';
 import OnboardingPage from '../pages/student/OnboardingPage';
 import { onboardingApi } from '../api/onboardingApi';
@@ -296,5 +297,78 @@ describe('OnboardingWizard UI & Flow (Streamlined 3-Step Wizard)', () => {
       expect(alertUtil.toast).toHaveBeenCalledWith('Cập nhật mục tiêu học tập thành công!', 'success');
       expect(screen.getByText('Dashboard Screen')).toBeInTheDocument();
     });
+  });
+
+  it('synchronizes defaults with English pre-login language (native: en, target: vi, cert: NLTV)', async () => {
+    await i18n.changeLanguage('en');
+
+    vi.mocked(onboardingApi.getStatus).mockResolvedValue({
+      code: 200,
+      message: 'OK',
+      data: {
+        hasCompletedOnboarding: false,
+        nativeLanguage: 'vi', // DB default before completing onboarding
+        targetLanguage: null,
+      },
+    } as any);
+
+    vi.mocked(onboardingApi.submitOnboarding).mockResolvedValue({
+      code: 200,
+      message: 'Success',
+      data: { userId: 1, hasCompletedOnboarding: true },
+    } as any);
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <Routes>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/student/dashboard" element={<div>Dashboard Screen</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    // Wait for step 1 in English
+    await waitFor(() => {
+      expect(screen.getByText('Your Languages')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Step 1 of 3: Select Language')).toBeInTheDocument();
+
+    // Click "Continue" -> Step 2
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    // Step 2 in English
+    await waitFor(() => {
+      expect(screen.getByText('Target Certificate')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Step 2 of 3: Target Certificate')).toBeInTheDocument();
+    expect(screen.getByText('Vietnamese Proficiency (NLTV)')).toBeInTheDocument();
+
+    // Click "Continue" -> Step 3
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    // Step 3 in English
+    await waitFor(() => {
+      expect(screen.getByText('Your personalized roadmap is ready!')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Step 3 of 3: Personal Roadmap')).toBeInTheDocument();
+
+    // Submit
+    fireEvent.click(screen.getByRole('button', { name: /start learning journey/i }));
+
+    await waitFor(() => {
+      expect(onboardingApi.submitOnboarding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nativeLanguage: 'en',
+          targetLanguage: 'vi',
+          targetCertificate: 'NLTV',
+          targetScore: 4,
+        })
+      );
+      expect(screen.getByText('Dashboard Screen')).toBeInTheDocument();
+    });
+
+    // Restore language back to 'vi'
+    await i18n.changeLanguage('vi');
   });
 });

@@ -22,4 +22,5 @@ public class StudentHistoryStatsResponse {
     private int currentStreak;
     private long targetAchievedCount;
     private List<RecentScoreTrendItem> recentScoreTrends;
+    private java.util.Map<String, Double> averageScoresByType;
 }

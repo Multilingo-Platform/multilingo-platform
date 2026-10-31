@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TrendingUp, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ScoreTrendItem } from '../types/history.types';
 
 interface ScoreTrendChartProps {
@@ -8,7 +9,26 @@ interface ScoreTrendChartProps {
 }
 
 export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loading }) => {
+  const { t } = useTranslation();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [selectedCertFilter, setSelectedCertFilter] = useState<string>('ALL');
+
+  const availableCerts = React.useMemo(() => {
+    if (!trends) return [];
+    const set = new Set<string>();
+    trends.forEach((t) => {
+      if (t.certType && t.certType !== 'OTHER') {
+        set.add(t.certType);
+      }
+    });
+    return Array.from(set);
+  }, [trends]);
+
+  const displayedTrends = React.useMemo(() => {
+    if (!trends) return [];
+    if (selectedCertFilter === 'ALL') return trends;
+    return trends.filter((t) => t.certType === selectedCertFilter);
+  }, [trends, selectedCertFilter]);
 
   if (loading) {
     return (
@@ -23,8 +43,8 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
       <div className="history-chart-card empty">
         <div className="history-chart-empty-content">
           <Sparkles className="history-chart-empty-icon" size={36} />
-          <h4>Chưa có dữ liệu tiến độ điểm số</h4>
-          <p>Hãy hoàn thành bài thi thử hoặc bài luyện tập đầu tiên để kích hoạt biểu đồ theo dõi năng lực.</p>
+          <h4>{t('history.chart.empty_title', 'Chưa có dữ liệu tiến độ điểm số')}</h4>
+          <p>{t('history.chart.empty_desc', 'Hãy hoàn thành bài thi thử hoặc bài luyện tập đầu tiên để kích hoạt biểu đồ theo dõi năng lực.')}</p>
         </div>
       </div>
     );
@@ -41,8 +61,8 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
   const chartHeight = height - paddingTop - paddingBottom;
 
   // Calculate coordinates
-  const n = trends.length;
-  const points = trends.map((item, idx) => {
+  const n = displayedTrends.length;
+  const points = displayedTrends.map((item, idx) => {
     const x = n === 1 ? width / 2 : paddingX + (idx / (n - 1)) * chartWidth;
     const clampedPercentage = Math.min(100, Math.max(0, item.percentage));
     const y = paddingTop + chartHeight - (clampedPercentage / 100) * chartHeight;
@@ -56,7 +76,7 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
 
   const areaPath = n === 1
     ? ''
-    : `${linePath} L ${points[n - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`;
+    : `${linePath} L ${points[n - 1]?.x ?? width} ${paddingTop + chartHeight} L ${points[0]?.x ?? 0} ${paddingTop + chartHeight} Z`;
 
   const formatDate = (isoStr: string) => {
     const d = new Date(isoStr);
@@ -76,11 +96,37 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
       <div className="history-chart-header">
         <div className="history-chart-title-wrap">
           <TrendingUp className="history-chart-icon" size={20} />
-          <h3 className="history-chart-title">Tiến Độ Điểm Số Gần Đây</h3>
+          <h3 className="history-chart-title">{t('history.chart.title', 'Tiến Độ Điểm Số Gần Đây')}</h3>
         </div>
-        <span className="history-chart-subtitle">
-          {trends.length} lần làm bài gần nhất
-        </span>
+        <div className="history-chart-actions">
+          {availableCerts.length > 1 && (
+            <div className="history-chart-cert-filters" role="tablist">
+              <button
+                type="button"
+                className={`history-chart-filter-chip ${selectedCertFilter === 'ALL' ? 'active' : ''}`}
+                onClick={() => setSelectedCertFilter('ALL')}
+              >
+                {t('history.chart.filter_all', 'Tất cả')} ({trends.length})
+              </button>
+              {availableCerts.map((c) => {
+                const count = trends.filter((t) => t.certType === c).length;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`history-chart-filter-chip ${selectedCertFilter === c ? 'active' : ''}`}
+                    onClick={() => setSelectedCertFilter(c)}
+                  >
+                    {c} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <span className="history-chart-subtitle">
+            {t('history.chart.recent_subtitle', { count: displayedTrends.length, defaultValue: `${displayedTrends.length} lần làm bài gần nhất` })}
+          </span>
+        </div>
       </div>
 
       <div className="history-chart-svg-wrap">
@@ -216,7 +262,7 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
               {points[hoveredIdx].item.examTitle}
             </div>
             <div className="history-tooltip-score">
-              Điểm: <strong>{points[hoveredIdx].item.score} / {points[hoveredIdx].item.maxScore}</strong>
+              {t('history.chart.tooltip_score', 'Điểm:')} <strong>{points[hoveredIdx].item.score} / {points[hoveredIdx].item.maxScore}</strong>
               <span className="history-tooltip-pct">({points[hoveredIdx].item.percentage}%)</span>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ActivityHeatmap, HeatmapDataPoint } from '../types/dashboard.types';
 
 interface StudyActivityHeatmapProps {
@@ -12,6 +13,8 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
   selectedYear,
   onYearChange,
 }) => {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredCell, setHoveredCell] = useState<{
     x: number;
@@ -53,6 +56,16 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
 
     const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 
+    const monthNamesVi = [
+      'Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6',
+      'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12',
+    ];
+    const monthNamesEn = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    const monthNames = isEn ? monthNamesEn : monthNamesVi;
+
     while (cur <= calendarEnd) {
       const year = cur.getFullYear();
       const month = cur.getMonth();
@@ -61,10 +74,6 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
       const inYear = year === selectedYear;
 
       if (inYear && month !== lastMonth && cur.getDay() <= 3) {
-        const monthNames = [
-          'Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6',
-          'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12',
-        ];
         monthsHeader.push({ month: monthNames[month], colIndex: colIdx });
         lastMonth = month;
       }
@@ -85,7 +94,7 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
     }
 
     return { weeks: weeksArray, monthLabels: monthsHeader };
-  }, [selectedYear]);
+  }, [selectedYear, isEn]);
 
   const getCellColor = (level: number, inYear: boolean) => {
     if (!inYear) return 'bg-transparent';
@@ -122,10 +131,10 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <h3 className="text-base md:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span>Bản đồ nhiệt hoạt động học tập</span>
+            <span>{t('dashboard.heatmap.title', 'Bản đồ nhiệt hoạt động học tập')}</span>
           </h3>
           <p className="text-sm text-slate-600 mt-1">
-            Mỗi ô vuông thể hiện mức độ học tập thực tế trong ngày của bạn
+            {t('dashboard.heatmap.subtitle', 'Mỗi ô vuông thể hiện mức độ học tập thực tế trong ngày của bạn')}
           </p>
         </div>
 
@@ -166,9 +175,9 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
           <div className="flex gap-2">
             {/* Day of week labels */}
             <div className="flex flex-col justify-between text-xs md:text-sm text-slate-500 font-semibold py-0.5 pr-2 select-none">
-              <span className="h-[12px] leading-[12px]">T2</span>
-              <span className="h-[12px] leading-[12px]">T4</span>
-              <span className="h-[12px] leading-[12px]">T6</span>
+              <span className="h-[12px] leading-[12px]">{isEn ? 'Mon' : 'T2'}</span>
+              <span className="h-[12px] leading-[12px]">{isEn ? 'Wed' : 'T4'}</span>
+              <span className="h-[12px] leading-[12px]">{isEn ? 'Fri' : 'T6'}</span>
             </div>
 
             {/* Grid of Weeks */}
@@ -179,7 +188,7 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
                     const data = dataMap.get(day.dateStr);
                     const level = data?.level || 0;
                     const minutes = data?.learningMinutes || 0;
-                    const dateFormatted = new Intl.DateTimeFormat('vi-VN', {
+                    const dateFormatted = new Intl.DateTimeFormat(isEn ? 'en-US' : 'vi-VN', {
                       weekday: 'short',
                       year: 'numeric',
                       month: 'numeric',
@@ -187,7 +196,12 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
                     }).format(day.date);
 
                     const tooltipText = day.inYear
-                      ? `${dateFormatted}: ${minutes} phút học tập • ${data?.flashcardsReviewed || 0} từ đã ôn • ${data?.xpEarned || 0} XP`
+                      ? t('dashboard.heatmap.tooltip', {
+                          date: dateFormatted,
+                          minutes,
+                          words: data?.flashcardsReviewed || 0,
+                          xp: data?.xpEarned || 0,
+                        })
                       : '';
 
                     return (
@@ -226,21 +240,18 @@ export const StudyActivityHeatmap: React.FC<StudyActivityHeatmapProps> = ({
       <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-sm md:text-base text-slate-600 gap-3">
         <div>
           <span>
-            <strong className="text-slate-900 font-bold">
-              {heatmap.totalActiveDays} ngày học tập
-            </strong>{' '}
-            trong năm {selectedYear}
+            {t('dashboard.heatmap.footer', { days: heatmap.totalActiveDays, year: selectedYear })}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs md:text-sm font-medium text-slate-500">Ít hơn</span>
-          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#ebedf0] border border-[#d0d7de]" title="0 phút" />
-          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#9be9a8] border border-[#8ce199]" title="1-15 phút" />
-          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#40c463] border border-[#34b255]" title="16-30 phút" />
-          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#30a14e] border border-[#278e42]" title="31-60 phút" />
-          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#216e39] border border-[#1b5e30]" title="> 60 phút" />
-          <span className="text-xs md:text-sm font-medium text-slate-500">Nhiều hơn</span>
+          <span className="text-xs md:text-sm font-medium text-slate-500">{t('dashboard.heatmap.less', 'Ít hơn')}</span>
+          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#ebedf0] border border-[#d0d7de]" title="0 min" />
+          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#9be9a8] border border-[#8ce199]" title="1-15 min" />
+          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#40c463] border border-[#34b255]" title="16-30 min" />
+          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#30a14e] border border-[#278e42]" title="31-60 min" />
+          <div className="w-[12px] h-[12px] rounded-[3px] bg-[#216e39] border border-[#1b5e30]" title="> 60 min" />
+          <span className="text-xs md:text-sm font-medium text-slate-500">{t('dashboard.heatmap.more', 'Nhiều hơn')}</span>
         </div>
       </div>
     </div>

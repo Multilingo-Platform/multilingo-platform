@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ProgressChart as ProgressChartType } from '../types/dashboard.types';
 import { DashboardTimeFilter } from './DashboardTimeFilter';
 import { TrendingUp, Clock, Award } from 'lucide-react';
@@ -14,6 +15,8 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
   timeRange,
   onTimeRangeChange,
 }) => {
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const rawDataPoints = progressChart?.dataPoints || [];
@@ -24,15 +27,15 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
 
     if (timeRange === 'THIS_MONTH') {
       // If already aggregated into 4 weeks by backend
-      if (rawDataPoints.length <= 4 && rawDataPoints[0]?.label?.startsWith('Tuần')) {
+      if (rawDataPoints.length <= 4 && (rawDataPoints[0]?.label?.startsWith('Tuần') || rawDataPoints[0]?.label?.startsWith('Week'))) {
         return rawDataPoints;
       }
       // Group daily points into 4 weeks: 1-7, 8-14, 15-21, 22-end
       const weeks = [
-        { label: 'Tuần 1', minutes: 0, questions: 0, date: '' },
-        { label: 'Tuần 2', minutes: 0, questions: 0, date: '' },
-        { label: 'Tuần 3', minutes: 0, questions: 0, date: '' },
-        { label: 'Tuần 4', minutes: 0, questions: 0, date: '' },
+        { label: isEn ? 'Week 1' : 'Tuần 1', minutes: 0, questions: 0, date: '' },
+        { label: isEn ? 'Week 2' : 'Tuần 2', minutes: 0, questions: 0, date: '' },
+        { label: isEn ? 'Week 3' : 'Tuần 3', minutes: 0, questions: 0, date: '' },
+        { label: isEn ? 'Week 4' : 'Tuần 4', minutes: 0, questions: 0, date: '' },
       ];
 
       rawDataPoints.forEach((pt) => {
@@ -45,7 +48,7 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
       });
 
       return weeks.map((w, idx) => ({
-        date: w.date || `Tuần ${idx + 1}`,
+        date: w.date || (isEn ? `Week ${idx + 1}` : `Tuần ${idx + 1}`),
         label: w.label,
         learningMinutes: w.minutes,
         questionsAnswered: w.questions,
@@ -54,15 +57,16 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
 
     if (timeRange === 'ALL') {
       // If already aggregated into 12 months by backend
-      if (rawDataPoints.length <= 12 && rawDataPoints[0]?.label?.startsWith('Th')) {
+      if (rawDataPoints.length <= 12 && (rawDataPoints[0]?.label?.startsWith('Th') || rawDataPoints[0]?.label?.length === 3)) {
         return rawDataPoints;
       }
+      const enMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       // Group daily points into 12 months
       const months = Array.from({ length: 12 }, (_, i) => ({
-        label: `Th${i + 1}`,
+        label: isEn ? enMonths[i] : `Th${i + 1}`,
         minutes: 0,
         questions: 0,
-        date: `Tháng ${i + 1}`,
+        date: isEn ? `Month ${i + 1}` : `Tháng ${i + 1}`,
       }));
 
       rawDataPoints.forEach((pt) => {
@@ -83,16 +87,16 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
 
     // Default THIS_WEEK: Exactly 7 days
     return rawDataPoints;
-  }, [rawDataPoints, timeRange]);
+  }, [rawDataPoints, timeRange, isEn]);
 
   const totalPeriodMinutes = dataPoints.reduce((sum, d) => sum + d.learningMinutes, 0);
   const averageMinutes = dataPoints.length > 0 ? Math.round(totalPeriodMinutes / dataPoints.length) : 0;
 
   const averageUnit = useMemo(() => {
-    if (timeRange === 'THIS_MONTH') return 'phút/tuần';
-    if (timeRange === 'ALL') return 'phút/tháng';
-    return 'phút/ngày';
-  }, [timeRange]);
+    if (timeRange === 'THIS_MONTH') return t('dashboard.chart.unit_week', 'phút/tuần');
+    if (timeRange === 'ALL') return t('dashboard.chart.unit_month', 'phút/tháng');
+    return t('dashboard.chart.unit_day', 'phút/ngày');
+  }, [timeRange, t]);
   
   // Find peak learning period
   const peakDay = useMemo(() => {
@@ -186,31 +190,22 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
               <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
             </div>
             <h3 className="text-base md:text-lg font-bold text-slate-900">
-              Tiến độ học tập trong kỳ
+              {t('dashboard.chart.title', 'Tiến độ học tập trong kỳ')}
             </h3>
           </div>
           <div className="flex items-center flex-wrap gap-2 md:gap-3 mt-1.5 text-xs md:text-sm text-slate-600">
             <span>
-              Tổng thời gian:{' '}
-              <strong className="text-amber-600 font-bold">
-                {totalPeriodMinutes} phút
-              </strong>
+              {t('dashboard.chart.total_time', { minutes: totalPeriodMinutes })}
             </span>
             <span className="text-slate-300">•</span>
             <span>
-              Trung bình:{' '}
-              <strong className="text-slate-800 font-semibold">
-                {averageMinutes} {averageUnit}
-              </strong>
+              {t('dashboard.chart.average', { average: averageMinutes, unit: averageUnit })}
             </span>
             {peakDay && peakDay.learningMinutes > 0 && (
               <>
                 <span className="text-slate-300 hidden sm:inline">•</span>
                 <span className="hidden sm:inline">
-                  Cao nhất:{' '}
-                  <strong className="text-slate-800 font-semibold">
-                    {peakDay.label} ({peakDay.learningMinutes}p)
-                  </strong>
+                  {t('dashboard.chart.peak', { label: peakDay.label, minutes: peakDay.learningMinutes })}
                 </span>
               </>
             )}
@@ -386,12 +381,12 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
             </div>
             <div className="mt-1 flex items-center gap-1.5 text-amber-300 font-medium">
               <Clock className="w-3.5 h-3.5" />
-              <span>{activePoint.pt.learningMinutes} phút học</span>
+              <span>{t('dashboard.chart.tooltip_min', { count: activePoint.pt.learningMinutes })}</span>
             </div>
             {activePoint.pt.questionsAnswered > 0 && (
               <div className="mt-0.5 flex items-center gap-1.5 text-emerald-400 text-xs font-normal">
                 <Award className="w-3.5 h-3.5" />
-                <span>{activePoint.pt.questionsAnswered} câu hỏi hoàn thành</span>
+                <span>{t('dashboard.chart.tooltip_questions', { count: activePoint.pt.questionsAnswered })}</span>
               </div>
             )}
           </div>

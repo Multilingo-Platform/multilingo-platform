@@ -40,37 +40,92 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
     private final UserStudyStatRepository userStudyStatRepository;
     private final UserTargetRepository userTargetRepository;
 
+    private String resolveUserLanguage(Integer userId, String targetLanguage) {
+        if (targetLanguage != null && !targetLanguage.trim().isEmpty() && !"ALL".equalsIgnoreCase(targetLanguage.trim())) {
+            return targetLanguage.trim().toLowerCase();
+        }
+        UserTarget userTarget = userTargetRepository.findFirstByUserId(userId).orElse(null);
+        if (userTarget != null && userTarget.getTargetLanguage() != null && !userTarget.getTargetLanguage().trim().isEmpty()) {
+            return userTarget.getTargetLanguage().trim().toLowerCase();
+        }
+        if (userTarget != null && userTarget.getTargetCertificate() != null) {
+            return "NLTV".equalsIgnoreCase(userTarget.getTargetCertificate()) ? "vi" : "en";
+        }
+        return "en";
+    }
+
     @Override
-    public StudentHistoryStatsResponse getStudentStats(Integer userId) {
-        long totalAttempts = testAttemptRepository.countByUserId(userId);
-        long completedAttempts = testAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.COMPLETED);
-        long inProgressAttempts = testAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.IN_PROGRESS);
-        long failedAttempts = testAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.GRADING_FAILED);
-        Double averageScore = testAttemptRepository.findAverageScoreByUserId(userId);
-        BigDecimal highestScoreBd = testAttemptRepository.findHighestScoreByUserId(userId);
+    public StudentHistoryStatsResponse getStudentStats(Integer userId, String cert, String targetLanguage) {
+        String resolvedLang = resolveUserLanguage(userId, targetLanguage);
+        boolean hasLang = (resolvedLang != null && !resolvedLang.isBlank());
+
+        boolean hasCert = cert != null && !cert.trim().isEmpty() && !"ALL".equalsIgnoreCase(cert.trim());
+        String certPrefix = hasCert ? cert.trim().toUpperCase() : "";
+
+        long totalAttempts = testAttemptRepository.countByUserIdAndLanguageAndCert(userId, resolvedLang, hasLang, certPrefix, hasCert);
+        long completedAttempts = testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(userId, AttemptStatus.COMPLETED, resolvedLang, hasLang, certPrefix, hasCert);
+        long inProgressAttempts = testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(userId, AttemptStatus.IN_PROGRESS, resolvedLang, hasLang, certPrefix, hasCert);
+        long failedAttempts = testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(userId, AttemptStatus.GRADING_FAILED, resolvedLang, hasLang, certPrefix, hasCert);
+        Double rawAverageScore = testAttemptRepository.findAverageScoreByUserIdAndLanguageAndCert(userId, resolvedLang, hasLang, certPrefix, hasCert);
+        BigDecimal highestScoreBd = testAttemptRepository.findHighestScoreByUserIdAndLanguageAndCert(userId, resolvedLang, hasLang, certPrefix, hasCert);
         Double highestScore = highestScoreBd != null ? highestScoreBd.doubleValue() : null;
-        Long totalTimeSeconds = testAttemptRepository.sumTimeSpentSecondsByUserId(userId);
+        Long totalTimeSeconds = testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(userId, resolvedLang, hasLang, certPrefix, hasCert);
         long totalPracticeMinutes = totalTimeSeconds != null ? totalTimeSeconds / 60 : 0;
+
+        // Grouped averages by certificate type (e.g. IELTS, TOEIC, NLTV)
+        java.util.Map<String, Double> averageScoresByType = new java.util.HashMap<>();
+        List<Object[]> groupedAvgs = testAttemptRepository.findAverageScoresGroupedByType(userId, resolvedLang, hasLang);
+        java.util.Map<String, List<Double>> scoresByCertGroup = new java.util.HashMap<>();
+        for (Object[] row : groupedAvgs) {
+            String rawType = (String) row[0];
+            Number avgNum = (Number) row[1];
+            if (rawType != null && avgNum != null) {
+                String certGroup = resolveCertType(rawType);
+                scoresByCertGroup.computeIfAbsent(certGroup, k -> new java.util.ArrayList<>()).add(avgNum.doubleValue());
+            }
+        }
+        for (java.util.Map.Entry<String, List<Double>> entry : scoresByCertGroup.entrySet()) {
+            double mean = entry.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+            averageScoresByType.put(entry.getKey(), Math.round(mean * 10.0) / 10.0);
+        }
 
         UserTarget userTarget = userTargetRepository.findFirstByUserId(userId).orElse(null);
         Double targetScoreVal = userTarget != null && userTarget.getTargetScore() != null
                 ? userTarget.getTargetScore().doubleValue()
                 : null;
+        String userTargetCert = userTarget != null && userTarget.getTargetCertificate() != null
+                ? resolveCertType(userTarget.getTargetCertificate())
+                : null;
+
+        // Resolve context-aware averageScore
+        Double displayAverageScore;
+        if (hasCert && averageScoresByType.containsKey(certPrefix)) {
+            displayAverageScore = averageScoresByType.get(certPrefix);
+        } else if (userTargetCert != null && averageScoresByType.containsKey(userTargetCert)) {
+            displayAverageScore = averageScoresByType.get(userTargetCert);
+        } else if (averageScoresByType.size() == 1) {
+            displayAverageScore = averageScoresByType.values().iterator().next();
+        } else {
+            displayAverageScore = rawAverageScore != null ? Math.round(rawAverageScore * 10.0) / 10.0 : null;
+        }
 
         int currentStreak = userStudyStatRepository.findByUserId(userId)
                 .map(UserStudyStat::getCurrentStreak)
                 .orElse(0);
 
-        List<TestAttempt> recentAttempts = testAttemptRepository.findTop10ByUserIdAndStatusOrderByEndTimeDesc(userId, AttemptStatus.COMPLETED);
-        List<RecentScoreTrendItem> trends = new ArrayList<>();
+        List<Object[]> recentRows = testAttemptRepository.findRecentAttemptsWithExam(
+                userId, AttemptStatus.COMPLETED, resolvedLang, hasLang, certPrefix, hasCert, PageRequest.of(0, 10)
+        );
+        List<RecentScoreTrendItem> trends = new java.util.ArrayList<>();
         long targetAchievedCount = 0;
 
-        for (TestAttempt attempt : recentAttempts) {
-            Exam exam = examRepository.findById(attempt.getExamId()).orElse(null);
+        for (Object[] record : recentRows) {
+            TestAttempt attempt = (TestAttempt) record[0];
+            Exam exam = (Exam) record[1];
             String title = exam != null ? exam.getTitle() : "Đề thi #" + attempt.getExamId();
             String examType = exam != null ? exam.getType() : "";
             double maxScore = resolveMaxScore(examType);
-            String certType = resolveCertType(examType);
+            String itemCertType = resolveCertType(examType);
 
             Double score = attempt.getOverallScore() != null ? attempt.getOverallScore().doubleValue() : null;
             Double percentage = (score != null && maxScore > 0) ? Math.min(100.0, (score / maxScore) * 100.0) : 0.0;
@@ -82,7 +137,7 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
             trends.add(RecentScoreTrendItem.builder()
                     .attemptId(attempt.getId())
                     .examTitle(title)
-                    .certType(certType)
+                    .certType(itemCertType)
                     .score(score)
                     .maxScore(maxScore)
                     .percentage(Math.round(percentage * 10.0) / 10.0)
@@ -98,7 +153,8 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
                 .completedAttempts(completedAttempts)
                 .inProgressAttempts(inProgressAttempts)
                 .failedAttempts(failedAttempts)
-                .averageScore(averageScore != null ? Math.round(averageScore * 10.0) / 10.0 : null)
+                .averageScore(displayAverageScore)
+                .averageScoresByType(averageScoresByType)
                 .highestScore(highestScore != null ? Math.round(highestScore * 10.0) / 10.0 : null)
                 .totalPracticeMinutes(totalPracticeMinutes)
                 .currentStreak(currentStreak)
@@ -114,10 +170,14 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
             String cert,
             String mode,
             String status,
+            String targetLanguage,
             int page,
             int size,
             String sort
     ) {
+        String resolvedLang = resolveUserLanguage(userId, targetLanguage);
+        boolean hasLang = (resolvedLang != null && !resolvedLang.isBlank());
+
         Sort sortObj;
         if ("highestScore".equalsIgnoreCase(sort)) {
             sortObj = Sort.by(Sort.Direction.DESC, "a.overallScore");
@@ -162,6 +222,8 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
 
         Page<Object[]> rawPage = testAttemptRepository.findUserAttemptsWithExam(
                 userId,
+                resolvedLang,
+                hasLang,
                 cleanSearch,
                 hasSearch,
                 certPrefix,

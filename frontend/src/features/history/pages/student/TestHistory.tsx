@@ -13,7 +13,10 @@ import {
   Target,
   Percent,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { historyApi } from '../../api/historyApi';
+import { onboardingApi } from '../../../onboarding/api/onboardingApi';
 import type {
   HistoryStatsResponse,
   HistoryAttemptItem,
@@ -23,28 +26,55 @@ import { HistoryKpiCards } from '../../components/HistoryKpiCards';
 import { ScoreTrendChart } from '../../components/ScoreTrendChart';
 import './TestHistory.css';
 
-const CERT_TABS = [
-  { id: 'ALL', label: 'Tất Cả Chứng Chỉ' },
-  { id: 'IELTS', label: 'IELTS' },
-  { id: 'TOEIC', label: 'TOEIC' },
-  { id: 'NLTV', label: 'NLTV' },
-];
-
-const MODE_OPTIONS = [
-  { id: 'ALL', label: 'Tất cả chế độ' },
-  { id: 'MOCK_TEST', label: '📝 Thi thử' },
-  { id: 'PRACTICE', label: '🎯 Luyện tập' },
-];
-
-const STATUS_OPTIONS = [
-  { id: 'ALL', label: 'Tất cả trạng thái' },
-  { id: 'COMPLETED', label: '✓ Hoàn thành' },
-  { id: 'IN_PROGRESS', label: '⏳ Đang làm dở' },
-  { id: 'GRADING_FAILED', label: '⚠️ Lỗi chấm' },
-];
-
 const TestHistory: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const certTabs = React.useMemo(() => [
+    { id: 'ALL', label: t('history.filters.all_certs', 'Tất Cả Chứng Chỉ') },
+    { id: 'IELTS', label: 'IELTS' },
+    { id: 'TOEIC', label: 'TOEIC' },
+    { id: 'NLTV', label: 'NLTV' },
+  ], [t]);
+
+  const modeOptions = React.useMemo(() => [
+    { id: 'ALL', label: t('history.filters.mode_all', 'Tất cả chế độ') },
+    { id: 'MOCK_TEST', label: t('history.filters.mode_mock', '📝 Thi thử') },
+    { id: 'PRACTICE', label: t('history.filters.mode_practice', '🎯 Luyện tập') },
+  ], [t]);
+
+  const statusOptions = React.useMemo(() => [
+    { id: 'ALL', label: t('history.filters.status_all', 'Tất cả trạng thái') },
+    { id: 'COMPLETED', label: t('history.filters.status_completed', '✓ Hoàn thành') },
+    { id: 'IN_PROGRESS', label: t('history.filters.status_in_progress', '⏳ Đang làm dở') },
+    { id: 'GRADING_FAILED', label: t('history.filters.status_failed', '⚠️ Lỗi chấm') },
+  ], [t]);
+
+  // User target from onboarding via React Query (shared cache with ExamLibrary and StudentDashboard)
+  const { data: onboardingRes, isLoading: isOnboardingLoading } = useQuery({
+    queryKey: ['onboarding-status'],
+    queryFn: onboardingApi.getStatus,
+    staleTime: 60 * 1000,
+  });
+  const userTarget = onboardingRes?.data;
+
+  // Target certificate category
+  const targetCategory = React.useMemo(() => {
+    if (!userTarget?.targetCertificate) return '';
+    const upper = userTarget.targetCertificate.toUpperCase();
+    if (upper.startsWith('IELTS')) return 'IELTS';
+    if (upper.startsWith('TOEIC')) return 'TOEIC';
+    if (upper.startsWith('NLTV')) return 'NLTV';
+    return '';
+  }, [userTarget]);
+
+  // Target language derived synchronously from userTarget
+  const userTargetLanguage = React.useMemo(() => {
+    if (userTarget?.targetLanguage) return userTarget.targetLanguage.toLowerCase();
+    if (targetCategory === 'NLTV') return 'vi';
+    if (targetCategory === 'IELTS' || targetCategory === 'TOEIC') return 'en';
+    return '';
+  }, [userTarget, targetCategory]);
 
   // Stats state
   const [stats, setStats] = useState<HistoryStatsResponse | null>(null);
@@ -63,6 +93,27 @@ const TestHistory: React.FC = () => {
   const [sort, setSort] = useState<string>('newest');
   const [page, setPage] = useState<number>(0);
 
+  // Dynamic tabs filtered by target language
+  const visibleTabs = React.useMemo(() => {
+    if (!userTargetLanguage) return certTabs;
+    const isVi = userTargetLanguage === 'vi' || userTargetLanguage === 'vietnamese';
+    const isEn = userTargetLanguage === 'en' || userTargetLanguage === 'english';
+    return certTabs.filter((tab) => {
+      if (tab.id === 'ALL') return true;
+      if (tab.id === 'NLTV') return isVi;
+      if (tab.id === 'IELTS' || tab.id === 'TOEIC') return isEn;
+      return true;
+    });
+  }, [userTargetLanguage, certTabs]);
+
+  // Reset cert to ALL if not in visible tabs
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === cert)) {
+      setCert('ALL');
+      setPage(0);
+    }
+  }, [visibleTabs, cert]);
+
   // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -72,12 +123,16 @@ const TestHistory: React.FC = () => {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Load KPI stats on mount
+  // Load KPI stats on mount or when cert/language changes
   useEffect(() => {
+    if (isOnboardingLoading) return;
     const fetchStats = async () => {
       try {
         setStatsLoading(true);
-        const res = await historyApi.getStats();
+        const res = await historyApi.getStats({
+          cert: cert !== 'ALL' ? cert : undefined,
+          targetLanguage: userTargetLanguage || undefined,
+        });
         if (res.code === 200 && res.data) {
           setStats(res.data);
         }
@@ -89,10 +144,11 @@ const TestHistory: React.FC = () => {
     };
 
     fetchStats();
-  }, []);
+  }, [cert, userTargetLanguage, isOnboardingLoading]);
 
   // Load paginated history list
   useEffect(() => {
+    if (isOnboardingLoading) return;
     const fetchHistory = async () => {
       try {
         setHistoryLoading(true);
@@ -101,6 +157,7 @@ const TestHistory: React.FC = () => {
           mode: mode !== 'ALL' ? mode : undefined,
           status: status !== 'ALL' ? status : undefined,
           search: debouncedSearch.trim() || undefined,
+          targetLanguage: userTargetLanguage || undefined,
           sort,
           page,
           size: 10,
@@ -117,7 +174,7 @@ const TestHistory: React.FC = () => {
     };
 
     fetchHistory();
-  }, [cert, mode, status, debouncedSearch, sort, page]);
+  }, [cert, mode, status, debouncedSearch, userTargetLanguage, sort, page, isOnboardingLoading]);
 
   // Format date helper
   const formatDate = (dateStr: string) => {
@@ -148,7 +205,7 @@ const TestHistory: React.FC = () => {
       return (
         <>
           <span className="history-score-number" style={{ fontSize: '1.25rem' }}>⚠️</span>
-          <span className="history-score-scale">Lỗi chấm</span>
+          <span className="history-score-scale">{t('history.card.grading_failed', 'Lỗi chấm')}</span>
         </>
       );
     }
@@ -157,7 +214,7 @@ const TestHistory: React.FC = () => {
       return (
         <>
           <span className="history-score-number" style={{ fontSize: '1.25rem' }}>⏳</span>
-          <span className="history-score-scale">Chưa nộp</span>
+          <span className="history-score-scale">{t('history.card.unsubmitted', 'Chưa nộp')}</span>
         </>
       );
     }
@@ -176,7 +233,7 @@ const TestHistory: React.FC = () => {
       return (
         <>
           <span className="history-score-number">{item.overallScore}</span>
-          <span className="history-score-scale">Bậc / {item.maxScore}</span>
+          <span className="history-score-scale">{t('history.card.scale_nltv', { max: item.maxScore, defaultValue: `Bậc / ${item.maxScore}` })}</span>
         </>
       );
     }
@@ -196,13 +253,13 @@ const TestHistory: React.FC = () => {
         <div className="history-hero-decor" />
         <div className="history-hero-container">
           <div className="history-hero-badge">
-            <BarChart2 size={16} /> Báo Cáo Học Tập & Lịch Sử
+            <BarChart2 size={16} /> {t('history.hero.badge', 'Báo Cáo Học Tập & Lịch Sử')}
           </div>
           <h1 className="history-hero-title">
-            Hành Trình Chinh Phục Mục Tiêu
+            {t('history.hero.title', 'Hành Trình Chinh Phục Mục Tiêu')}
           </h1>
           <p className="history-hero-desc">
-            Theo dõi sự tiến bộ, đánh giá điểm mạnh - điểm yếu và duy trì chuỗi học tập đều đặn mỗi ngày.
+            {t('history.hero.desc', 'Theo dõi sự tiến bộ, đánh giá điểm mạnh - điểm yếu và duy trì chuỗi học tập đều đặn mỗi ngày.')}
           </p>
         </div>
       </section>
@@ -210,7 +267,7 @@ const TestHistory: React.FC = () => {
       {/* 2. Main Container */}
       <main className="history-main-container">
         {/* KPI Cards */}
-        <HistoryKpiCards stats={stats} loading={statsLoading} />
+        <HistoryKpiCards stats={stats} loading={statsLoading} activeCert={cert} />
 
         {/* Score Trend Chart */}
         <ScoreTrendChart
@@ -222,7 +279,7 @@ const TestHistory: React.FC = () => {
         <div className="history-filter-panel">
           {/* Certificate Tabs */}
           <div className="history-tabs-bar">
-            {CERT_TABS.map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
                 className={`history-tab-btn ${cert === tab.id ? 'active' : ''}`}
@@ -240,7 +297,7 @@ const TestHistory: React.FC = () => {
           <div className="history-filter-controls-row">
             {/* Mode & Status Chips */}
             <div className="history-chips-group">
-              {MODE_OPTIONS.map((opt) => (
+              {modeOptions.map((opt) => (
                 <button
                   key={opt.id}
                   className={`history-filter-chip ${mode === opt.id ? 'active' : ''}`}
@@ -255,7 +312,7 @@ const TestHistory: React.FC = () => {
 
               <span style={{ color: '#cbd5e1', margin: '0 0.25rem' }}>|</span>
 
-              {STATUS_OPTIONS.map((opt) => (
+              {statusOptions.map((opt) => (
                 <button
                   key={opt.id}
                   className={`history-filter-chip status-chip ${status === opt.id ? 'active' : ''}`}
@@ -275,7 +332,7 @@ const TestHistory: React.FC = () => {
                 <Search size={16} className="history-search-icon" />
                 <input
                   type="text"
-                  placeholder="Tìm kiếm theo tên đề thi..."
+                  placeholder={t('history.filters.search_placeholder', 'Tìm kiếm theo tên đề thi...')}
                   className="history-search-input"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -290,9 +347,9 @@ const TestHistory: React.FC = () => {
                   setPage(0);
                 }}
               >
-                <option value="newest">Mới nhất</option>
-                <option value="highestScore">Điểm cao nhất</option>
-                <option value="duration">Thời gian lâu nhất</option>
+                <option value="newest">{t('history.filters.sort_newest', 'Mới nhất')}</option>
+                <option value="highestScore">{t('history.filters.sort_highest_score', 'Điểm cao nhất')}</option>
+                <option value="duration">{t('history.filters.sort_duration', 'Thời gian lâu nhất')}</option>
               </select>
             </div>
           </div>
@@ -317,28 +374,28 @@ const TestHistory: React.FC = () => {
                 <div className="history-card-body">
                   <div className="history-card-meta-row">
                     <span className={`history-badge ${item.testMode === 'MOCK_TEST' ? 'mock' : 'practice'}`}>
-                      {item.testMode === 'MOCK_TEST' ? 'Thi thử' : 'Luyện tập'}
+                      {item.testMode === 'MOCK_TEST' ? t('history.filters.mode_mock', 'Thi thử') : t('history.filters.mode_practice', 'Luyện tập')}
                     </span>
 
                     {item.status === 'COMPLETED' ? (
-                      <span className="history-badge completed">✓ Hoàn thành</span>
+                      <span className="history-badge completed">{t('history.filters.status_completed', '✓ Hoàn thành')}</span>
                     ) : item.status === 'GRADING_FAILED' ? (
-                      <span className="history-badge failed">⚠️ Lỗi chấm</span>
+                      <span className="history-badge failed">{t('history.filters.status_failed', '⚠️ Lỗi chấm')}</span>
                     ) : item.status === 'AI_GRADING' || item.status === 'AI_GRADING_QUEUED' || item.status === 'SUBMITTED' ? (
-                      <span className="history-badge grading">🤖 Đang chấm</span>
+                      <span className="history-badge grading">🤖 {t('history.card.grading', 'Đang chấm')}</span>
                     ) : (
-                      <span className="history-badge in-progress">⏳ Đang làm dở</span>
+                      <span className="history-badge in-progress">{t('history.filters.status_in_progress', '⏳ Đang làm dở')}</span>
                     )}
 
                     {item.isExamDeleted && (
                       <span className="history-badge deleted-exam" title="Đề thi này không còn trong thư viện đề thi">
-                        Đã ngừng phát hành
+                        {t('history.card.discontinued_badge', 'Đã ngừng phát hành')}
                       </span>
                     )}
 
                     {item.targetAchieved && (
                       <span className="history-badge target-met">
-                        <Target size={12} /> Đạt mục tiêu
+                        <Target size={12} /> {t('history.card.target_met', 'Đạt mục tiêu')}
                       </span>
                     )}
 
@@ -353,18 +410,18 @@ const TestHistory: React.FC = () => {
 
                   <div className="history-card-details-row">
                     <span className="history-detail-item">
-                      <Clock size={15} /> {item.durationMinutes} phút
+                      <Clock size={15} /> {t('history.card.minutes', { count: item.durationMinutes, defaultValue: `${item.durationMinutes} phút` })}
                     </span>
 
                     {item.accuracyPercentage !== null && (
                       <span className="history-detail-item">
-                        <Percent size={15} /> Chính xác: {item.accuracyPercentage}%
+                        <Percent size={15} /> {t('history.card.accuracy', { percent: item.accuracyPercentage, defaultValue: `Chính xác: ${item.accuracyPercentage}%` })}
                       </span>
                     )}
 
                     {item.status === 'COMPLETED' && (
                       <span className="history-detail-item" style={{ color: '#059669' }}>
-                        <CheckCircle size={15} /> Đã nộp bài
+                        <CheckCircle size={15} /> {t('history.card.submitted', 'Đã nộp bài')}
                       </span>
                     )}
                   </div>
@@ -378,7 +435,7 @@ const TestHistory: React.FC = () => {
                       onClick={() => navigate(`/student/exam/${item.examId}`)}
                       title="Làm lại đề thi này"
                     >
-                      <RotateCcw size={15} /> Làm lại
+                      <RotateCcw size={15} /> {t('history.card.retake', 'Làm lại')}
                     </button>
                   ) : (
                     <button
@@ -387,7 +444,7 @@ const TestHistory: React.FC = () => {
                       style={{ opacity: 0.5, cursor: 'not-allowed' }}
                       title="Đề thi này đã ngừng phát hành"
                     >
-                      <RotateCcw size={15} /> Đã ngừng
+                      <RotateCcw size={15} /> {t('history.card.discontinued', 'Đã ngừng')}
                     </button>
                   )}
 
@@ -396,7 +453,7 @@ const TestHistory: React.FC = () => {
                       className="history-action-btn primary"
                       onClick={() => navigate(`/attempts/${item.attemptId}/result`)}
                     >
-                      Xem chi tiết <ArrowRight size={15} />
+                      {t('history.card.details', 'Xem chi tiết')} <ArrowRight size={15} />
                     </button>
                   ) : item.isExamDeleted ? (
                     <button
@@ -405,7 +462,7 @@ const TestHistory: React.FC = () => {
                       style={{ opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' }}
                       title="Đề thi đã bị gỡ bỏ"
                     >
-                      Không khả dụng
+                      {t('history.card.unavailable', 'Không khả dụng')}
                     </button>
                   ) : (
                     <button
@@ -413,7 +470,7 @@ const TestHistory: React.FC = () => {
                       style={{ background: '#d97706' }}
                       onClick={() => navigate(`/attempts/${item.attemptId}/workspace`)}
                     >
-                      Tiếp tục <Play size={15} />
+                      {t('history.card.continue', 'Tiếp tục')} <Play size={15} />
                     </button>
                   )}
                 </div>
@@ -423,18 +480,18 @@ const TestHistory: React.FC = () => {
             /* Empty State */
             <div className="history-empty-card">
               <FileQuestion size={54} className="history-empty-icon" />
-              <h3 className="history-empty-title">Chưa tìm thấy lượt thi nào</h3>
+              <h3 className="history-empty-title">{t('history.card.empty_title', 'Chưa tìm thấy lượt thi nào')}</h3>
               <p className="history-empty-desc">
                 {debouncedSearch || cert !== 'ALL' || mode !== 'ALL' || status !== 'ALL'
-                  ? 'Không có kết quả nào phù hợp với bộ lọc hiện tại. Bạn hãy thử thay đổi tiêu chí tìm kiếm.'
-                  : 'Bạn chưa thực hiện bài thi hay luyện tập nào. Hãy khám phá kho đề thi chuẩn quốc tế và bắt đầu ngay!'}
+                  ? t('history.card.empty_filter', 'Không có kết quả nào phù hợp với bộ lọc hiện tại. Bạn hãy thử thay đổi tiêu chí tìm kiếm.')
+                  : t('history.card.empty_no_tests', 'Bạn chưa thực hiện bài thi hay luyện tập nào. Hãy khám phá kho đề thi chuẩn quốc tế và bắt đầu ngay!')}
               </p>
               <button
                 className="history-action-btn primary"
                 style={{ margin: '0 auto', padding: '0.75rem 2rem' }}
                 onClick={() => navigate('/student/library')}
               >
-                Khám phá Thư viện Đề thi
+                {t('history.card.explore_library', 'Khám phá Thư viện Đề thi')}
               </button>
             </div>
           )}
@@ -448,7 +505,7 @@ const TestHistory: React.FC = () => {
               disabled={page === 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
-              ← Trang trước
+              {t('history.pagination.prev', '← Trang trước')}
             </button>
 
             {Array.from({ length: historyData.totalPages }, (_, i) => i).map((p) => (
@@ -466,7 +523,7 @@ const TestHistory: React.FC = () => {
               disabled={page >= historyData.totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
             >
-              Trang sau →
+              {t('history.pagination.next', 'Trang sau →')}
             </button>
           </div>
         )}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface DashboardTimeFilterProps {
   timeRange: string;
@@ -9,10 +10,12 @@ export const DashboardTimeFilter: React.FC<DashboardTimeFilterProps> = ({
   timeRange,
   onTimeRangeChange,
 }) => {
+  const { t } = useTranslation();
+
   const options = [
-    { value: 'THIS_WEEK', label: 'Tuần này' },
-    { value: 'THIS_MONTH', label: 'Tháng này' },
-    { value: 'ALL', label: 'Cả năm' },
+    { value: 'THIS_WEEK', label: t('dashboard.time_range.this_week', 'Tuần này') },
+    { value: 'THIS_MONTH', label: t('dashboard.time_range.this_month', 'Tháng này') },
+    { value: 'ALL', label: t('dashboard.time_range.this_year', 'Cả năm') },
   ];
 
   return (

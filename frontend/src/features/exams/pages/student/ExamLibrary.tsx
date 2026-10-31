@@ -38,29 +38,7 @@ export interface ExamItem {
   userLatestScore?: number | null;
 }
 
-// 1. Certificate Tabs (No GB/VN, No Luyện Ngôn Ngữ)
-const CERT_TABS = [
-  { id: 'RECOMMENDED', label: '✨ Dành Cho Bạn' },
-  { id: 'ALL', label: 'Tất Cả' },
-  { id: 'IELTS', label: 'IELTS' },
-  { id: 'TOEIC', label: 'TOEIC' },
-  { id: 'NLTV', label: 'NLTV' },
-];
 
-// 2. Skill Filter Options
-const SKILL_OPTIONS = [
-  { id: '', label: 'Tất cả kỹ năng' },
-  { id: 'LISTENING', label: 'Nghe hiểu', icon: <Headphones size={13} /> },
-  { id: 'READING', label: 'Đọc hiểu', icon: <BookOpen size={13} /> },
-  { id: 'WRITING', label: 'Viết', icon: <PenTool size={13} /> },
-];
-
-// 3. Attempt Status Chips
-const ATTEMPT_STATUS_CHIPS = [
-  { id: 'ALL', label: 'Tất cả đề' },
-  { id: 'UNATTEMPTED', label: 'Chưa làm' },
-  { id: 'ATTEMPTED', label: 'Đã làm' },
-];
 
 const CERT_LABELS_MAP: Record<string, string> = {
   IELTS_ACADEMIC: 'IELTS Academic',
@@ -156,18 +134,39 @@ const ExamLibrary: React.FC = () => {
     return '';
   }, [userTarget, targetCategory]);
 
+  const certTabs = useMemo(() => [
+    { id: 'RECOMMENDED', label: t('library.tabs.recommended', '✨ Dành Cho Bạn') },
+    { id: 'ALL', label: t('library.tabs.all', 'Tất Cả') },
+    { id: 'IELTS', label: 'IELTS' },
+    { id: 'TOEIC', label: 'TOEIC' },
+    { id: 'NLTV', label: 'NLTV' },
+  ], [t]);
+
+  const skillOptions = useMemo(() => [
+    { id: '', label: t('library.filters.skill_all', 'Tất cả kỹ năng') },
+    { id: 'LISTENING', label: t('library.filters.skill_listening', 'Nghe hiểu'), icon: <Headphones size={13} /> },
+    { id: 'READING', label: t('library.filters.skill_reading', 'Đọc hiểu'), icon: <BookOpen size={13} /> },
+    { id: 'WRITING', label: t('library.filters.skill_writing', 'Viết'), icon: <PenTool size={13} /> },
+  ], [t]);
+
+  const attemptStatusChips = useMemo(() => [
+    { id: 'ALL', label: t('library.filters.attempt_all', 'Tất cả đề') },
+    { id: 'UNATTEMPTED', label: t('library.filters.attempt_unattempted', 'Chưa làm') },
+    { id: 'ATTEMPTED', label: t('library.filters.attempt_attempted', 'Đã làm') },
+  ], [t]);
+
   // Dynamic tabs filtered by user's target language
   const visibleTabs = useMemo(() => {
-    if (!userTargetLanguage) return CERT_TABS;
+    if (!userTargetLanguage) return certTabs;
     const isEn = isSameLanguage(userTargetLanguage, 'en');
     const isVi = isSameLanguage(userTargetLanguage, 'vi');
-    return CERT_TABS.filter(tab => {
+    return certTabs.filter(tab => {
       if (tab.id === 'RECOMMENDED' || tab.id === 'ALL') return true;
       if (tab.id === 'NLTV') return isVi;
       if (tab.id === 'IELTS' || tab.id === 'TOEIC') return isEn;
       return true;
     });
-  }, [userTargetLanguage]);
+  }, [userTargetLanguage, certTabs]);
 
   // Sync activeTab if user has not completed onboarding or tab not visible
   useEffect(() => {
@@ -395,7 +394,7 @@ const ExamLibrary: React.FC = () => {
         <div className="exam-library-hero-content">
           <div className="exam-library-hero-badge">
             <Compass size={14} />
-            <span>Thư Viện Đề Thi Chuẩn Hóa</span>
+            <span>{t('library.hero.badge', 'Thư Viện Đề Thi Chuẩn Hóa')}</span>
           </div>
 
           <h1 className="exam-library-hero-title">
@@ -411,7 +410,7 @@ const ExamLibrary: React.FC = () => {
             <div className="exam-library-target-banner">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                 <Sparkles size={16} color="#fde047" />
-                <span>Mục tiêu của bạn: <strong>{CERT_LABELS_MAP[userTarget.targetCertificate] || userTarget.targetCertificate}</strong> {userTarget.targetScore ? `(Band / Điểm: ${userTarget.targetScore})` : ''}</span>
+                <span>{t('library.target_banner.your_goal', 'Mục tiêu của bạn:')} <strong>{CERT_LABELS_MAP[userTarget.targetCertificate] || userTarget.targetCertificate}</strong> {userTarget.targetScore ? `(Band / Điểm: ${userTarget.targetScore})` : ''}</span>
               </span>
               <button
                 type="button"
@@ -422,7 +421,7 @@ const ExamLibrary: React.FC = () => {
                   setPage(0);
                 }}
               >
-                Xem đề mục tiêu
+                {t('library.target_banner.view_goal_tests', 'Xem đề mục tiêu')}
               </button>
             </div>
           )}
@@ -478,9 +477,9 @@ const ExamLibrary: React.FC = () => {
         <div className="exam-library-filter-panel">
           {/* Row 1: Chọn Kỹ Năng & Sắp xếp */}
           <div className="exam-library-filter-row">
-            <span className="exam-library-filter-label">Kỹ năng:</span>
+            <span className="exam-library-filter-label">{t('library.filters.skill_label', 'Kỹ năng:')}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', flex: 1 }}>
-              {SKILL_OPTIONS.map((opt) => {
+              {skillOptions.map((opt) => {
                 const isActive = selectedSkill === opt.id;
                 return (
                   <button
@@ -516,9 +515,9 @@ const ExamLibrary: React.FC = () => {
 
           {/* Row 2: Trạng thái làm bài */}
           <div className="exam-library-filter-row" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
-            <span className="exam-library-filter-label">Trạng thái:</span>
+            <span className="exam-library-filter-label">{t('library.filters.status_label', 'Trạng thái:')}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {ATTEMPT_STATUS_CHIPS.map((chip) => {
+              {attemptStatusChips.map((chip) => {
                 const isActive = selectedAttemptStatus === chip.id;
                 return (
                   <button
@@ -557,7 +556,7 @@ const ExamLibrary: React.FC = () => {
               }}
             >
               <RotateCcw size={14} />
-              <span>Xóa bộ lọc</span>
+              <span>{t('library.filters.clear_filters', 'Xóa bộ lọc')}</span>
             </button>
           )}
         </div>
@@ -567,7 +566,7 @@ const ExamLibrary: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '5rem 0', color: '#ea580c' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '40px', height: '40px', border: '3px solid #ffedd5', borderTopColor: '#ea580c', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#64748b' }}>Đang tải danh sách đề thi...</span>
+              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#64748b' }}>{t('library.status.loading', 'Đang tải danh sách đề thi...')}</span>
             </div>
           </div>
         ) : displayedExams.length === 0 ? (
@@ -575,12 +574,12 @@ const ExamLibrary: React.FC = () => {
             <div className="exam-library-empty-icon">
               <BookOpen size={30} />
             </div>
-            <h3 className="exam-library-empty-title">Không tìm thấy đề thi nào</h3>
+            <h3 className="exam-library-empty-title">{t('library.status.empty_title', 'Không tìm thấy đề thi nào')}</h3>
             <p className="exam-library-empty-desc">
-              Không có đề thi nào khớp với bộ lọc hiện tại của bạn. Hãy thử chọn kỹ năng khác hoặc bấm nút bên dưới để xem lại tất cả đề thi.
+              {t('library.status.empty_desc', 'Không có đề thi nào khớp với bộ lọc hiện tại của bạn. Hãy thử chọn kỹ năng khác hoặc bấm nút bên dưới để xem lại tất cả đề thi.')}
             </p>
             <button type="button" className="btn btn-primary" onClick={handleResetFilters}>
-              Xem tất cả đề thi
+              {t('library.status.view_all', 'Xem tất cả đề thi')}
             </button>
           </div>
         ) : (
@@ -612,11 +611,11 @@ const ExamLibrary: React.FC = () => {
                       {exam.isAttempted ? (
                         <span className="exam-card-attempt-badge attempted">
                           <CheckCircle2 size={12} />
-                          <span>Đã làm ({exam.userAttemptsCount || 1} lần) {exam.userHighestScore !== null && exam.userHighestScore !== undefined ? `• ${formatScore(exam.userHighestScore, exam.type)}` : ''}</span>
+                          <span>{t('library.card.attempted_count', { count: exam.userAttemptsCount || 1, defaultValue: `Đã làm (${exam.userAttemptsCount || 1} lần)` })} {exam.userHighestScore !== null && exam.userHighestScore !== undefined ? `• ${formatScore(exam.userHighestScore, exam.type)}` : ''}</span>
                         </span>
                       ) : (
                         <span className="exam-card-attempt-badge unattempted">
-                          <span>Chưa làm</span>
+                          <span>{t('library.card.unattempted', 'Chưa làm')}</span>
                         </span>
                       )}
 
@@ -626,7 +625,7 @@ const ExamLibrary: React.FC = () => {
                     {/* Target Match Badge */}
                     {isMatch && (
                       <span className="exam-card-target-match">
-                        🎯 Khớp mục tiêu
+                        {t('library.card.target_match', '🎯 Khớp mục tiêu')}
                       </span>
                     )}
 
@@ -661,16 +660,16 @@ const ExamLibrary: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <Clock size={14} color="#94a3b8" />
-                          <span>{exam.durationMinutes} phút</span>
+                          <span>{t('library.card.duration', { count: exam.durationMinutes, defaultValue: `${exam.durationMinutes} phút` })}</span>
                         </span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <Users size={14} color="#94a3b8" />
-                          <span>{exam.joins || 0} lượt thi</span>
+                          <span>{t('library.card.joins', { count: exam.joins || 0, defaultValue: `${exam.joins || 0} lượt thi` })}</span>
                         </span>
                       </div>
 
                       <span className="exam-card-cta-btn">
-                        <span>{exam.isAttempted ? 'Làm lại' : 'Làm bài'}</span>
+                        <span>{exam.isAttempted ? t('library.card.retake', 'Làm lại') : t('library.card.takeExam', 'Làm bài')}</span>
                         <ArrowRight size={14} />
                       </span>
                     </div>
