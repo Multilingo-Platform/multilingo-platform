@@ -450,25 +450,35 @@ const ExamManagement = () => {
               color: 'var(--text-secondary)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {/* Left: Range and Total Summary */}
+            <div style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
               <span>
                 Hiển thị <strong>{totalElements > 0 ? startIndex + 1 : 0} - {endIndex}</strong> trên tổng số <strong>{totalElements}</strong> đề thi
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem' }}>Số đề/trang:</span>
+            </div>
+
+            {/* Right: Page Size Selector & Pagination Navigation */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Số đề/trang:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => {
                     setPageSize(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="input-field"
                   style={{
-                    padding: '0.25rem 0.5rem',
+                    height: '32px',
+                    padding: '0 0.6rem',
                     fontSize: '0.85rem',
+                    fontWeight: 500,
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-light)',
-                    background: 'white'
+                    backgroundColor: 'white',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    width: 'auto'
                   }}
                 >
                   <option value={10}>10</option>
@@ -476,113 +486,132 @@ const ExamManagement = () => {
                   <option value={50}>50</option>
                 </select>
               </div>
+
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={validPage === 1}
+                    className="btn"
+                    style={{
+                      height: '32px',
+                      padding: '0 0.6rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-light)',
+                      backgroundColor: 'white',
+                      color: validPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: validPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: validPage === 1 ? 0.4 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Trang đầu"
+                  >
+                    <ChevronsLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={validPage === 1}
+                    className="btn"
+                    style={{
+                      height: '32px',
+                      padding: '0 0.6rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-light)',
+                      backgroundColor: 'white',
+                      color: validPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: validPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: validPage === 1 ? 0.4 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Trang trước"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {getPageNumbers(validPage, totalPages).map((p, idx) =>
+                    typeof p === 'number' ? (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        className="btn"
+                        style={{
+                          minWidth: '32px',
+                          height: '32px',
+                          padding: '0 0.5rem',
+                          borderRadius: 'var(--radius-sm)',
+                          border: p === validPage ? 'none' : '1px solid var(--border-light)',
+                          backgroundColor: p === validPage ? 'var(--primary)' : 'white',
+                          color: p === validPage ? '#fff' : 'var(--text-primary)',
+                          fontWeight: p === validPage ? 700 : 500,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ) : (
+                      <span key={idx} style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>
+                        ...
+                      </span>
+                    )
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={validPage === totalPages}
+                    className="btn"
+                    style={{
+                      height: '32px',
+                      padding: '0 0.6rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-light)',
+                      backgroundColor: 'white',
+                      color: validPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: validPage === totalPages ? 'not-allowed' : 'pointer',
+                      opacity: validPage === totalPages ? 0.4 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Trang sau"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={validPage === totalPages}
+                    className="btn"
+                    style={{
+                      height: '32px',
+                      padding: '0 0.6rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-light)',
+                      backgroundColor: 'white',
+                      color: validPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: validPage === totalPages ? 'not-allowed' : 'pointer',
+                      opacity: validPage === totalPages ? 0.4 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Trang cuối"
+                  >
+                    <ChevronsRight size={16} />
+                  </button>
+                </div>
+              )}
             </div>
-
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={validPage === 1}
-                  className="btn"
-                  style={{
-                    padding: '0.4rem 0.6rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    backgroundColor: 'white',
-                    color: validPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                    cursor: validPage === 1 ? 'not-allowed' : 'pointer',
-                    opacity: validPage === 1 ? 0.4 : 1
-                  }}
-                  title="Trang đầu"
-                >
-                  <ChevronsLeft size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={validPage === 1}
-                  className="btn"
-                  style={{
-                    padding: '0.4rem 0.6rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    backgroundColor: 'white',
-                    color: validPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                    cursor: validPage === 1 ? 'not-allowed' : 'pointer',
-                    opacity: validPage === 1 ? 0.4 : 1
-                  }}
-                  title="Trang trước"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-
-                {getPageNumbers(validPage, totalPages).map((p, idx) =>
-                  typeof p === 'number' ? (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setCurrentPage(p)}
-                      className="btn"
-                      style={{
-                        minWidth: '32px',
-                        height: '32px',
-                        padding: '0 0.5rem',
-                        borderRadius: 'var(--radius-sm)',
-                        border: p === validPage ? 'none' : '1px solid var(--border-light)',
-                        backgroundColor: p === validPage ? 'var(--primary)' : 'white',
-                        color: p === validPage ? '#fff' : 'var(--text-primary)',
-                        fontWeight: p === validPage ? 700 : 500,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {p}
-                    </button>
-                  ) : (
-                    <span key={idx} style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>
-                      ...
-                    </span>
-                  )
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={validPage === totalPages}
-                  className="btn"
-                  style={{
-                    padding: '0.4rem 0.6rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    backgroundColor: 'white',
-                    color: validPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
-                    cursor: validPage === totalPages ? 'not-allowed' : 'pointer',
-                    opacity: validPage === totalPages ? 0.4 : 1
-                  }}
-                  title="Trang sau"
-                >
-                  <ChevronRight size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={validPage === totalPages}
-                  className="btn"
-                  style={{
-                    padding: '0.4rem 0.6rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-light)',
-                    backgroundColor: 'white',
-                    color: validPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
-                    cursor: validPage === totalPages ? 'not-allowed' : 'pointer',
-                    opacity: validPage === totalPages ? 0.4 : 1
-                  }}
-                  title="Trang cuối"
-                >
-                  <ChevronsRight size={16} />
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
