@@ -1,3 +1,4 @@
+import { getColorClassName } from './highlightColors';
 import { normalizeAgainstText, type Highlight } from './highlightUtils';
 
 export function applyHighlights(html: string, highlights: Highlight[]): string {
@@ -33,8 +34,9 @@ export function applyHighlights(html: string, highlights: Highlight[]): string {
         }
 
         const mark = doc.createElement('mark');
-        mark.setAttribute('data-hl-id', h.id.slice(0, 100));
-        mark.className = 'bg-yellow-200 rounded-sm';
+        mark.setAttribute('data-hl-id', h.id);
+        mark.setAttribute('data-hl-color', h.color ?? 'yellow');
+        mark.className = `${getColorClassName(h.color)} rounded-sm`;
         mark.textContent = text.substring(hStartInNode, hEndInNode);
         fragment.appendChild(mark);
 

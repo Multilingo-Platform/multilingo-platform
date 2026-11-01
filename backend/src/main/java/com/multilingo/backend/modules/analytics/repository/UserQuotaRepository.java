@@ -32,19 +32,33 @@ public interface UserQuotaRepository extends JpaRepository<UserQuota, Integer> {
     @Modifying
     @Query(value = "INSERT INTO user_quotas (user_id, feature_code, used_count, max_limit, reset_date, created_at, updated_at) " +
             "VALUES (:userId, 'DICTIONARY_LOOKUP', 0, :maxLimit, :resetDate, :now, :now) " +
-            "ON CONFLICT (user_id, feature_code) WHERE feature_code = 'DICTIONARY_LOOKUP' DO NOTHING", nativeQuery = true)
+            "ON CONFLICT DO NOTHING", nativeQuery = true)
     int insertDictionaryLookupQuotaIfAbsent(
             @Param("userId") Integer userId,
             @Param("maxLimit") Integer maxLimit,
             @Param("now") Instant now,
             @Param("resetDate") Instant resetDate
     );
+
+    /** Atomic first-use provisioning; partial unique index uq_user_quotas_ai_writing_hints installed by V20261012180000. */
+    @Modifying
+    @Query(value = "INSERT INTO user_quotas (user_id, feature_code, used_count, max_limit, reset_date, created_at, updated_at) " +
+            "VALUES (:userId, 'AI_WRITING_HINTS', 0, :maxLimit, :resetDate, :now, :now) " +
+            "ON CONFLICT DO NOTHING", nativeQuery = true)
+    int insertWritingHintsQuotaIfAbsent(
+            @Param("userId") Integer userId,
+            @Param("maxLimit") Integer maxLimit,
+            @Param("now") Instant now,
+            @Param("resetDate") Instant resetDate
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT q FROM UserQuota q WHERE q.id = :id")
     Optional<UserQuota> findByIdForUpdate(@Param("id") Integer id);
 
     @Query("SELECT DISTINCT q.featureCode FROM UserQuota q ORDER BY q.featureCode ASC")
     List<String> findDistinctFeatureCodes();
+
     @Modifying(flushAutomatically = true)
     @Query("UPDATE UserQuota q SET q.usedCount = q.usedCount + 1, q.updatedAt = :now " +
            "WHERE q.id = :id " +

@@ -11,6 +11,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.multilingo.backend.modules.auth.entity.SubscriptionTier;
+import com.multilingo.backend.modules.auth.entity.User;
+import com.multilingo.backend.modules.auth.repository.UserRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -331,5 +334,120 @@ class UserQuotaReservationServiceTest {
         assertThat(reservation.resetDate()).isEqualTo(futureReset);
         assertThat(gradingQuota.getUsedCount()).isEqualTo(1);
         assertThat(hintsQuota.getUsedCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("tryReserve tu dong cap quota AI_WRITING_HINTS khi nguoi dung chua co row trong DB")
+    void tryReserveAutoProvisionsWritingHintsQuotaWhenNoRowExists() {
+        Instant futureReset = fixedNow.plusSeconds(3600);
+        UserQuota createdQuota = UserQuota.builder()
+                .userId(5)
+                .featureCode("AI_WRITING_HINTS")
+                .usedCount(0)
+                .maxLimit(5)
+                .resetDate(futureReset)
+                .build();
+        createdQuota.setId(50);
+
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS"))
+                .thenReturn(List.of())
+                .thenReturn(List.of(createdQuota));
+        when(userQuotaRepository.insertWritingHintsQuotaIfAbsent(eq(5), eq(5), eq(fixedNow), any()))
+                .thenReturn(1);
+        when(userQuotaRepository.conditionalIncrement(eq(50), any(), eq(fixedNow)))
+                .thenReturn(1);
+
+        var reservationOpt = reservationService.tryReserve(5);
+
+        assertThat(reservationOpt).isPresent();
+        assertThat(reservationOpt.get().quotaId()).isEqualTo(50);
+        verify(userQuotaRepository).insertWritingHintsQuotaIfAbsent(eq(5), eq(5), eq(fixedNow), any());
+    }
+
+    @Test
+    @DisplayName("tryReserve tu dong reset quota AI_WRITING_HINTS khi buoc sang ngay moi")
+    void tryReserveAutoResetsWritingHintsQuotaWhenResetDateExpired() {
+        Instant pastReset = fixedNow.minusSeconds(3600);
+        UserQuota expiredQuota = UserQuota.builder()
+                .userId(5)
+                .featureCode("AI_WRITING_HINTS")
+                .usedCount(5)
+                .maxLimit(5)
+                .resetDate(pastReset)
+                .build();
+        expiredQuota.setId(50);
+
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS"))
+                .thenReturn(List.of(expiredQuota));
+        when(userQuotaRepository.conditionalIncrement(eq(50), any(), eq(fixedNow)))
+                .thenReturn(1);
+
+        var reservationOpt = reservationService.tryReserve(5);
+
+        assertThat(reservationOpt).isPresent();
+        assertThat(reservationOpt.get().quotaId()).isEqualTo(50);
+        verify(userQuotaRepository).saveAndFlush(expiredQuota);
+        assertThat(expiredQuota.getUsedCount()).isZero();
+        assertThat(expiredQuota.getResetDate()).isAfter(fixedNow);
+    }
+
+    @Test
+    @DisplayName("tryReserve tra ve empty khi da dung het quota trong ngay")
+    void tryReserveReturnsEmptyWhenLimitReached() {
+        Instant futureReset = fixedNow.plusSeconds(3600);
+        UserQuota quota = UserQuota.builder()
+                .userId(5)
+                .featureCode("AI_WRITING_HINTS")
+                .usedCount(5)
+                .maxLimit(5)
+                .resetDate(futureReset)
+                .build();
+        quota.setId(50);
+
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS"))
+                .thenReturn(List.of(quota));
+        when(userQuotaRepository.conditionalIncrement(eq(50), eq(futureReset), eq(fixedNow)))
+                .thenReturn(0);
+
+        var reservationOpt = reservationService.tryReserve(5);
+
+        assertThat(reservationOpt).isEmpty();
+    }
+
+    @Test
+    @DisplayName("tryReserve tu dong cap quota 20 luot cho nguoi dung VIP")
+    void tryReserveAutoProvisionsWithVipLimitWhenUserIsVip() {
+        UserRepository userRepo = mock(UserRepository.class);
+        User vipUser = mock(User.class);
+        when(vipUser.getSubscriptionTier()).thenReturn(SubscriptionTier.PREMIUM);
+        when(vipUser.getPremiumExpiresAt()).thenReturn(fixedNow.plusSeconds(86400));
+        when(userRepo.findById(5)).thenReturn(java.util.Optional.of(vipUser));
+
+        UserQuotaReservationService vipService = new UserQuotaReservationService(
+                userQuotaRepository, clock, null, userRepo
+        );
+
+        Instant futureReset = fixedNow.plusSeconds(3600);
+        UserQuota createdQuota = UserQuota.builder()
+                .userId(5)
+                .featureCode("AI_WRITING_HINTS")
+                .usedCount(0)
+                .maxLimit(20)
+                .resetDate(futureReset)
+                .build();
+        createdQuota.setId(50);
+
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS"))
+                .thenReturn(List.of())
+                .thenReturn(List.of(createdQuota));
+        when(userQuotaRepository.insertWritingHintsQuotaIfAbsent(eq(5), eq(20), eq(fixedNow), any()))
+                .thenReturn(1);
+        when(userQuotaRepository.conditionalIncrement(eq(50), any(), eq(fixedNow)))
+                .thenReturn(1);
+
+        var reservationOpt = vipService.tryReserve(5);
+
+        assertThat(reservationOpt).isPresent();
+        verify(userQuotaRepository).insertWritingHintsQuotaIfAbsent(eq(5), eq(20), eq(fixedNow), any());
     }
 }

@@ -11,6 +11,8 @@ import com.multilingo.backend.modules.testing.adapter.repository.AttemptListenin
 import com.multilingo.backend.modules.testing.dto.request.AutosaveAnswersRequest;
 import com.multilingo.backend.modules.testing.dto.request.CreateAttemptRequest;
 import com.multilingo.backend.modules.testing.dto.response.WorkspaceResponse;
+import com.multilingo.backend.modules.testing.dto.response.DictionaryLanguageContextResponse;
+import com.multilingo.backend.modules.testing.service.support.DictionaryNativeLanguageResolver;
 import com.multilingo.backend.modules.testing.entity.AttemptAnswer;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
@@ -84,6 +86,8 @@ class TestAttemptWorkspaceResponseTest {
                 new AttemptLanguageResolver(new LearningLanguageCatalog(), learningLanguageAdapter, new TestingLanguageProperties()));
         service.setListeningPlaybackService(new ListeningPlaybackService(
                 testAttemptRepository, playbackRepository, identityAdapter, new ObjectMapper()));
+        service.setDictionaryNativeLanguageResolver(new DictionaryNativeLanguageResolver(
+                new LearningLanguageCatalog(), learningLanguageAdapter));
         when(identityAdapter.getCurrentUserId()).thenReturn(7);
     }
 
@@ -661,5 +665,78 @@ class TestAttemptWorkspaceResponseTest {
         snapshot.put("type", "TOEIC_LR");
         snapshot.put("sections", List.of(section));
         return snapshot;
+    }
+    @Test
+    void workspaceResponse_includesDictionaryLanguage_whenResolverConfigured() {
+        ExamFixture exam = new ExamFixture();
+        exam.setId(1);
+        exam.setTitle("Public exam");
+        exam.setExamLanguage("en");
+        exam.setDurationMinutes(60);
+        exam.setSections(List.of());
+        when(examAdapter.findPublishedSnapshotById(1)).thenReturn(Optional.of(exam));
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(invocation -> {
+            TestAttempt saved = invocation.getArgument(0);
+            saved.setId(201);
+            return saved;
+        });
+        when(attemptAnswerRepository.findByAttemptId(201)).thenReturn(List.of());
+        when(learningLanguageAdapter.findNativeLanguage(7)).thenReturn(Optional.of("ja"));
+
+        WorkspaceResponse response = service.createAttempt(createRequest());
+
+        assertThat(response.getDictionaryLanguage()).isNotNull();
+        assertThat(response.getDictionaryLanguage().available()).isTrue();
+        assertThat(response.getDictionaryLanguage().nativeLanguage()).isEqualTo("ja");
+        assertThat(response.getDictionaryLanguage().policyVersion()).isEqualTo("NATIVE_PROFILE_V1");
+    }
+
+    @Test
+    void workspaceResponse_dictionaryLanguage_unavailableWhenNativeLanguageMissing() {
+        ExamFixture exam = new ExamFixture();
+        exam.setId(1);
+        exam.setTitle("Public exam");
+        exam.setExamLanguage("en");
+        exam.setDurationMinutes(60);
+        exam.setSections(List.of());
+        when(examAdapter.findPublishedSnapshotById(1)).thenReturn(Optional.of(exam));
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(invocation -> {
+            TestAttempt saved = invocation.getArgument(0);
+            saved.setId(202);
+            return saved;
+        });
+        when(attemptAnswerRepository.findByAttemptId(202)).thenReturn(List.of());
+        when(learningLanguageAdapter.findNativeLanguage(7)).thenReturn(Optional.empty());
+
+        WorkspaceResponse response = service.createAttempt(createRequest());
+
+        assertThat(response.getDictionaryLanguage()).isNotNull();
+        assertThat(response.getDictionaryLanguage().available()).isFalse();
+        assertThat(response.getDictionaryLanguage().nativeLanguage()).isNull();
+        assertThat(response.getDictionaryLanguage().reason()).isEqualTo(DictionaryLanguageContextResponse.REASON_REQUIRED);
+    }
+
+    @Test
+    void workspaceResponse_opensNormallyWhenDictionaryResolverNull() {
+        service.setDictionaryNativeLanguageResolver(null);
+
+        ExamFixture exam = new ExamFixture();
+        exam.setId(1);
+        exam.setTitle("Public exam");
+        exam.setExamLanguage("en");
+        exam.setDurationMinutes(60);
+        exam.setSections(List.of());
+        when(examAdapter.findPublishedSnapshotById(1)).thenReturn(Optional.of(exam));
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(invocation -> {
+            TestAttempt saved = invocation.getArgument(0);
+            saved.setId(203);
+            return saved;
+        });
+        when(attemptAnswerRepository.findByAttemptId(203)).thenReturn(List.of());
+
+        WorkspaceResponse response = service.createAttempt(createRequest());
+
+        assertThat(response).isNotNull();
+        assertThat(response.getDictionaryLanguage()).isNull();
     }
 }

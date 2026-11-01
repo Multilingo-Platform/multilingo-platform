@@ -638,7 +638,7 @@ describe('TV3-14 real review page pipeline (only HTTP/browser mocked)', () => {
     expect(cardEl.className).toContain('ring-amber-300');
   });
 
-  it('real pipeline: renders rich HTML with images in questionText and options through normalizer & card', async () => {
+  it('RD08 real pipeline: preserves literal authored TEXT through normalizer and card', async () => {
     const resultWire = multiPartAttemptResultFixture(42);
     const reviewPart10Wire = {
       ...attemptReviewFixture(42, 10),
@@ -679,20 +679,10 @@ describe('TV3-14 real review page pipeline (only HTTP/browser mocked)', () => {
 
     await screen.findByRole('heading', { name: /Bài thi #42 - Part 10/i });
 
-    // 1. Chart image in questionText rendered
-    const chartImg = screen.getByRole('img', { name: 'wire chart figure' });
-    expect(chartImg).toBeInTheDocument();
-    expect(chartImg).toHaveAttribute('src', 'https://cdn.example.com/wire-chart.png');
-
-    // 2. Arrow image in option rendered
-    const arrowImg = screen.getByRole('img', { name: 'upward arrow' });
-    expect(arrowImg).toBeInTheDocument();
-    expect(arrowImg).toHaveAttribute('src', 'https://cdn.example.com/upward.png');
-
-    // 3. Bold text rendered as real DOM node
-    expect(screen.getByText('Upward')).toBeInTheDocument();
-
-    // 4. Script tag stripped by DOMPurify
+    expect(screen.queryByRole('img', { name: 'wire chart figure' })).toBeNull();
+    expect(screen.queryByRole('img', { name: 'upward arrow' })).toBeNull();
+    expect(screen.getByText(reviewPart10Wire.questions[0].questionText)).toBeInTheDocument();
+    expect(screen.getByText(reviewPart10Wire.questions[0].options[0].text)).toBeInTheDocument();
     expect(document.querySelector('script')).toBeNull();
   });
 
@@ -740,7 +730,7 @@ describe('TV3-14 real review page pipeline (only HTTP/browser mocked)', () => {
     expect(screen.queryByText('Đáp án đúng')).not.toBeInTheDocument();
   });
 
-  it('real pipeline: strips autoplay from rich HTML video/audio across prompt, passage, questionText and options; cleans up on Part switch', async () => {
+  it('RD08 real pipeline: excludes embedded executable media from canonical sources and clears on Part switch', async () => {
     const pauseSpy = vi.fn();
     HTMLMediaElement.prototype.pause = pauseSpy;
 
@@ -786,28 +776,14 @@ describe('TV3-14 real review page pipeline (only HTTP/browser mocked)', () => {
 
     await screen.findByRole('heading', { name: /Bài thi #42 - Part 10/i });
 
-    // Assert every media element inside the page has autoplay === false and no autoplay attribute
-    const videos = container.querySelectorAll('video');
-    expect(videos.length).toBeGreaterThanOrEqual(2);
-    videos.forEach((video) => {
-      expect(video.autoplay).toBe(false);
-      expect(video.hasAttribute('autoplay')).toBe(false);
-      expect(video.hasAttribute('controls')).toBe(true);
-    });
-
-    const audios = container.querySelectorAll('audio');
-    expect(audios.length).toBeGreaterThanOrEqual(2);
-    audios.forEach((audio) => {
-      expect(audio.autoplay).toBe(false);
-      expect(audio.hasAttribute('autoplay')).toBe(false);
-      expect(audio.hasAttribute('controls')).toBe(true);
-    });
+    expect(container.querySelector('video, audio')).toBeNull();
+    expect(screen.getByText(reviewPart10Wire.questions[0].questionText)).toBeInTheDocument();
 
     // Switching to Part 15 pauses all media
     const tabPart15 = screen.getByRole('button', { name: 'Phần nghe tiếng Việt' });
     fireEvent.click(tabPart15);
 
     await screen.findByRole('heading', { name: /Bài thi #42 - Part 15/i });
-    expect(pauseSpy).toHaveBeenCalled();
+    expect(container.querySelector('video[autoplay], audio[autoplay]')).toBeNull();
   });
 });

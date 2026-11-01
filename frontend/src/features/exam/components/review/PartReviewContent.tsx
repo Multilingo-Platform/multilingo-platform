@@ -6,11 +6,10 @@ import type {
   ReviewQuestionGroupDto,
   ResultSummary,
 } from '../../types/api.types';
-import HtmlContent from '../content/HtmlContent';
 import { QuestionReviewCard } from './QuestionReviewCard';
-import { readHighlightArchive, findArchivedHighlights, type HighlightArchive } from '../../utils/highlightStorage';
-import { prepareReadingDocument } from '../../utils/readingHighlightDocument';
-import { applyHighlights } from '../../utils/htmlHighlight';
+import { readHighlightArchive, type HighlightArchive } from '../../utils/highlightStorage';
+import { buildWorkspaceTextDocuments } from '../../utils/workspaceTextDocuments';
+import { ReviewAnnotationsProvider, ReviewText } from '../content/ReviewText';
 import {
   filterReviewQuestions,
   formatScore,
@@ -82,11 +81,11 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
   useEffect(() => {
     setHighlightArchive(null);
     setHighlightArchiveContext(null);
-    if (!ownerId || !isReadingReview) return;
+    if (!ownerId) return;
     const result = readHighlightArchive(ownerId, reviewData.attemptId);
     setHighlightArchive(result.archive);
     setHighlightArchiveContext(highlightContextKey);
-  }, [ownerId, reviewData.attemptId, reviewData.partId, highlightContextKey, isReadingReview]);
+  }, [ownerId, reviewData.attemptId, reviewData.partId, highlightContextKey]);
 
   const registerAudio = (el: HTMLAudioElement | null) => {
     if (el && !audioElementsRef.current.includes(el)) {
@@ -118,18 +117,21 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
     };
   }, [reviewData.partId]);
 
-  const allQuestions: ReviewQuestionDto[] = reviewData.questions || [];
+  const allQuestions: ReviewQuestionDto[] = useMemo(() => reviewData.questions || [], [reviewData.questions]);
   const filteredQuestions = filterReviewQuestions(allQuestions, currentFilter);
   const partStats = reviewData.partStats;
-  const groups: ReviewQuestionGroupDto[] = reviewData.questionGroups || [];
+  const groups: ReviewQuestionGroupDto[] = useMemo(() => reviewData.questionGroups || [], [reviewData.questionGroups]);
   const partTitle =
     reviewData.partTitle || reviewData.examData?.title || `Part ${reviewData.partId}`;
 
   // Part-level stimulus / passage
   const partStimulusHtml = extractPartStimulus(reviewData.examData);
-  const preparedPartStimulus = useMemo(() => partStimulusHtml
-    ? prepareReadingDocument(partStimulusHtml, { partId: reviewData.partId, documentId: 'part' }, { stripExecutableMedia: false })
-    : null, [partStimulusHtml, reviewData.partId]);
+  const documents = useMemo(() => buildWorkspaceTextDocuments({
+    title: partTitle, instruction: reviewData.examData?.instruction,
+    content_html: partStimulusHtml,
+    questionGroups: groups.map(group => ({ ...group, questions: allQuestions.filter(q => group.questions?.some(item => String(item.questionId) === String(q.questionId))) })),
+    questions: allQuestions,
+  }, reviewData.partId), [reviewData, partTitle, partStimulusHtml, allQuestions, groups]);
   const activeHighlightArchive = highlightArchiveContext === highlightContextKey ? highlightArchive : null;
 
   // Audio URL from part or shared media
@@ -146,6 +148,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
     extractAudioUrl((reviewData as any).media);
 
   return (
+    <ReviewAnnotationsProvider partId={reviewData.partId} documents={documents} archive={activeHighlightArchive}>
     <div ref={containerRef} className="space-y-6" role="region" aria-label={em("Nội dung ôn tập {{v0}}", { v0: partTitle })}>
       {/* Part Statistics and Filter Header */}
       <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-xs">
@@ -157,7 +160,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
               </span>
               <span className="text-xs text-slate-500 font-medium">Part {reviewData.partId}</span>
             </div>
-            <h2 className="text-xl font-bold text-slate-900">{partTitle}</h2>
+            <h2 className="text-xl font-bold text-slate-900"><ReviewText source={{ kind: 'PART_TITLE' }} content={partTitle} /></h2>
           </div>
 
           {/* Quick Accuracy & Score Badges */}
@@ -236,6 +239,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
         </div>
       </div>
 
+      {typeof reviewData.examData?.instruction === 'string' && <div className="text-sm text-slate-700"><ReviewText source={{ kind: 'PART_INSTRUCTION' }} content={reviewData.examData.instruction} /></div>}
       {/* Part-level Stimulus / Passage if present */}
       {partStimulusHtml && (
         <div
@@ -247,16 +251,8 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
           <div
             className="text-slate-800 text-sm leading-relaxed prose max-w-none"
             data-testid={isReadingReview ? 'review-reading-passage' : undefined}
-            data-highlight-scope={isReadingReview ? 'part' : undefined}
-            data-highlight-hash={isReadingReview ? preparedPartStimulus?.contentHash : undefined}
           >
-            <HtmlContent
-              prepared={isReadingReview}
-              html={isReadingReview && preparedPartStimulus ? applyHighlights(
-                preparedPartStimulus.html,
-                findArchivedHighlights(activeHighlightArchive, reviewData.partId, 'part', preparedPartStimulus.contentHash, preparedPartStimulus.text)
-              ) : partStimulusHtml}
-            />
+            <ReviewText source={{ kind: 'PART_CONTENT' }} content={partStimulusHtml} html />
           </div>
         </div>
       )}
@@ -316,7 +312,7 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                 {/* Group instruction */}
                 {group.instruction && (
                   <div className="text-sm font-semibold text-slate-800 bg-amber-50/60 p-3 rounded-md border border-amber-200/50">
-                    {group.instruction}
+                    <ReviewText source={{ kind: 'GROUP_INSTRUCTION', groupId: String(group.groupId) }} content={group.instruction} />
                   </div>
                 )}
 
@@ -340,16 +336,9 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
                 {/* Group contentHtml sanitized */}
                 {(group.contentHtml || (group as any).contextHtml) && (() => {
                   const groupHtml = group.contentHtml || (group as any).contextHtml;
-                  const documentId = String(group.groupId ?? `group-${gIdx + 1}`);
-                  const prepared = prepareReadingDocument(groupHtml!, { partId: reviewData.partId, documentId }, { stripExecutableMedia: false });
-                  const stored = findArchivedHighlights(activeHighlightArchive, reviewData.partId, documentId, prepared.contentHash, prepared.text);
                   return (
                   <div className="p-4 bg-slate-50 rounded-md border border-slate-200 text-slate-800 text-sm">
-                    {isReadingReview ? (
-                      <div data-highlight-scope={documentId} data-highlight-hash={prepared.contentHash}>
-                        <HtmlContent html={applyHighlights(prepared.html, stored)} prepared />
-                      </div>
-                    ) : <HtmlContent html={groupHtml!} />}
+                    <ReviewText source={{ kind: 'GROUP_CONTENT', groupId: String(group.groupId) }} content={groupHtml!} html />
                   </div>
                   );
                 })()}
@@ -423,5 +412,6 @@ export const PartReviewContent: React.FC<PartReviewContentProps> = ({
         </div>
       )}
     </div>
+    </ReviewAnnotationsProvider>
   );
 };

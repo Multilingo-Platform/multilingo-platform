@@ -1,6 +1,6 @@
 import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import type { AnswerValue, PartAnswers } from '../types/answer.types';
-import { normalizeAgainstText, type Highlight } from '../utils/highlightUtils';
+import { applyHighlightOverlay, deleteHighlightFromRange, type Highlight } from '../utils/highlightUtils';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'conflict' | 'stopped';
 
@@ -205,16 +205,61 @@ const answerSlice = createSlice({
       const previousItems = state.highlights[passageId]?.contentHash === contentHash
         ? state.highlights[passageId].items
         : [];
-      const mergedItems = normalizeAgainstText([...previousItems, highlight], documentText);
+      const updatedItems = applyHighlightOverlay(previousItems, highlight, documentText);
       state.highlights[passageId] = {
         contentHash,
-        items: mergedItems.map((merged) => {
-          const firstExisting = previousItems
-            .filter((item) => item.start <= merged.end && item.end >= merged.start)
-            .sort((a, b) => a.start - b.start || a.end - b.end)[0];
-          return firstExisting ? { ...merged, id: firstExisting.id } : merged;
-        }),
+        items: updatedItems,
       };
+    },
+
+    recolorHighlightSelection(
+      state,
+      action: PayloadAction<{
+        attemptId: number; contextRevision: number; passageId: string; contentHash: string;
+        documentText: string; highlight: Highlight;
+      }>
+    ) {
+      if (state.isLocked || !matchesContext(state, action.payload)) return;
+      const { passageId, contentHash, documentText, highlight } = action.payload;
+      if (!state.highlights) state.highlights = {};
+      const previousItems = state.highlights[passageId]?.contentHash === contentHash
+        ? state.highlights[passageId].items
+        : [];
+      const updatedItems = applyHighlightOverlay(previousItems, highlight, documentText);
+      state.highlights[passageId] = {
+        contentHash,
+        items: updatedItems,
+      };
+    },
+
+    deleteHighlightSelection(
+      state,
+      action: PayloadAction<{
+        attemptId: number; contextRevision: number; passageId: string; contentHash: string;
+        documentText: string; start: number; end: number;
+      }>
+    ) {
+      if (state.isLocked || !matchesContext(state, action.payload)) return;
+      const { passageId, contentHash, documentText, start, end } = action.payload;
+      if (!state.highlights?.[passageId]) return;
+      if (state.highlights[passageId].contentHash !== contentHash) return;
+      const previousItems = state.highlights[passageId].items;
+      const updatedItems = deleteHighlightFromRange(previousItems, start, end, documentText);
+      state.highlights[passageId] = {
+        contentHash,
+        items: updatedItems,
+      };
+    },
+
+    deleteHighlightCluster(
+      state,
+      action: PayloadAction<{ attemptId: number; contextRevision: number; passageId: string; highlightId: string }>
+    ) {
+      if (state.isLocked || !matchesContext(state, action.payload)) return;
+      const { passageId, highlightId } = action.payload;
+      if (state.highlights?.[passageId]) {
+        state.highlights[passageId].items = state.highlights[passageId].items.filter(item => item.id !== highlightId);
+      }
     },
 
     removeHighlightRecord(
@@ -258,6 +303,9 @@ export const {
   clearAnswers,
   addHighlightRecord,
   removeHighlightRecord,
+  recolorHighlightSelection,
+  deleteHighlightSelection,
+  deleteHighlightCluster,
   restoreHighlightRecords,
 } = answerSlice.actions;
 

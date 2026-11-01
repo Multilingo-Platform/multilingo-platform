@@ -1,5 +1,7 @@
 {
-  "scope": { "singlePart": "Single part" },
+  "scope": {
+    "singlePart": "Single part"
+  },
   "language": {
     "source": "Exam language",
     "explanation": "Explanation language",
@@ -20,6 +22,16 @@
     "lookup": "Look up",
     "saveFlashcard": "Save flashcard"
   },
+  "selection": {
+    "colors": {
+      "yellow": "Yellow",
+      "green": "Green",
+      "blue": "Blue",
+      "pink": "Pink",
+      "purple": "Purple"
+    },
+    "lookupUnavailable": "Select a valid word or phrase of up to 80 characters; some languages are limited to 5 words."
+  },
   "status": {
     "done": "Writing result available",
     "pending": "Waiting for grading",
@@ -37,6 +49,7 @@
     "hideFeedback": "Hide AI feedback"
   },
   "ui": {
+    "dictionary_native_required": "Update your native language in your profile to look up words.",
     "language_practice": "Language practice",
     "your_browser_does_not_support_audio_playback_b6773f": "Your browser does not support audio playback.",
     "_unable_to_load_audio_try_again_or_contact_suppo_577fa4": "⚠️ Unable to load audio. Try again or contact support.",
@@ -121,6 +134,7 @@
     "practising_incorrect_answers_00d27c": "Practising incorrect answers",
     "practise_incorrect_answers_cd257f": "Practise incorrect answers",
     "show_all_questions_e563e9": "Show all questions",
+    "writing_hints_title": "Writing hints",
     "writing_hints_task_c87385": "Writing hints — Task",
     "learning_language_d8e376": "Learning language:",
     "hint_language_7b4f74": "Hint language:",
@@ -392,6 +406,7 @@
     "exam_75bb7c": "Exam",
     "_using_server_saved_answers_the_local_draft_has_fda6d8": "ℹ️ Using server-saved answers; the local draft has not been restored.",
     "select_a_word_to_use_the_ai_dictionary_5ff0db": "Select a word to use the AI dictionary",
+    "highlight_release_help": "Select text and release the mouse to highlight. Click a highlight to remove it; select a word to look it up with AI.",
     "no_passage_is_available_for_this_part_a9ca4e": "No passage is available for this part.",
     "resize_prompt_and_answer_panes_316f30": "Resize prompt and answer panes",
     "resize_panes_b0c048": "Resize panes",
@@ -459,7 +474,7 @@
     "unable_to_verify_this_passage_select_the_word_ag_f7df75": "Unable to verify this passage. Select the word again in the passage.",
     "the_ai_dictionary_is_currently_unavailable_b9b77a": "The AI dictionary is currently unavailable.",
     "unable_to_look_up_this_word_you_can_try_again_c1d12c": "Unable to look up this word. You can try again.",
-    "unable_to_look_up_this_selection_select_the_word_f7d947": "Unable to look up this selection. Select the word again in the passage.",
+    "unable_to_look_up_this_selection_select_the_word_f7d947": "Unable to look up this selection. Please select the word or phrase again in the reading passage.",
     "the_exam_language_has_not_been_verified_e46d7c": "The exam language has not been verified.",
     "this_explanation_language_is_not_supported_9ddcaa": "This explanation language is not supported.",
     "invalid_paired_question_structure_reload_the_pag_8ee835": "Invalid paired-question structure. Reload the page.",
@@ -516,7 +531,8 @@
     "the_request_exceeds_the_size_limit_reload_the_pa_bc5724": "The request exceeds the size limit. Reload the page.",
     "you_cannot_access_hints_for_this_attempt_65ab63": "You cannot access hints for this attempt.",
     "unable_to_connect_to_the_ai_hints_service_please_beb9be": "Unable to connect to the AI hints service. Please try again.",
-    "the_hints_request_timed_out_please_try_again_98758a": "The hints request timed out. Please try again."
+    "the_hints_request_timed_out_please_try_again_98758a": "The hints request timed out. Please try again.",
+    "daily_ai_dictionary_quota_exhausted_hint_8b2a1c": "Daily AI dictionary lookup limit reached. You can continue the test and look up words again tomorrow."
   },
   "errors": {
     "unexpected": "Unable to complete this request. Please try again."

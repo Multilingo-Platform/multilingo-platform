@@ -1,0 +1,99 @@
+package com.multilingo.backend.modules.testing.controller;
+
+import com.multilingo.backend.modules.testing.dto.request.DictionaryLookupV3Request;
+import com.multilingo.backend.modules.testing.dto.request.WorkspaceTextSource;
+import com.multilingo.backend.modules.testing.dto.response.DictionaryLookupV2Response;
+import com.multilingo.backend.modules.testing.dto.response.DictionaryLookupV3Response;
+import com.multilingo.backend.modules.testing.service.PracticeDictionaryV3Service;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest(properties = "testing.dictionary-lookup.enabled=false")
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class PracticeDictionaryV3ContractIT {
+    @Autowired private MockMvc mvc;
+    @MockBean private PracticeDictionaryV3Service service;
+
+    @Test
+    @WithAnonymousUser
+    void anonymousRequestIsRejectedBeforeTheDictionaryService() throws Exception {
+        mvc.perform(post("/api/v3/attempts/42/dictionary-lookups")
+                        .contentType(MediaType.APPLICATION_JSON).content(validBody()))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @WithMockUser(username = "21", roles = "USER")
+    void authenticatedRequestUsesTheContractAndDoesNotCacheTheDefinition() throws Exception {
+        String requestId = UUID.randomUUID().toString();
+        WorkspaceTextSource source = WorkspaceTextSource.part(WorkspaceTextSource.Kind.PART_CONTENT);
+        when(service.lookup(eq(42), any())).thenReturn(new DictionaryLookupV3Response(
+                requestId,
+                42,
+                7,
+                source,
+                "elms",
+                "The elms grow beside the river.",
+                DictionaryLookupV3Response.CURRENT_POLICY_VERSION,
+                new DictionaryLookupV2Response.DictionaryDefinitionV2(
+                        2, "en", "vi", "cây du", null, "noun", "The elms grow here.", "Cây du mọc ở đây.")));
+
+        mvc.perform(post("/api/v3/attempts/42/dictionary-lookups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBodyWith(requestId)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.data.definition.meaning").value("cây du"))
+                .andExpect(jsonPath("$.data.definition.schemaVersion").value(2))
+                .andExpect(jsonPath("$.data.policyVersion").value("NATIVE_PROFILE_V1"))
+                .andExpect(jsonPath("$.data.source.kind").value("PART_CONTENT"))
+                .andExpect(jsonPath("$.data.requestId").value(requestId));
+
+        verify(service).lookup(eq(42), any(DictionaryLookupV3Request.class));
+    }
+
+    @Test
+    @WithMockUser(username = "21", roles = "USER")
+    void rejectsDisallowedLanguageFieldAtRoot() throws Exception {
+        String payload = "{\"requestId\":\"" + UUID.randomUUID() + "\",\"partId\":7,"
+                + "\"source\":{\"kind\":\"PART_CONTENT\"},"
+                + "\"selectedText\":\"elms\",\"contextText\":\"The elms grow beside the river.\","
+                + "\"meaningLanguage\":\"vi\"}";
+
+        mvc.perform(post("/api/v3/attempts/42/dictionary-lookups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnprocessableEntity());
+
+        verifyNoInteractions(service);
+    }
+
+    private static String validBody() { return validBodyWith(UUID.randomUUID().toString()); }
+    private static String validBodyWith(String id) {
+        return "{\"requestId\":\"" + id + "\",\"partId\":7,"
+                + "\"source\":{\"kind\":\"PART_CONTENT\"},"
+                + "\"selectedText\":\"elms\",\"contextText\":\"The elms grow beside the river.\"}";
+    }
+}

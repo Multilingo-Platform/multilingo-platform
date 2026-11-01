@@ -9,6 +9,7 @@ import WorkspacePage, { shouldShowAiLookup } from '../pages/WorkspacePage';
 import HtmlContent from '../components/content/HtmlContent';
 import ReferencePane from '../components/workspace/ReferencePane';
 import { readReferenceDocs } from '../components/workspace/ReadingPartContent';
+import { buildWorkspaceTextDocuments } from '../utils/workspaceTextDocuments';
 import { buildHighlightNamespace } from '../utils/highlightUtils';
 import { resolveHighlightScope, resolveHighlightScopeElement } from '../hooks/useTextSelection';
 import * as workspaceHookModule from '../hooks/useWorkspace';
@@ -182,7 +183,7 @@ function workspaceResponse(snapshot: unknown, testMode: 'MOCK_TEST' | 'PRACTICE'
 
 function renderWorkspacePage(workspace: WorkspaceResponse) {
   const store = configureStore({
-    reducer: { answers: answerReducer },
+    reducer: { answers: answerReducer, auth: () => ({ user: { id: 21 } }) },
     preloadedState: { answers: { ...initialState, attemptId: 99, version: 1 } },
   });
   vi.mocked(workspaceHookModule.default).mockReturnValue({
@@ -456,7 +457,9 @@ describe('WorkspacePage TOEIC reading branch', () => {
     const { container } = renderWorkspacePage(workspaceResponse(toeicReadingSnapshot(PART_7)));
 
     const reference = await screen.findByTestId('toeic-reference-pane');
-    expect(reference.querySelectorAll('[data-highlight-scope]')).toHaveLength(1);
+    // RD-05 annotates the instruction separately; the whole passage still has one scope.
+    expect(reference.querySelectorAll('[data-source-kind="GROUP_CONTENT"]')).toHaveLength(1);
+    expect(reference.querySelector('[data-highlight-scope="p7-g1"]')).not.toBeNull();
     expect(screen.getByTestId('toeic-reference-group-p7-g1')).toBeDefined();
 
     // The three source documents stay inside the single group HTML.
@@ -612,7 +615,7 @@ describe('WorkspacePage TOEIC reading branch', () => {
   it('TC_TW_RD_10: Practice keeps highlight/selection while Mock hides the AI lookup affordance', async () => {
     const practice = renderWorkspacePage(workspaceResponse(toeicReadingSnapshot(PART_7), 'PRACTICE'));
     await screen.findByTestId('toeic-reference-pane');
-    expect(document.body.textContent).toMatch(/tra từ điển ai/i);
+    expect(document.body.textContent).toMatch(/tra AI/i);
     expect(document.querySelector('[data-highlight-scope="p7-g1"]')).not.toBeNull();
     practice.unmount();
 
@@ -747,5 +750,23 @@ describe('WorkspacePage TOEIC reading branch', () => {
         delete (Range.prototype as any).getBoundingClientRect;
       }
     }
+  });
+
+  it('TC_TW_RD_14: Part 6 reference pane renders canonical contentHash and matches workspaceTextDocuments for dictionary lookup', async () => {
+    const { container } = renderWorkspacePage(workspaceResponse(toeicReadingSnapshot(PART_6)));
+    await screen.findByTestId('toeic-reference-pane');
+
+    const g1Element = container.querySelector('[data-highlight-scope="p6-g1"]')!;
+    expect(g1Element).toBeDefined();
+
+    const renderedHash = g1Element.getAttribute('data-highlight-hash');
+    expect(renderedHash).toBeTruthy();
+
+    const canonicalDocs = buildWorkspaceTextDocuments(PART_6, 106);
+    const canonicalGroup = canonicalDocs.find(d => d.source.kind === 'GROUP_CONTENT' && d.source.groupId === 'p6-g1')!;
+    expect(canonicalGroup).toBeDefined();
+
+    // Rendered DOM hash must match the canonical workspace document hash exactly
+    expect(renderedHash).toBe(canonicalGroup.contentHash);
   });
 });

@@ -1,6 +1,6 @@
 import axiosClient from '../../../core/api/axiosClient';
 import type { CreateDeckRequest, CreateFlashcardRequest, DeckSummary, Flashcard } from '../../vocab/types/vocab.types';
-import type { DictionaryLookupV2Response } from '../types/api.types';
+import type { DictionaryResult } from '../types/api.types';
 import { canonicalizeLearningLanguage } from '../../../core/i18n/learningLanguages';
 
 const FLASHCARD_TIMEOUT_MS = 15_000;
@@ -64,7 +64,7 @@ export async function createDictionaryDeck(ownerId: number, name: string, target
   return deck;
 }
 
-export async function addDictionaryFlashcard(deck: DeckSummary, ownerId: number, result: DictionaryLookupV2Response): Promise<Flashcard> {
+export async function addDictionaryFlashcard(deck: DeckSummary, ownerId: number, result: DictionaryResult): Promise<Flashcard> {
   const target = canonicalizeLearningLanguage(result.definition.learningLanguage);
   const source = canonicalizeLearningLanguage(result.definition.meaningLanguage);
   if (!target || !source || !eligibleDeck(deck, ownerId, target, source)) throw new DictionaryFlashcardContractError();

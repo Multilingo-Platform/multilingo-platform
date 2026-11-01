@@ -1,5 +1,6 @@
 import { examMessage as em } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 
 export interface WorkspaceFrameProps {
   /** Part instruction callout rendered above the audio/media header. */
@@ -34,7 +35,7 @@ const WorkspaceFrame: React.FC<WorkspaceFrameProps> = ({
         className="bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-sm text-slate-700 mb-4"
       >
         <span className="font-bold text-amber-800 block mb-0.5">{em("Hướng dẫn làm bài:")}</span>
-        {instruction}
+        <WorkspaceText source={{ kind: 'PART_INSTRUCTION' }} content={instruction} />
       </div>
     )}
 

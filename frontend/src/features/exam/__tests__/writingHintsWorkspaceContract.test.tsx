@@ -73,7 +73,7 @@ function mount(strict = false) {
 }
 async function flush() { await act(async () => { await Promise.resolve(); }); }
 async function advance(ms: number) { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); }
-function open() { fireEvent.click(screen.getByRole('button', { name: 'Gợi ý Writing — Task 1' })); }
+function open() { fireEvent.click(screen.getByRole('button', { name: 'Writing hints' })); }
 async function generate() { fireEvent.click(screen.getByRole('button', { name: 'Tạo gợi ý' })); await flush(); }
 async function regenerate() {
   fireEvent.click(screen.getByRole('button', { name: 'Tạo gợi ý mới' }));
@@ -102,7 +102,7 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
     expect(http.post.mock.calls.map(([url]) => url)).toEqual(['/v1/attempts/42/writing-hints']);
     expect(body()).toEqual({ partId: 30, questionId, requestId: expect.stringMatching(/^[0-9a-f-]{36}$/i), learningLanguage: 'en', hintLanguage: 'vi' });
     expect(hintsCalls()[0][2]).toMatchObject({ timeout: 150000 });
-    expect(screen.getByRole('region', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('lang', 'vi');
+    expect(screen.getByRole('region', { name: 'Writing hints' })).toHaveAttribute('lang', 'vi');
     expect(screen.getByText('Localized hints marker')).toBeInTheDocument();
     expect(screen.getByText(validWritingHintsVi.vocabulary[4].example)).toBeInTheDocument();
     expect(screen.getByText(validWritingHintsVi.limitations[0])).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
     mockSuccess(); mount(); await flush(); open(); await generate();
     const first = structuredClone(body());
     expect(Object.keys(first).sort()).toEqual(['learningLanguage', 'partId', 'questionId', 'requestId']);
-    expect(screen.getByRole('region', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('lang', 'vi');
+    expect(screen.getByRole('region', { name: 'Writing hints' })).toHaveAttribute('lang', 'vi');
     fireEvent.click(screen.getByRole('button', { name: 'Tạo gợi ý mới' }));
     fireEvent.click(screen.getByRole('button', { name: 'Hủy' }));
     expect(hintsCalls()).toHaveLength(1);
@@ -123,7 +123,7 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
     await regenerate();
     expect(body(1)).toMatchObject({ partId: 30, questionId, learningLanguage: 'en', hintLanguage: 'fr' });
     expect(body(1).requestId).not.toBe(first.requestId);
-    expect(screen.getByRole('region', { name: 'Gợi ý Writing — Task 1' })).toHaveAttribute('lang', 'fr');
+    expect(screen.getByRole('region', { name: 'Writing hints' })).toHaveAttribute('lang', 'fr');
   });
 
   it('TC_19_10: edits during hints wait survive response and continue normal autosave', async () => {
@@ -289,7 +289,7 @@ describe('TV3-19-06 real Workspace Writing hints pipeline', () => {
     if (kind === 'locked') fixture.data.lockedSections = [3] as never;
     http.get.mockResolvedValue(fixture as never); mount(); await flush();
     if (kind === 'locked') { open(); expect(screen.getByRole('button', { name: 'Tạo gợi ý' })).toBeDisabled(); }
-    else expect(screen.queryByRole('button', { name: /Gợi ý Writing/ })).toBeNull();
+    else expect(screen.queryByRole('button', { name: 'Writing hints' })).toBeNull();
     await advance(160000); expect(hintsCalls()).toHaveLength(0);
   });
 });

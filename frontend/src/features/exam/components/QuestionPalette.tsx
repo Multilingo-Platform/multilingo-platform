@@ -41,6 +41,15 @@ function declaredPartNumber(part: any): number | null {
   return typeof raw === 'number' && Number.isSafeInteger(raw) && raw > 0 ? raw : null;
 }
 
+function parseQuestionNumberFromId(questionId: unknown): number | null {
+  if (typeof questionId !== 'string') return null;
+  const trimmed = questionId.trim();
+  const match = /(\d+)$/.exec(trimmed);
+  if (!match) return null;
+  const num = parseInt(match[1], 10);
+  return Number.isSafeInteger(num) && num > 0 ? num : null;
+}
+
 /**
  * Cell label for a question. TOEIC uses the canonical whole-exam number (1..200) and never the
  * array index, the Part ordinal or the DB id. Every other exam (IELTS/Writing/general) keeps its
@@ -49,7 +58,8 @@ function declaredPartNumber(part: any): number | null {
 function questionCellLabel(
   question: any,
   partNumber: number | null,
-  isToeicExam: boolean
+  isToeicExam: boolean,
+  fallbackIndex?: number | null
 ): { display: string; aria: string } {
   if (isToeicExam) {
     const number = resolveQuestionNumber(question, partNumber).number;
@@ -57,6 +67,33 @@ function questionCellLabel(
       ? { display: String(number), aria: String(number) }
       : { display: '–', aria: em("chưa xác định") };
   }
+
+  const explicitNumber =
+    (typeof question?.question_number === 'number' && question.question_number > 0)
+      ? question.question_number
+      : (typeof question?.questionNumber === 'number' && question.questionNumber > 0)
+        ? question.questionNumber
+        : (typeof question?.id === 'number' && question.id > 0)
+          ? question.id
+          : null;
+
+  if (explicitNumber !== null) {
+    const text = String(explicitNumber);
+    return { display: text, aria: text };
+  }
+
+  const idStr = question?.question_id ?? (typeof question?.id === 'string' ? question.id : null);
+  const parsedFromId = parseQuestionNumberFromId(idStr);
+  if (parsedFromId !== null) {
+    const text = String(parsedFromId);
+    return { display: text, aria: text };
+  }
+
+  if (typeof fallbackIndex === 'number' && fallbackIndex > 0) {
+    const text = String(fallbackIndex);
+    return { display: text, aria: text };
+  }
+
   const raw = question?.question_number ?? question?.questionNumber ?? question?.id;
   const text = raw === undefined || raw === null ? '–' : String(raw);
   return { display: text, aria: text };
@@ -99,16 +136,12 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
     qList.forEach((q: any) => {
       const qId = q.question_id || String(q.id);
       const val = answers[pId]?.[qId];
-      if (isAnswered(val, q.type)) {
-        answeredCount++;
-      }
-      if (flags?.[pId]?.[qId]) {
-        flaggedCount++;
-      }
+      if (isAnswered(val, q.type)) answeredCount++;
+      if (flags?.[pId]?.[qId]) flaggedCount++;
     });
   });
 
-  const progress = total > 0 ? (answeredCount / total) * 100 : 0;
+  const progressPercent = total > 0 ? Math.round((answeredCount / total) * 100) : 0;
 
   const handleCellClick = (pId: number, qId: string) => {
     if (allParts && allParts.length > 0) {
@@ -120,42 +153,75 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
   const visibleQuestionIdSet = useMemo(() => {
     if (!visibleQuestionIds) return null;
-    return visibleQuestionIds instanceof Set
-      ? visibleQuestionIds
-      : new Set(visibleQuestionIds);
+    return visibleQuestionIds instanceof Set ? visibleQuestionIds : new Set(visibleQuestionIds);
   }, [visibleQuestionIds]);
 
   return (
-    <div>
-      {/* Progress bar */}
-      <div style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
-          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-heading)', fontWeight: 600, color: '#4b5563' }}>
-            {em("Tiến độ hoàn thành")}</span>
-          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-heading)', fontWeight: 700, color: '#111827' }}>
-            {answeredCount}/{total} {em("câu")}</span>
-        </div>
-        <div style={{
-          width: '100%', height: '6px',
-          background: '#e5e7eb', borderRadius: '9999px', overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%',
-            width: `${progress}%`,
-            background: progress === 100 ? '#10b981' : '#d97706',
+    <div style={{ padding: '1.25rem' }}>
+      {/* Header with Title and Total Count Badge */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h3
+          style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: '0.95rem',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: '#1f2937',
+            margin: 0,
+          }}
+        >
+          {em("Bảng câu hỏi")}
+        </h3>
+        <span
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            color: '#ea580c',
+            backgroundColor: '#fff7ed',
+            border: '1px solid #ffedd5',
+            padding: '2px 8px',
             borderRadius: '9999px',
-            transition: 'width 0.4s ease',
-          }} />
+          }}
+        >
+          {total} {em("câu")}
+        </span>
+      </div>
+
+      {/* Progress Section */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#6b7280', marginBottom: '6px' }}>
+          <span>{em("Tiến độ hoàn thành")}</span>
+          <span style={{ fontWeight: 600, color: '#111827' }}>
+            {answeredCount}/{total} {em("câu")}
+          </span>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={em("Tiến độ bài thi")}
+          style={{ width: '100%', height: '6px', backgroundColor: '#e5e7eb', borderRadius: '9999px', overflow: 'hidden' }}
+        >
+          <div
+            style={{
+              width: `${progressPercent}%`,
+              height: '100%',
+              backgroundColor: '#ea580c',
+              borderRadius: '9999px',
+              transition: 'width 0.3s ease',
+            }}
+          />
         </div>
       </div>
 
-      {/* Grid of Parts */}
+      {/* Question Groups per Part */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {normalizedParts.map((p: any, index: number) => {
           const pId = p.part_id ?? p.id;
           const pNumber = declaredPartNumber(p);
           const qList = extractQuestions(p);
-
           if (qList.length === 0) return null;
 
           const isPartLocked = lockedPartIds instanceof Set
@@ -177,19 +243,19 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                 aria-label={em("Điều hướng câu hỏi phần {{v0}}", { v0: index + 1 })}
                 style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}
               >
-                {qList.map((q: any) => {
+                {qList.map((q: any, qIdx: number) => {
                   const qId = q.question_id || String(q.id);
                   const val = answers[pId]?.[qId];
                   const answered = isAnswered(val, q.type);
                   const isFlagged = !!flags?.[pId]?.[qId];
                   const isActive = activePartId ? pId === activePartId : true;
-                  const { display: displayNumber, aria: ariaNumber } = questionCellLabel(q, pNumber, isToeicExam);
+                  const { display: displayNumber, aria: ariaNumber } = questionCellLabel(q, pNumber, isToeicExam, qIdx + 1);
                   const isCurrentQuestion = activeQuestionId != null && activeQuestionId === qId;
 
                   const isExcludedFromRetry = isCurrentActivePart && visibleQuestionIdSet !== null && !visibleQuestionIdSet.has(qId);
                   const isCellDisabled = isPartLocked || Boolean(isExcludedFromRetry);
 
-                  // Compute styles based on 3 states: Flagged, Answered, Unanswered
+                  // Compute styles based on 3 states: Flagged, Answered, Unanswered, Current
                   let bg = '#ffffff';
                   let color = '#374151';
                   let border = '1px solid #d1d5db';
@@ -212,6 +278,11 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                     color = '#ffffff';
                     border = '1px solid #059669';
                     shadow = '0 1px 2px rgba(16,185,129,0.3)';
+                  } else if (isCurrentQuestion) {
+                    bg = '#fffbeb';
+                    color = '#b45309';
+                    border = '2px solid #d97706';
+                    shadow = '0 0 0 2px rgba(217, 119, 6, 0.25)';
                   }
 
                   return (

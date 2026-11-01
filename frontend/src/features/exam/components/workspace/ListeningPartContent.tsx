@@ -1,5 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 import type { AnswerValue } from '../../types/answer.types';
 import type { PracticeFeedbackResponse } from '../../types/api.types';
 import type { ListeningDetail, Question, SharedMedia } from '../../types/exam.types';
@@ -186,8 +187,13 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
               )}
               {group.instruction && (
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
-                  {group.instruction}
-                </div>
+                <WorkspaceText
+                  source={{ kind: 'GROUP_INSTRUCTION', groupId: group.groupId }}
+                  format="TEXT"
+                  content={group.instruction}
+                  as="div"
+                />
+              </div>
               )}
               {group.questions.map(renderCard)}
             </section>
@@ -226,8 +232,13 @@ const ListeningPartContent: React.FC<ListeningPartContentProps> = ({
         >
           {group.instruction && (
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
-              {group.instruction}
-            </div>
+                <WorkspaceText
+                  source={{ kind: 'GROUP_INSTRUCTION', groupId: group.groupId }}
+                  format="TEXT"
+                  content={group.instruction}
+                  as="div"
+                />
+              </div>
           )}
           {group.mediaUrl && (
             <div className="rounded-xl border border-slate-200 bg-white p-3">

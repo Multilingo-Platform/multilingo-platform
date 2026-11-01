@@ -83,7 +83,7 @@ describe('multilingual real frontend lifecycle',()=>{
     view.unmount();view=mount('/attempts/77');await flush();
     expect(screen.getByRole('textbox')).toHaveValue(essay);
     expect(view.store.getState().answers.version).toBe(8);
-    fireEvent.click(screen.getByRole('button',{name:/writing.*task 1/i}));
+    fireEvent.click(screen.getByRole('button',{name:/writing hints/i}));
     expect(screen.getByLabelText(ui()?'Learning language':'Ngôn ngữ học')).toHaveValue(language);
     fireEvent.change(screen.getByLabelText(ui()?'Explanation language':'Ngôn ngữ giải thích'),{target:{value:'fr'}});
     fireEvent.click(screen.getByRole('button',{name:ui()?'Generate hints':'Tạo gợi ý'}));await flush();

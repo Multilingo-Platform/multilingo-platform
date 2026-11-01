@@ -72,6 +72,7 @@ export interface WorkspaceResponse {
    */
   exam_snapshot: ExamSnapshot;
   languageContext?: AttemptLanguageContext | null;
+  dictionaryLanguage?: { policyVersion: 'NATIVE_PROFILE_V1'; available: boolean; nativeLanguage: string | null; reason?: string | null } | null;
   version: number;
   saved_answers: PartAnswers[];
   /** ms: serverClock - clientClock at workspace fetch time. */
@@ -443,3 +444,11 @@ export interface WritingFeedbackResponse {
   partStatus: WritingFeedbackTaskStatus;
   tasks: WritingFeedbackTask[];
 }
+
+export interface DictionaryLookupV3Request {
+  requestId: string; partId: number; source: import('./workspaceText.types').WorkspaceTextSource; selectedText: string; contextText: string;
+}
+export interface DictionaryLookupV3Response {
+  requestId: string; attemptId: number; partId: number; source: import('./workspaceText.types').WorkspaceTextSource; selectedText: string; sourceContext: string; policyVersion: 'NATIVE_PROFILE_V1'; definition: DictionaryLookupV2Definition;
+}
+export type DictionaryResult = DictionaryLookupV2Response | DictionaryLookupV3Response;

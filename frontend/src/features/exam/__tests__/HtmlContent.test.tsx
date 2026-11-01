@@ -3,6 +3,39 @@ import { describe, it, expect, vi } from 'vitest';
 import HtmlContent from '../components/content/HtmlContent';
 
 describe('HtmlContent', () => {
+  it('preserves an in-progress passage selection through identical HTML rerenders', () => {
+    const html = '<p>Before <b>selected words</b> after</p>';
+    const { container, rerender } = render(<HtmlContent html={html} prepared />);
+    const text = container.querySelector('b')!.firstChild!;
+    const range = document.createRange();
+    range.setStart(text, 2);
+    range.setEnd(text, 8);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    // Timer, selection state and presentation changes must not rewrite passage DOM.
+    for (let tick = 0; tick < 5; tick++) {
+      rerender(<HtmlContent html={html} prepared className={`tick-${tick}`} />);
+      expect(container.querySelector('b')!.firstChild).toBe(text);
+      expect(selection.toString()).toBe('lected');
+      expect(selection.anchorNode).toBe(text);
+      expect(selection.anchorOffset).toBe(2);
+    }
+    rerender(<HtmlContent html='<p>New <b>passage</b></p>' prepared />);
+    expect(container.textContent).toBe('New passage');
+    expect(container.querySelector('b')!.firstChild).not.toBe(text);
+    selection.removeAllRanges();
+  });
+
+  it('updates sanitizer policy and supports empty-to-content transitions', () => {
+    const { container, rerender } = render(<HtmlContent html={null} />);
+    rerender(<HtmlContent html='<p>Safe</p><audio src="/test.mp3"></audio>' stripMedia prepared />);
+    expect(container.querySelector('audio')).toBeNull();
+    expect(container.textContent).toBe('Safe');
+    rerender(<HtmlContent html={null} />);
+    expect(container.firstChild).toBeNull();
+  });
   it('TC_WS_HTML_01: strips <script> tags (XSS)', () => {
     const { container } = render(
       <HtmlContent html="<p>safe</p><script>window.__xss=1</script>" />

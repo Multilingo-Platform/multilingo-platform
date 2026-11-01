@@ -1,15 +1,16 @@
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
+import { canonicalQuestionOptionTokens } from '../../utils/workspaceTextDocuments';
 
 interface Props {
   variant: 'TRUE_FALSE_NOT_GIVEN' | 'YES_NO_NOT_GIVEN';
   value: string | null;
   onChange: (v: string) => void;
+  questionId?: string;
 }
 
-const TFNGRenderer: React.FC<Props> = ({ variant, value, onChange }) => {
-  const options = variant === 'YES_NO_NOT_GIVEN'
-    ? ['YES', 'NO', 'NOT GIVEN']
-    : ['TRUE', 'FALSE', 'NOT GIVEN'];
+const TFNGRenderer: React.FC<Props> = ({ variant, value, onChange, questionId = 'unknown' }) => {
+  const options = canonicalQuestionOptionTokens(variant) ?? [];
 
   return (
     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -27,7 +28,12 @@ const TFNGRenderer: React.FC<Props> = ({ variant, value, onChange }) => {
             backgroundColor: value === opt ? '#ebf5fb' : '#fff',
           }}
         >
-          {opt}
+          <WorkspaceText
+            source={{ kind: 'OPTION_TEXT', questionId, optionId: opt }}
+            format="TEXT"
+            content={opt}
+            as="span"
+          />
         </button>
       ))}
     </div>

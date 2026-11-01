@@ -2,6 +2,8 @@ import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
 import type { ReviewQuestionDto, ReviewOptionDto, ResultSummary } from '../../types/api.types';
 import HtmlContent from '../content/HtmlContent';
+import { ReviewText } from '../content/ReviewText';
+import { canonicalQuestionOptionTokens, matchingInformationChoices } from '../../utils/workspaceTextDocuments';
 import { ExplanationBox } from './ExplanationBox';
 import {
   formatUserAnswer,
@@ -43,8 +45,22 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   useExamLocale();
   const verdictInfo = getVerdictBadgeInfo(question.verdict);
   const labelText = question.label || em("Câu {{v0}}", { v0: index + 1 });
-  const hasOptions = Array.isArray(question.options) && question.options.length > 0;
-  const hasOptionWithoutText = hasOptions && question.options!.some(option => {
+  const tokens = canonicalQuestionOptionTokens(question.type);
+  const matchingOptions = question.type === 'MATCHING_INFORMATION'
+    ? matchingInformationChoices((question.options ?? []).map((option, optionIndex) =>
+      typeof option === 'string' ? { id: String.fromCharCode(65 + optionIndex), text: option } : option))
+      .map(choice => ({
+        id: choice.optionId,
+        text: choice.label ?? '',
+        isCorrect: question.options?.find(option => typeof option === 'object' && option !== null &&
+          String(option.id) === choice.optionId)?.isCorrect,
+      }))
+    : null;
+  const options: ReviewOptionDto[] = tokens
+    ? tokens.map(id => ({ id, text: id }))
+    : matchingOptions ?? question.options ?? [];
+  const hasOptions = options.length > 0;
+  const hasOptionWithoutText = question.type !== 'MATCHING_INFORMATION' && hasOptions && options.some(option => {
     const optionText = option.text || option.content || '';
     return optionText.trim().length === 0;
   });
@@ -118,14 +134,14 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
       {/* Prompt */}
       {question.prompt && (
         <div className="mb-3 text-slate-700 text-sm font-medium">
-          <HtmlContent html={question.prompt} />
+          <ReviewText source={{ kind: 'QUESTION_TEXT', questionId: String(question.questionId) }} content={question.prompt} />
         </div>
       )}
 
       {/* Question Text */}
       {question.questionText && question.questionText !== question.prompt && (
         <div className="mb-4 text-base font-semibold text-slate-900">
-          <HtmlContent html={question.questionText} />
+          <ReviewText source={{ kind: 'QUESTION_TEXT', questionId: String(question.questionId) }} content={question.questionText} />
         </div>
       )}
 
@@ -141,7 +157,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
             <p className="text-xs text-slate-500" role="note">
               {em("Chưa có lời thoại cho các lựa chọn. Vui lòng nghe audio để đối chiếu.")}</p>
           )}
-          {question.options!.map((opt: ReviewOptionDto, optIdx: number) => {
+          {options.map((opt: ReviewOptionDto, optIdx: number) => {
             const optContent = opt.text || opt.content || '';
             const isUserChoice = answerMatchesOption(question.userAnswer, opt.id, optContent);
             const isCorrectOption =
@@ -172,10 +188,12 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
                     className="font-semibold text-slate-800 shrink-0"
                     data-testid={`review-option-id-${question.questionId}-${opt.id}`}
                   >
-                    {opt.id}
+                    {question.type === 'MATCHING_INFORMATION'
+                      ? <ReviewText source={{ kind: 'OPTION_TEXT', questionId: String(question.questionId), optionId: opt.id }} content={opt.id.toUpperCase()} />
+                      : opt.id}
                   </span>
                   {optContent.trim().length > 0 && (
-                    <HtmlContent html={optContent} className="inline-block" />
+                    <ReviewText source={{ kind: 'OPTION_TEXT', questionId: String(question.questionId), optionId: opt.id }} content={optContent} className="inline-block" />
                   )}
                 </div>
                 <div className="text-xs font-bold shrink-0">

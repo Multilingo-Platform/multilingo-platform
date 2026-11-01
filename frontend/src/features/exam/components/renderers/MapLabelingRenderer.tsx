@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ExamOption, SharedMedia } from '../../types/exam.types';
+import WorkspaceText from '../content/WorkspaceText';
 
 interface Props {
   questionId: string;
@@ -22,7 +23,13 @@ const MapLabelingRenderer: React.FC<Props> = ({ questionId, options, value, onCh
             checked={value === opt.id}
             onChange={() => onChange(opt.id)}
           />
-          {' '}{opt.text}
+          {' '}
+          <WorkspaceText
+            source={{ kind: 'OPTION_TEXT', questionId, optionId: opt.id }}
+            format="TEXT"
+            content={opt.text}
+            as="span"
+          />
         </label>
       ))}
     </div>

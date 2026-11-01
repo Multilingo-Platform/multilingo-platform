@@ -24,6 +24,7 @@ const workspace: WorkspaceResponse = {
   attempt_id: 42, status: 'IN_PROGRESS', test_scope: 'FULL_EXAM', test_mode: 'PRACTICE',
   startTime: '2026-10-20T07:00:00Z', serverTime: '2026-10-20T07:00:00Z', deadline: null,
   gracePeriodSeconds: 15, lockedSections: [], version: 7, saved_answers: [], serverTimeOffset: 0,
+  dictionaryLanguage: { policyVersion: 'NATIVE_PROFILE_V1', available: true, nativeLanguage: 'vi' },
   languageContext: { policyVersion: 'TV3_LANG_V1', examLanguage: 'en', defaultExplanationLanguage: 'vi', supportedExplanationLanguages: ['en', 'vi', 'ko', 'zh', 'ja', 'fr', 'de', 'es'] },
   exam_snapshot: { exam_id: 1, code: 'READING', title: 'Reading', type: 'IELTS', examLanguage: 'en', sections: [{
     id: 2, skill_type: 'READING', title: 'Reading', duration_minutes: 60,
@@ -41,6 +42,7 @@ function Harness() {
 describe('Practice dictionary end-to-end frontend contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     http.get.mockResolvedValue({ success: true, data: [deck] } as never);
     http.post.mockImplementation(async (url, payload) => {
       if (String(url).endsWith('/dictionary-lookups')) {
@@ -86,7 +88,7 @@ describe('Practice dictionary end-to-end frontend contract', () => {
       http.post.mockRejectedValueOnce({ response: { status: 503 } });
     } else {
       http.post.mockImplementationOnce(async (_url, payload) => ({ success: true, data: {
-        requestId: (payload as any).requestId, attemptId: 42, partId: 7, documentId: 'g1', selectedText: 'elms',
+        requestId: (payload as any).requestId, attemptId: 42, partId: 7, source: (payload as any).source ?? { kind: 'GROUP_CONTENT', groupId: 'g1' }, policyVersion: 'NATIVE_PROFILE_V1', selectedText: 'elms',
         sourceContext: 'The elms grow beside the river.', definition: {
           schemaVersion: 2, learningLanguage: 'en', meaningLanguage: 'vi', meaning: 'cây du', phonetic: null,
           partOfSpeech: 'noun', example: 'The elms grow.', exampleTranslation: 'Cây du mọc.',
@@ -100,6 +102,12 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     await screen.findByText('The elms grow beside the river.');
     const passage = page.container.querySelector('[data-highlight-scope="g1"]')!;
     const text = passage.querySelector('p')!.firstChild!;
+    const pointer = (type: string, target: Node) => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0 });
+      Object.defineProperties(event, { pointerType: { value: 'mouse' }, pointerId: { value: 1 }, isPrimary: { value: true } });
+      fireEvent(target, event);
+    };
+    pointer('pointerdown', text);
     const range = document.createRange();
     range.setStart(text, 4);
     range.setEnd(text, 8);
@@ -107,14 +115,16 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     const browserSelection = window.getSelection()!;
     browserSelection.removeAllRanges();
     browserSelection.addRange(range);
-    fireEvent.mouseUp(passage);
+    pointer('pointerup', text);
+    expect(passage.querySelector('mark')?.textContent).toBe('elms');
+    expect(screen.queryByRole('button', { name: 'Highlight' })).toBeNull();
+    expect(http.post).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole('button', { name: 'Tra từ AI' }));
     const dialog = await screen.findByRole('dialog', { name: 'Tra từ AI: elms' });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tra từ' }));
     await waitFor(() => expect(dialog).toHaveTextContent(outcome === 'ready' ? 'cây du' : 'Tra từ AI hiện chưa khả dụng.'));
     expect(dialog).not.toHaveTextContent('Đang tra nghĩa');
-    expect(http.post).toHaveBeenCalledWith('/v2/attempts/42/dictionary-lookups', expect.objectContaining({
-      partId: 7, documentId: 'g1', selectedText: 'elms', contextText: 'The elms grow beside the river.',
+    expect(http.post).toHaveBeenCalledWith(expect.stringContaining('/dictionary-lookups'), expect.objectContaining({
+      partId: 7, selectedText: 'elms',
     }), expect.any(Object));
     expect(store.getState().answers).toMatchObject({ version: 7, isDirty: false });
     browserSelection.removeAllRanges();

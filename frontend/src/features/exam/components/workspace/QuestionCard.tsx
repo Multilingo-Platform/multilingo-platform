@@ -1,5 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import React from 'react';
+import WorkspaceText from '../content/WorkspaceText';
 import type { AnswerValue } from '../../types/answer.types';
 import type { Question } from '../../types/exam.types';
 import QuestionRenderer from '../renderers/QuestionRenderer';
@@ -72,7 +73,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           )}
           {!hidePrompt && question.question_text && (
             <div className="font-heading font-semibold text-slate-900 text-sm leading-relaxed flex-1">
-              {question.question_text}
+              <WorkspaceText
+                source={{ kind: 'QUESTION_TEXT', questionId }}
+                format="TEXT"
+                content={question.question_text}
+                as="div"
+              />
             </div>
           )}
         </div>

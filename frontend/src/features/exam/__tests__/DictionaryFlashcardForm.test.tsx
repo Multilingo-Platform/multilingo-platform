@@ -17,6 +17,17 @@ const definition: DictionaryLookupV2Response = {
 };
 
 describe('DictionaryFlashcardForm', () => {
+  it('RD07 saves a v3 result using the authoritative definition language pair', async () => {
+    const { documentId: _id, ...common } = definition;
+    const result = { ...common, source: { kind: 'QUESTION_TEXT' as const, questionId: 'q1' }, policyVersion: 'NATIVE_PROFILE_V1' as const };
+    vi.mocked(api.getDictionaryDecks).mockResolvedValue([deck]);
+    vi.mocked(api.addDictionaryFlashcard).mockResolvedValue({ id: 12 } as any);
+    render(<DictionaryFlashcardForm ownerId={21} result={result} />);
+    await screen.findByRole('option', { name: 'My words' });
+    fireEvent.click(screen.getByRole('button', { name: /lưu flashcard/i }));
+    await waitFor(() => expect(api.addDictionaryFlashcard).toHaveBeenCalledWith(deck, 21, result));
+    expect(api.getDictionaryDecks).toHaveBeenCalledWith(21, 'en', 'vi');
+  });
   it('clears previous input state immediately for a new language pair', async () => {
     vi.mocked(api.getDictionaryDecks).mockResolvedValueOnce([]).mockReturnValueOnce(new Promise(() => {}));
     const view = render(<DictionaryFlashcardForm ownerId={21} result={definition} />);

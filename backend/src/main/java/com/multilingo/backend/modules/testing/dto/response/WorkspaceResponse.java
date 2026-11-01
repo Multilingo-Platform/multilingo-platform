@@ -50,6 +50,16 @@ public class WorkspaceResponse {
     @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
     private ListeningPlaybackSummary listeningPlayback;
 
+    /**
+     * Dictionary native language context for Practice dictionary lookup.
+     * Tells the client whether dictionary lookup is available based on DB User.nativeLanguage.
+     * SECURITY: Never returns the native language of another user if caller is not the owner.
+     */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    @com.fasterxml.jackson.annotation.JsonProperty("dictionaryLanguage")
+    @com.fasterxml.jackson.annotation.JsonAlias({"dictionary_language"})
+    private DictionaryLanguageContextResponse dictionaryLanguage;
+
     @Data
     @Builder
     @lombok.NoArgsConstructor

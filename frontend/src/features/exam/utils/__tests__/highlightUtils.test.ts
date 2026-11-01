@@ -40,7 +40,7 @@ describe('highlightUtils', () => {
 
     const result = normalizeAgainstText(ranges, 'abcdef');
 
-    expect(result).toEqual([{ id: 'first', start: 0, end: 6, text: 'abcdef' }]);
+    expect(result).toEqual([{ id: 'first', start: 0, end: 6, text: 'abcdef', color: 'yellow' }]);
     expect(ranges).toEqual(before);
   });
 
@@ -52,7 +52,7 @@ describe('highlightUtils', () => {
       { id: 'outside', start: 1, end: 9, text: '' },
       { id: 'empty', start: 2, end: 2, text: '' },
       { id: 'ok', start: 0, end: 2, text: 'x' },
-    ], 'ab')).toEqual([{ id: 'ok', start: 0, end: 2, text: 'ab' }]);
+    ], 'ab')).toEqual([{ id: 'ok', start: 0, end: 2, text: 'ab', color: 'yellow' }]);
   });
 
   it('rejects UTF-16 ranges that split an emoji while keeping neighbouring Unicode unchanged', async () => {
@@ -60,6 +60,6 @@ describe('highlightUtils', () => {
     const text = '水😀e\u0301';
     expect(normalizeAgainstText([{ id: 'broken', start: 1, end: 2, text: '' }], text)).toEqual([]);
     expect(normalizeAgainstText([{ id: 'valid', start: 1, end: 3, text: '' }], text))
-      .toEqual([{ id: 'valid', start: 1, end: 3, text: '😀' }]);
+      .toEqual([{ id: 'valid', start: 1, end: 3, text: '😀', color: 'yellow' }]);
   });
 });
