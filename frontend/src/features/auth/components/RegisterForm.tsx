@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useMutation } from '@tanstack/react-query';
 import { Eye, EyeOff } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
+import GoogleLoginButton from './GoogleLoginButton';
 import { authApi } from '../api/authApi';
 import { setCredentials } from '../store/authSlice';
 import type { RegisterRequest } from '../types';
@@ -216,23 +216,17 @@ const RegisterForm = () => {
         <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }}></div>
       </div>
 
-      <div className="auth-google-btn-container">
-        <GoogleLogin
-          onSuccess={(credentialResponse) => {
-            if (credentialResponse.credential) {
-              googleLoginMutation.mutate(credentialResponse.credential);
-            }
-          }}
-          onError={() => {
-            alertUtil.toast(t('auth.login_failed'), 'error');
-          }}
-          text="signup_with"
-          shape="rectangular"
-          theme="outline"
-          size="large"
-          width="400"
-        />
-      </div>
+      <GoogleLoginButton
+        onSuccess={(credentialResponse) => {
+          if (credentialResponse.credential) {
+            googleLoginMutation.mutate(credentialResponse.credential);
+          }
+        }}
+        onError={() => {
+          alertUtil.toast(t('auth.login_failed'), 'error');
+        }}
+        text="signup_with"
+      />
     </form>
   );
 };
