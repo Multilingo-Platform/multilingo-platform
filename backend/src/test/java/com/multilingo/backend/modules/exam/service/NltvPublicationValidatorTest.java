@@ -123,6 +123,82 @@ class NltvPublicationValidatorTest {
                 .isInstanceOf(RuntimeException.class);
     }
 
+    @Test
+    void acceptsSingleSkillReadingExam() throws Exception {
+        ExamBuilderRequest full = parseSource().request();
+        ExamBuilderRequest readingOnly = ExamBuilderRequest.builder()
+                .title("NLTV Kỹ năng Đọc")
+                .type("NLTV")
+                .examLanguage("vi")
+                .sections(List.of(full.getSections().get(1)))
+                .build();
+        NltvPublicationValidator validator = new NltvPublicationValidator();
+        validator.requireStructure(readingOnly);
+        validator.requirePublishable(readingOnly);
+    }
+
+    @Test
+    void acceptsSingleSkillListeningExam() throws Exception {
+        ExamBuilderRequest full = parseSource().request();
+        var listeningSection = full.getSections().get(0);
+        ExamBuilderRequest listeningOnly = ExamBuilderRequest.builder()
+                .title("NLTV Kỹ năng Nghe")
+                .type("NLTV")
+                .examLanguage("vi")
+                .sections(List.of(listeningSection))
+                .build();
+        NltvPublicationValidator validator = new NltvPublicationValidator();
+        validator.requireStructure(listeningOnly);
+        assertThat(validator.issues(listeningOnly)).filteredOn(issue -> "AUDIO_REQUIRED".equals(issue.code()))
+                .hasSize(4);
+
+        for (int partNumber : List.of(1, 2, 3, 4)) {
+            var part = listeningSection.getParts().stream()
+                    .filter(candidate -> candidate.getPartNumber() == partNumber).findFirst().orElseThrow();
+            part.getContentData().put("shared_audio", Map.of("url", "https://media.example/nltv-part-" + partNumber + ".mp3"));
+        }
+        validator.requirePublishable(listeningOnly);
+    }
+
+    @Test
+    void acceptsSingleSkillWritingExam() throws Exception {
+        ExamBuilderRequest full = parseSource().request();
+        ExamBuilderRequest writingOnly = ExamBuilderRequest.builder()
+                .title("NLTV Kỹ năng Viết")
+                .type("NLTV")
+                .examLanguage("vi")
+                .sections(List.of(full.getSections().get(2)))
+                .build();
+        NltvPublicationValidator validator = new NltvPublicationValidator();
+        validator.requireStructure(writingOnly);
+        validator.requirePublishable(writingOnly);
+    }
+
+    @Test
+    void acceptsSinglePartExamAndCustomDuration() throws Exception {
+        ExamBuilderRequest full = parseSource().request();
+        var readingSection = full.getSections().get(1);
+        var partFive = readingSection.getParts().get(0);
+
+        var customSection = com.multilingo.backend.modules.exam.dto.request.SectionBuilderRequest.builder()
+                .skillType("READING")
+                .durationMinutes(25)
+                .parts(List.of(partFive))
+                .build();
+
+        ExamBuilderRequest partOnly = ExamBuilderRequest.builder()
+                .title("NLTV Đọc - Phần 1")
+                .type("NLTV")
+                .examLanguage("vi")
+                .sections(List.of(customSection))
+                .build();
+
+        NltvPublicationValidator validator = new NltvPublicationValidator();
+        validator.requireStructure(partOnly);
+        validator.requirePublishable(partOnly);
+    }
+
+
     private ExamImportPreviewResponse parseSource() throws Exception {
         try (InputStream input = getClass().getResourceAsStream(
                 "/datasets/official-source/nltv-sample-test-1.xlsx")) {

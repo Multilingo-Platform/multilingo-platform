@@ -65,16 +65,18 @@ class StudentHistoryServiceImplTest {
     @Test
     @DisplayName("getStudentStats: Tính toán đúng các chỉ số tổng hợp, streak và danh sách trend điểm số")
     void getStudentStats_ComputesAverageScoreAndTrendCorrectly() {
-        when(testAttemptRepository.countByUserId(userId)).thenReturn(5L);
-        when(testAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.COMPLETED)).thenReturn(3L);
-        when(testAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.IN_PROGRESS)).thenReturn(1L);
-        when(testAttemptRepository.countByUserIdAndStatus(userId, AttemptStatus.GRADING_FAILED)).thenReturn(1L);
-        when(testAttemptRepository.findAverageScoreByUserId(userId)).thenReturn(7.2);
-        when(testAttemptRepository.findHighestScoreByUserId(userId)).thenReturn(BigDecimal.valueOf(8.5));
-        when(testAttemptRepository.sumTimeSpentSecondsByUserId(userId)).thenReturn(7200L); // 120 minutes
+        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(5L);
+        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(3L);
+        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.IN_PROGRESS), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(1L);
+        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.GRADING_FAILED), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(1L);
+        when(testAttemptRepository.findAverageScoreByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(7.2);
+        when(testAttemptRepository.findHighestScoreByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(BigDecimal.valueOf(8.5));
+        when(testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(7200L); // 120 minutes
 
         UserTarget target = new UserTarget();
         target.setTargetScore(BigDecimal.valueOf(7.0));
+        target.setTargetLanguage("en");
+        target.setTargetCertificate("IELTS");
         when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
 
         UserStudyStat studyStat = new UserStudyStat();
@@ -90,14 +92,21 @@ class StudentHistoryServiceImplTest {
                 .build();
         attempt1.setId(101);
 
-        when(testAttemptRepository.findTop10ByUserIdAndStatusOrderByEndTimeDesc(userId, AttemptStatus.COMPLETED))
-                .thenReturn(List.of(attempt1));
-
         Exam exam1 = new Exam();
         exam1.setId(10);
         exam1.setTitle("IELTS Academic Test 1");
         exam1.setType("IELTS_ACADEMIC");
-        when(examRepository.findById(10)).thenReturn(Optional.of(exam1));
+        exam1.setExamLanguage("en");
+
+        List<Object[]> recentRows = new ArrayList<>();
+        recentRows.add(new Object[]{attempt1, exam1});
+        when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean(), any(Pageable.class)))
+                .thenReturn(recentRows);
+
+        List<Object[]> avgRows = new ArrayList<>();
+        avgRows.add(new Object[]{"IELTS_ACADEMIC", 7.2});
+        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
+                .thenReturn(avgRows);
 
         StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
 
@@ -107,6 +116,7 @@ class StudentHistoryServiceImplTest {
         assertThat(response.getInProgressAttempts()).isEqualTo(1L);
         assertThat(response.getFailedAttempts()).isEqualTo(1L);
         assertThat(response.getAverageScore()).isEqualTo(7.2);
+        assertThat(response.getAverageScoresByType()).containsEntry("IELTS", 7.2);
         assertThat(response.getHighestScore()).isEqualTo(8.5);
         assertThat(response.getTotalPracticeMinutes()).isEqualTo(120L);
         assertThat(response.getCurrentStreak()).isEqualTo(6);
@@ -114,6 +124,35 @@ class StudentHistoryServiceImplTest {
         assertThat(response.getRecentScoreTrends()).hasSize(1);
         assertThat(response.getRecentScoreTrends().get(0).getCertType()).isEqualTo("IELTS");
         assertThat(response.getRecentScoreTrends().get(0).getMaxScore()).isEqualTo(9.0);
+    }
+
+    @Test
+    @DisplayName("getStudentStats: Tính điểm trung bình riêng theo từng loại đề khi học viên làm nhiều loại đề")
+    void getStudentStats_WithMultipleCertTypes_CalculatesAverageScoresByType() {
+        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(4L);
+        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), any(), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
+        when(testAttemptRepository.findAverageScoreByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(378.5);
+
+        UserTarget target = new UserTarget();
+        target.setTargetLanguage("en");
+        target.setTargetCertificate("IELTS");
+        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
+        when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        List<Object[]> avgRows = new ArrayList<>();
+        avgRows.add(new Object[]{"IELTS_ACADEMIC", 7.5});
+        avgRows.add(new Object[]{"TOEIC_LR", 750.0});
+        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
+                .thenReturn(avgRows);
+
+        StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
+
+        assertThat(response).isNotNull();
+        // Điểm TB tổng quát ưu tiên hiển thị theo target certificate (IELTS) thay vì gộp số học vô nghĩa
+        assertThat(response.getAverageScore()).isEqualTo(7.5);
+        // Có đầy đủ điểm TB riêng cho từng loại đề
+        assertThat(response.getAverageScoresByType()).containsEntry("IELTS", 7.5);
+        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC", 750.0);
     }
 
     @Test
@@ -151,6 +190,8 @@ class StudentHistoryServiceImplTest {
                 eq(userId),
                 anyString(),
                 anyBoolean(),
+                anyString(),
+                anyBoolean(),
                 eq("TOEIC"),
                 eq(true),
                 eq(TestMode.MOCK_TEST),
@@ -186,6 +227,8 @@ class StudentHistoryServiceImplTest {
 
         when(testAttemptRepository.findUserAttemptsWithExam(
                 eq(userId),
+                anyString(),
+                anyBoolean(),
                 anyString(),
                 anyBoolean(),
                 anyString(),
@@ -235,6 +278,8 @@ class StudentHistoryServiceImplTest {
                 anyBoolean(),
                 anyString(),
                 anyBoolean(),
+                anyString(),
+                anyBoolean(),
                 any(),
                 anyBoolean(),
                 any(),
@@ -255,5 +300,39 @@ class StudentHistoryServiceImplTest {
         assertThat(item.getExamCode()).isEqualTo("N/A");
         assertThat(item.getIsExamDeleted()).isTrue();
         assertThat(item.getStatus()).isEqualTo("GRADING_FAILED");
+    }
+
+    @Test
+    @DisplayName("getStudentHistory: Áp dụng ngôn ngữ mục tiêu của user để loại bỏ đề khác ngôn ngữ")
+    void getStudentHistory_AppliesTargetLanguageFilter() {
+        UserTarget target = new UserTarget();
+        target.setTargetLanguage("vi");
+        target.setTargetCertificate("NLTV");
+        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
+
+        List<Object[]> rows = new ArrayList<>();
+        PageImpl<Object[]> pageResult = new PageImpl<>(rows);
+
+        when(testAttemptRepository.findUserAttemptsWithExam(
+                eq(userId),
+                eq("vi"),
+                eq(true),
+                anyString(),
+                anyBoolean(),
+                anyString(),
+                anyBoolean(),
+                any(),
+                anyBoolean(),
+                any(),
+                anyBoolean(),
+                any(Pageable.class)
+        )).thenReturn(pageResult);
+
+        PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
+                userId, null, null, null, null, 0, 10, null
+        );
+
+        assertThat(pageResponse).isNotNull();
+        assertThat(pageResponse.getItems()).isEmpty();
     }
 }

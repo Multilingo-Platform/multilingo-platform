@@ -8,8 +8,8 @@ import type {
 } from '../types/history.types';
 
 export const historyApi = {
-  getStats: async (): Promise<ApiResponse<HistoryStatsResponse>> => {
-    return axiosClient.get('/v1/student/history/stats');
+  getStats: async (params?: { cert?: string; targetLanguage?: string }): Promise<ApiResponse<HistoryStatsResponse>> => {
+    return axiosClient.get('/v1/student/history/stats', { params });
   },
 
   getHistory: async (params?: HistoryFilterParams): Promise<ApiResponse<PageResponse<HistoryAttemptItem>>> => {

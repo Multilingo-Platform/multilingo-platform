@@ -25,10 +25,12 @@ public class StudentHistoryController {
      */
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<StudentHistoryStatsResponse>> getStats(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String cert,
+            @RequestParam(required = false) String targetLanguage
     ) {
         Integer userId = userDetails.getUser().getId();
-        StudentHistoryStatsResponse stats = studentHistoryService.getStudentStats(userId);
+        StudentHistoryStatsResponse stats = studentHistoryService.getStudentStats(userId, cert, targetLanguage);
         return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
@@ -42,13 +44,14 @@ public class StudentHistoryController {
             @RequestParam(required = false) String cert,
             @RequestParam(required = false) String mode,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String targetLanguage,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "newest") String sort
     ) {
         Integer userId = userDetails.getUser().getId();
         PageResponse<StudentHistoryItemResponse> history = studentHistoryService.getStudentHistory(
-                userId, search, cert, mode, status, page, size, sort
+                userId, search, cert, mode, status, targetLanguage, page, size, sort
         );
         return ResponseEntity.ok(ApiResponse.success(history));
     }

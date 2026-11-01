@@ -172,6 +172,17 @@ public class AdminExamServiceImpl implements AdminExamService {
             resp.setQuestions(questionsCount);
             resp.setJoins(attemptCountMap.getOrDefault(exam.getId(), 0L).intValue());
             
+            if ("NLTV".equalsIgnoreCase(resp.getType()) && sections.size() == 1) {
+                String skill = sections.get(0).getSkillType();
+                if ("READING".equalsIgnoreCase(skill)) {
+                    resp.setType("NLTV_READING");
+                } else if ("LISTENING".equalsIgnoreCase(skill)) {
+                    resp.setType("NLTV_LISTENING");
+                } else if ("WRITING".equalsIgnoreCase(skill)) {
+                    resp.setType("NLTV_WRITING");
+                }
+            }
+            
             return resp;
         }).toList();
     }
@@ -295,6 +306,16 @@ public class AdminExamServiceImpl implements AdminExamService {
 
     private ExamBuilderRequest prepare(ExamBuilderRequest request, String examCode) {
         ExamBuilderRequest normalized=new ExamContentNormalizer().normalize(request);
+        if ("NLTV".equalsIgnoreCase(normalized.getType()) && normalized.getSections() != null && normalized.getSections().size() == 1) {
+            String skill = normalized.getSections().get(0).getSkillType();
+            if ("READING".equalsIgnoreCase(skill)) {
+                normalized.setType("NLTV_READING");
+            } else if ("LISTENING".equalsIgnoreCase(skill)) {
+                normalized.setType("NLTV_LISTENING");
+            } else if ("WRITING".equalsIgnoreCase(skill)) {
+                normalized.setType("NLTV_WRITING");
+            }
+        }
         validateRegisteredIdentity(normalized, examCode);
         new ExamPublicationValidator().requireStructure(normalized);
         if (isRegisteredCambridgeCode(examCode)) new IeltsAcademicPublicationValidator().requireStructure(normalized);
@@ -333,7 +354,8 @@ public class AdminExamServiceImpl implements AdminExamService {
                 .isPresent();
     }
     private void setDuration(Exam exam,ExamBuilderRequest request) {
-        if (java.util.Set.of("TOEIC_LR", "IELTS_ACADEMIC", "LANGUAGE_PRACTICE", "NLTV").contains(request.getType()))
+        if (request.getType() != null && (java.util.Set.of("TOEIC_LR", "IELTS_ACADEMIC", "LANGUAGE_PRACTICE", "NLTV").contains(request.getType())
+                || request.getType().startsWith("NLTV")))
             exam.setDurationMinutes(request.getSections().stream().mapToInt(s -> s.getDurationMinutes()).sum());
     }
 

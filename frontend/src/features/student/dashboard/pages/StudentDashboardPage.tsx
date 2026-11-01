@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { studentDashboardApi } from '../api/studentDashboardApi';
 import { GreetingHeader } from '../components/GreetingHeader';
 import { NewUserWelcomeCard } from '../components/NewUserWelcomeCard';
@@ -11,6 +12,7 @@ import { GoalProgressTrackerCard } from '../components/GoalProgressTrackerCard';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 export const StudentDashboardPage: React.FC = () => {
+  const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState<string>('THIS_WEEK');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
@@ -50,10 +52,10 @@ export const StudentDashboardPage: React.FC = () => {
           <AlertTriangle className="w-7 h-7" />
         </div>
         <h2 className="text-xl md:text-2xl font-bold text-slate-900">
-          Không thể tải dữ liệu bảng điều khiển
+          {t('dashboard.load_error.title', 'Không thể tải dữ liệu bảng điều khiển')}
         </h2>
         <p className="text-sm text-slate-600 mt-2 mb-6">
-          Đã có lỗi xảy ra trong quá trình kết nối tới máy chủ. Vui lòng thử lại.
+          {t('dashboard.load_error.desc', 'Đã có lỗi xảy ra trong quá trình kết nối tới máy chủ. Vui lòng thử lại.')}
         </p>
         <button
           type="button"
@@ -61,7 +63,7 @@ export const StudentDashboardPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm transition-all shadow-xs cursor-pointer active:scale-98"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          <span>Thử lại</span>
+          <span>{t('dashboard.load_error.retry_btn', 'Thử lại')}</span>
         </button>
       </div>
     );

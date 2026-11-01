@@ -99,20 +99,45 @@ public class StudentExamServiceImpl implements StudentExamService {
         // Map type to level string
         String level = "N/A";
         if (exam.getType().startsWith("IELTS")) level = "Academic";
-        if (exam.getType().startsWith("TOEIC")) level = "General";
+        if (exam.getType().startsWith("TOEIC") || exam.getType().startsWith("TW")) level = "General";
         if (exam.getType().equals("NLTV_B1_C1")) level = "B1-C1";
         if (exam.getType().equals("NLTV_A1_A2")) level = "A1-A2";
         if (exam.getType().equals("NLTV")) level = "Đa bậc";
 
+        String rawType = exam.getType() != null ? exam.getType() : "";
+        String effectiveType = rawType;
+        if ("NLTV".equalsIgnoreCase(rawType) && exam.getTitle() != null) {
+            String titleLower = exam.getTitle().toLowerCase();
+            if (titleLower.contains("đọc") || titleLower.contains("reading")) {
+                effectiveType = "NLTV_READING";
+            } else if (titleLower.contains("nghe") || titleLower.contains("listening")) {
+                effectiveType = "NLTV_LISTENING";
+            } else if (titleLower.contains("viết") || titleLower.contains("writing")) {
+                effectiveType = "NLTV_WRITING";
+            }
+        }
+
         // Map type to tags
         List<String> tags = new ArrayList<>();
-        if (exam.getType().startsWith("IELTS")) {
+        if (effectiveType.startsWith("IELTS")) {
             tags.add("Listening"); tags.add("Reading"); tags.add("Writing");
-        } else if (exam.getType().startsWith("TOEIC")) {
+        } else if (effectiveType.startsWith("TOEIC_WRITING") || effectiveType.startsWith("TW") || effectiveType.equals("TOEIC_W")) {
+            tags.add("Writing");
+        } else if (effectiveType.equals("TOEIC_LISTENING") || effectiveType.startsWith("TOEIC_P1") || effectiveType.startsWith("TOEIC_P2") || effectiveType.startsWith("TOEIC_P3") || effectiveType.startsWith("TOEIC_P4")) {
+            tags.add("Listening");
+        } else if (effectiveType.equals("TOEIC_READING") || effectiveType.startsWith("TOEIC_P5") || effectiveType.startsWith("TOEIC_P6") || effectiveType.startsWith("TOEIC_P7")) {
+            tags.add("Reading");
+        } else if (effectiveType.startsWith("TOEIC")) {
             tags.add("Listening"); tags.add("Reading");
-        } else if (exam.getType().startsWith("NLTV")) {
+        } else if (effectiveType.equals("NLTV_READING") || effectiveType.startsWith("NLTV_R")) {
+            tags.add("Đọc hiểu");
+        } else if (effectiveType.equals("NLTV_LISTENING") || effectiveType.startsWith("NLTV_L")) {
+            tags.add("Nghe hiểu");
+        } else if (effectiveType.equals("NLTV_WRITING") || effectiveType.startsWith("NLTV_W")) {
+            tags.add("Viết");
+        } else if (effectiveType.startsWith("NLTV")) {
             tags.add("Nghe hiểu"); tags.add("Đọc hiểu"); tags.add("Viết");
-        } else if ("LANGUAGE_PRACTICE".equals(exam.getType())) {
+        } else if ("LANGUAGE_PRACTICE".equals(effectiveType)) {
             tags.add("Listening"); tags.add("Reading"); tags.add("Writing");
         }
 

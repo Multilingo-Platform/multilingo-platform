@@ -97,17 +97,29 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
     );
 
     @Query(value = "SELECT a, e FROM TestAttempt a LEFT JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND (:hasLang = false OR (e IS NOT NULL AND (" +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           "))) " +
            "AND (:hasSearch = false OR (e IS NOT NULL AND LOWER(e.title) LIKE LOWER(CONCAT('%', :search, '%')))) " +
            "AND (:hasCert = false OR (e IS NOT NULL AND UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))) " +
            "AND (:hasMode = false OR a.testMode = :mode) " +
            "AND (:hasStatus = false OR a.status = :status)",
            countQuery = "SELECT COUNT(a) FROM TestAttempt a LEFT JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND (:hasLang = false OR (e IS NOT NULL AND (" +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           "))) " +
            "AND (:hasSearch = false OR (e IS NOT NULL AND LOWER(e.title) LIKE LOWER(CONCAT('%', :search, '%')))) " +
            "AND (:hasCert = false OR (e IS NOT NULL AND UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))) " +
            "AND (:hasMode = false OR a.testMode = :mode) " +
            "AND (:hasStatus = false OR a.status = :status)")
     org.springframework.data.domain.Page<Object[]> findUserAttemptsWithExam(
             @Param("userId") Integer userId,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang,
             @Param("search") String search,
             @Param("hasSearch") boolean hasSearch,
             @Param("certPrefix") String certPrefix,
@@ -117,5 +129,117 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
             @Param("status") AttemptStatus status,
             @Param("hasStatus") boolean hasStatus,
             org.springframework.data.domain.Pageable pageable
+    );
+
+    @Query("SELECT COUNT(a) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND (:hasLang = false OR ( " +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           ")) " +
+           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+    long countByUserIdAndLanguageAndCert(
+            @Param("userId") Integer userId,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang,
+            @Param("certPrefix") String certPrefix,
+            @Param("hasCert") boolean hasCert
+    );
+
+    @Query("SELECT COUNT(a) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND a.status = :status " +
+           "AND (:hasLang = false OR ( " +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           ")) " +
+           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+    long countByUserIdAndStatusAndLanguageAndCert(
+            @Param("userId") Integer userId,
+            @Param("status") AttemptStatus status,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang,
+            @Param("certPrefix") String certPrefix,
+            @Param("hasCert") boolean hasCert
+    );
+
+    @Query("SELECT AVG(a.overallScore) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND a.overallScore IS NOT NULL " +
+           "AND (:hasLang = false OR ( " +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           ")) " +
+           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+    Double findAverageScoreByUserIdAndLanguageAndCert(
+            @Param("userId") Integer userId,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang,
+            @Param("certPrefix") String certPrefix,
+            @Param("hasCert") boolean hasCert
+    );
+
+    @Query("SELECT MAX(a.overallScore) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND a.status = 'COMPLETED' " +
+           "AND (:hasLang = false OR ( " +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           ")) " +
+           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+    java.math.BigDecimal findHighestScoreByUserIdAndLanguageAndCert(
+            @Param("userId") Integer userId,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang,
+            @Param("certPrefix") String certPrefix,
+            @Param("hasCert") boolean hasCert
+    );
+
+    @Query("SELECT COALESCE(SUM(a.timeSpentSeconds), 0) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND (:hasLang = false OR ( " +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           ")) " +
+           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+    Long sumTimeSpentSecondsByUserIdAndLanguageAndCert(
+            @Param("userId") Integer userId,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang,
+            @Param("certPrefix") String certPrefix,
+            @Param("hasCert") boolean hasCert
+    );
+
+    @Query("SELECT a, e FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND a.status = :status " +
+           "AND (:hasLang = false OR ( " +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           ")) " +
+           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%')) " +
+           "ORDER BY COALESCE(a.endTime, a.createdAt) DESC")
+    List<Object[]> findRecentAttemptsWithExam(
+            @Param("userId") Integer userId,
+            @Param("status") AttemptStatus status,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang,
+            @Param("certPrefix") String certPrefix,
+            @Param("hasCert") boolean hasCert,
+            org.springframework.data.domain.Pageable pageable
+    );
+
+    @Query("SELECT UPPER(e.type), AVG(a.overallScore) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+           "AND a.status = 'COMPLETED' AND a.overallScore IS NOT NULL " +
+           "AND (:hasLang = false OR ( " +
+           "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
+           "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
+           "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
+           ")) " +
+           "GROUP BY UPPER(e.type)")
+    List<Object[]> findAverageScoresGroupedByType(
+            @Param("userId") Integer userId,
+            @Param("targetLang") String targetLang,
+            @Param("hasLang") boolean hasLang
     );
 }

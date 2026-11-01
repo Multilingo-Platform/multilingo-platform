@@ -7,6 +7,7 @@
     "register": "Sign up for free",
     "footer_desc": "The leading AI-powered platform for mock tests and language proficiency assessment.",
     "products": "Products",
+    "toeic_test": "TOEIC Preparation",
     "support": "Support",
     "guide": "User Guide",
     "contact": "Contact Us"
@@ -123,7 +124,9 @@
     "purchase_history": "Purchase History",
     "logout": "Log out",
     "upgrade_pro": "Upgrade to PRO",
-    "streak_days": "{{count}} days"
+    "streak_days": "{{count}} days",
+    "streak_title_done": "Study streak: {{count}} days • Completed today!",
+    "streak_title_pending": "Study streak: {{count}} days • Not studied today yet!"
   },
   "settings": {
     "title": "Profile & Settings",
@@ -228,8 +231,18 @@
   },
   "library": {
     "hero": {
+      "badge": "Standardized Exam Library",
       "title": "Exam Library",
       "subtitle": "Thousands of standardized exams for IELTS, TOEIC, and Vietnamese Proficiency (NLTV). Practice today to achieve your goals."
+    },
+    "target_banner": {
+      "your_goal": "Your Goal:",
+      "band_score": "(Band / Score: {{score}})",
+      "view_goal_tests": "View Goal Tests"
+    },
+    "tabs": {
+      "recommended": "✨ For You",
+      "all": "All"
     },
     "filters": {
       "title": "Filter Exams",
@@ -245,21 +258,34 @@
       },
       "skill_title": "2. SELECT SKILL",
       "all_skills": "All Skills (Full Test & Parts)",
+      "skill_all": "All Skills",
+      "skill_listening": "Listening",
+      "skill_reading": "Reading",
+      "skill_writing": "Writing",
       "skills": {
         "listening": "Listening",
         "reading": "Reading",
         "writing": "Writing"
       },
+      "skill_label": "Skills:",
+      "status_label": "Status:",
+      "attempt_all": "All Tests",
+      "attempt_unattempted": "Unattempted",
+      "attempt_attempted": "Attempted",
+      "sort_newest": "Newest",
+      "sort_joins": "Most Taken",
+      "sort_title": "Title A-Z",
       "part_title": "3. SELECT PART",
       "all_parts": "All Parts",
       "language": "Exam language",
       "allLanguages": "All languages",
       "apply": "Apply Filters",
-      "clear": "Clear Filters"
+      "clear": "Clear Filters",
+      "clear_filters": "Clear Filters"
     },
     "results": {
       "showing": "Showing",
-      "results": "results"
+      "results": "exams"
     },
     "sort": {
       "newest": "Newest",
@@ -267,13 +293,31 @@
     },
     "status": {
       "loading": "Loading exams...",
-      "empty": "No matching exams found."
+      "empty": "No matching exams found.",
+      "empty_title": "No matching exams found",
+      "empty_desc": "No exams match your current filters. Try selecting a different skill or click below to view all exams.",
+      "view_all": "View all exams"
     },
     "card": {
       "minutes": "mins",
       "attempts": "attempts",
       "takeExam": "Take Exam",
-      "partsCount": "parts"
+      "start_now": "Start Now",
+      "retake": "Retake",
+      "view_result": "View Result",
+      "attempted_count": "Attempted ({{count}} times)",
+      "highest_score": "Highest: {{score}}",
+      "latest_score": "Latest: {{score}}",
+      "partsCount": "parts",
+      "duration": "{{count}} mins",
+      "joins": "{{count}} attempts",
+      "target_match": "🎯 Target Match",
+      "unattempted": "Unattempted"
+    },
+    "empty": {
+      "title": "No matching exams found",
+      "desc": "Try searching with different keywords or reset your certificate and skill filters.",
+      "btn_clear": "Reset Filters"
     },
     "pagination": {
       "prev": "Previous",
@@ -443,6 +487,258 @@
       "min_cards_quiz": "You need at least 4 flashcards in this deck to start Quiz Practice.",
       "min_cards_match": "You need at least 6 flashcards in this deck to play Speed Match Game.",
       "min_cards_test": "You need at least 4 flashcards in this deck to generate a Timed Test."
+    }
+  },
+  "onboarding": {
+    "loading": "Loading goal setup...",
+    "steps": {
+      "language": "Select Language",
+      "certificate": "Target Certificate",
+      "roadmap": "Personal Roadmap"
+    },
+    "step1": {
+      "title": "Your Languages",
+      "subtitle": "Choose your native language and the language you want to learn to personalize tests and interface.",
+      "error_same_lang": "Native language and learning language cannot be the same!",
+      "native_label": "1. Native Language",
+      "target_label": "2. Target Learning Language",
+      "lang_vi": "Vietnamese",
+      "lang_vi_desc": "Native Vietnamese",
+      "lang_en": "English",
+      "lang_en_desc": "Global language",
+      "tag_native": "Native",
+      "tag_target": "Target"
+    },
+    "step2": {
+      "title": "Target Certificate",
+      "subtitle": "Select the certificate and target score you want to achieve so Multilingo can recommend a customized roadmap.",
+      "cert_label": "1. Select target certificate",
+      "recommended_badge": "Recommended",
+      "score_label": "2. Desired Target Score / Level",
+      "score_val": "Target: {{score}}",
+      "score_band": "Band {{score}} / 9.0",
+      "score_pts": "{{score}} / 990 pts",
+      "score_level": "Level {{score}} / 10",
+      "cert_ielts_desc": "Assess 4 skills according to international academic standards",
+      "cert_toeic_desc": "Focus on Listening & Reading for workplace communication",
+      "cert_toeic_writing_desc": "Practice writing skills for the official TOEIC Writing test",
+      "cert_nltv_desc": "Standard Vietnamese language proficiency framework for learners",
+      "cert_nltv_title": "Vietnamese Proficiency (NLTV)",
+      "badge_popular": "Popular",
+      "badge_standard": "Corporate",
+      "badge_writing": "Writing Skill",
+      "badge_nltv": "NLTV"
+    },
+    "step4": {
+      "title": "Study Commitment & Level",
+      "subtitle": "Determine your daily study time and self-assess your level to build an optimal learning path.",
+      "daily_time_label": "1. Daily Study Commitment",
+      "minutes_per_day": "{{count}} mins/day",
+      "mins_15_desc": "Maintain a gentle daily study habit",
+      "mins_30_desc": "Ideal pace for steady and consistent progress",
+      "mins_60_desc": "Accelerate revision for your upcoming exam",
+      "mins_90_desc": "High intensity for a rapid breakthrough",
+      "level_label": "2. Your Current Proficiency Level",
+      "level_beginner": "Beginner",
+      "level_beginner_desc": "Starting from scratch or refreshing fundamentals",
+      "level_intermediate": "Intermediate",
+      "level_intermediate_desc": "Possess basic foundations, aiming for fluency and vocabulary",
+      "level_advanced": "Advanced",
+      "level_advanced_desc": "Solid foundation, intensive practice to achieve maximum score",
+      "summary_box_title": "Your Goal Summary",
+      "summary_target": "Learn {{target}} from {{native}}",
+      "summary_goal": "Goal {{cert}} ({{score}})"
+    },
+    "actions": {
+      "back": "Back",
+      "continue": "Continue",
+      "start_journey": "Start Learning Journey",
+      "update_goal": "Update Goal",
+      "submitting_start": "Initializing...",
+      "submitting_update": "Updating..."
+    },
+    "toasts": {
+      "same_lang": "Native language and learning language cannot be the same!",
+      "success_update": "Study goal updated successfully!",
+      "success_create": "Study goal created successfully!",
+      "failed": "Goal setup failed",
+      "error_default": "An error occurred while saving your goal"
+    }
+  },
+  "history": {
+    "hero": {
+      "badge": "Learning & History Report",
+      "title": "Goal Achievement Journey",
+      "desc": "Track your progress, assess strengths and weaknesses, and maintain a consistent daily study habit."
+    },
+    "kpi": {
+      "total_attempts": "Total Tests Taken",
+      "average_score": "Average Score",
+      "practice_time": "Study Time",
+      "study_streak": "Study Streak",
+      "completed": "{{count}} completed",
+      "in_progress": "{{count}} in progress",
+      "failed": "{{count}} failed",
+      "others": "{{count}} other",
+      "no_attempts": "No tests yet",
+      "tests_unit": "{{count}} tests",
+      "no_score": "No score yet",
+      "highest": "Highest: {{score}}",
+      "scale_band": "Band {{score}} • Scale 9.0",
+      "scale_toeic": "{{score}} pts • Scale 990",
+      "scale_nltv": "Level {{score}} • Scale 10",
+      "target_achieved_count": "{{count}} times reached goal",
+      "accumulated_time": "Accumulated practice time",
+      "streak_active": "Keep up the great momentum! 🔥",
+      "streak_zero": "Practice every day"
+    },
+    "chart": {
+      "title": "Recent Score Trends",
+      "subtitle": "Completion % trend across your last 10 attempts",
+      "filter_all": "All",
+      "recent_subtitle": "{{count}} most recent attempts",
+      "tooltip_score": "Score:",
+      "empty_title": "No score progress data yet",
+      "empty_desc": "Complete your first mock test or practice session to activate the competency tracking chart.",
+      "empty_filter": "No tests completed for this certificate."
+    },
+    "filters": {
+      "all_certs": "All Certificates",
+      "mode_all": "All Modes",
+      "mode_mock": "📝 Mock Test",
+      "mode_practice": "🎯 Practice",
+      "status_all": "All Statuses",
+      "status_completed": "✓ Completed",
+      "status_in_progress": "⏳ In Progress",
+      "status_failed": "⚠️ Grading Failed",
+      "search_placeholder": "Search by exam title...",
+      "sort_newest": "Newest",
+      "sort_highest_score": "Highest Score",
+      "sort_duration": "Longest Duration"
+    },
+    "card": {
+      "unsubmitted": "Unsubmitted",
+      "grading_failed": "Grading Failed",
+      "grading": "Grading",
+      "scale_nltv": "Level / {{max}}",
+      "minutes": "{{count}} mins",
+      "accuracy": "Accuracy: {{percent}}%",
+      "submitted": "Submitted",
+      "target_met": "Target Met",
+      "retake": "Retake",
+      "continue": "Resume",
+      "details": "View Details",
+      "discontinued": "Discontinued",
+      "discontinued_badge": "Discontinued",
+      "deleted_exam": "Discontinued Exam (#{{id}})",
+      "unavailable": "Unavailable",
+      "empty_title": "No test attempts found",
+      "empty_filter": "No results match the current filters. Please try changing your search criteria.",
+      "empty_no_tests": "You have not taken any tests yet. Explore the standardized exam library and start now!",
+      "empty_desc": "No attempts match the current filter. Try selecting different filters or start a new test!",
+      "explore_library": "Explore Exam Library"
+    },
+    "pagination": {
+      "info": "Page {{current}} of {{total}} • Total {{totalElements}} attempts",
+      "prev": "← Previous",
+      "next": "Next →"
+    }
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "student": "Student",
+      "subtitle": "What skills would you like to master today? Let's keep your study streak alive!",
+      "learning": "Learning:",
+      "lang_en": "English",
+      "lang_vi": "Vietnamese"
+    },
+    "time_range": {
+      "this_week": "This Week",
+      "this_month": "This Month",
+      "this_year": "This Year"
+    },
+    "load_error": {
+      "title": "Unable to load dashboard data",
+      "desc": "An error occurred while connecting to the server. Please try again.",
+      "retry_btn": "Retry"
+    },
+    "welcome": {
+      "badge": "Welcome new learner!",
+      "title": "Start your language journey with Multilingo 🎉",
+      "desc": "Take a short placement test so the system can measure your level and personalize your study goals.",
+      "button": "Take placement test"
+    },
+    "goal": {
+      "badge": "Study Goal",
+      "recent_5": "Last 5 exams",
+      "edit_btn": "Change goal",
+      "practice_btn": "Practice target tests",
+      "avg_5": "Average of 5 exams",
+      "exams_count": "({{count}}/5 exams)",
+      "achievement_rate": "Achievement rate",
+      "progress_label": "Goal completion progress",
+      "exam_pill": "Exam {{num}}",
+      "not_taken": "Not taken",
+      "advice_title": "Multilingo Tip: ",
+      "advice_empty": "You have not completed any exams yet. Take your first test to start tracking your progress bar!",
+      "advice_achieved": "Outstanding! Your average score across the last 5 tests has reached your target. Keep this momentum for the real exam!",
+      "advice_close": "Great performance! You have come a long way. Review your incorrect answers in history to make a breakthrough.",
+      "advice_keep_going": "Keep practicing consistently to improve your average score and quickly reach your target!",
+      "score_points": "{{score}} pts",
+      "score_band": "Band {{score}}",
+      "score_level": "Level {{score}}"
+    },
+    "suggested": {
+      "title": "Suggested Learning Actions",
+      "vocab_badge": "Vocabulary",
+      "vocab_title": "Review vocabulary today",
+      "vocab_desc": "Consolidate long-term memory using spaced repetition (SRS) for your vocabulary flashcards.",
+      "vocab_btn": "Review now",
+      "exam_badge": "Practice",
+      "exam_title": "Practice the next exam",
+      "exam_desc": "Improve test-taking skills, maintain exam reflexes, and assess progress across test sets.",
+      "exam_btn": "Explore library"
+    },
+    "metrics": {
+      "study_time": "Study Time",
+      "minutes": "min",
+      "record_days": "Record: {{days}} days",
+      "xp_accumulated": "Accumulated XP",
+      "xp_desc": "Learning experience points",
+      "exams_taken": "Tests & Assessments",
+      "exams_unit": "tests",
+      "avg_score": "Avg: {{score}}",
+      "latest_exam": "Latest: {{title}}",
+      "no_exams": "No tests completed yet",
+      "vocab_handbook": "Vocabulary Notebook",
+      "words_saved": "saved words",
+      "mastery_rate": "Mastered {{percent}}%",
+      "words_due": "⚡ {{count}} words due today",
+      "all_cards_done": "All cards completed"
+    },
+    "heatmap": {
+      "title": "Study Activity Heatmap",
+      "subtitle": "Each square represents your actual study activity during the day",
+      "tooltip": "{{date}}: {{minutes}} min studied • {{words}} words reviewed • {{xp}} XP",
+      "footer": "{{days}} active study days in {{year}}",
+      "less": "Less",
+      "more": "More"
+    },
+    "chart": {
+      "title": "Learning Progress in Period",
+      "total_time": "Total time: {{minutes}} min",
+      "average": "Average: {{average}} {{unit}}",
+      "peak": "Peak: {{label}} ({{minutes}} min)",
+      "unit_day": "min/day",
+      "unit_week": "min/week",
+      "unit_month": "min/month",
+      "week_num": "Week {{num}}",
+      "month_num": "Month {{num}}",
+      "tooltip_min": "{{count}} min studied",
+      "tooltip_questions": "{{count}} questions completed"
     }
   }
 }

@@ -12,7 +12,10 @@ import {
   ArrowRight, 
   Users, 
   RotateCcw,
-  Compass
+  Compass,
+  Layers,
+  Target,
+  Puzzle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -38,29 +41,7 @@ export interface ExamItem {
   userLatestScore?: number | null;
 }
 
-// 1. Certificate Tabs (No GB/VN, No Luyện Ngôn Ngữ)
-const CERT_TABS = [
-  { id: 'RECOMMENDED', label: '✨ Dành Cho Bạn' },
-  { id: 'ALL', label: 'Tất Cả' },
-  { id: 'IELTS', label: 'IELTS' },
-  { id: 'TOEIC', label: 'TOEIC' },
-  { id: 'NLTV', label: 'NLTV' },
-];
 
-// 2. Skill Filter Options
-const SKILL_OPTIONS = [
-  { id: '', label: 'Tất cả kỹ năng' },
-  { id: 'LISTENING', label: 'Nghe hiểu', icon: <Headphones size={13} /> },
-  { id: 'READING', label: 'Đọc hiểu', icon: <BookOpen size={13} /> },
-  { id: 'WRITING', label: 'Viết', icon: <PenTool size={13} /> },
-];
-
-// 3. Attempt Status Chips
-const ATTEMPT_STATUS_CHIPS = [
-  { id: 'ALL', label: 'Tất cả đề' },
-  { id: 'UNATTEMPTED', label: 'Chưa làm' },
-  { id: 'ATTEMPTED', label: 'Đã làm' },
-];
 
 const CERT_LABELS_MAP: Record<string, string> = {
   IELTS_ACADEMIC: 'IELTS Academic',
@@ -115,6 +96,56 @@ export const isSameLanguage = (examLang?: string | null, targetLang?: string | n
   return normExam === normTarget;
 };
 
+export type ExamScope = 'ALL' | 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART';
+
+export const getExamScope = (
+  rawType: string,
+  title?: string,
+  parts?: number
+): 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART' => {
+  const type = (rawType || '').trim().toUpperCase();
+  const titleLower = (title || '').toLowerCase();
+
+  // 1. Single Part / Passage
+  const isPartCode =
+    /^(IELTS_L[1-4]|IELTS_R[1-3]|IELTS_W[1-2])$/.test(type) ||
+    /^TOEIC_P[1-7]$/.test(type) ||
+    /^(TW_P[1-3]|TOEIC_W[1-3])$/.test(type) ||
+    /^NLTV_(L[1-4]|R[1-2]|W[1-3])$/.test(type);
+
+  const hasPartTitle =
+    titleLower.includes('passage ') ||
+    titleLower.includes('phần ') ||
+    titleLower.includes('part ');
+
+  if (isPartCode || (hasPartTitle && (parts === 1 || parts === undefined))) {
+    return 'SINGLE_PART';
+  }
+
+  // 2. Single Skill
+  const isSkillCode =
+    type === 'IELTS_LISTENING' || type === 'IELTS_READING' || type === 'IELTS_WRITING' ||
+    type === 'TOEIC_LISTENING' || type === 'TOEIC_READING' || type === 'TOEIC_WRITING' ||
+    type === 'TW' || type === 'TOEIC_W' ||
+    type === 'NLTV_READING' || type === 'NLTV_LISTENING' || type === 'NLTV_WRITING' ||
+    type === 'NLTV_R' || type === 'NLTV_L' || type === 'NLTV_W';
+
+  const isLegacyNltvSingleSkill =
+    type.startsWith('NLTV') && (
+      titleLower.includes('kỹ năng đọc') ||
+      titleLower.includes('kỹ năng nghe') ||
+      titleLower.includes('kỹ năng viết') ||
+      (parts !== undefined && parts > 0 && parts < 9)
+    );
+
+  if (isSkillCode || isLegacyNltvSingleSkill) {
+    return 'SINGLE_SKILL';
+  }
+
+  // 3. Full Exam
+  return 'FULL_EXAM';
+};
+
 const ExamLibrary: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -134,6 +165,7 @@ const ExamLibrary: React.FC = () => {
 
   // Filter States
   const [activeTab, setActiveTab] = useState<string>('RECOMMENDED');
+  const [selectedScope, setSelectedScope] = useState<ExamScope>('ALL');
   const [selectedSkill, setSelectedSkill] = useState<string>('');
   const [selectedAttemptStatus, setSelectedAttemptStatus] = useState<string>('ALL');
   const [sortParam, setSortParam] = useState('createdAt');
@@ -156,18 +188,46 @@ const ExamLibrary: React.FC = () => {
     return '';
   }, [userTarget, targetCategory]);
 
+  const certTabs = useMemo(() => [
+    { id: 'RECOMMENDED', label: t('library.tabs.recommended', '✨ Dành Cho Bạn') },
+    { id: 'ALL', label: t('library.tabs.all', 'Tất Cả') },
+    { id: 'IELTS', label: 'IELTS' },
+    { id: 'TOEIC', label: 'TOEIC' },
+    { id: 'NLTV', label: 'NLTV' },
+  ], [t]);
+
+  const skillOptions = useMemo(() => [
+    { id: '', label: t('library.filters.skill_all', 'Tất cả kỹ năng') },
+    { id: 'LISTENING', label: t('library.filters.skill_listening', 'Nghe hiểu'), icon: <Headphones size={13} /> },
+    { id: 'READING', label: t('library.filters.skill_reading', 'Đọc hiểu'), icon: <BookOpen size={13} /> },
+    { id: 'WRITING', label: t('library.filters.skill_writing', 'Viết'), icon: <PenTool size={13} /> },
+  ], [t]);
+
+  const scopeOptions = useMemo(() => [
+    { id: 'ALL' as ExamScope, label: t('library.filters.scope_all', 'Tất cả hình thức') },
+    { id: 'FULL_EXAM' as ExamScope, label: t('library.filters.scope_full', 'Làm Full đề'), icon: <Layers size={13} /> },
+    { id: 'SINGLE_SKILL' as ExamScope, label: t('library.filters.scope_skill', '1 Kỹ năng'), icon: <Target size={13} /> },
+    { id: 'SINGLE_PART' as ExamScope, label: t('library.filters.scope_part', '1 Phần (Part / Passage)'), icon: <Puzzle size={13} /> },
+  ], [t]);
+
+  const attemptStatusChips = useMemo(() => [
+    { id: 'ALL', label: t('library.filters.attempt_all', 'Tất cả đề') },
+    { id: 'UNATTEMPTED', label: t('library.filters.attempt_unattempted', 'Chưa làm') },
+    { id: 'ATTEMPTED', label: t('library.filters.attempt_attempted', 'Đã làm') },
+  ], [t]);
+
   // Dynamic tabs filtered by user's target language
   const visibleTabs = useMemo(() => {
-    if (!userTargetLanguage) return CERT_TABS;
+    if (!userTargetLanguage) return certTabs;
     const isEn = isSameLanguage(userTargetLanguage, 'en');
     const isVi = isSameLanguage(userTargetLanguage, 'vi');
-    return CERT_TABS.filter(tab => {
+    return certTabs.filter(tab => {
       if (tab.id === 'RECOMMENDED' || tab.id === 'ALL') return true;
       if (tab.id === 'NLTV') return isVi;
       if (tab.id === 'IELTS' || tab.id === 'TOEIC') return isEn;
       return true;
     });
-  }, [userTargetLanguage]);
+  }, [userTargetLanguage, certTabs]);
 
   // Sync activeTab if user has not completed onboarding or tab not visible
   useEffect(() => {
@@ -218,33 +278,33 @@ const ExamLibrary: React.FC = () => {
             }
           } else if (currentCert === 'TOEIC_LR') {
             if (selectedSkill === 'LISTENING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
             } else if (selectedSkill === 'READING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
             } else if (selectedSkill === 'WRITING') {
-              typesToFetch = ['__NONE__'];
+              typesToFetch = ['TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3'];
             }
           } else if (currentCert === 'TOEIC_WRITING') {
             if (selectedSkill === 'WRITING') {
-              typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+              typesToFetch = ['TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3'];
             } else {
               typesToFetch = ['__NONE__'];
             }
           } else if (currentCert === 'TOEIC') {
             if (selectedSkill === 'LISTENING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
             } else if (selectedSkill === 'READING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
             } else if (selectedSkill === 'WRITING') {
-              typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+              typesToFetch = ['TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3'];
             }
           } else if (currentCert === 'NLTV') {
             if (selectedSkill === 'LISTENING') {
-              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_L'];
+              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_L', 'NLTV_L1', 'NLTV_L2', 'NLTV_L3', 'NLTV_L4'];
             } else if (selectedSkill === 'READING') {
-              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_READING', 'NLTV_R'];
+              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_READING', 'NLTV_R', 'NLTV_R1', 'NLTV_R2'];
             } else if (selectedSkill === 'WRITING') {
-              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_WRITING', 'NLTV_W'];
+              typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_WRITING', 'NLTV_W', 'NLTV_W1', 'NLTV_W2', 'NLTV_W3'];
             }
           }
         } else {
@@ -254,11 +314,11 @@ const ExamLibrary: React.FC = () => {
           } else if (currentCert === 'TOEIC_LR') {
             typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
           } else if (currentCert === 'TOEIC_WRITING') {
-            typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+            typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2', 'TW_P3'];
           } else if (currentCert === 'TOEIC') {
-            typesToFetch = ['TOEIC_LR', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2'];
+            typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2', 'TW_P3'];
           } else if (currentCert === 'NLTV') {
-            typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_READING', 'NLTV_WRITING', 'NLTV_L', 'NLTV_R', 'NLTV_W'];
+            typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_READING', 'NLTV_WRITING', 'NLTV_L', 'NLTV_R', 'NLTV_W', 'NLTV_L1', 'NLTV_L2', 'NLTV_L3', 'NLTV_L4', 'NLTV_R1', 'NLTV_R2', 'NLTV_W1', 'NLTV_W2', 'NLTV_W3'];
           }
         }
       } else {
@@ -268,19 +328,19 @@ const ExamLibrary: React.FC = () => {
             typesToFetch = [
               'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_LISTENING', 'IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4',
               'TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4',
-              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_L'
+              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_L', 'NLTV_L1', 'NLTV_L2', 'NLTV_L3', 'NLTV_L4'
             ];
           } else if (selectedSkill === 'READING') {
             typesToFetch = [
               'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_READING', 'IELTS_R1', 'IELTS_R2', 'IELTS_R3',
               'TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7',
-              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_READING', 'NLTV_R'
+              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_READING', 'NLTV_R', 'NLTV_R1', 'NLTV_R2'
             ];
           } else if (selectedSkill === 'WRITING') {
             typesToFetch = [
               'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_WRITING', 'IELTS_W1', 'IELTS_W2',
-              'TOEIC_WRITING', 'TW_P1', 'TW_P2',
-              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_WRITING', 'NLTV_W'
+              'TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3',
+              'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_WRITING', 'NLTV_W', 'NLTV_W1', 'NLTV_W2', 'NLTV_W3'
             ];
           }
         }
@@ -322,13 +382,14 @@ const ExamLibrary: React.FC = () => {
   const handleResetFilters = () => {
     setSearchTerm('');
     setActiveTab(hasOnboarded ? 'RECOMMENDED' : 'ALL');
+    setSelectedScope('ALL');
     setSelectedSkill('');
     setSelectedAttemptStatus('ALL');
     setSortParam('createdAt');
     setPage(0);
   };
 
-  // Filter exams client-side: enforce target language, target certificate, and attempt status
+  // Filter exams client-side: enforce target language, target certificate, scope, and attempt status
   const displayedExams = useMemo(() => {
     let list = exams;
 
@@ -342,7 +403,12 @@ const ExamLibrary: React.FC = () => {
       list = list.filter(e => isExamMatchingTargetCert(e.type, userTarget.targetCertificate));
     }
 
-    // 3. Lọc theo trạng thái làm bài (đã làm / chưa làm)
+    // 3. Lọc theo hình thức thi (Scope: Full đề / 1 Kỹ năng / 1 Phần)
+    if (selectedScope !== 'ALL') {
+      list = list.filter(e => getExamScope(e.type, e.title) === selectedScope);
+    }
+
+    // 4. Lọc theo trạng thái làm bài (đã làm / chưa làm)
     if (selectedAttemptStatus === 'ATTEMPTED') {
       list = list.filter(e => e.isAttempted === true);
     } else if (selectedAttemptStatus === 'UNATTEMPTED') {
@@ -350,7 +416,7 @@ const ExamLibrary: React.FC = () => {
     }
 
     return list;
-  }, [exams, userTargetLanguage, activeTab, userTarget, selectedAttemptStatus]);
+  }, [exams, userTargetLanguage, activeTab, userTarget, selectedScope, selectedAttemptStatus]);
 
   const formatScore = (score: number | null | undefined, type: string) => {
     if (score === null || score === undefined) return '';
@@ -395,7 +461,7 @@ const ExamLibrary: React.FC = () => {
         <div className="exam-library-hero-content">
           <div className="exam-library-hero-badge">
             <Compass size={14} />
-            <span>Thư Viện Đề Thi Chuẩn Hóa</span>
+            <span>{t('library.hero.badge', 'Thư Viện Đề Thi Chuẩn Hóa')}</span>
           </div>
 
           <h1 className="exam-library-hero-title">
@@ -411,7 +477,7 @@ const ExamLibrary: React.FC = () => {
             <div className="exam-library-target-banner">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                 <Sparkles size={16} color="#fde047" />
-                <span>Mục tiêu của bạn: <strong>{CERT_LABELS_MAP[userTarget.targetCertificate] || userTarget.targetCertificate}</strong> {userTarget.targetScore ? `(Band / Điểm: ${userTarget.targetScore})` : ''}</span>
+                <span>{t('library.target_banner.your_goal', 'Mục tiêu của bạn:')} <strong>{CERT_LABELS_MAP[userTarget.targetCertificate] || userTarget.targetCertificate}</strong> {userTarget.targetScore ? `(Band / Điểm: ${userTarget.targetScore})` : ''}</span>
               </span>
               <button
                 type="button"
@@ -422,7 +488,7 @@ const ExamLibrary: React.FC = () => {
                   setPage(0);
                 }}
               >
-                Xem đề mục tiêu
+                {t('library.target_banner.view_goal_tests', 'Xem đề mục tiêu')}
               </button>
             </div>
           )}
@@ -478,9 +544,9 @@ const ExamLibrary: React.FC = () => {
         <div className="exam-library-filter-panel">
           {/* Row 1: Chọn Kỹ Năng & Sắp xếp */}
           <div className="exam-library-filter-row">
-            <span className="exam-library-filter-label">Kỹ năng:</span>
+            <span className="exam-library-filter-label">{t('library.filters.skill_label', 'Kỹ năng:')}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', flex: 1 }}>
-              {SKILL_OPTIONS.map((opt) => {
+              {skillOptions.map((opt) => {
                 const isActive = selectedSkill === opt.id;
                 return (
                   <button
@@ -514,11 +580,35 @@ const ExamLibrary: React.FC = () => {
             </select>
           </div>
 
-          {/* Row 2: Trạng thái làm bài */}
+          {/* Row 2: Hình thức làm bài (Scope Filter) */}
           <div className="exam-library-filter-row" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
-            <span className="exam-library-filter-label">Trạng thái:</span>
+            <span className="exam-library-filter-label">{t('library.filters.scope_label', 'Hình thức:')}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {ATTEMPT_STATUS_CHIPS.map((chip) => {
+              {scopeOptions.map((opt) => {
+                const isActive = selectedScope === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`exam-library-chip ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedScope(opt.id);
+                      setPage(0);
+                    }}
+                  >
+                    {opt.icon}
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Row 3: Trạng thái làm bài */}
+          <div className="exam-library-filter-row" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
+            <span className="exam-library-filter-label">{t('library.filters.status_label', 'Trạng thái:')}</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {attemptStatusChips.map((chip) => {
                 const isActive = selectedAttemptStatus === chip.id;
                 return (
                   <button
@@ -540,7 +630,7 @@ const ExamLibrary: React.FC = () => {
           <span className="exam-library-count">
             {t('library.results.showing', 'Hiển thị')} <strong>{displayedExams.length}</strong> {t('library.results.results', 'đề thi')}
           </span>
-          {(searchTerm || selectedSkill || selectedAttemptStatus !== 'ALL') && (
+          {(searchTerm || selectedSkill || selectedScope !== 'ALL' || selectedAttemptStatus !== 'ALL') && (
             <button
               type="button"
               onClick={handleResetFilters}
@@ -557,7 +647,7 @@ const ExamLibrary: React.FC = () => {
               }}
             >
               <RotateCcw size={14} />
-              <span>Xóa bộ lọc</span>
+              <span>{t('library.filters.clear_filters', 'Xóa bộ lọc')}</span>
             </button>
           )}
         </div>
@@ -567,7 +657,7 @@ const ExamLibrary: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '5rem 0', color: '#ea580c' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '40px', height: '40px', border: '3px solid #ffedd5', borderTopColor: '#ea580c', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#64748b' }}>Đang tải danh sách đề thi...</span>
+              <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#64748b' }}>{t('library.status.loading', 'Đang tải danh sách đề thi...')}</span>
             </div>
           </div>
         ) : displayedExams.length === 0 ? (
@@ -575,12 +665,12 @@ const ExamLibrary: React.FC = () => {
             <div className="exam-library-empty-icon">
               <BookOpen size={30} />
             </div>
-            <h3 className="exam-library-empty-title">Không tìm thấy đề thi nào</h3>
+            <h3 className="exam-library-empty-title">{t('library.status.empty_title', 'Không tìm thấy đề thi nào')}</h3>
             <p className="exam-library-empty-desc">
-              Không có đề thi nào khớp với bộ lọc hiện tại của bạn. Hãy thử chọn kỹ năng khác hoặc bấm nút bên dưới để xem lại tất cả đề thi.
+              {t('library.status.empty_desc', 'Không có đề thi nào khớp với bộ lọc hiện tại của bạn. Hãy thử chọn kỹ năng khác hoặc bấm nút bên dưới để xem lại tất cả đề thi.')}
             </p>
             <button type="button" className="btn btn-primary" onClick={handleResetFilters}>
-              Xem tất cả đề thi
+              {t('library.status.view_all', 'Xem tất cả đề thi')}
             </button>
           </div>
         ) : (
@@ -612,11 +702,11 @@ const ExamLibrary: React.FC = () => {
                       {exam.isAttempted ? (
                         <span className="exam-card-attempt-badge attempted">
                           <CheckCircle2 size={12} />
-                          <span>Đã làm ({exam.userAttemptsCount || 1} lần) {exam.userHighestScore !== null && exam.userHighestScore !== undefined ? `• ${formatScore(exam.userHighestScore, exam.type)}` : ''}</span>
+                          <span>{t('library.card.attempted_count', { count: exam.userAttemptsCount || 1, defaultValue: `Đã làm (${exam.userAttemptsCount || 1} lần)` })} {exam.userHighestScore !== null && exam.userHighestScore !== undefined ? `• ${formatScore(exam.userHighestScore, exam.type)}` : ''}</span>
                         </span>
                       ) : (
                         <span className="exam-card-attempt-badge unattempted">
-                          <span>Chưa làm</span>
+                          <span>{t('library.card.unattempted', 'Chưa làm')}</span>
                         </span>
                       )}
 
@@ -626,7 +716,7 @@ const ExamLibrary: React.FC = () => {
                     {/* Target Match Badge */}
                     {isMatch && (
                       <span className="exam-card-target-match">
-                        🎯 Khớp mục tiêu
+                        {t('library.card.target_match', '🎯 Khớp mục tiêu')}
                       </span>
                     )}
 
@@ -661,16 +751,16 @@ const ExamLibrary: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <Clock size={14} color="#94a3b8" />
-                          <span>{exam.durationMinutes} phút</span>
+                          <span>{t('library.card.duration', { count: exam.durationMinutes, defaultValue: `${exam.durationMinutes} phút` })}</span>
                         </span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <Users size={14} color="#94a3b8" />
-                          <span>{exam.joins || 0} lượt thi</span>
+                          <span>{t('library.card.joins', { count: exam.joins || 0, defaultValue: `${exam.joins || 0} lượt thi` })}</span>
                         </span>
                       </div>
 
                       <span className="exam-card-cta-btn">
-                        <span>{exam.isAttempted ? 'Làm lại' : 'Làm bài'}</span>
+                        <span>{exam.isAttempted ? t('library.card.retake', 'Làm lại') : t('library.card.takeExam', 'Làm bài')}</span>
                         <ArrowRight size={14} />
                       </span>
                     </div>

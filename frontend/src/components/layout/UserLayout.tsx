@@ -129,7 +129,7 @@ const UserLayout = () => {
                 color: isStudiedToday ? '#ea580c' : '#d97706',
                 cursor: 'pointer'
               }}
-              title={isStudiedToday ? `Chuỗi học: ${currentStreak} ngày • Đã hoàn thành hôm nay!` : `Chuỗi học: ${currentStreak} ngày • Chưa học hôm nay!`}
+              title={isStudiedToday ? t('userLayout.streak_title_done', { count: currentStreak }) : t('userLayout.streak_title_pending', { count: currentStreak })}
               onClick={() => navigate('/student/dashboard')}
             >
               <Flame size={16} fill="currentColor" />
@@ -217,7 +217,7 @@ const UserLayout = () => {
                   fontWeight: 700,
                   cursor: 'pointer'
                 }}
-                title={isStudiedToday ? `Chuỗi học: ${currentStreak} ngày • Đã hoàn thành hôm nay!` : `Chuỗi học: ${currentStreak} ngày • Chưa học hôm nay!`}
+                title={isStudiedToday ? t('userLayout.streak_title_done', { count: currentStreak }) : t('userLayout.streak_title_pending', { count: currentStreak })}
                 onClick={() => navigate('/student/dashboard')}
               >
                 <Flame size={16} fill="currentColor" />
@@ -388,7 +388,7 @@ const UserLayout = () => {
       />
 
       {/* Main Content */}
-      <main className="slide-up" style={{ flex: 1, padding: location.pathname.includes('/library') ? '0' : isPaymentResultPage ? '0.5rem 0' : '2rem 0', display: 'flex', flexDirection: 'column', justifyContent: isPaymentResultPage ? 'center' : 'flex-start' }}>
+      <main className="slide-up" style={{ flex: 1, padding: (location.pathname.includes('/library') || location.pathname.includes('/history')) ? '0' : isPaymentResultPage ? '0.5rem 0' : '2rem 0', display: 'flex', flexDirection: 'column', justifyContent: isPaymentResultPage ? 'center' : 'flex-start' }}>
         <Outlet />
       </main>
 

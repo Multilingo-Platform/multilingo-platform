@@ -104,4 +104,77 @@ class StudentExamServiceImplTest {
         assertThat(item.getUserAttemptsCount()).isEqualTo(2);
         assertThat(item.getUserHighestScore()).isEqualTo(7.5);
     }
+
+    @Test
+    void searchExams_MapsToeicWritingTypeCorrectly() {
+        Exam examWriting = new Exam();
+        examWriting.setId(11);
+        examWriting.setCode("TOEIC-WRIT-01");
+        examWriting.setTitle("TOEIC Writing Test 1");
+        examWriting.setType("TOEIC_WRITING");
+        examWriting.setIsPublished(true);
+        examWriting.setDurationMinutes(60);
+
+        Exam examTwPart = new Exam();
+        examTwPart.setId(12);
+        examTwPart.setCode("TW-PART-01");
+        examTwPart.setTitle("TOEIC Writing Part 1");
+        examTwPart.setType("TW_P1");
+        examTwPart.setIsPublished(true);
+        examTwPart.setDurationMinutes(20);
+
+        when(examRepository.findPublishedExams(eq(""), eq(null), eq(false), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(examWriting, examTwPart)));
+
+        PageResponse<StudentExamSummaryResponse> response = studentExamService.searchExams(null, null, 0, 10, "newest");
+
+        assertThat(response.getItems()).hasSize(2);
+        StudentExamSummaryResponse item1 = response.getItems().get(0);
+        assertThat(item1.getType()).isEqualTo("TOEIC_WRITING");
+        assertThat(item1.getLevel()).isEqualTo("General");
+        assertThat(item1.getTags()).containsExactly("Writing");
+
+        StudentExamSummaryResponse item2 = response.getItems().get(1);
+        assertThat(item2.getType()).isEqualTo("TW_P1");
+        assertThat(item2.getLevel()).isEqualTo("General");
+        assertThat(item2.getTags()).containsExactly("Writing");
+    }
+
+    @Test
+    void searchExams_MapsNltvSingleSkillTypesCorrectly() {
+        Exam readingExam = new Exam();
+        readingExam.setId(21);
+        readingExam.setCode("NLTV-02E230");
+        readingExam.setTitle("Đề thi ĐGNL Tiếng Việt (NLTV) - Kỹ năng Đọc");
+        readingExam.setType("NLTV");
+        readingExam.setIsPublished(true);
+        readingExam.setDurationMinutes(60);
+
+        Exam listeningExam = new Exam();
+        listeningExam.setId(22);
+        listeningExam.setCode("NLTV-6F15F7");
+        listeningExam.setTitle("Đề thi ĐGNL Tiếng Việt (NLTV) - Kỹ năng Nghe");
+        listeningExam.setType("NLTV_LISTENING");
+        listeningExam.setIsPublished(true);
+        listeningExam.setDurationMinutes(60);
+
+        Exam writingExam = new Exam();
+        writingExam.setId(23);
+        writingExam.setCode("NLTV-B06E84");
+        writingExam.setTitle("Đề thi ĐGNL Tiếng Việt (NLTV) - Kỹ năng Viết");
+        writingExam.setType("NLTV_WRITING");
+        writingExam.setIsPublished(true);
+        writingExam.setDurationMinutes(60);
+
+        when(examRepository.findPublishedExams(eq(""), eq(null), eq(false), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(readingExam, listeningExam, writingExam)));
+
+        PageResponse<StudentExamSummaryResponse> response = studentExamService.searchExams(null, null, 0, 10, "newest");
+
+        assertThat(response.getItems()).hasSize(3);
+        assertThat(response.getItems().get(0).getTags()).containsExactly("Đọc hiểu");
+        assertThat(response.getItems().get(1).getTags()).containsExactly("Nghe hiểu");
+        assertThat(response.getItems().get(2).getTags()).containsExactly("Viết");
+    }
 }
+

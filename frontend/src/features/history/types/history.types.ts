@@ -34,6 +34,7 @@ export interface HistoryStatsResponse {
   currentStreak: number;
   targetAchievedCount: number;
   recentScoreTrends: ScoreTrendItem[];
+  averageScoresByType?: Record<string, number>;
 }
 
 export interface HistoryAttemptItem {
@@ -64,6 +65,7 @@ export interface HistoryFilterParams {
   cert?: string;
   mode?: string;
   status?: string;
+  targetLanguage?: string;
   page?: number;
   size?: number;
   sort?: string;

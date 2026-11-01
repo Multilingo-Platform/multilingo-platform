@@ -22,7 +22,7 @@ public final class ExamContentNormalizer {
         boolean toeic = "TOEIC_LR".equals(type);
         boolean ielts = "IELTS_ACADEMIC".equals(type);
         boolean languagePractice = "LANGUAGE_PRACTICE".equals(type);
-        boolean nltv = "NLTV".equals(type);
+        boolean nltv = type != null && type.startsWith("NLTV");
         if (!toeic && !ielts && !languagePractice && !nltv) return source;
 
         ExamBuilderRequest result=mapper.convertValue(source,ExamBuilderRequest.class);
@@ -33,6 +33,26 @@ public final class ExamContentNormalizer {
         }
         if(toeic && "ENGLISH".equalsIgnoreCase(result.getExamLanguage())) result.setExamLanguage("en");
         if(result.getSections()==null) return result;
+
+        if (nltv) {
+            for (var section : result.getSections()) {
+                if (section == null || section.getParts() == null) continue;
+                String skill = section.getSkillType();
+                if ("READING".equalsIgnoreCase(skill)) {
+                    for (var part : section.getParts()) {
+                        if (part != null && part.getPartNumber() != null && part.getPartNumber() <= 2) {
+                            part.setPartNumber(part.getPartNumber() + 4);
+                        }
+                    }
+                } else if ("WRITING".equalsIgnoreCase(skill)) {
+                    for (var part : section.getParts()) {
+                        if (part != null && part.getPartNumber() != null && part.getPartNumber() <= 3) {
+                            part.setPartNumber(part.getPartNumber() + 6);
+                        }
+                    }
+                }
+            }
+        }
         for(var section:result.getSections()) if(section.getParts()!=null) for(var part:section.getParts()) {
             Map<String,Object> data=part.getContentData(); if(data==null) continue;
             if(!data.containsKey("content_html") && data.containsKey("shared_content_html")) data.put("content_html",data.get("shared_content_html"));

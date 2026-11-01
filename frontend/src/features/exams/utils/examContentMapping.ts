@@ -69,31 +69,60 @@ export function removeEditorOption(metadata: Record<string, any>, index: number)
 export function toEditorParts(request: any): ExamPart[] {
   return (request.sections || []).flatMap((section: any, sectionIndex: number) => (section.parts || []).map((part: any) => {
     const content = structuredClone(part.contentData || part.content_data || {});
+    let sharedContentHtml = content.content_html ?? content.shared_content_html;
+    const partTitle = (content.part_title || '').toLowerCase();
+    const isIeltsReading = (section.skillType === 'READING' || (part.partNumber >= 5 && part.partNumber <= 7) || partTitle.includes('passage'));
+
+    if (!sharedContentHtml && isIeltsReading && Array.isArray(content.question_groups)) {
+      const longest = content.question_groups.reduce((max: string, g: any) =>
+        (g.content_html?.length || 0) > max.length ? g.content_html : max, '');
+      if (longest && longest.length > 300) {
+        sharedContentHtml = longest;
+      }
+    }
+
+    const sharedTrim = typeof sharedContentHtml === 'string' ? sharedContentHtml.trim() : '';
+
     return {
       ...content,
       partNumber: part.partNumber ?? part.part_number,
       section_skill_type: section.skillType ?? section.skill_type,
       section_duration_minutes: section.durationMinutes ?? section.duration_minutes,
       section_id: section.id ?? section.section_id ?? `sec_${sectionIndex}`,
-      shared_content_html: content.content_html ?? content.shared_content_html,
-      question_groups: (content.question_groups || []).map((group: any) => ({
-        ...group,
-        questions: (group.questions || []).map(editorQuestion),
-      })),
+      shared_content_html: sharedContentHtml || undefined,
+      question_groups: (content.question_groups || []).map((group: any) => {
+        let groupHtml = group.content_html;
+        if (sharedTrim && typeof groupHtml === 'string') {
+          const gTrim = groupHtml.trim();
+          if (gTrim === sharedTrim || (isIeltsReading && gTrim.length > 300 && sharedTrim.includes(gTrim))) {
+            groupHtml = '';
+          }
+        }
+        return {
+          ...group,
+          content_html: groupHtml,
+          questions: (group.questions || []).map(editorQuestion),
+        };
+      }),
     };
   }));
 }
 
 function inferOfficialSkill(type: string, partNumber: number, partTitle: string): string {
+  const title = (partTitle || '').toLowerCase();
+  if (type === 'NLTV' || type?.startsWith('NLTV')) {
+    if (title.includes('listen') || title.includes('nghe')) return 'LISTENING';
+    if (title.includes('read') || title.includes('đọc')) return 'READING';
+    if (title.includes('writ') || title.includes('viết') || title.includes('chính tả')) return 'WRITING';
+    return partNumber <= 4 ? 'LISTENING' : partNumber <= 6 ? 'READING' : 'WRITING';
+  }
   if (type === 'TOEIC_LR') return partNumber <= 4 ? 'LISTENING' : 'READING';
   if (type === 'TOEIC_WRITING') return 'WRITING';
-  if (type === 'NLTV') return partNumber <= 4 ? 'LISTENING' : partNumber <= 6 ? 'READING' : 'WRITING';
   if (type === 'IELTS_ACADEMIC') {
     if (partNumber <= 4) return 'LISTENING';
     if (partNumber <= 7) return 'READING';
     return 'WRITING';
   }
-  const title = partTitle.toLowerCase();
   if (title.includes('listen') || title.includes('nghe')) return 'LISTENING';
   if (title.includes('read') || title.includes('đọc')) return 'READING';
   if (title.includes('writ') || title.includes('viết')) return 'WRITING';
@@ -122,7 +151,26 @@ function canonicalAnswer(answer: unknown, options: CanonicalOption[], metadata: 
 export function toOfficialExamRequest(title: string, type: string, parts: ExamPart[], published: boolean) {
   const sections: Array<{ skillType: string; durationMinutes: number; parts: any[] }> = [];
   parts.forEach((part, index) => {
-    const partNumber = part.partNumber ?? Number(/^Part\s+(\d+)/i.exec(part.part_title)?.[1] || index + 1);
+    let partNumber = part.partNumber;
+    if (partNumber == null) {
+      if (type === 'NLTV' || type?.startsWith('NLTV')) {
+        const title = (part.part_title || '').toLowerCase();
+        if (title.includes('đọc') || title.includes('read')) {
+          const match = /(?:phần|part)\s*(\d+)/i.exec(title);
+          const rawNum = match ? Number(match[1]) : index + 1;
+          partNumber = rawNum <= 2 ? rawNum + 4 : rawNum;
+        } else if (title.includes('viết') || title.includes('writ') || title.includes('chính tả')) {
+          const match = /(?:phần|part)\s*(\d+)/i.exec(title);
+          const rawNum = match ? Number(match[1]) : index + 1;
+          partNumber = rawNum <= 3 ? rawNum + 6 : rawNum;
+        } else {
+          const match = /(?:phần|part)\s*(\d+)/i.exec(title);
+          partNumber = match ? Number(match[1]) : index + 1;
+        }
+      } else {
+        partNumber = Number(/^Part\s+(\d+)/i.exec(part.part_title)?.[1] || index + 1);
+      }
+    }
     const skillType = part.section_skill_type || inferOfficialSkill(type, partNumber, part.part_title);
     const durationMinutes = Number(part.section_duration_minutes) || defaultOfficialDuration(type, skillType);
     let section = sections.find(value => value.skillType === skillType);
@@ -220,7 +268,7 @@ export function toOfficialExamRequest(title: string, type: string, parts: ExamPa
     });
     section.parts.push({ partNumber, contentData });
   });
-  return { title, type, examLanguage: type === 'NLTV' ? 'vi' : 'en', published, isPublished: published, sections };
+  return { title, type, examLanguage: (type === 'NLTV' || type?.startsWith('NLTV')) ? 'vi' : 'en', published, isPublished: published, sections };
 }
 
 const LEARNING_LANGUAGE_ALIASES: Record<string, string> = {

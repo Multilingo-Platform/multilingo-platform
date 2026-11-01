@@ -8,7 +8,7 @@ import java.util.*;
 /** Structural/content readiness only. Human correctness and media availability are separate gates. */
 public final class ExamPublicationValidator {
     public void requireStructure(ExamBuilderRequest request) {
-        if (request != null && "NLTV".equals(request.getType())) {
+        if (request != null && request.getType() != null && request.getType().startsWith("NLTV")) {
             new NltvPublicationValidator().requireStructure(request);
             return;
         }
@@ -22,7 +22,7 @@ public final class ExamPublicationValidator {
             throw new AppException(ErrorCode.VALIDATION_FAILED, "Cấu trúc đề không hợp lệ; kiểm tra Part, nhóm, ID và thời lượng.");
     }
     public void requirePublishable(ExamBuilderRequest request) {
-        if (request != null && "NLTV".equals(request.getType())) {
+        if (request != null && request.getType() != null && request.getType().startsWith("NLTV")) {
             new NltvPublicationValidator().requirePublishable(request);
             return;
         }
@@ -35,7 +35,7 @@ public final class ExamPublicationValidator {
     }
 
     public List<Issue> issues(ExamBuilderRequest request) {
-        if (request != null && "NLTV".equals(request.getType())) {
+        if (request != null && request.getType() != null && request.getType().startsWith("NLTV")) {
             return new NltvPublicationValidator().issues(request);
         }
         if (request != null && "LANGUAGE_PRACTICE".equals(request.getType())) {

@@ -1,36 +1,38 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, FileCheck, ArrowRight, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { SuggestedAction } from '../types/dashboard.types';
 
 interface SuggestedActionCardProps {
   actions: SuggestedAction[];
 }
 
-const DEFAULT_ACTIONS: SuggestedAction[] = [
-  {
-    type: 'VOCAB_REVIEW',
-    badge: 'Từ vựng',
-    title: 'Ôn tập từ vựng hôm nay',
-    description: 'Củng cố trí nhớ dài hạn bằng phương pháp lặp lại ngắt quãng (SRS) cho các thẻ từ vựng của bạn.',
-    buttonText: 'Ôn tập ngay',
-    actionUrl: '/student/flashcards',
-  },
-  {
-    type: 'EXAM_PRACTICE',
-    badge: 'Luyện tập',
-    title: 'Luyện đề thi thử tiếp theo',
-    description: 'Cải thiện kỹ năng làm bài, duy trì phản xạ phòng thi và đánh giá sự tiến bộ qua từng bộ đề.',
-    buttonText: 'Vào thư viện đề',
-    actionUrl: '/student/library',
-  },
-];
-
 export const SuggestedActionCard: React.FC<SuggestedActionCardProps> = ({ actions }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const defaultActions: SuggestedAction[] = useMemo(() => [
+    {
+      type: 'VOCAB_REVIEW',
+      badge: t('dashboard.suggested.vocab_badge', 'Từ vựng'),
+      title: t('dashboard.suggested.vocab_title', 'Ôn tập từ vựng hôm nay'),
+      description: t('dashboard.suggested.vocab_desc', 'Củng cố trí nhớ dài hạn bằng phương pháp lặp lại ngắt quãng (SRS) cho các thẻ từ vựng của bạn.'),
+      buttonText: t('dashboard.suggested.vocab_btn', 'Ôn tập ngay'),
+      actionUrl: '/student/flashcards',
+    },
+    {
+      type: 'EXAM_PRACTICE',
+      badge: t('dashboard.suggested.exam_badge', 'Luyện tập'),
+      title: t('dashboard.suggested.exam_title', 'Luyện đề thi thử tiếp theo'),
+      description: t('dashboard.suggested.exam_desc', 'Cải thiện kỹ năng làm bài, duy trì phản xạ phòng thi và đánh giá sự tiến bộ qua từng bộ đề.'),
+      buttonText: t('dashboard.suggested.exam_btn', 'Vào thư viện đề'),
+      actionUrl: '/student/library',
+    },
+  ], [t]);
 
   // Use provided actions if 2 or more exist; otherwise fallback to the 2 standard system actions
-  const displayActions = actions && actions.length >= 2 ? actions : DEFAULT_ACTIONS;
+  const displayActions = actions && actions.length >= 2 ? actions : defaultActions;
 
   const getActionIcon = (type: string) => {
     switch (type) {
@@ -59,7 +61,7 @@ export const SuggestedActionCard: React.FC<SuggestedActionCardProps> = ({ action
     <div className="space-y-3.5">
       <h3 className="text-base md:text-lg font-bold text-slate-900 flex items-center gap-2">
         <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-        Hành động học tập đề xuất
+        {t('dashboard.suggested.title', 'Hành động học tập đề xuất')}
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

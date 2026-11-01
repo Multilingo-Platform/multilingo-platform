@@ -40,4 +40,31 @@ describe('NLTV admin import identity', () => {
       ]),
     });
   }, 20000);
+
+  it('saves a Single Skill NLTV exam with its correct skill section and canonical part numbers', async () => {
+    vi.mocked(axiosClient.post).mockClear();
+    vi.mocked(axiosClient.post).mockResolvedValue({ success: true } as any);
+
+    render(<MemoryRouter initialEntries={['/admin/exams/new']}><Routes>
+      <Route path="/admin/exams/new" element={<ExamBuilderPage />} />
+      <Route path="/admin/exams" element={<div>Saved</div>} />
+    </Routes></MemoryRouter>);
+
+    fireEvent.click(screen.getByText('2. Tạo 1 Kỹ năng'));
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'NLTV_READING' } });
+    fireEvent.click(screen.getByRole('button', { name: /thêm kỹ năng này/i }));
+    fireEvent.click(screen.getByRole('button', { name: /lưu đề thi/i }));
+
+    await screen.findByText('Saved', {}, { timeout: 10000 });
+    expect(axiosClient.post).toHaveBeenCalledTimes(1);
+    const payload = vi.mocked(axiosClient.post).mock.calls[0][1] as any;
+    expect(payload).toMatchObject({
+      type: 'NLTV_READING',
+      examLanguage: 'vi',
+      published: false,
+    });
+    expect(payload.sections).toHaveLength(1);
+    expect(payload.sections[0].skillType).toBe('READING');
+    expect(payload.sections[0].parts.map((p: any) => p.partNumber)).toEqual([5, 6]);
+  }, 20000);
 });

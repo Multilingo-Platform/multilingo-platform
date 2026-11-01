@@ -153,6 +153,16 @@ public final class IeltsExcelV2ExamParser {
             PartBuilderRequest elmsPart = parts.get(6);
             if (elmsPart == null) invalid();
             elmsPart.getContentData().put("content_html", passage);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> elmsGroups = (List<Map<String, Object>>) elmsPart.getContentData().get("question_groups");
+            if (elmsGroups != null) {
+                for (Map<String, Object> group : elmsGroups) {
+                    String gContent = String.valueOf(group.getOrDefault("content_html", "")).trim();
+                    if (gContent.equals(passage.trim()) || gContent.length() > 300) {
+                        group.put("content_html", "");
+                    }
+                }
+            }
         });
         validateCounts(metadata, parts, groups, questionIds.size(), issues);
         reportKnownCambridgeSourceNotes(sheet, sourceProfile, issues);
@@ -293,12 +303,16 @@ public final class IeltsExcelV2ExamParser {
         for (int partNumber = 5; partNumber <= 7; partNumber++) {
             PartBuilderRequest part = parts.get(partNumber);
             if (part == null) continue;
+            @SuppressWarnings("unchecked")
             List<Map<String, Object>> groups = (List<Map<String, Object>>) part.getContentData().get("question_groups");
             String passage = groups.stream().map(group -> String.valueOf(group.getOrDefault("content_html", "")))
                     .max(Comparator.comparingInt(String::length)).orElse("");
             if (!passage.isBlank()) part.getContentData().put("content_html", passage);
             for (Map<String, Object> group : groups) {
-                if (passage.equals(group.get("content_html"))) group.put("content_html", "");
+                String gContent = String.valueOf(group.getOrDefault("content_html", ""));
+                if (passage.equals(gContent) || passage.trim().equals(gContent.trim())) {
+                    group.put("content_html", "");
+                }
             }
         }
     }

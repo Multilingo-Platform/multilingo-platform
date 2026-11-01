@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { FlagIcon } from './FlagIcon';
 
 interface Step1LanguageSelectProps {
@@ -9,18 +10,27 @@ interface Step1LanguageSelectProps {
   onTargetChange: (lang: string) => void;
 }
 
-const LANGUAGES = [
-  { code: 'vi', name: 'Tiếng Việt', desc: 'Bản ngữ Việt Nam' },
-  { code: 'en', name: 'Tiếng Anh (English)', desc: 'Ngôn ngữ toàn cầu' },
-];
-
 export const Step1LanguageSelect: React.FC<Step1LanguageSelectProps> = ({
   nativeLanguage,
   targetLanguage,
   onNativeChange,
   onTargetChange,
 }) => {
+  const { t } = useTranslation();
   const isSameLanguage = nativeLanguage === targetLanguage;
+
+  const languages = [
+    {
+      code: 'vi',
+      name: t('onboarding.step1.lang_vi', 'Tiếng Việt'),
+      desc: t('onboarding.step1.lang_vi_desc', 'Bản ngữ Việt Nam'),
+    },
+    {
+      code: 'en',
+      name: t('onboarding.step1.lang_en', 'Tiếng Anh (English)'),
+      desc: t('onboarding.step1.lang_en_desc', 'Ngôn ngữ toàn cầu'),
+    },
+  ];
 
   const handleSelectNative = (code: string) => {
     onNativeChange(code);
@@ -38,25 +48,25 @@ export const Step1LanguageSelect: React.FC<Step1LanguageSelectProps> = ({
 
   return (
     <div className="onboarding-step-content">
-      <h2 className="onboarding-title">Ngôn ngữ của bạn</h2>
+      <h2 className="onboarding-title">{t('onboarding.step1.title', 'Ngôn ngữ của bạn')}</h2>
       <p className="onboarding-subtitle">
-        Hãy chọn ngôn ngữ mẹ đẻ và ngôn ngữ bạn đang muốn học để cá nhân hóa đề thi và giao diện.
+        {t('onboarding.step1.subtitle', 'Hãy chọn ngôn ngữ mẹ đẻ và ngôn ngữ bạn đang muốn học để cá nhân hóa đề thi và giao diện.')}
       </p>
 
       {isSameLanguage && (
         <div className="error-banner" role="alert">
           <AlertCircle size={18} />
-          <span>Ngôn ngữ mẹ đẻ và ngôn ngữ muốn học không được trùng nhau!</span>
+          <span>{t('onboarding.step1.error_same_lang', 'Ngôn ngữ mẹ đẻ và ngôn ngữ muốn học không được trùng nhau!')}</span>
         </div>
       )}
 
       {/* 1. Ngôn ngữ mẹ đẻ */}
       <div style={{ marginBottom: '2rem' }}>
         <label style={{ display: 'block', marginBottom: '0.85rem', fontWeight: 700, fontSize: '1rem', color: '#334155' }}>
-          1. Ngôn ngữ mẹ đẻ (Native Language)
+          {t('onboarding.step1.native_label', '1. Ngôn ngữ mẹ đẻ (Native Language)')}
         </label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-          {LANGUAGES.map((lang) => (
+          {languages.map((lang) => (
             <div
               key={`native-${lang.code}`}
               className={`onboarding-option-card ${nativeLanguage === lang.code ? 'active' : ''}`}
@@ -79,10 +89,10 @@ export const Step1LanguageSelect: React.FC<Step1LanguageSelectProps> = ({
       {/* 2. Ngôn ngữ muốn học */}
       <div>
         <label style={{ display: 'block', marginBottom: '0.85rem', fontWeight: 700, fontSize: '1rem', color: '#334155' }}>
-          2. Ngôn ngữ bạn muốn học & luyện thi (Target Language)
+          {t('onboarding.step1.target_label', '2. Ngôn ngữ bạn muốn học & luyện thi (Target Language)')}
         </label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-          {LANGUAGES.map((lang) => (
+          {languages.map((lang) => (
             <div
               key={`target-${lang.code}`}
               className={`onboarding-option-card ${targetLanguage === lang.code ? 'active' : ''}`}

@@ -107,8 +107,7 @@ class StudentHistoryControllerIT {
                                 .build()
                 ))
                 .build();
-
-        when(studentHistoryService.getStudentStats(eq(1))).thenReturn(mockStats);
+        when(studentHistoryService.getStudentStats(eq(1), any(), any())).thenReturn(mockStats);
 
         mockMvc.perform(get("/api/v1/student/history/stats")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -147,7 +146,7 @@ class StudentHistoryControllerIT {
                 .build();
 
         when(studentHistoryService.getStudentHistory(
-                eq(1), any(), any(), any(), any(), anyInt(), anyInt(), any()
+                eq(1), any(), any(), any(), any(), any(), anyInt(), anyInt(), any()
         )).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/v1/student/history")

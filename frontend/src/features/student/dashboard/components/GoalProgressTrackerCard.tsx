@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, Award, TrendingUp, ArrowRight, CheckCircle2, AlertCircle, Sliders } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { GoalProgress } from '../types/dashboard.types';
 
 interface GoalProgressTrackerCardProps {
@@ -17,33 +18,37 @@ const CERT_NAMES: Record<string, string> = {
 
 export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = ({ goalProgress }) => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language === 'en';
 
   if (!goalProgress) {
     return null;
   }
 
   const { targetCertificate, targetScore, recentAverageScore, progressPercent, recentExamCount, recentScores } = goalProgress;
-  const certName = CERT_NAMES[targetCertificate] || targetCertificate;
+  const certName = targetCertificate === 'NLTV'
+    ? (isEn ? 'Vietnamese Proficiency (NLTV)' : 'Năng Lực Tiếng Việt (NLTV)')
+    : (CERT_NAMES[targetCertificate] || targetCertificate);
 
   const formatScore = (val: number | null | undefined) => {
     if (val === null || val === undefined) return '--';
     if (targetCertificate.startsWith('IELTS')) return `Band ${val.toFixed(1)}`;
-    if (targetCertificate.startsWith('TOEIC')) return `${Math.round(val)} Điểm`;
-    if (targetCertificate === 'NLTV') return `Bậc ${val.toFixed(1)}`;
+    if (targetCertificate.startsWith('TOEIC')) return `${Math.round(val)} ${isEn ? 'pts' : 'Điểm'}`;
+    if (targetCertificate === 'NLTV') return `${isEn ? 'Level' : 'Bậc'} ${val.toFixed(1)}`;
     return `${val}`;
   };
 
   const getAdvice = () => {
     if (recentExamCount === 0) {
-      return 'Bạn chưa có bài thi nào hoàn thành. Hãy làm bài thi đầu tiên để bắt đầu theo dõi thanh đo tiến độ!';
+      return t('dashboard.goal.advice_empty', 'Bạn chưa có bài thi nào hoàn thành. Hãy làm bài thi đầu tiên để bắt đầu theo dõi thanh đo tiến độ!');
     }
     if (progressPercent >= 100) {
-      return 'Xuất sắc! Điểm trung bình 5 bài gần nhất đã đạt mục tiêu kỳ vọng. Hãy duy trì phong độ này cho kỳ thi thực tế!';
+      return t('dashboard.goal.advice_achieved', 'Xuất sắc! Điểm trung bình 5 bài gần nhất đã đạt mục tiêu kỳ vọng. Hãy duy trì phong độ này cho kỳ thi thực tế!');
     }
     if (progressPercent >= 80) {
-      return 'Phong độ rất tốt! Bạn đã đi được phần lớn chặng đường. Hãy rà soát lại các câu sai trong lịch sử làm bài để bứt phá.';
+      return t('dashboard.goal.advice_close', 'Phong độ rất tốt! Bạn đã đi được phần lớn chặng đường. Hãy rà soát lại các câu sai trong lịch sử làm bài để bứt phá.');
     }
-    return 'Hãy tiếp tục kiên trì luyện tập đều đặn để nâng cao điểm trung bình và nhanh chóng chạm mốc mục tiêu!';
+    return t('dashboard.goal.advice_keep_going', 'Hãy tiếp tục kiên trì luyện tập đều đặn để nâng cao điểm trung bình và nhanh chóng chạm mốc mục tiêu!');
   };
 
   // Render 5 pills/dots
@@ -55,7 +60,7 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
       pills.push({
         id: item.attemptId,
         scoreText: item.score !== null ? formatScore(item.score) : '--',
-        label: `Bài ${i + 1}`,
+        label: isEn ? `Exam ${i + 1}` : `Bài ${i + 1}`,
         title: item.examTitle,
         filled: true,
       });
@@ -63,8 +68,8 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
       pills.push({
         id: `empty-${i}`,
         scoreText: '--',
-        label: `Bài ${i + 1}`,
-        title: 'Chưa làm',
+        label: isEn ? `Exam ${i + 1}` : `Bài ${i + 1}`,
+        title: isEn ? 'Not taken' : 'Chưa làm',
         filled: false,
       });
     }
@@ -84,9 +89,9 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">
-                Mục Tiêu Học Tập
+                {t('dashboard.goal.badge', 'Mục Tiêu Học Tập')}
               </span>
-              <span className="text-xs text-slate-500 font-medium">5 bài gần nhất</span>
+              <span className="text-xs text-slate-500 font-medium">{t('dashboard.goal.recent_5', '5 bài gần nhất')}</span>
             </div>
             <h2 className="text-lg md:text-xl font-bold text-slate-900 mt-0.5 flex items-center gap-2">
               <span>{certName}</span>
@@ -100,10 +105,10 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
             type="button"
             onClick={() => navigate('/onboarding?mode=edit')}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-slate-50 px-3 py-2 rounded-lg transition-colors cursor-pointer border border-slate-200 shadow-2xs"
-            title="Thay đổi chứng chỉ hoặc điểm mục tiêu"
+            title={isEn ? 'Change certificate or target score' : 'Thay đổi chứng chỉ hoặc điểm mục tiêu'}
           >
             <Sliders className="w-3.5 h-3.5" />
-            <span>Đổi mục tiêu</span>
+            <span>{t('dashboard.goal.edit_btn', 'Đổi mục tiêu')}</span>
           </button>
 
           <button
@@ -111,7 +116,7 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
             onClick={() => navigate('/student/library')}
             className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/80 px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
           >
-            <span>Luyện đề mục tiêu</span>
+            <span>{t('dashboard.goal.practice_btn', 'Luyện đề mục tiêu')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -122,12 +127,12 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
         {/* Left: Score Comparison */}
         <div className="lg:col-span-4 flex items-center justify-around sm:justify-start sm:gap-8 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
           <div>
-            <span className="text-xs text-slate-500 font-medium block">Trung bình 5 bài</span>
+            <span className="text-xs text-slate-500 font-medium block">{t('dashboard.goal.avg_5', 'Trung bình 5 bài')}</span>
             <div className="text-2xl font-black text-slate-900 flex items-baseline gap-1 mt-0.5">
               <span>{formatScore(recentAverageScore)}</span>
               {recentExamCount > 0 && (
                 <span className="text-xs font-normal text-slate-500">
-                  ({recentExamCount}/5 bài)
+                  {t('dashboard.goal.exams_count', { count: recentExamCount })}
                 </span>
               )}
             </div>
@@ -136,7 +141,7 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
           <div className="h-8 w-px bg-slate-200" />
 
           <div>
-            <span className="text-xs text-slate-500 font-medium block">Mức độ đạt được</span>
+            <span className="text-xs text-slate-500 font-medium block">{t('dashboard.goal.achievement_rate', 'Mức độ đạt được')}</span>
             <div className="text-2xl font-black text-indigo-600 mt-0.5 flex items-center gap-1.5">
               <TrendingUp className="w-5 h-5 text-indigo-500" />
               <span>{progressPercent}%</span>
@@ -149,7 +154,7 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
           <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
             <span className="flex items-center gap-1 text-slate-600">
               <Award className="w-4 h-4 text-amber-500" />
-              <span>Tiến trình hoàn thành mục tiêu</span>
+              <span>{t('dashboard.goal.progress_label', 'Tiến trình hoàn thành mục tiêu')}</span>
             </span>
             <span className="text-indigo-600 font-bold">{progressPercent}%</span>
           </div>
@@ -192,7 +197,7 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
           <AlertCircle className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
         )}
         <p className="leading-relaxed">
-          <strong className="text-slate-800">Lời khuyên Multilingo: </strong>
+          <strong className="text-slate-800">{t('dashboard.goal.advice_title', 'Lời khuyên Multilingo: ')}</strong>
           {getAdvice()}
         </p>
       </div>

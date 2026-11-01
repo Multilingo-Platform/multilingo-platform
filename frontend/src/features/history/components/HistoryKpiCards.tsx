@@ -1,13 +1,17 @@
 import React from 'react';
 import { BookOpen, Target, Clock, Flame } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { HistoryStatsResponse } from '../types/history.types';
 
 interface HistoryKpiCardsProps {
   stats: HistoryStatsResponse | null;
   loading: boolean;
+  activeCert?: string;
 }
 
-export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading }) => {
+export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading, activeCert }) => {
+  const { t } = useTranslation();
+
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes} phút`;
     const hours = Math.floor(minutes / 60);
@@ -16,42 +20,125 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
   };
 
   const renderAttemptsSubtext = (s: HistoryStatsResponse | null) => {
-    if (!s || s.totalAttempts === 0) return 'Chưa có lượt thi';
+    if (!s || s.totalAttempts === 0) return t('history.kpi.no_attempts', 'Chưa có lượt thi');
     const parts: string[] = [];
-    if (s.completedAttempts > 0) parts.push(`${s.completedAttempts} hoàn thành`);
-    if (s.inProgressAttempts > 0) parts.push(`${s.inProgressAttempts} dở dang`);
-    if (s.failedAttempts && s.failedAttempts > 0) parts.push(`${s.failedAttempts} lỗi chấm`);
+    if (s.completedAttempts > 0) parts.push(t('history.kpi.completed', { count: s.completedAttempts, defaultValue: `${s.completedAttempts} hoàn thành` }));
+    if (s.inProgressAttempts > 0) parts.push(t('history.kpi.in_progress', { count: s.inProgressAttempts, defaultValue: `${s.inProgressAttempts} dở dang` }));
+    if (s.failedAttempts && s.failedAttempts > 0) parts.push(t('history.kpi.failed', { count: s.failedAttempts, defaultValue: `${s.failedAttempts} lỗi chấm` }));
     const others = s.totalAttempts - s.completedAttempts - s.inProgressAttempts - (s.failedAttempts || 0);
-    if (others > 0) parts.push(`${others} khác`);
-    return parts.length > 0 ? parts.join(' • ') : `${s.totalAttempts} bài`;
+    if (others > 0) parts.push(t('history.kpi.others', { count: others, defaultValue: `${others} khác` }));
+    return parts.length > 0 ? parts.join(' • ') : t('history.kpi.tests_unit', { count: s.totalAttempts, defaultValue: `${s.totalAttempts} bài` });
   };
+
+  const renderAverageScoreInfo = (s: HistoryStatsResponse | null, cert?: string) => {
+    if (!s || s.averageScore === null) {
+      return {
+        value: '—',
+        subtext: s && s.highestScore !== null ? t('history.kpi.highest', { score: s.highestScore, defaultValue: `Cao nhất: ${s.highestScore}` }) : t('history.kpi.no_score', 'Chưa có điểm'),
+      };
+    }
+
+    const byType = s.averageScoresByType || {};
+    const typeKeys = Object.keys(byType);
+
+    // If specific cert tab is active (and not 'ALL')
+    if (cert && cert !== 'ALL') {
+      const certScore = byType[cert] ?? s.averageScore;
+      let label = `${certScore}`;
+      let scale = '';
+      if (cert.startsWith('IELTS')) {
+        label = `Band ${certScore}`;
+        scale = 'Thang 9.0';
+      } else if (cert.startsWith('TOEIC')) {
+        label = `${Math.round(certScore)} đ`;
+        scale = 'Thang 990';
+      } else if (cert.startsWith('NLTV')) {
+        label = `Bậc ${certScore}`;
+        scale = 'Thang 10';
+      }
+      return {
+        value: label,
+        subtext: scale + (s.highestScore !== null ? ` • Cao nhất: ${s.highestScore}` : ''),
+      };
+    }
+
+    // If 'ALL' is selected
+    if (typeKeys.length === 1) {
+      const singleType = typeKeys[0];
+      const singleScore = byType[singleType];
+      let label = `${singleScore}`;
+      if (singleType.startsWith('IELTS')) label = `Band ${singleScore}`;
+      else if (singleType.startsWith('TOEIC')) label = `${Math.round(singleScore)} đ`;
+      else if (singleType.startsWith('NLTV')) label = `Bậc ${singleScore}`;
+      return {
+        value: label,
+        subtext: `${singleType} • Cao nhất: ${s.highestScore ?? singleScore}`,
+      };
+    }
+
+    if (typeKeys.length > 1) {
+      const breakdown = typeKeys.map(k => {
+        const sc = byType[k];
+        if (k === 'IELTS') return `IELTS: Band ${sc}`;
+        if (k === 'TOEIC') return `TOEIC: ${Math.round(sc)}đ`;
+        if (k === 'NLTV') return `NLTV: Bậc ${sc}`;
+        return `${k}: ${sc}`;
+      }).join(' • ');
+
+      let mainLabel = `${s.averageScore}`;
+      for (const k of typeKeys) {
+        if (byType[k] === s.averageScore) {
+          if (k === 'IELTS') mainLabel = `Band ${s.averageScore}`;
+          else if (k === 'TOEIC') mainLabel = `${Math.round(s.averageScore)} đ`;
+          else if (k === 'NLTV') mainLabel = `Bậc ${s.averageScore}`;
+          break;
+        }
+      }
+
+      return {
+        value: mainLabel,
+        subtext: breakdown,
+      };
+    }
+
+    return {
+      value: s.averageScore,
+      subtext: s.highestScore !== null ? `Cao nhất: ${s.highestScore}` : 'Chưa có điểm',
+    };
+  };
+
+  const avgInfo = renderAverageScoreInfo(stats, activeCert);
 
   const cards = [
     {
-      title: 'Tổng bài đã làm',
+      title: t('history.kpi.total_attempts', 'Tổng bài đã làm'),
       value: stats ? stats.totalAttempts : 0,
       subtext: renderAttemptsSubtext(stats),
       icon: <BookOpen size={28} />,
       gradient: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
     },
     {
-      title: 'Điểm trung bình',
-      value: stats && stats.averageScore !== null ? stats.averageScore : '—',
-      subtext: stats && stats.highestScore !== null ? `Cao nhất: ${stats.highestScore}` : 'Chưa có điểm',
+      title: t('history.kpi.average_score', 'Điểm trung bình'),
+      value: avgInfo.value,
+      subtext: avgInfo.subtext,
       icon: <Target size={28} />,
       gradient: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
     },
     {
-      title: 'Thời gian rèn luyện',
+      title: t('history.kpi.practice_time', 'Thời gian rèn luyện'),
       value: stats ? formatTime(stats.totalPracticeMinutes) : '0 phút',
-      subtext: stats ? `${stats.targetAchievedCount} lần đạt mục tiêu` : 'Tích lũy thời gian thi',
+      subtext: stats
+        ? t('history.kpi.target_achieved_count', { count: stats.targetAchievedCount, defaultValue: `${stats.targetAchievedCount} lần đạt mục tiêu` })
+        : t('history.kpi.accumulated_time', 'Tích lũy thời gian thi'),
       icon: <Clock size={28} />,
       gradient: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
     },
     {
-      title: 'Chuỗi ngày học',
+      title: t('history.kpi.study_streak', 'Chuỗi ngày học'),
       value: stats ? `${stats.currentStreak} ngày` : '0 ngày',
-      subtext: stats && stats.currentStreak > 0 ? 'Duy trì phong độ tuyệt vời! 🔥' : 'Luyện tập mỗi ngày',
+      subtext: stats && stats.currentStreak > 0
+        ? t('history.kpi.streak_active', 'Duy trì phong độ tuyệt vời! 🔥')
+        : t('history.kpi.streak_zero', 'Luyện tập mỗi ngày'),
       icon: <Flame size={28} />,
       gradient: 'linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)',
     },

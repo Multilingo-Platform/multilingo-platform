@@ -97,7 +97,7 @@ const ExamBuilderPage = () => {
 
       const payload = data.exam_type === 'LANGUAGE_PRACTICE'
         ? toLanguagePracticeRequest(data.exam_title, data.exam_language, data.parts, data.is_published !== false)
-        : ['TOEIC_LR', 'TOEIC_WRITING', 'IELTS_ACADEMIC', 'NLTV'].includes(data.exam_type)
+        : (['TOEIC_LR', 'TOEIC_WRITING', 'IELTS_ACADEMIC', 'NLTV'].includes(data.exam_type) || data.exam_type?.startsWith('NLTV'))
           ? toOfficialExamRequest(data.exam_title, data.exam_type, data.parts, data.is_published !== false)
           : {
         title: data.exam_title,
