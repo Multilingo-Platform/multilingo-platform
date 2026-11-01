@@ -203,15 +203,15 @@ describe('official exam canonical editor mapping', () => {
   });
 
   it('maps single-part NLTV exams correctly to their canonical Part number and skill', () => {
-    const p1Saved = toOfficialExamRequest('NLTV Part 1', 'NLTV', [{ part_title: 'Kỹ năng Nghe - Phần 1', question_groups: [{ group_id: 'g1', questions: [] }] }], false);
+    const p1Saved = toOfficialExamRequest('NLTV Part 1', 'NLTV', [{ part_title: 'Kỹ năng Nghe - Phần 1', instruction: '', question_groups: [{ group_id: 'g1', instruction: '', content_html: '', questions: [] }] }], false);
     expect(p1Saved.sections[0].skillType).toBe('LISTENING');
     expect(p1Saved.sections[0].parts[0].partNumber).toBe(1);
 
-    const p5Saved = toOfficialExamRequest('NLTV Part 5', 'NLTV', [{ part_title: 'Kỹ năng Đọc - Phần 1', question_groups: [{ group_id: 'g5', questions: [] }] }], false);
+    const p5Saved = toOfficialExamRequest('NLTV Part 5', 'NLTV', [{ part_title: 'Kỹ năng Đọc - Phần 1', instruction: '', question_groups: [{ group_id: 'g5', instruction: '', content_html: '', questions: [] }] }], false);
     expect(p5Saved.sections[0].skillType).toBe('READING');
     expect(p5Saved.sections[0].parts[0].partNumber).toBe(5);
 
-    const p8Saved = toOfficialExamRequest('NLTV Part 8', 'NLTV', [{ part_title: 'Kỹ năng Viết - Phần 2', question_groups: [{ group_id: 'g8', questions: [] }] }], false);
+    const p8Saved = toOfficialExamRequest('NLTV Part 8', 'NLTV', [{ part_title: 'Kỹ năng Viết - Phần 2', instruction: '', question_groups: [{ group_id: 'g8', instruction: '', content_html: '', questions: [] }] }], false);
     expect(p8Saved.sections[0].skillType).toBe('WRITING');
     expect(p8Saved.sections[0].parts[0].partNumber).toBe(8);
   });
