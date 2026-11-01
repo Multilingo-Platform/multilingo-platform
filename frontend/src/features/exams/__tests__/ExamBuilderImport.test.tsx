@@ -160,5 +160,84 @@ describe('server-backed Excel import', () => {
     fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
     expect(onSave).not.toHaveBeenCalled();
   });
-});
 
+  it('imports IELTS Reading without duplicating passage into both shared_content_html and group content_html', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const info = workbook.addWorksheet('Thông Tin Đề Thi');
+    info.addRow(['Tên đề thi', 'IELTS Reading Test 1']);
+    info.addRow(['Loại chứng chỉ', 'IELTS Academic']);
+    info.addRow(['Mã loại chứng chỉ', 'IELTS_READING']);
+    const sheet = workbook.addWorksheet('Exam Template');
+    sheet.addRow([
+      'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+      'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+      'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G', 'Lựa chọn H',
+      'Đáp án đúng', 'Giải thích', 'File âm thanh/hình ảnh phần', 'Đính kèm chung nhóm', 'Đính kèm riêng câu'
+    ]);
+    sheet.addRow([
+      'Part 1: Reading Passage 1', 'Read the passage and answer questions 1-5.', 'Group 1', 'TRUE_FALSE_NOT_GIVEN',
+      'Do the following statements agree with the information...',
+      'Long reading passage text about the domestication of horses in ancient times...',
+      'Question 1: Horses were domesticated early.',
+      '', '', '', '', '', '', '', '',
+      'TRUE', 'Explanation here', '', '', ''
+    ]);
+    sheet.addRow([
+      'Part 1: Reading Passage 1', 'Read the passage and answer questions 1-5.', 'Group 1', 'TRUE_FALSE_NOT_GIVEN',
+      'Do the following statements agree with the information...',
+      'Long reading passage text about the domestication of horses in ancient times...',
+      'Question 2: Horses were used for transport.',
+      '', '', '', '', '', '', '', '',
+      'TRUE', 'Explanation here', '', '', ''
+    ]);
+
+    const bytes = await workbook.xlsx.writeBuffer();
+    const file = new File([bytes], 'IELTS_Reading_Test_1.xlsx');
+    Object.defineProperty(file, 'arrayBuffer', { value: async () => bytes });
+    vi.mocked(axiosClient.post).mockRejectedValue(new Error('Invalid preview'));
+
+    const onSave = vi.fn();
+    const { container } = render(<ExamBuilder initialData={null} onSave={onSave} onCancel={vi.fn()} />);
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+    const saved = JSON.parse(onSave.mock.calls[0][0]);
+    expect(saved.parts[0].shared_content_html).toContain('Long reading passage text about the domestication of horses');
+    expect(saved.parts[0].question_groups[0].content_html).toBeFalsy();
+  });
+  it('correctly imports and saves a single-part TOEIC Writing Part 1 exam with 5 questions', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const info = workbook.addWorksheet('Thông Tin Đề Thi');
+    info.addRow(['Tên đề thi', 'TOEIC Writing Part 1 Test']);
+    info.addRow(['Loại chứng chỉ', 'TOEIC Writing']);
+    info.addRow(['Mã loại chứng chỉ', 'TW_P1']);
+    const sheet = workbook.addWorksheet('Exam Template');
+    sheet.addRow([
+      'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+      'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+      'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G', 'Lựa chọn H',
+      'Đáp án đúng', 'Giải thích', 'File âm thanh/hình ảnh phần', 'Đính kèm chung nhóm', 'Đính kèm riêng câu'
+    ]);
+    for (let i = 1; i <= 5; i++) {
+      sheet.addRow([
+        'Part 1: Write a Sentence Based on a Picture', 'Questions 1-5', `Group ${i}`, 'WRITING_ESSAY',
+        '', '', `Question ${i}: CONTRACT / PEN`,
+        '', '', '', '', '', '', '', '',
+        '', '', '', '', `/images/tw_p1_q${i}.png`
+      ]);
+    }
+    const bytes = await workbook.xlsx.writeBuffer();
+    const file = new File([bytes], 'TOEIC_Writing_Part1.xlsx');
+    Object.defineProperty(file, 'arrayBuffer', { value: async () => bytes });
+    const onSave = vi.fn();
+    const { container } = render(<ExamBuilder initialData={null} onSave={onSave} onCancel={vi.fn()} />);
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const saved = JSON.parse(onSave.mock.calls[0][0]);
+    expect(saved.exam_type).toBe('TW_P1');
+    expect(saved.parts).toHaveLength(1);
+    expect(saved.parts[0].question_groups).toHaveLength(5);
+  });
+});

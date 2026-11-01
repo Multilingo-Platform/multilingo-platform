@@ -413,12 +413,19 @@ export const normalizeExamType = (raw: string): string => {
   ) {
     return 'TOEIC_LR';
   }
-  if (clean === 'TOEIC_WRITING' || clean.includes('TOEIC WRITING')) {
+  if (clean === 'TW_P1' || clean === 'TW_PART1' || clean.includes('TW_P1')) return 'TW_P1';
+  if (clean === 'TW_P2' || clean === 'TW_PART2' || clean.includes('TW_P2')) return 'TW_P2';
+  if (clean === 'TW_P3' || clean === 'TW_PART3' || clean.includes('TW_P3')) return 'TW_P3';
+  if (clean === 'TOEIC_WRITING' || clean.includes('TOEIC WRITING') || clean === 'TW') {
     return 'TOEIC_WRITING';
   }
   if (clean === 'IELTS_GENERAL' || clean.includes('GENERAL') || clean === 'IELTS' || clean === 'IELTS_ACADEMIC' || clean.includes('ACADEMIC')) {
     return 'IELTS_ACADEMIC';
   }
+  if (clean === 'NLTV_READING' || clean === 'NLTV_R') return 'NLTV_READING';
+  if (clean === 'NLTV_LISTENING' || clean === 'NLTV_L') return 'NLTV_LISTENING';
+  if (clean === 'NLTV_WRITING' || clean === 'NLTV_W') return 'NLTV_WRITING';
+  if (['NLTV_L1','NLTV_L2','NLTV_L3','NLTV_L4','NLTV_R1','NLTV_R2','NLTV_W1','NLTV_W2','NLTV_W3'].includes(clean)) return clean;
   if (
     clean === 'NLTV' ||
     clean === 'NLTV_B1_C1' ||
@@ -506,6 +513,9 @@ export const getNltvTemplateParts = (
     // --- KỸ NĂNG NGHE (4 Phần - 55 câu trắc nghiệm) ---
     // Nghe - Phần 1: 15 câu (Câu 1-15), 1 group duy nhất, 3 lựa chọn (A, B, C)
     {
+      partNumber: 1,
+      section_skill_type: 'LISTENING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Nghe - Phần 1',
       instruction: 'Thí sinh nghe 15 câu hỏi hoặc câu nói và chọn câu trả lời phù hợp nhất (A, B hoặc C).',
       shared_audio: { url: '' },
@@ -521,6 +531,9 @@ export const getNltvTemplateParts = (
 
     // Nghe - Phần 2: 14 câu (Câu 16-29), 5 groups, 4 lựa chọn (A, B, C, D)
     {
+      partNumber: 2,
+      section_skill_type: 'LISTENING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Nghe - Phần 2',
       instruction: 'Thí sinh nghe các thông báo, tình huống, hội thoại ngắn và chọn câu trả lời đúng nhất (A, B, C hoặc D).',
       shared_audio: { url: '' },
@@ -560,6 +573,9 @@ export const getNltvTemplateParts = (
 
     // Nghe - Phần 3: 14 câu (Câu 30-43), 7 groups
     {
+      partNumber: 3,
+      section_skill_type: 'LISTENING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Nghe - Phần 3',
       instruction: 'Thí sinh nghe các cuộc trao đổi, phỏng vấn, thảo luận và chọn câu trả lời đúng nhất (A, B, C hoặc D).',
       shared_audio: { url: '' },
@@ -611,6 +627,9 @@ export const getNltvTemplateParts = (
 
     // Nghe - Phần 4: 12 câu (Câu 44-55), 6 groups bản tin (mỗi bản tin 2 câu)
     {
+      partNumber: 4,
+      section_skill_type: 'LISTENING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Nghe - Phần 4',
       instruction: 'Thí sinh nghe các bản tin, bài thuyết trình, bài giảng và chọn câu trả lời đúng nhất (A, B, C hoặc D).',
       shared_audio: { url: '' },
@@ -628,6 +647,9 @@ export const getNltvTemplateParts = (
     // --- KỸ NĂNG ĐỌC (2 Phần - 40 câu trắc nghiệm) ---
     // Đọc - Phần 1: 16 câu (Câu 1-16), 2 groups bài đọc
     {
+      partNumber: 5,
+      section_skill_type: 'READING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Đọc - Phần 1',
       instruction: 'Đọc văn bản và chọn câu trả lời đúng nhất (A, B, C hoặc D) cho các câu hỏi 1-16.',
       question_groups: [
@@ -648,6 +670,9 @@ export const getNltvTemplateParts = (
 
     // Đọc - Phần 2: 24 câu (Câu 17-40), 3 groups bài đọc (mỗi bài 8 câu)
     {
+      partNumber: 6,
+      section_skill_type: 'READING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Đọc - Phần 2',
       instruction: 'Đọc các bài đọc và chọn câu trả lời đúng nhất (A, B, C hoặc D) cho các câu hỏi 17-40.',
       question_groups: [
@@ -675,6 +700,9 @@ export const getNltvTemplateParts = (
     // --- KỸ NĂNG VIẾT (3 Phần) ---
     // Viết - Phần 1: Viết chính tả (10 câu FILL_IN_THE_BLANK, Chỗ trống 1-10)
     {
+      partNumber: 7,
+      section_skill_type: 'WRITING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Viết - Phần 1',
       instruction: 'Viết chính tả (Nghe đoạn văn và điền từ vào chỗ trống).',
       shared_audio: { url: '' },
@@ -698,6 +726,9 @@ export const getNltvTemplateParts = (
 
     // Viết - Phần 2: Viết thư / email (1 câu WRITING_ESSAY, tối thiểu 120 từ)
     {
+      partNumber: 8,
+      section_skill_type: 'WRITING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Viết - Phần 2',
       instruction: 'Viết thư / email (Tối thiểu 120 từ).',
       question_groups: [
@@ -723,6 +754,9 @@ export const getNltvTemplateParts = (
 
     // Viết - Phần 3: Viết bài văn / luận (1 câu WRITING_ESSAY, tối thiểu 200 từ)
     {
+      partNumber: 9,
+      section_skill_type: 'WRITING',
+      section_duration_minutes: 60,
       part_title: 'Kỹ năng Viết - Phần 3',
       instruction: 'Viết bài văn / luận (Tối thiểu 200 từ).',
       question_groups: [
@@ -1116,7 +1150,8 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       const publishedState = initialData.published !== undefined ? initialData.published : initialData.isPublished;
       setIsPublished(publishedState !== false);
       if (normalizedType === 'TOEIC_LR' || normalizedType === 'IELTS_ACADEMIC'
-        || normalizedType === 'LANGUAGE_PRACTICE' || normalizedType === 'NLTV') {
+        || normalizedType === 'LANGUAGE_PRACTICE' || normalizedType === 'NLTV'
+        || normalizedType.startsWith('NLTV')) {
         const mapped = toEditorParts(initialData);
         setParts(mapped);
         if (mapped.length) setWizardMode('BUILDER');
@@ -1274,7 +1309,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     }
     if (newPart) {
       if (parts.length === 0) {
-        setExamType(partKey.startsWith('NLTV') ? 'NLTV' : partKey);
+        setExamType(partKey);
       }
       setParts([...parts, newPart]);
       setActivePartIndex(parts.length);
@@ -1341,7 +1376,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     
     if (newPartsToAdd.length > 0) {
       if (parts.length === 0) {
-        setExamType(skillKey.startsWith('NLTV') ? 'NLTV' : skillKey);
+        setExamType(skillKey);
       }
       setParts([...parts, ...newPartsToAdd]);
       setActivePartIndex(parts.length);
@@ -1967,7 +2002,14 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         },
         'Từng Part (Parts)': {
           'PART_IELTS_L1': 'IELTS Listening Part 1',
+          'PART_IELTS_L2': 'IELTS Listening Part 2',
+          'PART_IELTS_L3': 'IELTS Listening Part 3',
+          'PART_IELTS_L4': 'IELTS Listening Part 4',
           'PART_IELTS_R1': 'IELTS Reading Passage 1',
+          'PART_IELTS_R2': 'IELTS Reading Passage 2',
+          'PART_IELTS_R3': 'IELTS Reading Passage 3',
+          'PART_IELTS_W1': 'IELTS Writing Task 1',
+          'PART_IELTS_W2': 'IELTS Writing Task 2',
           'PART_TOEIC_1': 'TOEIC Part 1 (Photographs)',
           'PART_TOEIC_2': 'TOEIC Part 2 (Question-Response)',
           'PART_TOEIC_3': 'TOEIC Part 3 (Conversations)',
@@ -2038,9 +2080,30 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         } else if (type === 'PART_IELTS_L1') {
           const sampleIelts = getIeltsSampleExcelParts();
           tempParts.push(sampleIelts[0]);
+        } else if (type === 'PART_IELTS_L2') {
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[1]);
+        } else if (type === 'PART_IELTS_L3') {
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[2]);
+        } else if (type === 'PART_IELTS_L4') {
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[3]);
         } else if (type === 'PART_IELTS_R1') {
           const sampleIelts = getIeltsSampleExcelParts();
           tempParts.push(sampleIelts[4]);
+        } else if (type === 'PART_IELTS_R2') {
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[5]);
+        } else if (type === 'PART_IELTS_R3') {
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[6]);
+        } else if (type === 'PART_IELTS_W1') {
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[7]);
+        } else if (type === 'PART_IELTS_W2') {
+          const sampleIelts = getIeltsSampleExcelParts();
+          tempParts.push(sampleIelts[8]);
         } else if (type === 'PART_TOEIC_1') {
           tempParts.push({ part_title: 'Part 1: Photographs', instruction: 'Questions 1-6', shared_audio: { url: '' }, question_groups: createToeicGroups(1, 6, 1, 4) });
         } else if (type === 'PART_TOEIC_2') {
@@ -2299,9 +2362,22 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           currentPart.shared_audio = { url: rawPartMedia };
         }
 
+        const isIeltsReadingPassage = lowerPartTitle.includes('passage') && !((importedType || '').toUpperCase().startsWith('NLTV'));
         const isPartReadingPassage = isReadingPassage && currentPart?.shared_content_html && 
           (rawPassage === currentPart.shared_content_html || rawPassage.trim() === currentPart.shared_content_html.trim());
-        const groupPassage = rawPassage || currentPart?.shared_content_html || '';
+
+        // Đối với IELTS Reading: Nội dung bài đọc chung thuộc về part.shared_content_html.
+        // Không gán trùng lặp vào group.content_html trừ khi nhóm có nội dung riêng biệt khác bài đọc chung.
+        let groupPassage = '';
+        if (isIeltsReadingPassage) {
+          if (rawPassage && !isPartReadingPassage) {
+            groupPassage = rawPassage;
+          } else {
+            groupPassage = '';
+          }
+        } else {
+          groupPassage = rawPassage || '';
+        }
 
         if (groupName !== lastGroupName || !currentGroup) {
           lastGroupOptions = [];
@@ -2555,6 +2631,33 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         }
       });
 
+      // Đảm bảo đối với tất cả các Reading Passage của IELTS:
+      // Đoạn văn bài đọc nằm ở Bài Đọc Chung (part.shared_content_html),
+      // và KHÔNG bị trùng lặp trong từng group (group.content_html).
+      tempParts.forEach(p => {
+        const pTitle = (p.part_title || '').toLowerCase();
+        if (pTitle.includes('passage') && !((importedType || '').toUpperCase().startsWith('NLTV'))) {
+          if (!p.shared_content_html) {
+            const longest = p.question_groups.reduce((max, g) =>
+              (g.content_html?.length || 0) > (max?.length || 0) ? g.content_html : max, '');
+            if (longest && longest.length > 300) {
+              p.shared_content_html = longest;
+            }
+          }
+          if (p.shared_content_html) {
+            const sharedTrim = p.shared_content_html.trim();
+            p.question_groups.forEach(g => {
+              if (g.content_html) {
+                const gTrim = g.content_html.trim();
+                if (gTrim === sharedTrim || (gTrim.length > 300 && sharedTrim.includes(gTrim))) {
+                  g.content_html = '';
+                }
+              }
+            });
+          }
+        }
+      });
+
       let detectedType = importedType ? normalizeExamType(importedType) : '';
 
       if (!detectedType) {
@@ -2593,12 +2696,27 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         }
       }
 
+      if (detectedType === 'TOEIC_WRITING' && tempParts.length === 1) {
+        const pTitle = (tempParts[0]?.part_title || '').toLowerCase();
+        if (pTitle.includes('part 1') || pTitle.includes('sentence') || pTitle.includes('picture')) {
+          detectedType = 'TW_P1';
+        } else if (pTitle.includes('part 2') || pTitle.includes('request') || pTitle.includes('email')) {
+          detectedType = 'TW_P2';
+        } else if (pTitle.includes('part 3') || pTitle.includes('essay') || pTitle.includes('opinion')) {
+          detectedType = 'TW_P3';
+        }
+      }
+
       setExamType(detectedType);
 
       const finalExamTitle = (importedTitle && importedTitle.trim())
         ? importedTitle.trim()
-        : (detectedType.startsWith('TOEIC')
-            ? (detectedType === 'TOEIC_WRITING' ? 'TOEIC Writing Test' : 'TOEIC L&R Test')
+        : (detectedType.startsWith('TOEIC') || detectedType.startsWith('TW_')
+            ? (detectedType === 'TW_P1' ? 'TOEIC Writing Part 1: Write a Sentence'
+              : detectedType === 'TW_P2' ? 'TOEIC Writing Part 2: Respond to Request'
+              : detectedType === 'TW_P3' ? 'TOEIC Writing Part 3: Write an Opinion Essay'
+              : detectedType === 'TOEIC_WRITING' ? 'TOEIC Writing Test'
+              : 'TOEIC L&R Test')
             : (detectedType.startsWith('NLTV')
                 ? 'Đánh giá Năng lực Tiếng Việt (NLTV)'
                 : 'IELTS Academic Mock Test'));
@@ -2707,27 +2825,63 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     if (saveMutex.current || importing) return;
 
     if (isToeicWriting) {
-      if (parts.length !== 3) {
+      if (parts.length === 3) {
+        // Đề TOEIC Writing đầy đủ: 8 câu hỏi (5 + 2 + 1)
+        const p1Count = (parts[0]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+        const p2Count = (parts[1]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+        const p3Count = (parts[2]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+        const total = p1Count + p2Count + p3Count;
+        if (p1Count !== 5 || p2Count !== 2 || p3Count !== 1) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Số lượng câu hỏi chưa chuẩn',
+            html: `Đề thi TOEIC Writing đầy đủ bắt buộc phải có đúng <b>8 câu hỏi</b> cố định:<br/>
+            • Part 1 (Write a Sentence): đúng <b>5 câu</b> (hiện có: ${p1Count})<br/>
+            • Part 2 (Respond to Request): đúng <b>2 câu</b> (hiện có: ${p2Count})<br/>
+            • Part 3 (Opinion Essay): đúng <b>1 câu</b> (hiện có: ${p3Count})<br/>
+            Tổng cộng hiện tại: <b>${total}/8 câu</b>.`
+          });
+          return;
+        }
+      } else if (parts.length === 1) {
+        // Đề TOEIC Writing lẻ từng Part
+        const p = parts[0];
+        const pTitle = (p?.part_title || '').toLowerCase();
+        const qCount = (p?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
+
+        const isPart1 = examType === 'TW_P1' || pTitle.includes('part 1') || pTitle.includes('sentence') || pTitle.includes('picture');
+        const isPart2 = examType === 'TW_P2' || pTitle.includes('part 2') || pTitle.includes('request') || pTitle.includes('email');
+        const isPart3 = examType === 'TW_P3' || pTitle.includes('part 3') || pTitle.includes('essay') || pTitle.includes('opinion');
+
+        if (isPart1 && qCount !== 5) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Số lượng câu hỏi chưa chuẩn',
+            text: `TOEIC Writing Part 1 bắt buộc phải có đúng 5 câu hỏi hình ảnh (hiện có: ${qCount} câu).`
+          });
+          return;
+        }
+        if (isPart2 && qCount !== 2) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Số lượng câu hỏi chưa chuẩn',
+            text: `TOEIC Writing Part 2 bắt buộc phải có đúng 2 câu hỏi viết email (hiện có: ${qCount} câu).`
+          });
+          return;
+        }
+        if (isPart3 && qCount !== 1) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Số lượng câu hỏi chưa chuẩn',
+            text: `TOEIC Writing Part 3 bắt buộc phải có đúng 1 câu hỏi viết bài luận (hiện có: ${qCount} câu).`
+          });
+          return;
+        }
+      } else {
         Swal.fire({
           icon: 'warning',
           title: 'Cấu trúc chưa đúng chuẩn',
-          text: 'Đề thi TOEIC Writing bắt buộc phải có đúng 3 phần thi: Part 1 (5 câu ảnh), Part 2 (2 câu email), Part 3 (1 bài luận).'
-        });
-        return;
-      }
-      const p1Count = (parts[0]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
-      const p2Count = (parts[1]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
-      const p3Count = (parts[2]?.question_groups || []).reduce((acc, g) => acc + (g.questions?.length || 0), 0);
-      const total = p1Count + p2Count + p3Count;
-      if (p1Count !== 5 || p2Count !== 2 || p3Count !== 1) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Số lượng câu hỏi chưa chuẩn',
-          html: `Đề thi TOEIC Writing bắt buộc phải có đúng <b>8 câu hỏi</b> cố định:<br/>
-          • Part 1 (Write a Sentence): đúng <b>5 câu</b> (hiện có: ${p1Count})<br/>
-          • Part 2 (Respond to Request): đúng <b>2 câu</b> (hiện có: ${p2Count})<br/>
-          • Part 3 (Opinion Essay): đúng <b>1 câu</b> (hiện có: ${p3Count})<br/>
-          Tổng cộng hiện tại: <b>${total}/8 câu</b>.`
+          text: 'Đề thi TOEIC Writing phải là đề đầy đủ gồm 3 phần (8 câu) hoặc đề luyện tập theo từng Part đơn lẻ (Part 1: 5 câu, Part 2: 2 câu, hoặc Part 3: 1 câu).'
         });
         return;
       }

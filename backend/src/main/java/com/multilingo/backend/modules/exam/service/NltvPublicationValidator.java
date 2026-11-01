@@ -19,46 +19,51 @@ public final class NltvPublicationValidator {
     private static final Set<String> STRUCTURAL_ISSUES = Set.of(
             "TYPE_INVALID", "LANGUAGE_INVALID", "STRUCTURE_INVALID", "SKILL_INVALID",
             "DURATION_INVALID", "SOURCE_COUNTS_INVALID", "ID_INVALID");
+    private static final Set<String> VALID_SKILLS = Set.of("LISTENING", "READING", "WRITING");
 
     public List<Issue> issues(ExamBuilderRequest request) {
         List<Issue> issues = new ArrayList<>();
-        if (request == null || !"NLTV".equals(request.getType())) {
+        if (request == null || request.getType() == null || !request.getType().startsWith("NLTV")) {
             add(issues, "TYPE_INVALID", null, "Loại đề không phải NLTV.");
             return List.copyOf(issues);
         }
         if (!"vi".equals(request.getExamLanguage())) add(issues, "LANGUAGE_INVALID", null, "NLTV phải dùng language vi.");
-        if (request.getSections() == null || request.getSections().size() != 3) {
-            add(issues, "STRUCTURE_INVALID", null, "NLTV cần đúng ba section.");
+        if (request.getSections() == null || request.getSections().isEmpty()) {
+            add(issues, "STRUCTURE_INVALID", null, "NLTV cần ít nhất một section.");
             return List.copyOf(issues);
         }
-        String[] skills = {"LISTENING", "READING", "WRITING"};
-        int[] firstParts = {1, 5, 7};
-        int[] lastParts = {4, 6, 9};
+
+        Set<String> seenSkills = new HashSet<>();
         Set<Integer> seenParts = new HashSet<>();
         int total = 0;
-        for (int sectionIndex = 0; sectionIndex < request.getSections().size(); sectionIndex++) {
-            var section = request.getSections().get(sectionIndex);
+        for (var section : request.getSections()) {
             if (section == null) {
                 add(issues, "STRUCTURE_INVALID", null, "Section không hợp lệ.");
                 continue;
             }
-            if (!skills[sectionIndex].equals(section.getSkillType()))
-                add(issues, "SKILL_INVALID", null, "Thứ tự skill NLTV không hợp lệ.");
-            if (!Integer.valueOf(60).equals(section.getDurationMinutes()))
-                add(issues, "DURATION_INVALID", null, "Mỗi section NLTV phải có thời lượng 60 phút.");
-            if (section.getParts() == null || section.getParts().size() != lastParts[sectionIndex] - firstParts[sectionIndex] + 1) {
-                add(issues, "STRUCTURE_INVALID", null, "Số Part trong section không đúng.");
+            String skill = section.getSkillType();
+            if (skill == null || !VALID_SKILLS.contains(skill) || !seenSkills.add(skill)) {
+                add(issues, "SKILL_INVALID", null, "Skill NLTV không hợp lệ hoặc bị trùng: " + skill);
                 continue;
             }
+            if (section.getDurationMinutes() == null || section.getDurationMinutes() <= 0) {
+                add(issues, "DURATION_INVALID", null, "Mỗi section NLTV phải có thời lượng lớn hơn 0 phút.");
+            }
+            if (section.getParts() == null || section.getParts().isEmpty()) {
+                add(issues, "STRUCTURE_INVALID", null, "Section NLTV cần ít nhất một Part.");
+                continue;
+            }
+            int firstPart = "LISTENING".equals(skill) ? 1 : "READING".equals(skill) ? 5 : 7;
+            int lastPart = "LISTENING".equals(skill) ? 4 : "READING".equals(skill) ? 6 : 9;
+
             for (var part : section.getParts()) {
                 if (part == null || part.getPartNumber() == null || part.getContentData() == null) {
                     add(issues, "STRUCTURE_INVALID", null, "Part NLTV thiếu số hoặc content data.");
                     continue;
                 }
-                int partNumber = part.getPartNumber();
-                if (partNumber < firstParts[sectionIndex] || partNumber > lastParts[sectionIndex]
-                        || !seenParts.add(partNumber)) {
-                    add(issues, "STRUCTURE_INVALID", null, "Part NLTV nằm sai section hoặc bị trùng.");
+                int partNumber = canonicalPartNumber(skill, part.getPartNumber());
+                if (partNumber < firstPart || partNumber > lastPart || !seenParts.add(partNumber)) {
+                    add(issues, "STRUCTURE_INVALID", null, "Part NLTV nằm sai section hoặc bị trùng: " + partNumber);
                     continue;
                 }
                 Object rawGroups = part.getContentData().get("question_groups");
@@ -105,10 +110,18 @@ public final class NltvPublicationValidator {
                 total += partCount;
             }
         }
-        if (seenParts.size() != 9 || total != 107)
+        if (seenParts.size() == 9 && total != 107) {
             add(issues, "SOURCE_COUNTS_INVALID", null, "NLTV cần đủ 107 câu/yêu cầu trong 9 Part.");
+        }
         return List.copyOf(issues);
     }
+
+    public static int canonicalPartNumber(String skill, int partNumber) {
+        if ("READING".equals(skill) && partNumber >= 1 && partNumber <= 2) return partNumber + 4;
+        if ("WRITING".equals(skill) && partNumber >= 1 && partNumber <= 3) return partNumber + 6;
+        return partNumber;
+    }
+
 
     public void requireStructure(ExamBuilderRequest request) {
         if (issues(request).stream().anyMatch(issue -> STRUCTURAL_ISSUES.contains(issue.code())))
@@ -132,7 +145,7 @@ public final class NltvPublicationValidator {
 
     private static void validateQuestion(int part, Map<?, ?> question, Set<String> ids, List<Issue> issues) {
         String id = question.get("question_id") instanceof String value ? value : null;
-        if (id == null || id.isBlank() || !id.matches("q_\\d{3}") || !ids.add(id))
+        if (id == null || id.isBlank() || !id.matches("q_\\d+") || !ids.add(id))
             add(issues, "ID_INVALID", id, "Question ID thiếu, sai định dạng hoặc trùng trong Part.");
         if (blank(question.get("question_text"))) add(issues, "PROMPT_REQUIRED", id, "Question text bị thiếu.");
         if (question.get("media") != null && !validMedia(question.get("media")))

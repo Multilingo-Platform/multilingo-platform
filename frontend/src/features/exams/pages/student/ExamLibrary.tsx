@@ -217,25 +217,25 @@ const ExamLibrary: React.FC = () => {
             }
           } else if (currentCert === 'TOEIC_LR') {
             if (selectedSkill === 'LISTENING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
             } else if (selectedSkill === 'READING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
             } else if (selectedSkill === 'WRITING') {
-              typesToFetch = ['__NONE__'];
+              typesToFetch = ['TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3'];
             }
           } else if (currentCert === 'TOEIC_WRITING') {
             if (selectedSkill === 'WRITING') {
-              typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+              typesToFetch = ['TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3'];
             } else {
               typesToFetch = ['__NONE__'];
             }
           } else if (currentCert === 'TOEIC') {
             if (selectedSkill === 'LISTENING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_LISTENING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'];
             } else if (selectedSkill === 'READING') {
-              typesToFetch = ['TOEIC_LR', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
+              typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_READING', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
             } else if (selectedSkill === 'WRITING') {
-              typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+              typesToFetch = ['TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3'];
             }
           } else if (currentCert === 'NLTV') {
             if (selectedSkill === 'LISTENING') {
@@ -253,9 +253,9 @@ const ExamLibrary: React.FC = () => {
           } else if (currentCert === 'TOEIC_LR') {
             typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'];
           } else if (currentCert === 'TOEIC_WRITING') {
-            typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2'];
+            typesToFetch = ['TOEIC_WRITING', 'TW_P1', 'TW_P2', 'TW_P3'];
           } else if (currentCert === 'TOEIC') {
-            typesToFetch = ['TOEIC_LR', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2'];
+            typesToFetch = ['TOEIC_LR', 'TOEIC', 'TOEIC_LISTENING_READING', 'TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7', 'TW_P1', 'TW_P2', 'TW_P3'];
           } else if (currentCert === 'NLTV') {
             typesToFetch = ['NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_LISTENING', 'NLTV_READING', 'NLTV_WRITING', 'NLTV_L', 'NLTV_R', 'NLTV_W'];
           }
@@ -278,7 +278,7 @@ const ExamLibrary: React.FC = () => {
           } else if (selectedSkill === 'WRITING') {
             typesToFetch = [
               'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_WRITING', 'IELTS_W1', 'IELTS_W2',
-              'TOEIC_WRITING', 'TW_P1', 'TW_P2',
+              'TOEIC_WRITING', 'TW', 'TOEIC_W', 'TW_P1', 'TW_P2', 'TW_P3',
               'NLTV', 'NLTV_A1_A2', 'NLTV_B1_C1', 'NLTV_WRITING', 'NLTV_W'
             ];
           }
