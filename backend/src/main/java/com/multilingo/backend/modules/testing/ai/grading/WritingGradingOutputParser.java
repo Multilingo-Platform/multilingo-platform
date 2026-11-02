@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -56,6 +57,62 @@ public class WritingGradingOutputParser {
         return parse(rawText, originalEssay, false);
     }
 
+    /** Provider contract: exact source anchors; offsets and corrected text are server-owned. */
+    public WritingGrade parseGenerated(String rawText, String originalEssay, boolean hasVisualContext,
+                                       WritingRubricPolicy policy, String feedbackLanguage) {
+        ObjectNode root = (ObjectNode) readRoot(rawText);
+        if (root.has("correctedEssay")) {
+            throw malformed("Provider must not supply an independent correctedEssay");
+        }
+        JsonNode edits = root.get("corrections");
+        if (edits == null || !edits.isArray()) {
+            throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "corrections must be an array");
+        }
+        if (edits.size() > MAX_CORRECTIONS_COUNT) {
+            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Too many corrections");
+        }
+        String original = originalEssay == null ? "" : originalEssay;
+        List<WritingGrade.Correction> resolved = new ArrayList<>();
+        for (JsonNode edit : edits) {
+            if (!edit.isObject()) throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Invalid anchored correction");
+            var fields = edit.fieldNames();
+            while (fields.hasNext()) {
+                if (!Set.of("original", "replacement", "explanation").contains(fields.next())) {
+                    throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Unknown anchored correction field");
+                }
+            }
+            for (String field : List.of("original", "replacement", "explanation")) {
+                if (!edit.path(field).isTextual()) {
+                    throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Missing anchored correction text");
+                }
+            }
+            String anchor = edit.get("original").textValue();
+            String replacement = edit.get("replacement").textValue();
+            String explanation = edit.get("explanation").textValue();
+            if (anchor.codePointCount(0, anchor.length()) > 8000
+                    || replacement.codePointCount(0, replacement.length()) > MAX_REPLACEMENT_CODE_POINTS
+                    || explanation.codePointCount(0, explanation.length()) > MAX_EXPLANATION_CODE_POINTS) {
+                throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Anchored correction exceeds text limits");
+            }
+            int start = anchor.isBlank() ? -1 : original.indexOf(anchor);
+            if (start < 0 || original.indexOf(anchor, start + 1) >= 0) {
+                throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Source anchor is missing or ambiguous");
+            }
+            resolved.add(new WritingGrade.Correction(start, start + anchor.length(), replacement, explanation));
+        }
+        resolved.sort(Comparator.comparingInt(WritingGrade.Correction::start));
+        String corrected;
+        try {
+            corrected = WritingDiffBuilder.applyCorrections(original, resolved);
+        } catch (IllegalArgumentException | IndexOutOfBoundsException invalid) {
+            throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Invalid anchored corrections layout");
+        }
+        root.put("correctedEssay", corrected);
+        root.set("corrections", objectMapper.valueToTree(resolved));
+        // Keep the persisted/public schema, score, limits, UTF-16 and reconstruction validation unchanged.
+        return parse(root.toString(), original, hasVisualContext, policy, feedbackLanguage);
+    }
+
     public WritingGrade parse(String rawText, String originalEssay, boolean hasVisualContext) {
         return parse(rawText, originalEssay, hasVisualContext, null, WritingGrade.DEFAULT_LANGUAGE);
     }
@@ -69,32 +126,7 @@ public class WritingGradingOutputParser {
         Set<BigDecimal> allowedScores = allowedScores(maxScore);
         String safeOriginal = (originalEssay == null) ? "" : originalEssay;
 
-        if (rawText == null || rawText.isBlank()) {
-            throw malformed("Gemini response is null or blank");
-        }
-
-        byte[] bytes = rawText.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length > MAX_RAW_OUTPUT_BYTES) {
-            throw malformed("Gemini response exceeds maximum size limit");
-        }
-
-        if (rawText.contains("```")) {
-            throw malformed("Gemini response contains Markdown code fences");
-        }
-
-        JsonNode root;
-        try (JsonParser parser = objectMapper.createParser(rawText)) {
-            root = objectMapper.readTree(parser);
-            if (parser.nextToken() != null) {
-                throw malformed("Gemini response contains trailing characters after JSON object");
-            }
-        } catch (IOException e) {
-            throw malformed("Failed to parse JSON response");
-        }
-
-        if (root == null || !root.isObject()) {
-            throw malformed("Gemini response root must be a JSON object");
-        }
+        JsonNode root = readRoot(rawText);
 
         // Validate root keys against allowlist
         Set<String> rootAllowlist = hasVisualContext ? VISUAL_ROOT_ALLOWLIST : TEXT_ONLY_ROOT_ALLOWLIST;
@@ -121,7 +153,7 @@ public class WritingGradingOutputParser {
             }
             visualObservations = voNode.asText();
             if (visualObservations.codePointCount(0, visualObservations.length()) > MAX_VISUAL_OBSERVATIONS_CODE_POINTS) {
-                throw malformed("visualObservations exceeds limit of 1000 code points");
+                throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "visualObservations exceeds limit of 1000 code points");
             }
         }
 
@@ -158,24 +190,24 @@ public class WritingGradingOutputParser {
 
             JsonNode scoreNode = cNode.get("score");
             if (scoreNode == null || !scoreNode.isNumber()) {
-                throw malformed("Missing or non-numeric score for criterion");
+                throw malformed(WritingGradingFailure.ValidationCode.SCORE_INVALID, "Missing or non-numeric score for criterion");
             }
 
             BigDecimal score;
             try {
                 score = new BigDecimal(scoreNode.asText());
             } catch (Exception e) {
-                throw malformed("Invalid score format for criterion");
+                throw malformed(WritingGradingFailure.ValidationCode.SCORE_INVALID, "Invalid score format for criterion");
             }
 
             try {
                 score = score.setScale(1, RoundingMode.UNNECESSARY);
             } catch (ArithmeticException e) {
-                throw malformed("Invalid score step for criterion");
+                throw malformed(WritingGradingFailure.ValidationCode.SCORE_INVALID, "Invalid score step for criterion");
             }
 
             if (!allowedScores.contains(score)) {
-                throw malformed("Invalid score for criterion under the selected rubric");
+                throw malformed(WritingGradingFailure.ValidationCode.SCORE_INVALID, "Invalid score for criterion under the selected rubric");
             }
             sumScore = sumScore.add(score);
 
@@ -185,7 +217,7 @@ public class WritingGradingOutputParser {
             }
             String feedback = fbNode.asText();
             if (feedback.codePointCount(0, feedback.length()) > MAX_CRITERION_FEEDBACK_CODE_POINTS) {
-                throw malformed("Criterion feedback exceeds limit of 1000 code points");
+                throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Criterion feedback exceeds limit of 1000 code points");
             }
 
             criteria.add(new WritingGrade.CriterionGrade(code, score, feedback));
@@ -210,7 +242,7 @@ public class WritingGradingOutputParser {
         }
         String overallFeedback = overallFbNode.asText();
         if (overallFeedback.codePointCount(0, overallFeedback.length()) > MAX_OVERALL_FEEDBACK_CODE_POINTS) {
-            throw malformed("overallFeedback exceeds limit of 2000 code points");
+            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "overallFeedback exceeds limit of 2000 code points");
         }
 
         // correctedEssay
@@ -220,28 +252,28 @@ public class WritingGradingOutputParser {
         }
         String correctedEssay = correctedEssayNode.asText();
         if (correctedEssay.codePointCount(0, correctedEssay.length()) > MAX_CORRECTED_ESSAY_CODE_POINTS) {
-            throw malformed("correctedEssay exceeds limit of 16000 code points");
+            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "correctedEssay exceeds limit of 16000 code points");
         }
 
         // corrections
         JsonNode correctionsNode = root.get("corrections");
         if (correctionsNode == null || !correctionsNode.isArray()) {
-            throw malformed("corrections must be an array");
+            throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "corrections must be an array");
         }
         if (correctionsNode.size() > MAX_CORRECTIONS_COUNT) {
-            throw malformed("corrections count exceeds limit of 100 items");
+            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "corrections count exceeds limit of 100 items");
         }
 
         List<WritingGrade.Correction> corrections = new ArrayList<>();
         for (JsonNode corrNode : correctionsNode) {
             if (!corrNode.isObject()) {
-                throw malformed("Correction item must be an object");
+                throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Correction item must be an object");
             }
             Iterator<String> corrFields = corrNode.fieldNames();
             while (corrFields.hasNext()) {
                 String corrField = corrFields.next();
                 if (!CORRECTION_ALLOWLIST.contains(corrField)) {
-                    throw malformed("Unknown key in correction");
+                    throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Unknown key in correction");
                 }
             }
 
@@ -251,25 +283,25 @@ public class WritingGradingOutputParser {
             JsonNode expNode = corrNode.get("explanation");
 
             if (startNode == null || !startNode.isInt() || endNode == null || !endNode.isInt()) {
-                throw malformed("Correction start and end must be integers");
+                throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Correction start and end must be integers");
             }
             int start = startNode.asInt();
             int end = endNode.asInt();
 
             if (replNode == null || !replNode.isTextual()) {
-                throw malformed("Correction replacement must be a string");
+                throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Correction replacement must be a string");
             }
             String replacement = replNode.asText();
             if (replacement.codePointCount(0, replacement.length()) > MAX_REPLACEMENT_CODE_POINTS) {
-                throw malformed("Correction replacement exceeds limit of 2000 code points");
+                throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Correction replacement exceeds limit of 2000 code points");
             }
 
             if (expNode == null || !expNode.isTextual()) {
-                throw malformed("Correction explanation must be a string");
+                throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Correction explanation must be a string");
             }
             String explanation = expNode.asText();
             if (explanation.codePointCount(0, explanation.length()) > MAX_EXPLANATION_CODE_POINTS) {
-                throw malformed("Correction explanation exceeds limit of 500 code points");
+                throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Correction explanation exceeds limit of 500 code points");
             }
 
             corrections.add(new WritingGrade.Correction(start, end, replacement, explanation));
@@ -279,10 +311,11 @@ public class WritingGradingOutputParser {
         try {
             String reconstructed = WritingDiffBuilder.applyCorrections(safeOriginal, corrections);
             if (!reconstructed.equals(correctedEssay)) {
-                throw malformed("Reconstructed essay from corrections does not match correctedEssay exactly");
+                throw malformed(WritingGradingFailure.ValidationCode.RECONSTRUCTION_MISMATCH,
+                        "Reconstructed essay from corrections does not match correctedEssay exactly");
             }
         } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
-            throw malformed("Invalid corrections layout");
+            throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Invalid corrections layout");
         }
 
         // Generate diff segments
@@ -322,7 +355,33 @@ public class WritingGradingOutputParser {
     }
 
     private WritingGradingException malformed(String message) {
-        return new WritingGradingException(WritingGradingFailure.terminal("MALFORMED_OUTPUT", message));
+        return malformed(WritingGradingFailure.ValidationCode.FIELD_INVALID, message);
+    }
+
+    private JsonNode readRoot(String rawText) {
+        if (rawText == null || rawText.isBlank()) {
+            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response is null or blank");
+        }
+        if (rawText.getBytes(StandardCharsets.UTF_8).length > MAX_RAW_OUTPUT_BYTES) {
+            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Gemini response exceeds maximum size limit");
+        }
+        if (rawText.contains("```")) {
+            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response contains Markdown code fences");
+        }
+        try (JsonParser parser = objectMapper.createParser(rawText)) {
+            JsonNode root = objectMapper.readTree(parser);
+            if (parser.nextToken() != null || root == null || !root.isObject()) {
+                throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Expected one JSON object");
+            }
+            return root;
+        } catch (IOException invalid) {
+            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Failed to parse JSON response");
+        }
+    }
+
+    private WritingGradingException malformed(WritingGradingFailure.ValidationCode code, String message) {
+        return new WritingGradingException(
+                WritingGradingFailure.terminal("MALFORMED_OUTPUT", message).withValidationCode(code));
     }
 }
 

@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Bot,
   BookOpen,
   MessageSquare,
   PenTool,
   Save,
-  CheckCircle2,
-  AlertCircle,
-  ShieldCheck,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { UserQuotaItem } from '../../types/adminTypes';
@@ -70,9 +66,15 @@ export const QuotaSettingsPage = () => {
 
   const features = [
     {
-      code: 'WRITING_ASSISTANT',
-      name: 'Trợ Lý Luyện Viết AI (Writing Assistant)',
-      description: 'Chấm điểm tự động và sửa lỗi ngữ pháp bài viết IELTS/TOEIC theo thời gian thực.',
+      code: 'AI_WRITING_HINTS',
+      name: 'Gợi ý Writing bằng AI',
+      description: 'Gợi ý ý tưởng và từ vựng khi luyện Writing trong chế độ Practice.',
+      icon: <PenTool size={20} className="text-amber-600" />,
+    },
+    {
+      code: 'AI_WRITING_GRADING',
+      name: 'AI chấm và nhận xét Writing',
+      description: 'Chấm và phản hồi chi tiết bài Writing sau khi nộp bài.',
       icon: <PenTool size={20} className="text-amber-600" />,
     },
     {

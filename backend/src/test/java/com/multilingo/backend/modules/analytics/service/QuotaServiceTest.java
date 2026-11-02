@@ -42,9 +42,11 @@ class QuotaServiceTest {
 
         List<UserQuotaResponse> quotas = quotaService.getAllQuotas();
 
-        assertThat(quotas).hasSize(6); // 3 features * 2 tiers
-        assertThat(quotas).anyMatch(q -> q.getFeature().equals("WRITING_ASSISTANT") && q.getTier().equals("FREE") && q.getDailyLimit() == 5);
-        assertThat(quotas).anyMatch(q -> q.getFeature().equals("WRITING_ASSISTANT") && q.getTier().equals("VIP") && q.getDailyLimit() == 100);
+        assertThat(quotas).hasSize(8); // 4 features * 2 tiers
+        assertThat(quotas).anyMatch(q -> q.getFeature().equals("AI_WRITING_HINTS") && q.getTier().equals("FREE") && q.getDailyLimit() == 5);
+        assertThat(quotas).anyMatch(q -> q.getFeature().equals("AI_WRITING_HINTS") && q.getTier().equals("VIP") && q.getDailyLimit() == 20);
+        assertThat(quotas).anyMatch(q -> q.getFeature().equals("AI_WRITING_GRADING") && q.getTier().equals("FREE") && q.getDailyLimit() == 5);
+        assertThat(quotas).anyMatch(q -> q.getFeature().equals("AI_WRITING_GRADING") && q.getTier().equals("VIP") && q.getDailyLimit() == 20);
     }
 
     @Test
@@ -52,18 +54,18 @@ class QuotaServiceTest {
     void testUpdateQuota_success() {
         UserQuota existing = UserQuota.builder()
                 .userId(0)
-                .featureCode("WRITING_ASSISTANT")
+                .featureCode("AI_WRITING_GRADING")
                 .usedCount(0)
                 .maxLimit(5)
                 .resetDate(Instant.now())
                 .build();
         existing.setId(101);
 
-        when(userQuotaRepository.findByUserIdAndFeatureCode(0, "WRITING_ASSISTANT")).thenReturn(Optional.of(existing));
+        when(userQuotaRepository.findByUserIdAndFeatureCode(0, "AI_WRITING_GRADING")).thenReturn(Optional.of(existing));
         when(userQuotaRepository.save(any(UserQuota.class))).thenAnswer(i -> i.getArgument(0));
 
         UpdateQuotaRequest request = UpdateQuotaRequest.builder()
-                .feature("WRITING_ASSISTANT")
+                .feature("AI_WRITING_GRADING")
                 .tier("FREE")
                 .dailyLimit(15)
                 .resetCycle("DAILY")
@@ -75,9 +77,24 @@ class QuotaServiceTest {
         assertThat(response.getTier()).isEqualTo("FREE");
 
         ArgumentCaptor<Map<String, Object>> detailsCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(auditService).log(eq(1), eq("UPDATE_QUOTA"), eq("USER_QUOTA"), eq("WRITING_ASSISTANT:FREE"), detailsCaptor.capture(), eq("127.0.0.1"));
+        verify(auditService).log(eq(1), eq("UPDATE_QUOTA"), eq("USER_QUOTA"), eq("AI_WRITING_GRADING:FREE"), detailsCaptor.capture(), eq("127.0.0.1"));
         Map<String, Object> details = detailsCaptor.getValue();
         assertThat(details).containsEntry("oldLimit", 5);
         assertThat(details).containsEntry("newLimit", 15);
+    }
+
+    @Test
+    @DisplayName("Legacy WRITING_ASSISTANT quota is retained but no longer configurable")
+    void testUpdateQuota_rejectsLegacyWritingAssistantCode() {
+        UpdateQuotaRequest request = UpdateQuotaRequest.builder()
+                .feature("WRITING_ASSISTANT")
+                .tier("FREE")
+                .dailyLimit(15)
+                .resetCycle("DAILY")
+                .build();
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> quotaService.updateQuota(1, request, "127.0.0.1"))
+                .isInstanceOf(com.multilingo.backend.common.exception.AppException.class);
+        verify(userQuotaRepository, never()).save(any(UserQuota.class));
     }
 }

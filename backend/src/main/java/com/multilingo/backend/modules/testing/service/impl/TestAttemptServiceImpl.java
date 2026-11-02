@@ -212,6 +212,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                         "Exam not found: " + request.getExamId()));
 
+        validateScopeRequest(exam, request);
+
         Instant now = Instant.now();
 
         // 2. Validate mode/scope constraints
@@ -489,8 +491,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             throw new AppException(ErrorCode.ATTEMPT_ALREADY_SUBMITTED);
         }
 
-        if (attempt.getTestMode() != TestMode.MOCK_TEST || attempt.getTestScope() != TestScope.FULL_EXAM) {
-            return; // Only applies to MOCK_TEST and FULL_EXAM
+        if (attempt.getTestMode() != TestMode.MOCK_TEST
+                || (attempt.getTestScope() != TestScope.FULL_EXAM && attempt.getTestScope() != TestScope.MULTI_PART)) {
+            return; // Section locking applies to sequential Mock attempts.
         }
 
         List<Integer> locked = attempt.getLockedSections();
@@ -714,7 +717,76 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
             return containingSection.getDurationMinutes();
         }
+        if (request.getTestScope() == TestScope.MULTI_PART) {
+            java.util.Set<Integer> selectedPartIds = new java.util.HashSet<>(request.getTargetPartIds());
+            java.util.Set<Integer> countedSections = new java.util.HashSet<>();
+            int totalMinutes = 0;
+            for (SectionFixture section : exam.getSections()) {
+                if (section == null || section.getParts() == null
+                        || section.getParts().stream().noneMatch(part -> part != null && selectedPartIds.contains(part.getId()))) {
+                    continue;
+                }
+                if (!countedSections.add(section.getId())) continue;
+                Integer sectionDuration = section.getDurationMinutes();
+                if (sectionDuration == null || sectionDuration <= 0) {
+                    throw new AppException(ErrorCode.INVALID_REQUEST,
+                            "Cannot create MOCK_TEST attempt: selected skill has no configured duration");
+                }
+                try {
+                    totalMinutes = Math.addExact(totalMinutes, sectionDuration);
+                } catch (ArithmeticException overflow) {
+                    throw new AppException(ErrorCode.INVALID_REQUEST, "Selected skills duration is out of range");
+                }
+            }
+            return totalMinutes;
+        }
         return exam.getDurationMinutes();
+    }
+
+    private void validateScopeRequest(ExamFixture exam, CreateAttemptRequest request) {
+        List<Integer> partIds = request.getTargetPartIds();
+        if (request.getTestScope() == TestScope.MULTI_PART) {
+            if (request.getTargetSectionId() != null || request.getTargetPartId() != null) {
+                throw new AppException(ErrorCode.INVALID_REQUEST,
+                        "MULTI_PART cannot be combined with targetSectionId or targetPartId");
+            }
+            if (partIds == null || partIds.size() < 2) {
+                throw new AppException(ErrorCode.INVALID_REQUEST, "MULTI_PART requires at least two part IDs");
+            }
+            java.util.Set<Integer> distinctIds = new java.util.HashSet<>();
+            for (Integer partId : partIds) {
+                if (partId == null || partId <= 0 || !distinctIds.add(partId)) {
+                    throw new AppException(ErrorCode.INVALID_REQUEST,
+                            "MULTI_PART part IDs must be positive, distinct values");
+                }
+                if (findSectionContainingPart(exam, partId) == null) {
+                    throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Part not found: " + partId);
+                }
+            }
+            return;
+        }
+        if (partIds != null && !partIds.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_REQUEST,
+                    "targetPartIds can only be used with MULTI_PART scope");
+        }
+        if (request.getTestScope() == TestScope.SINGLE_SKILL) {
+            if (request.getTargetSectionId() == null) {
+                throw new AppException(ErrorCode.INVALID_REQUEST,
+                        "targetSectionId is required for SINGLE_SKILL scope");
+            }
+            boolean exists = exam.getSections() != null && exam.getSections().stream()
+                    .anyMatch(section -> section != null && request.getTargetSectionId().equals(section.getId()));
+            if (!exists) throw new AppException(ErrorCode.RESOURCE_NOT_FOUND,
+                    "Section not found: " + request.getTargetSectionId());
+        }
+        if (request.getTestScope() == TestScope.SINGLE_PART) {
+            if (request.getTargetPartId() == null) {
+                throw new AppException(ErrorCode.INVALID_REQUEST, "targetPartId is required for SINGLE_PART scope");
+            }
+            if (findSectionContainingPart(exam, request.getTargetPartId()) == null) {
+                throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Part not found: " + request.getTargetPartId());
+            }
+        }
     }
 
     private SectionFixture findSectionContainingPart(ExamFixture exam, Integer partId) {
@@ -737,7 +809,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
      * Builds an exam snapshot safe to store and return to client.
      * Uses ObjectMapper to convert ExamFixture → Map, which strips any fields
      * not present in the DTO (correct_answer, explanation are never in ExamFixture).
-     * Filters sections and parts based on testScope (SINGLE_SKILL or SINGLE_PART).
+     * Filters sections and parts based on the requested attempt scope.
      */
     @SuppressWarnings("unchecked")
     private Map<String, Object> buildExamSnapshot(ExamFixture exam, CreateAttemptRequest request) {
@@ -780,6 +852,26 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             }
             throw new AppException(ErrorCode.RESOURCE_NOT_FOUND,
                     "Part not found: " + request.getTargetPartId());
+        }
+
+        if (request.getTestScope() == TestScope.MULTI_PART) {
+            java.util.Set<Integer> selectedPartIds = new java.util.HashSet<>(request.getTargetPartIds());
+            List<SectionFixture> selectedSections = new java.util.ArrayList<>();
+            for (SectionFixture section : cloned.getSections()) {
+                if (section == null || section.getParts() == null) continue;
+                List<PartFixture> selectedParts = section.getParts().stream()
+                        .filter(part -> part != null && selectedPartIds.contains(part.getId()))
+                        .toList();
+                if (!selectedParts.isEmpty()) {
+                    section.setParts(selectedParts);
+                    selectedSections.add(section);
+                }
+            }
+            cloned.setSections(selectedSections);
+            if (request.getTestMode() == TestMode.MOCK_TEST) {
+                cloned.setDurationMinutes(resolveDuration(exam, request));
+            }
+            return objectMapper.convertValue(cloned, Map.class);
         }
 
         return objectMapper.convertValue(exam, Map.class);

@@ -647,6 +647,15 @@ describe('getWorkspace and createAttempt contracts', () => {
     expect(res.serverTimeOffset).toBe(2000);
   });
 
+  it('sends MULTI_PART IDs using the targetPartIds API field', async () => {
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(3000);
+    mockAxios.post.mockResolvedValueOnce({ success: true, data: { ...validWorkspaceData, attemptId: 89, testScope: 'MULTI_PART' } });
+    await createAttempt({ exam_id: 1, test_scope: 'MULTI_PART', test_mode: 'PRACTICE', section_id: null, part_id: null, part_ids: [1, 4] });
+    expect(mockAxios.post).toHaveBeenCalledWith('/v1/attempts', expect.objectContaining({
+      testScope: 'MULTI_PART', targetPartIds: [1, 4],
+    }));
+  });
+
   it('rejects timestamps that are not strict ISO instants (year-only, date-only, locale, missing tz, invalid date) on GET and create POST', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1000);
     const nonIsoTimestamps = [

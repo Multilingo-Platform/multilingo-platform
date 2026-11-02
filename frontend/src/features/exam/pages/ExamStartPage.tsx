@@ -13,7 +13,7 @@ import type {
 } from '../types/api.types';
 
 const VALID_MODES: TestMode[] = ['MOCK_TEST', 'PRACTICE'];
-const VALID_SCOPES: TestScope[] = ['FULL_EXAM', 'SINGLE_SKILL', 'SINGLE_PART'];
+const VALID_SCOPES: TestScope[] = ['FULL_EXAM', 'SINGLE_SKILL', 'SINGLE_PART', 'MULTI_PART'];
 
 const ExamStartPage: React.FC = () => {
   useExamLocale();

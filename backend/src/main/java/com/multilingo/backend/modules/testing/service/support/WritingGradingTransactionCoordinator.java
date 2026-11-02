@@ -219,16 +219,22 @@ public class WritingGradingTransactionCoordinator {
 
         // Quota: Reserve một lần duy nhất trước khi gọi provider, retry không trừ thêm
         if (!Boolean.TRUE.equals(job.getQuotaReserved())) {
-            Optional<WritingGradingQuotaAdapter.QuotaReservation> resOpt = quotaAdapter.tryReserve(attempt.getUserId());
-            if (resOpt.isEmpty()) {
+            WritingGradingQuotaAdapter.QuotaAttempt quotaAttempt = quotaAdapter.tryReserveDetailed(attempt.getUserId());
+            if (quotaAttempt == null) {
+                Optional<WritingGradingQuotaAdapter.QuotaReservation> legacyAttempt = quotaAdapter.tryReserve(attempt.getUserId());
+                quotaAttempt = new WritingGradingQuotaAdapter.QuotaAttempt(legacyAttempt.orElse(null),
+                        legacyAttempt.isPresent() ? null : "QUOTA_UNAVAILABLE");
+            }
+            if (quotaAttempt.reservation() == null) {
                 job.setStatus(WritingGradingJobStatus.WAITING);
-                job.setWaitReason("QUOTA_UNAVAILABLE");
+                job.setWaitReason(quotaAttempt.denialCode() == null
+                        ? "QUOTA_CONFIGURATION_INVALID" : quotaAttempt.denialCode());
                 job.setNextAttemptAt(now.plus(properties.getQuotaRecheckInterval()));
                 jobRepository.save(job);
                 updateAttemptStatus(attempt);
-                return new ClaimDecision.Waiting("QUOTA_UNAVAILABLE");
+                return new ClaimDecision.Waiting(job.getWaitReason());
             }
-            WritingGradingQuotaAdapter.QuotaReservation res = resOpt.get();
+            WritingGradingQuotaAdapter.QuotaReservation res = quotaAttempt.reservation();
             job.setQuotaId(res.quotaId());
             job.setQuotaResetDate(res.resetDate());
             job.setQuotaReserved(true);
@@ -435,6 +441,12 @@ public class WritingGradingTransactionCoordinator {
             job.setCompletedAt(now);
             job.setLeaseUntil(null);
             job.setNextAttemptAt(null);
+            if (failure.validationCode() != null) {
+                Map<String, Object> metadata = job.getModelMetadata() == null
+                        ? new LinkedHashMap<>() : new LinkedHashMap<>(job.getModelMetadata());
+                metadata.put("validationCode", failure.validationCode().name());
+                job.setModelMetadata(metadata);
+            }
             if (Boolean.TRUE.equals(job.getQuotaReserved())) {
                 quotaAdapter.refund(job.getQuotaId(), job.getQuotaResetDate());
                 job.setQuotaReserved(false);

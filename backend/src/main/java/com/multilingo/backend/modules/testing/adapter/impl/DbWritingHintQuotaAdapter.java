@@ -20,8 +20,16 @@ public class DbWritingHintQuotaAdapter implements WritingHintQuotaAdapter {
 
     @Override
     public java.util.Optional<QuotaReservation> tryReserve(Integer userId) {
-        return quotaReservationService.tryReserve(userId)
-                .map(res -> new QuotaReservation(res.quotaId(), res.resetDate()));
+        return java.util.Optional.ofNullable(tryReserveDetailed(userId).reservation());
+    }
+
+    @Override
+    public QuotaAttempt tryReserveDetailed(Integer userId) {
+        UserQuotaReservationService.QuotaReservationAttempt attempt = quotaReservationService.tryReserveDetailed(
+                userId, UserQuotaReservationService.FEATURE_CODE);
+        QuotaReservation reservation = attempt.reservation() == null ? null
+                : new QuotaReservation(attempt.reservation().quotaId(), attempt.reservation().resetDate());
+        return new QuotaAttempt(reservation, attempt.denialReason() == null ? null : attempt.denialReason().name());
     }
 
     @Override

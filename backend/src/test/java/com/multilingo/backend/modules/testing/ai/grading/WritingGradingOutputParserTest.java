@@ -67,6 +67,33 @@ class WritingGradingOutputParserTest {
                 """.formatted(visualObs, tr, cc, lr, gra);
     }
 
+    private void assertValidationCode(String json, WritingGradingFailure.ValidationCode expected) {
+        assertThatThrownBy(() -> parser.parse(json, ORIGINAL_ESSAY, false))
+                .isInstanceOf(WritingGradingException.class)
+                .satisfies(ex -> {
+                    WritingGradingFailure failure = ((WritingGradingException) ex).getFailure();
+                    assertThat(failure.errorCode()).isEqualTo("MALFORMED_OUTPUT");
+                    assertThat(failure.validationCode()).isEqualTo(expected);
+                });
+    }
+
+    @Test
+    @DisplayName("MALFORMED_OUTPUT has stable internal validation categories")
+    void parse_malformedOutputsExposeOnlyFixedValidationCategories() {
+        String valid = validTextOnlyJsonResponse(6.0, 6.5, 7.0, 6.5);
+        assertValidationCode("not-json", WritingGradingFailure.ValidationCode.JSON_INVALID);
+        assertValidationCode(valid.replace("\"feedbackLanguage\": \"vi\"", "\"feedbackLanguage\": \"en\""),
+                WritingGradingFailure.ValidationCode.FIELD_INVALID);
+        assertValidationCode(valid.replace("\"score\": 6.0", "\"score\": 6.25"),
+                WritingGradingFailure.ValidationCode.SCORE_INVALID);
+        assertValidationCode(valid.replace("Nhận xét tiêu chí Task Response chi tiết.", "x".repeat(1001)),
+                WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED);
+        assertValidationCode(valid.replace("\"corrections\": [", "\"corrections\": [{\"start\": \"bad\"},"),
+                WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID);
+        assertValidationCode(valid.replace("Learning a language is good", "Completely different text"),
+                WritingGradingFailure.ValidationCode.RECONSTRUCTION_MISMATCH);
+    }
+
     @Test
     @DisplayName("Should successfully parse valid text-only JSON output and calculate overall score correctly")
     void parse_validJsonOutput_returnsWritingGradeWithCorrectCalculations() {

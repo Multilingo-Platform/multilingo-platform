@@ -53,7 +53,7 @@ describe('Practice dictionary end-to-end frontend contract', () => {
         phonetic: '/elm/', partOfSpeech: 'noun', example: 'The elms grow.', exampleTranslation: 'Cây du mọc.' },
         } } as never;
       }
-      return { success: true, data: { id: 18, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow beside the river.' } } as never;
+      return { success: true, data: { id: 18, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow.' } } as never;
     });
   });
 
@@ -67,7 +67,7 @@ describe('Practice dictionary end-to-end frontend contract', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/đã lưu/i));
     expect(http.post.mock.calls[0][0]).toBe('/v2/attempts/42/dictionary-lookups');
     expect(http.post.mock.calls[1][0]).toBe('/v1/vocab/decks/3/cards');
-    expect(http.post.mock.calls[1][1]).toMatchObject({ customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow beside the river.' });
+    expect(http.post.mock.calls[1][1]).toMatchObject({ customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow.' });
     expect(store.getState().answers).toMatchObject({ attemptId: 42, version: 7, isDirty: false });
   });
 

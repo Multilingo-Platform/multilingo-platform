@@ -36,7 +36,7 @@ export interface PracticeFeedbackResponse {
   groupResults?: PracticeFeedbackGroupResult[];
 }
 
-export type TestScope = 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART';
+export type TestScope = 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART' | 'MULTI_PART';
 export type TestMode = 'MOCK_TEST' | 'PRACTICE';
 
 export interface CreateAttemptRequest {
@@ -45,6 +45,7 @@ export interface CreateAttemptRequest {
   test_mode: TestMode;
   section_id: number | null;
   part_id: number | null;
+  part_ids?: number[];
 }
 
 /**

@@ -26,5 +26,5 @@ export function attemptStatusLabel(status: ExamResultResponse['status']): string
     COMPLETED: em("Bài làm đã hoàn tất"), EXPIRED: em("Bài làm đã hết hạn") }[status];
 }
 export function resultScopeLabel(scope: TestScope): string {
-  return { FULL_EXAM: em("Toàn bộ bài thi"), SINGLE_SKILL: em("Một kỹ năng"), SINGLE_PART: em("Một phần thi") }[scope];
+  return { FULL_EXAM: em("Toàn bộ bài thi"), SINGLE_SKILL: em("Một kỹ năng"), SINGLE_PART: em("Một phần thi"), MULTI_PART: em("Nhiều phần thi") }[scope];
 }

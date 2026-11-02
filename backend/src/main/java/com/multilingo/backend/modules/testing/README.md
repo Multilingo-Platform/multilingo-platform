@@ -20,7 +20,7 @@
 
 ## 2. CÁC BẢNG CƠ SỞ DỮ LIỆU PHỤ TRÁCH
 
-- `test_attempts`: Quản lý phiên làm bài (`test_mode`: `MOCK_TEST`, `PRACTICE`; `test_scope`: `FULL_EXAM`, `SINGLE_SKILL`, `SINGLE_PART`), `exam_snapshot` bất biến, thời gian bắt đầu/kết thúc, trạng thái, tổng điểm và `result_summary`.
+- `test_attempts`: Quản lý phiên làm bài (`test_mode`: `MOCK_TEST`, `PRACTICE`; `test_scope`: `FULL_EXAM`, `SINGLE_SKILL`, `SINGLE_PART`, `MULTI_PART`), `exam_snapshot` bất biến, thời gian bắt đầu/kết thúc, trạng thái, tổng điểm và `result_summary`.
 - `attempt_answers`: Chứa `user_answers` (JSONB), `is_correct_flags` (JSONB), `earned_score`, và `ai_feedback` (JSONB - kết quả AI chấm bài, diff và gợi ý sửa lỗi).
 - `writing_hint_requests`: Ledger idempotency/quota cho Writing Hints (xem mục 6.3).
 - `dictionary_lookup_requests`: Ledger idempotency, lease, replay và reservation/refund cho Tra từ AI trong Practice; chỉ lưu kết quả định nghĩa, không lưu passage.

@@ -23,6 +23,7 @@ const SCOPE_OPTIONS: { value: TestScope; label: string; desc: string }[] = [
   { value: 'FULL_EXAM', label: 'Toàn bộ đề', desc: 'Đầy đủ tất cả các phần và câu hỏi' },
   { value: 'SINGLE_SKILL', label: 'Một kỹ năng', desc: 'Chọn 1 kỹ năng trọng tâm' },
   { value: 'SINGLE_PART', label: 'Một phần', desc: 'Luyện riêng từng Part' },
+  { value: 'MULTI_PART', label: 'Nhiều phần', desc: 'Chọn nhiều Part từ một hoặc nhiều kỹ năng' },
 ];
 
 const MODE_OPTIONS: { value: TestMode; label: string; desc: string; activeColor: string }[] = [
@@ -137,16 +138,37 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   const [mode, setMode] = useState<TestMode | ''>(initialMode || '');
   const [sectionId, setSectionId] = useState('');
   const [partId, setPartId] = useState('');
+  const [selectedPartIds, setSelectedPartIds] = useState<number[]>([]);
+  const [activeSkillType, setActiveSkillType] = useState(sections.find(section => section.parts?.length)?.skillType ?? '');
 
   const needsSection = scope === 'SINGLE_SKILL' || scope === 'SINGLE_PART';
   const needsPart = scope === 'SINGLE_PART';
   const selectedSection = sections.find((s) => String(s.id) === sectionId);
+  const skillGroups = sections.reduce<{ skillType: string; label: string }[]>((groups, section) => {
+    const skillType = section.skillType || section.title || String(section.id);
+    if (!groups.some(group => group.skillType === skillType)) groups.push({ skillType, label: section.title || skillType });
+    return groups;
+  }, []);
+  const visibleSkillType = skillGroups.some(group => group.skillType === activeSkillType)
+    ? activeSkillType : (skillGroups[0]?.skillType ?? '');
+  const multiPartSectionIds = new Set(sections.filter(section =>
+    section.parts?.some(part => selectedPartIds.includes(part.id))
+  ).map(section => section.id));
+  const selectedMultiSections = sections.filter(section => multiPartSectionIds.has(section.id));
+  const multiPartDuration = selectedMultiSections.length > 0
+    && selectedMultiSections.every(section => Number.isSafeInteger(section.durationMinutes) && !!section.durationMinutes && section.durationMinutes > 0)
+    ? selectedMultiSections.reduce((total, section) => total + (section.durationMinutes ?? 0), 0)
+    : null;
+  const orderedSelectedPartIds = sections.flatMap(section =>
+    (section.parts ?? []).filter(part => selectedPartIds.includes(part.id)).map(part => part.id)
+  );
 
   const isValid =
     scope !== '' &&
     mode !== '' &&
     (!needsSection || sectionId !== '') &&
-    (!needsPart || (partId !== '' && !!selectedSection && selectedSection.parts.length > 0));
+    (!needsPart || (partId !== '' && !!selectedSection && selectedSection.parts.length > 0)) &&
+    (scope !== 'MULTI_PART' || (orderedSelectedPartIds.length >= 2 && (mode !== 'MOCK_TEST' || (multiPartDuration !== null && multiPartDuration > 0))));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +179,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
       test_mode: mode as TestMode,
       section_id: needsSection && sectionId ? parseInt(sectionId, 10) : null,
       part_id: needsPart && partId ? parseInt(partId, 10) : null,
+      ...(scope === 'MULTI_PART' ? { part_ids: orderedSelectedPartIds } : {}),
     });
   };
 
@@ -173,7 +196,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
         {/* Step 1: Scope */}
         <div>
           <StepHeader num={1} label={em("Chọn phạm vi bài thi")} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem' }}>
             {SCOPE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -182,7 +205,9 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
                 onClick={() => { setScope(opt.value); setSectionId(''); setPartId(''); }}
                 style={scope === opt.value ? scopeButtonActive : scopeButtonBase}
               >
-                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.8rem', color: '#111827', marginBottom: '0.125rem' }}>{opt.value === 'SINGLE_PART' ? singlePartLabel : em(opt.label)}</div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.8rem', color: '#111827', marginBottom: '0.125rem' }}>
+                  {opt.value === 'SINGLE_PART' ? singlePartLabel : opt.value === 'MULTI_PART' ? t('scope.multiPart', 'Nhiều phần') : em(opt.label)}
+                </div>
                 <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>{em(opt.desc)}</div>
               </button>
             ))}
@@ -233,6 +258,45 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {scope === 'MULTI_PART' && (
+          <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+            <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {em('Chọn kỹ năng và Part:')}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              {skillGroups.map(group => (
+                <button key={group.skillType} type="button" aria-pressed={visibleSkillType === group.skillType ? 'true' : 'false'}
+                  onClick={() => setActiveSkillType(group.skillType)} style={visibleSkillType === group.skillType ? pillActive : pillBase}>
+                  {group.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+              {sections.filter(section => (section.skillType || section.title || String(section.id)) === visibleSkillType)
+                .flatMap(section => (section.parts ?? []).map(part => ({ section, part })))
+                .map(({ part }) => {
+                  const partLabel = part.title || `Part ${part.partNumber}`;
+                  return (
+                    <label key={part.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 0.65rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', background: selectedPartIds.includes(part.id) ? '#fffbeb' : '#fff', cursor: 'pointer', fontSize: '0.78rem' }}>
+                      <input type="checkbox" aria-label={partLabel} checked={selectedPartIds.includes(part.id)}
+                        onChange={event => setSelectedPartIds(current => event.target.checked
+                          ? current.includes(part.id) ? current : [...current, part.id]
+                          : current.filter(id => id !== part.id))} />
+                      <span>{partLabel}</span>
+                    </label>
+                  );
+                })}
+            </div>
+            <div role="status" style={{ marginTop: '0.65rem', padding: '0.65rem', background: '#f9fafb', borderRadius: '0.5rem', color: '#4b5563', fontSize: '0.78rem' }}>
+              {em('Đã chọn {{v0}} phần', { v0: orderedSelectedPartIds.length })}
+              {mode === 'MOCK_TEST' && (multiPartDuration === null || multiPartDuration <= 0
+                ? ` · ${em(orderedSelectedPartIds.length < 2 ? 'Chọn ít nhất hai Part để bắt đầu.' : 'Thiếu thời lượng hợp lệ ở một kỹ năng đã chọn.')}`
+                : ` · ${em('Tổng thời lượng Mock: {{v0}} phút', { v0: multiPartDuration })}`)}
+              {mode === 'PRACTICE' && ` · ${em('Practice không giới hạn thời gian.')}`}
+            </div>
           </div>
         )}
 

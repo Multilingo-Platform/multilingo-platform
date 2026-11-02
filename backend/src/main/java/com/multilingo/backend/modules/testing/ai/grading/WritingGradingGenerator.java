@@ -70,7 +70,7 @@ public class WritingGradingGenerator {
 
         boolean hasVisualContext = !imageParts.isEmpty();
         try {
-            WritingGrade grade = outputParser.parse(result.text(), context.originalText(), hasVisualContext,
+            WritingGrade grade = outputParser.parseGenerated(result.text(), context.originalText(), hasVisualContext,
                     context.rubricPolicy(), context.feedbackLanguage());
             if (imageDigests != null && !imageDigests.isEmpty()) {
                 return grade.withImageDigests(imageDigests);

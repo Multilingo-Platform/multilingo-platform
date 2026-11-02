@@ -32,7 +32,6 @@ class WritingGradingGeneratorTest {
                 {"code": "GRA", "score": 6.5, "feedback": "Nhận xét GRA."}
               ],
               "overallFeedback": "Tổng quan tốt.",
-              "correctedEssay": "Learning language is good for career and opens many chance.",
               "corrections": []
             }
             """;
@@ -48,7 +47,6 @@ class WritingGradingGeneratorTest {
                 {"code": "GRA", "score": 6.5, "feedback": "Nhận xét GRA."}
               ],
               "overallFeedback": "Tổng quan tốt.",
-              "correctedEssay": "Learning language is good for career and opens many chance.",
               "corrections": []
             }
             """;
@@ -94,7 +92,7 @@ class WritingGradingGeneratorTest {
         WritingGradingContext context = new WritingGradingContext(8, "w_8", "WRITING", null, null,
                 "作文を書いてください", "水です", "ja", 3, List.of(), policy, "fr", metric);
         String response = """
-                {"feedbackLanguage":"fr","criteria":[{"code":"TR","score":8,"feedback":"Bien."},{"code":"CC","score":8,"feedback":"Bien."},{"code":"LR","score":8,"feedback":"Bien."},{"code":"GRA","score":8,"feedback":"Bien."}],"overallFeedback":"Bon travail.","correctedEssay":"水です","corrections":[]}
+                {"feedbackLanguage":"fr","criteria":[{"code":"TR","score":8,"feedback":"Bien."},{"code":"CC","score":8,"feedback":"Bien."},{"code":"LR","score":8,"feedback":"Bien."},{"code":"GRA","score":8,"feedback":"Bien."}],"overallFeedback":"Bon travail.","corrections":[]}
                 """;
         when(geminiClient.generate(any(GeminiGenerationRequest.class)))
                 .thenReturn(new GeminiGenerationResult(response, new GeminiGenerationResult.Usage(10, 10, 20)));

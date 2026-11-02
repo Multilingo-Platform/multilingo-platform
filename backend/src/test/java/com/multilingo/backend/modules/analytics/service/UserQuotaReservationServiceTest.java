@@ -352,7 +352,7 @@ class UserQuotaReservationServiceTest {
         when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS"))
                 .thenReturn(List.of())
                 .thenReturn(List.of(createdQuota));
-        when(userQuotaRepository.insertWritingHintsQuotaIfAbsent(eq(5), eq(5), eq(fixedNow), any()))
+        when(userQuotaRepository.insertWritingQuotaIfAbsent(eq(5), eq("AI_WRITING_HINTS"), eq(5), eq(fixedNow), any()))
                 .thenReturn(1);
         when(userQuotaRepository.conditionalIncrement(eq(50), any(), eq(fixedNow)))
                 .thenReturn(1);
@@ -361,7 +361,67 @@ class UserQuotaReservationServiceTest {
 
         assertThat(reservationOpt).isPresent();
         assertThat(reservationOpt.get().quotaId()).isEqualTo(50);
-        verify(userQuotaRepository).insertWritingHintsQuotaIfAbsent(eq(5), eq(5), eq(fixedNow), any());
+        verify(userQuotaRepository).insertWritingQuotaIfAbsent(eq(5), eq("AI_WRITING_HINTS"), eq(5), eq(fixedNow), any());
+    }
+
+    @Test
+    @DisplayName("tryReserve provisions AI_WRITING_GRADING independently using the FREE daily default")
+    void tryReserveAutoProvisionsWritingGradingQuota() {
+        Instant resetAt = Instant.parse("2026-10-13T17:00:00Z");
+        UserQuota createdQuota = UserQuota.builder().userId(5).featureCode("AI_WRITING_GRADING")
+                .usedCount(0).maxLimit(5).resetDate(resetAt).build();
+        createdQuota.setId(51);
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_GRADING"))
+                .thenReturn(List.of()).thenReturn(List.of(createdQuota));
+        when(userQuotaRepository.insertWritingQuotaIfAbsent(eq(5), eq("AI_WRITING_GRADING"), eq(5), eq(fixedNow), any()))
+                .thenReturn(1);
+        when(userQuotaRepository.conditionalIncrement(eq(51), eq(resetAt), eq(fixedNow))).thenReturn(1);
+
+        var result = reservationService.tryReserveDetailed(5, "AI_WRITING_GRADING");
+
+        assertThat(result.reservation()).isNotNull();
+        assertThat(result.denialReason()).isNull();
+        verify(userQuotaRepository).insertWritingQuotaIfAbsent(eq(5), eq("AI_WRITING_GRADING"), eq(5), eq(fixedNow), any());
+    }
+
+    @Test
+    @DisplayName("zero configured quota is valid and reported as exhausted, not repaired")
+    void zeroQuotaIsNotRepaired() {
+        UserQuota disabled = UserQuota.builder().userId(5).featureCode("AI_WRITING_HINTS")
+                .usedCount(0).maxLimit(0).resetDate(fixedNow.plusSeconds(3600)).build();
+        disabled.setId(52);
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS")).thenReturn(List.of(disabled));
+
+        var result = reservationService.tryReserveDetailed(5, "AI_WRITING_HINTS");
+
+        assertThat(result.reservation()).isNull();
+        assertThat(result.denialReason()).isEqualTo(UserQuotaReservationService.QuotaDenialReason.QUOTA_EXHAUSTED);
+        verify(userQuotaRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("expired grading quota resets with configured plan limit and Ho Chi Minh midnight")
+    void expiredGradingQuotaUsesTierConfigurationAtReset() {
+        UserRepository userRepo = mock(UserRepository.class);
+        User premium = mock(User.class);
+        when(premium.getSubscriptionTier()).thenReturn(SubscriptionTier.PREMIUM);
+        when(premium.getPremiumExpiresAt()).thenReturn(fixedNow.plusSeconds(86400));
+        when(userRepo.findById(5)).thenReturn(java.util.Optional.of(premium));
+        UserQuota plan = UserQuota.builder().userId(-1).featureCode("AI_WRITING_GRADING").maxLimit(12).build();
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(-1, "AI_WRITING_GRADING")).thenReturn(List.of(plan));
+        UserQuota expired = UserQuota.builder().userId(5).featureCode("AI_WRITING_GRADING").usedCount(5).maxLimit(5)
+                .resetDate(Instant.parse("2026-10-12T16:59:59Z")).build();
+        expired.setId(53);
+        when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_GRADING")).thenReturn(List.of(expired));
+        when(userQuotaRepository.conditionalIncrement(eq(53), any(), eq(fixedNow))).thenReturn(1);
+
+        var result = new UserQuotaReservationService(userQuotaRepository, clock, null, userRepo)
+                .tryReserveDetailed(5, "AI_WRITING_GRADING");
+
+        assertThat(result.reservation()).isNotNull();
+        assertThat(expired.getUsedCount()).isZero();
+        assertThat(expired.getMaxLimit()).isEqualTo(12);
+        assertThat(expired.getResetDate()).isEqualTo(Instant.parse("2026-10-13T17:00:00Z"));
     }
 
     @Test
@@ -406,8 +466,6 @@ class UserQuotaReservationServiceTest {
 
         when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS"))
                 .thenReturn(List.of(quota));
-        when(userQuotaRepository.conditionalIncrement(eq(50), eq(futureReset), eq(fixedNow)))
-                .thenReturn(0);
 
         var reservationOpt = reservationService.tryReserve(5);
 
@@ -440,7 +498,7 @@ class UserQuotaReservationServiceTest {
         when(userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(5, "AI_WRITING_HINTS"))
                 .thenReturn(List.of())
                 .thenReturn(List.of(createdQuota));
-        when(userQuotaRepository.insertWritingHintsQuotaIfAbsent(eq(5), eq(20), eq(fixedNow), any()))
+        when(userQuotaRepository.insertWritingQuotaIfAbsent(eq(5), eq("AI_WRITING_HINTS"), eq(20), eq(fixedNow), any()))
                 .thenReturn(1);
         when(userQuotaRepository.conditionalIncrement(eq(50), any(), eq(fixedNow)))
                 .thenReturn(1);
@@ -448,6 +506,6 @@ class UserQuotaReservationServiceTest {
         var reservationOpt = vipService.tryReserve(5);
 
         assertThat(reservationOpt).isPresent();
-        verify(userQuotaRepository).insertWritingHintsQuotaIfAbsent(eq(5), eq(20), eq(fixedNow), any());
+        verify(userQuotaRepository).insertWritingQuotaIfAbsent(eq(5), eq("AI_WRITING_HINTS"), eq(20), eq(fixedNow), any());
     }
 }

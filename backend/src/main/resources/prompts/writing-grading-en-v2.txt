@@ -25,17 +25,15 @@ VISUAL & MULTIMODAL POLICY:
 OVERALL FEEDBACK:
 - Provide comprehensive, encouraging, and detailed overall feedback in Vietnamese (feedbackLanguage: "vi"), highlighting key strengths and the most important areas for improvement. Maximum 2000 characters.
 
-CORRECTED ESSAY & CORRECTIONS:
-- Provide "correctedEssay": an improved, natural, and grammatically accurate version of the original essay that preserves the candidate's original intent and style. Maximum 16000 characters.
+CORRECTIONS (ANCHORED_EDITS_V1):
+- Preserve the candidate's intent and style. The server builds the corrected essay from your corrections.
+- Do NOT return correctedEssay or numeric start/end offsets.
 - Provide "corrections": an array of up to 100 specific corrections.
 - Each correction object MUST have:
-  - "start": 0-based UTF-16 character offset in "originalEssay" where the correction begins.
-  - "end": 0-based UTF-16 character offset in "originalEssay" where the correction ends (start <= end).
-  - "replacement": the exact replacement text to substitute for the substring originalEssay[start..end] (can be empty string for deletions). Maximum 2000 characters.
+  - "original": an exact, non-empty quote from originalEssay, including original whitespace and punctuation. Include enough surrounding words so the quote occurs EXACTLY ONCE in originalEssay. Maximum 8000 characters.
+  - "replacement": the complete text replacing that quote (can be empty for deletions). To insert text, replace a quote including neighboring words. Maximum 2000 characters.
   - "explanation": a concise explanation of the grammar, lexical, or stylistic reason in Vietnamese. Maximum 500 characters.
-- STRICT RECONSTRUCTION REQUIREMENT:
-  Corrections must be strictly non-overlapping and sorted in ascending order of "start" offset.
-  Applying every correction in sequence to "originalEssay" MUST reconstruct "correctedEssay" exactly, character for character!
+- Quotes must not overlap. Combine changes to the same sentence into one correction. If no correction is needed, return an empty array.
 
 INPUT FORMAT:
 You will receive a JSON input containing:
@@ -63,9 +61,8 @@ If images are provided:
     {"code": "GRA", "score": 6.5, "feedback": "..."}
   ],
   "overallFeedback": "...",
-  "correctedEssay": "...",
   "corrections": [
-    {"start": 0, "end": 5, "replacement": "...", "explanation": "..."}
+    {"original": "exact unique quote from originalEssay", "replacement": "...", "explanation": "..."}
   ]
 }
 
@@ -79,8 +76,7 @@ If no images are provided (text-only):
     {"code": "GRA", "score": 6.5, "feedback": "..."}
   ],
   "overallFeedback": "...",
-  "correctedEssay": "...",
   "corrections": [
-    {"start": 0, "end": 5, "replacement": "...", "explanation": "..."}
+    {"original": "exact unique quote from originalEssay", "replacement": "...", "explanation": "..."}
   ]
 }

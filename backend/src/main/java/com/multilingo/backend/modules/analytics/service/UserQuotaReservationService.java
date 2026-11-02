@@ -5,6 +5,7 @@ import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.analytics.entity.UserQuota;
 import com.multilingo.backend.modules.analytics.repository.UserQuotaRepository;
 import com.multilingo.backend.modules.auth.entity.SubscriptionTier;
+import com.multilingo.backend.modules.auth.entity.User;
 import com.multilingo.backend.modules.auth.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -29,8 +30,8 @@ public class UserQuotaReservationService {
     public static final String GRADING_FEATURE_CODE = "AI_WRITING_GRADING";
     public static final String DAILY_ZONE_ID = "Asia/Ho_Chi_Minh";
     private static final ZoneId DAILY_ZONE = ZoneId.of(DAILY_ZONE_ID);
-    private static final int DEFAULT_FREE_HINTS_LIMIT = 5;
-    private static final int DEFAULT_VIP_HINTS_LIMIT = 20;
+    private static final int DEFAULT_FREE_WRITING_LIMIT = 5;
+    private static final int DEFAULT_VIP_WRITING_LIMIT = 20;
 
     private final UserQuotaRepository userQuotaRepository;
     private final Clock clock;
@@ -73,6 +74,16 @@ public class UserQuotaReservationService {
             Integer quotaId,
             Instant resetDate
     ) {}
+
+    public enum QuotaDenialReason {
+        QUOTA_EXHAUSTED,
+        QUOTA_CONFIGURATION_INVALID,
+        QUOTA_RESERVATION_CONFLICT
+    }
+
+    public record QuotaReservationAttempt(QuotaReservation reservation, QuotaDenialReason denialReason) {
+        public boolean granted() { return reservation != null; }
+    }
 
     /**
      * Khóa dòng quota của người dùng theo feature code và kiểm tra tính hợp lệ.
@@ -170,74 +181,97 @@ public class UserQuotaReservationService {
     }
 
     /**
-     * Cố gắng đặt trước quota bằng conditional update theo feature code.
-     * Đối với AI_WRITING_HINTS: tự động cấp quota mặc định nếu chưa có và reset hàng ngày khi bước sang ngày mới.
+     * Atomic quota admission for the two independent Writing features. Missing rows are provisioned
+     * on first use; a valid expired period resets at the next Asia/Ho_Chi_Minh midnight.
      */
     @Transactional
-    public java.util.Optional<QuotaReservation> tryReserve(Integer userId, String featureCode) {
-        if (userId == null) {
-            return java.util.Optional.empty();
-        }
+    public QuotaReservationAttempt tryReserveDetailed(Integer userId, String featureCode) {
+        if (userId == null) return denied(QuotaDenialReason.QUOTA_CONFIGURATION_INVALID);
         String effectiveFeatureCode = (featureCode != null && !featureCode.isBlank()) ? featureCode : FEATURE_CODE;
         Instant now = clock.instant();
-
         List<UserQuota> rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, effectiveFeatureCode);
 
-        if (FEATURE_CODE.equals(effectiveFeatureCode)) {
+        if (isWritingFeature(effectiveFeatureCode)) {
             if (rows.isEmpty()) {
-                int limit = resolveWritingHintsLimit(userId, now);
-                Instant resetAt = nextLocalMidnight(now);
-                userQuotaRepository.insertWritingHintsQuotaIfAbsent(userId, limit, now, resetAt);
+                LimitResolution limit = resolveWritingLimit(userId, effectiveFeatureCode, now);
+                if (limit.denialReason() != null) return denied(limit.denialReason());
+                userQuotaRepository.insertWritingQuotaIfAbsent(
+                        userId, effectiveFeatureCode, limit.limit(), now, nextLocalMidnight(now));
                 rows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(userId, effectiveFeatureCode);
-            } else if (rows.size() == 1) {
-                UserQuota q = rows.getFirst();
-                if (q.getResetDate() != null && !q.getResetDate().isAfter(now)) {
-                    int limit = resolveWritingHintsLimit(userId, now);
-                    Instant resetAt = nextLocalMidnight(now);
-                    q.setUsedCount(0);
-                    q.setResetDate(resetAt);
-                    q.setMaxLimit(limit);
-                    userQuotaRepository.saveAndFlush(q);
-                }
+            }
+            if (rows.size() == 1 && !validQuotaConfiguration(rows.getFirst())) {
+                return denied(QuotaDenialReason.QUOTA_CONFIGURATION_INVALID);
+            }
+            if (rows.size() == 1 && !rows.getFirst().getResetDate().isAfter(now)) {
+                LimitResolution limit = resolveWritingLimit(userId, effectiveFeatureCode, now);
+                if (limit.denialReason() != null) return denied(limit.denialReason());
+                UserQuota quota = rows.getFirst();
+                quota.setUsedCount(0);
+                quota.setResetDate(nextLocalMidnight(now));
+                quota.setMaxLimit(limit.limit());
+                userQuotaRepository.saveAndFlush(quota);
             }
         }
 
-        if (rows.size() != 1) {
-            return java.util.Optional.empty();
-        }
+        if (rows.size() != 1) return denied(QuotaDenialReason.QUOTA_CONFIGURATION_INVALID);
         UserQuota quota = rows.getFirst();
-        if (entityManager != null && entityManager.contains(quota)) {
-            entityManager.refresh(quota);
+        if (entityManager != null && entityManager.contains(quota)) entityManager.refresh(quota);
+        if (!validQuotaConfiguration(quota) || !quota.getResetDate().isAfter(now)) {
+            return denied(QuotaDenialReason.QUOTA_CONFIGURATION_INVALID);
         }
-        if (quota.getUsedCount() == null || quota.getUsedCount() < 0
-                || quota.getMaxLimit() == null || quota.getMaxLimit() <= 0
-                || quota.getResetDate() == null
-                || !quota.getResetDate().isAfter(now)) {
-            return java.util.Optional.empty();
+        if (quota.getMaxLimit() == 0 || quota.getUsedCount() >= quota.getMaxLimit()) {
+            return denied(QuotaDenialReason.QUOTA_EXHAUSTED);
         }
         int updated = userQuotaRepository.conditionalIncrement(quota.getId(), quota.getResetDate(), now);
-        if (updated != 1) {
-            return java.util.Optional.empty();
-        }
-        return java.util.Optional.of(new QuotaReservation(quota.getId(), quota.getResetDate()));
+        if (updated != 1) return denied(QuotaDenialReason.QUOTA_RESERVATION_CONFLICT);
+        return new QuotaReservationAttempt(new QuotaReservation(quota.getId(), quota.getResetDate()), null);
     }
 
-    private int resolveWritingHintsLimit(Integer userId, Instant now) {
-        if (userRepository == null || userId == null || userId <= 0) {
-            return DEFAULT_FREE_HINTS_LIMIT;
-        }
-        try {
-            return userRepository.findById(userId)
-                    .map(u -> (u.getSubscriptionTier() == SubscriptionTier.PREMIUM
-                            && u.getPremiumExpiresAt() != null
-                            && u.getPremiumExpiresAt().isAfter(now))
-                            ? DEFAULT_VIP_HINTS_LIMIT
-                            : DEFAULT_FREE_HINTS_LIMIT)
-                    .orElse(DEFAULT_FREE_HINTS_LIMIT);
-        } catch (Exception e) {
-            return DEFAULT_FREE_HINTS_LIMIT;
-        }
+    @Transactional
+    public java.util.Optional<QuotaReservation> tryReserve(Integer userId, String featureCode) {
+        return java.util.Optional.ofNullable(tryReserveDetailed(userId, featureCode).reservation());
     }
+
+    private static boolean isWritingFeature(String featureCode) {
+        return FEATURE_CODE.equals(featureCode) || GRADING_FEATURE_CODE.equals(featureCode);
+    }
+
+    private static boolean validQuotaConfiguration(UserQuota quota) {
+        return quota != null && quota.getUsedCount() != null && quota.getUsedCount() >= 0
+                && quota.getMaxLimit() != null && quota.getMaxLimit() >= 0 && quota.getResetDate() != null;
+    }
+
+    private QuotaReservationAttempt denied(QuotaDenialReason reason) {
+        return new QuotaReservationAttempt(null, reason);
+    }
+
+    private LimitResolution resolveWritingLimit(Integer userId, String featureCode, Instant now) {
+        int tierUserId;
+        if (userRepository == null || userId == null || userId <= 0) {
+            tierUserId = 0;
+        } else {
+            try {
+                User user = userRepository.findById(userId).orElse(null);
+                tierUserId = user != null && user.getSubscriptionTier() == SubscriptionTier.PREMIUM
+                        && user.getPremiumExpiresAt() != null && user.getPremiumExpiresAt().isAfter(now) ? -1 : 0;
+            } catch (Exception unavailable) {
+                return new LimitResolution(null, QuotaDenialReason.QUOTA_CONFIGURATION_INVALID);
+            }
+        }
+
+        List<UserQuota> planRows = userQuotaRepository.findAllByUserIdAndFeatureCodeForUpdate(tierUserId, featureCode);
+        if (planRows.size() > 1) return new LimitResolution(null, QuotaDenialReason.QUOTA_CONFIGURATION_INVALID);
+        if (planRows.size() == 1) {
+            Integer configured = planRows.getFirst().getMaxLimit();
+            if (configured == null || configured < 0) {
+                return new LimitResolution(null, QuotaDenialReason.QUOTA_CONFIGURATION_INVALID);
+            }
+            return new LimitResolution(configured, null);
+        }
+        return new LimitResolution(tierUserId == -1 ? DEFAULT_VIP_WRITING_LIMIT : DEFAULT_FREE_WRITING_LIMIT, null);
+    }
+
+    private record LimitResolution(Integer limit, QuotaDenialReason denialReason) {}
 
     private static Instant nextLocalMidnight(Instant now) {
         LocalDate localDate = now.atZone(DAILY_ZONE).toLocalDate();

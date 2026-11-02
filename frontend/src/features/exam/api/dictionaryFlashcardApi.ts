@@ -2,6 +2,7 @@ import axiosClient from '../../../core/api/axiosClient';
 import type { CreateDeckRequest, CreateFlashcardRequest, DeckSummary, Flashcard } from '../../vocab/types/vocab.types';
 import type { DictionaryResult } from '../types/api.types';
 import { canonicalizeLearningLanguage } from '../../../core/i18n/learningLanguages';
+import { selectFlashcardExample } from '../../vocab/utils/flashcardExample';
 
 const FLASHCARD_TIMEOUT_MS = 15_000;
 export class DictionaryFlashcardDuplicateError extends Error {
@@ -69,7 +70,8 @@ export async function addDictionaryFlashcard(deck: DeckSummary, ownerId: number,
   const source = canonicalizeLearningLanguage(result.definition.meaningLanguage);
   if (!target || !source || !eligibleDeck(deck, ownerId, target, source)) throw new DictionaryFlashcardContractError();
   const body: CreateFlashcardRequest = {
-    customWord: result.selectedText, customMeaning: result.definition.meaning, exampleSentence: result.sourceContext,
+    customWord: result.selectedText, customMeaning: result.definition.meaning,
+    exampleSentence: selectFlashcardExample(result.selectedText, result.definition.example, result.sourceContext),
     phonetic: result.definition.phonetic ?? undefined, pos: result.definition.partOfSpeech ?? undefined,
   };
   let raw: unknown;

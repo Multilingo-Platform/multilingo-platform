@@ -9,6 +9,7 @@ import com.multilingo.backend.modules.testing.dto.response.WritingHintsResponse;
 import com.multilingo.backend.modules.testing.service.WritingHintsService;
 import com.multilingo.backend.modules.testing.service.support.WritingHintTransactionCoordinator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class WritingHintsServiceImpl implements WritingHintsService {
 
     private final WritingHintTransactionCoordinator coordinator;
@@ -41,6 +43,9 @@ public class WritingHintsServiceImpl implements WritingHintsService {
         }
 
         if (beginDecision instanceof WritingHintTransactionCoordinator.BeginDecision.Denied denied) {
+            if (denied.safeReasonCode() != null) {
+                log.warn("Writing hints quota denied: attemptId={}, reasonCode={}", attemptId, denied.safeReasonCode());
+            }
             if (denied.retryAfterSeconds() != null) {
                 throw new com.multilingo.backend.modules.testing.exception.WritingHintsRetryAfterException(
                         denied.errorCode(), denied.message(), denied.retryAfterSeconds()

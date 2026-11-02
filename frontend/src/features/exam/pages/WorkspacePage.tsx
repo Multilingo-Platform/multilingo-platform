@@ -1001,7 +1001,8 @@ const WorkspacePage: React.FC = () => {
     || (currentPart as any)?.partTitle
     || currentPart?.content?.part_title;
   const partTitle = authoredPartTitle || `${partHeaderInfo.unitLabel} ${partHeaderInfo.currentNumber}`;
-  const isMockFull = activeWorkspace.test_mode === 'MOCK_TEST' && activeWorkspace.test_scope === 'FULL_EXAM';
+  const isMockFull = activeWorkspace.test_mode === 'MOCK_TEST'
+    && (activeWorkspace.test_scope === 'FULL_EXAM' || activeWorkspace.test_scope === 'MULTI_PART');
 
   const handleReload = () => {
     if (isSubmitting || store.getState().answers.saveStatus === 'saving') return;
@@ -1709,7 +1710,7 @@ const WorkspacePage: React.FC = () => {
                                 currentAnswer={currentVal}
                                 minWords={minWords}
                                 learningLanguage={examLanguage}
-                                showPrompt={currentSkill !== 'WRITING'}
+                                showPrompt={false}
                                 onChange={(val) => {
                                   if (!isCurrentSectionLocked && !submission.isLocked()) {
                                     if (isPrimaryMulti && nextQId) {

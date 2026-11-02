@@ -9,6 +9,7 @@ interface Props {
   onChange: (v: string) => void;
   questionText: string;
   questionId?: string;
+  showPrompt?: boolean;
 }
 
 const MatchingRenderer: React.FC<Props> = ({
@@ -17,6 +18,7 @@ const MatchingRenderer: React.FC<Props> = ({
   onChange,
   questionText,
   questionId = 'unknown',
+  showPrompt = true,
 }) => {
   useExamLocale();
   const normalizedOptions: ExamOption[] = (options ?? []).map((opt, idx) => {
@@ -28,7 +30,7 @@ const MatchingRenderer: React.FC<Props> = ({
 
   return (
     <div className="space-y-3">
-      {questionText && (
+      {showPrompt && questionText && (
         <div className="font-medium text-slate-800">
           <WorkspaceText
             source={{ kind: 'QUESTION_TEXT', questionId }}

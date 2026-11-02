@@ -45,6 +45,17 @@ class DbWritingHintQuotaAdapterTest {
     }
 
     @Test
+    @DisplayName("tryReserveDetailed preserves safe quota denial reason")
+    void tryReserveDetailedPreservesDenialReason() {
+        when(reservationService.tryReserveDetailed(10, UserQuotaReservationService.FEATURE_CODE))
+                .thenReturn(new UserQuotaReservationService.QuotaReservationAttempt(null,
+                        UserQuotaReservationService.QuotaDenialReason.QUOTA_CONFIGURATION_INVALID));
+        WritingHintQuotaAdapter.QuotaAttempt result = adapter.tryReserveDetailed(10);
+        assertThat(result.reservation()).isNull();
+        assertThat(result.denialCode()).isEqualTo("QUOTA_CONFIGURATION_INVALID");
+    }
+
+    @Test
     @DisplayName("refund ủy quyền cho UserQuotaReservationService.refund")
     void refundDelegatesToReservationService() {
         Instant resetDate = Instant.parse("2026-10-12T19:00:00Z");
