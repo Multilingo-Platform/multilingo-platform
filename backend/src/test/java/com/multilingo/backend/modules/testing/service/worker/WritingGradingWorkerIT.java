@@ -219,10 +219,9 @@ public class WritingGradingWorkerIT {
                     {"code": "GRA", "score": 6.5, "feedback": "Ngữ pháp chính xác."}
                   ],
                   "overallFeedback": "Bài viết đạt yêu cầu rất tốt.",
-                  "correctedEssay": "%s",
                   "corrections": []
                 }
-                """.formatted(essay);
+                """;
     }
 
     private String validVisualJsonResponse(String essay, String visualObservations) {
@@ -237,10 +236,9 @@ public class WritingGradingWorkerIT {
                     {"code": "GRA", "score": 7.5, "feedback": "Cấu trúc câu đa dạng."}
                   ],
                   "overallFeedback": "Phân tích biểu đồ xuất sắc.",
-                  "correctedEssay": "%s",
                   "corrections": []
                 }
-                """.formatted(visualObservations, essay);
+                """.formatted(visualObservations);
     }
 
     @Test

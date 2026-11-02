@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -56,6 +57,62 @@ public class WritingGradingOutputParser {
         return parse(rawText, originalEssay, false);
     }
 
+    /** Provider contract: exact source anchors; offsets and corrected text are server-owned. */
+    public WritingGrade parseGenerated(String rawText, String originalEssay, boolean hasVisualContext,
+                                       WritingRubricPolicy policy, String feedbackLanguage) {
+        ObjectNode root = (ObjectNode) readRoot(rawText);
+        if (root.has("correctedEssay")) {
+            throw malformed("Provider must not supply an independent correctedEssay");
+        }
+        JsonNode edits = root.get("corrections");
+        if (edits == null || !edits.isArray()) {
+            throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "corrections must be an array");
+        }
+        if (edits.size() > MAX_CORRECTIONS_COUNT) {
+            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Too many corrections");
+        }
+        String original = originalEssay == null ? "" : originalEssay;
+        List<WritingGrade.Correction> resolved = new ArrayList<>();
+        for (JsonNode edit : edits) {
+            if (!edit.isObject()) throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Invalid anchored correction");
+            var fields = edit.fieldNames();
+            while (fields.hasNext()) {
+                if (!Set.of("original", "replacement", "explanation").contains(fields.next())) {
+                    throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Unknown anchored correction field");
+                }
+            }
+            for (String field : List.of("original", "replacement", "explanation")) {
+                if (!edit.path(field).isTextual()) {
+                    throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Missing anchored correction text");
+                }
+            }
+            String anchor = edit.get("original").textValue();
+            String replacement = edit.get("replacement").textValue();
+            String explanation = edit.get("explanation").textValue();
+            if (anchor.codePointCount(0, anchor.length()) > 8000
+                    || replacement.codePointCount(0, replacement.length()) > MAX_REPLACEMENT_CODE_POINTS
+                    || explanation.codePointCount(0, explanation.length()) > MAX_EXPLANATION_CODE_POINTS) {
+                throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Anchored correction exceeds text limits");
+            }
+            int start = anchor.isBlank() ? -1 : original.indexOf(anchor);
+            if (start < 0 || original.indexOf(anchor, start + 1) >= 0) {
+                throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Source anchor is missing or ambiguous");
+            }
+            resolved.add(new WritingGrade.Correction(start, start + anchor.length(), replacement, explanation));
+        }
+        resolved.sort(Comparator.comparingInt(WritingGrade.Correction::start));
+        String corrected;
+        try {
+            corrected = WritingDiffBuilder.applyCorrections(original, resolved);
+        } catch (IllegalArgumentException | IndexOutOfBoundsException invalid) {
+            throw malformed(WritingGradingFailure.ValidationCode.CORRECTIONS_INVALID, "Invalid anchored corrections layout");
+        }
+        root.put("correctedEssay", corrected);
+        root.set("corrections", objectMapper.valueToTree(resolved));
+        // Keep the persisted/public schema, score, limits, UTF-16 and reconstruction validation unchanged.
+        return parse(root.toString(), original, hasVisualContext, policy, feedbackLanguage);
+    }
+
     public WritingGrade parse(String rawText, String originalEssay, boolean hasVisualContext) {
         return parse(rawText, originalEssay, hasVisualContext, null, WritingGrade.DEFAULT_LANGUAGE);
     }
@@ -69,32 +126,7 @@ public class WritingGradingOutputParser {
         Set<BigDecimal> allowedScores = allowedScores(maxScore);
         String safeOriginal = (originalEssay == null) ? "" : originalEssay;
 
-        if (rawText == null || rawText.isBlank()) {
-            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response is null or blank");
-        }
-
-        byte[] bytes = rawText.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length > MAX_RAW_OUTPUT_BYTES) {
-            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Gemini response exceeds maximum size limit");
-        }
-
-        if (rawText.contains("```")) {
-            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response contains Markdown code fences");
-        }
-
-        JsonNode root;
-        try (JsonParser parser = objectMapper.createParser(rawText)) {
-            root = objectMapper.readTree(parser);
-            if (parser.nextToken() != null) {
-                throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response contains trailing characters after JSON object");
-            }
-        } catch (IOException e) {
-            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Failed to parse JSON response");
-        }
-
-        if (root == null || !root.isObject()) {
-            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response root must be a JSON object");
-        }
+        JsonNode root = readRoot(rawText);
 
         // Validate root keys against allowlist
         Set<String> rootAllowlist = hasVisualContext ? VISUAL_ROOT_ALLOWLIST : TEXT_ONLY_ROOT_ALLOWLIST;
@@ -324,6 +356,27 @@ public class WritingGradingOutputParser {
 
     private WritingGradingException malformed(String message) {
         return malformed(WritingGradingFailure.ValidationCode.FIELD_INVALID, message);
+    }
+
+    private JsonNode readRoot(String rawText) {
+        if (rawText == null || rawText.isBlank()) {
+            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response is null or blank");
+        }
+        if (rawText.getBytes(StandardCharsets.UTF_8).length > MAX_RAW_OUTPUT_BYTES) {
+            throw malformed(WritingGradingFailure.ValidationCode.LIMIT_EXCEEDED, "Gemini response exceeds maximum size limit");
+        }
+        if (rawText.contains("```")) {
+            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Gemini response contains Markdown code fences");
+        }
+        try (JsonParser parser = objectMapper.createParser(rawText)) {
+            JsonNode root = objectMapper.readTree(parser);
+            if (parser.nextToken() != null || root == null || !root.isObject()) {
+                throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Expected one JSON object");
+            }
+            return root;
+        } catch (IOException invalid) {
+            throw malformed(WritingGradingFailure.ValidationCode.JSON_INVALID, "Failed to parse JSON response");
+        }
     }
 
     private WritingGradingException malformed(WritingGradingFailure.ValidationCode code, String message) {
