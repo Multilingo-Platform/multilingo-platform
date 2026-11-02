@@ -1,6 +1,7 @@
 {
   "scope": {
-    "singlePart": "Single part"
+    "singlePart": "Single part",
+    "multiPart": "Multiple parts"
   },
   "language": {
     "source": "Exam language",
@@ -289,6 +290,15 @@
     "full_exam_badda6": "Full exam",
     "all_parts_and_questions_91d4e3": "All parts and questions",
     "single_skill_4a2406": "Single skill",
+    "multi_part_scope": "Multiple parts",
+    "multi_parts_result_scope": "Multiple parts",
+    "select_skills_and_parts": "Choose skills and parts:",
+    "selected_parts_count": "{{v0}} parts selected",
+    "mock_duration_total": "Mock duration: {{v0}} minutes",
+    "select_two_parts": "Choose at least two parts to start.",
+    "missing_selected_duration": "A selected skill has no valid duration.",
+    "practice_unlimited_time": "Practice has no time limit.",
+    "multi_parts_scope_description": "Choose multiple parts from one or more skills",
     "focus_on_one_skill_5f3cab": "Focus on one skill",
     "practise_a_single_part_3a0d8b": "Practise a single part",
     "countdown_timer_and_automatic_submission_0ad8fc": "Countdown timer and automatic submission",

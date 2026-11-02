@@ -16,7 +16,7 @@ describe('dictionary Flashcard API adapter', () => {
   it('RD07 reads back a saved card from a v3 definition without changing the language pair', async () => {
     const { documentId: _id, ...common } = result;
     const v3 = { ...common, source: { kind: 'OPTION_TEXT' as const, questionId: 'q1', optionId: 'A' }, policyVersion: 'NATIVE_PROFILE_V1' as const };
-    http.post.mockResolvedValueOnce({ success: true, data: { id: 8, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow.' } } as never);
+    http.post.mockResolvedValueOnce({ success: true, data: { id: 8, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'Elms grow.' } } as never);
     await expect(addDictionaryFlashcard(ownedDeck as any, 21, v3)).resolves.toMatchObject({ id: 8, deckId: 3 });
   });
   beforeEach(() => vi.clearAllMocks());
@@ -26,15 +26,26 @@ describe('dictionary Flashcard API adapter', () => {
     await expect(getDictionaryDecks(21, 'en', 'vi')).resolves.toEqual([ownedDeck]);
   });
 
-  it('creates a private en/vi deck and stores verified meaning plus source context', async () => {
+  it('creates a private en/vi deck and stores the AI example', async () => {
     http.post.mockResolvedValueOnce({ success: true, data: ownedDeck } as never);
     await createDictionaryDeck(21, 'My words', 'en', 'vi');
     expect(http.post).toHaveBeenNthCalledWith(1, '/v1/vocab/decks', expect.objectContaining({ name: 'My words', targetLanguage: 'en', sourceLanguage: 'vi', isPublic: false }), expect.any(Object));
-    http.post.mockResolvedValueOnce({ success: true, data: { id: 8, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow.' } } as never);
+    http.post.mockResolvedValueOnce({ success: true, data: { id: 8, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'Elms grow.' } } as never);
     await addDictionaryFlashcard(ownedDeck as any, 21, result);
     expect(http.post).toHaveBeenNthCalledWith(2, '/v1/vocab/decks/3/cards', {
-      customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow.', phonetic: '/elm/', pos: 'noun',
+      customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'Elms grow.', phonetic: '/elm/', pos: 'noun',
     }, expect.any(Object));
+  });
+
+  it('prefers the AI example when saving and falls back to the sentence containing the selected word', async () => {
+    http.post.mockResolvedValueOnce({ success: true, data: { id: 8, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'Elms grow.' } } as never);
+    await addDictionaryFlashcard(ownedDeck as any, 21, result);
+    expect(http.post).toHaveBeenCalledWith('/v1/vocab/decks/3/cards', expect.objectContaining({ exampleSentence: 'Elms grow.' }), expect.any(Object));
+
+    const noAiExample = { ...result, definition: { ...result.definition, example: '' }, sourceContext: 'Before. The elms grow beside the river. After.' };
+    http.post.mockResolvedValueOnce({ success: true, data: { id: 9, deckId: 3, customWord: 'elms', customMeaning: 'cây du', exampleSentence: 'The elms grow beside the river.' } } as never);
+    await addDictionaryFlashcard(ownedDeck as any, 21, noAiExample);
+    expect(http.post).toHaveBeenLastCalledWith('/v1/vocab/decks/3/cards', expect.objectContaining({ exampleSentence: 'The elms grow beside the river.' }), expect.any(Object));
   });
 
   it('maps only duplicate conflict 1210 and rejects malformed successful responses', async () => {

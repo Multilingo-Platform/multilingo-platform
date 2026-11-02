@@ -50,7 +50,7 @@ public class WritingHintTransactionCoordinator {
     public sealed interface BeginDecision {
         record Replay(WritingHintsResponse response) implements BeginDecision {}
         record Reserved(Reservation reservation) implements BeginDecision {}
-        record Denied(ErrorCode errorCode, String message, Long retryAfterSeconds) implements BeginDecision {}
+        record Denied(ErrorCode errorCode, String message, Long retryAfterSeconds, String safeReasonCode) implements BeginDecision {}
 
         static Replay replay(WritingHintsResponse response) {
             return new Replay(response);
@@ -61,11 +61,15 @@ public class WritingHintTransactionCoordinator {
         }
 
         static Denied denied(ErrorCode errorCode, String message, Long retryAfterSeconds) {
-            return new Denied(errorCode, message, retryAfterSeconds);
+            return new Denied(errorCode, message, retryAfterSeconds, null);
         }
 
         static Denied denied(ErrorCode errorCode, String message) {
-            return new Denied(errorCode, message, null);
+            return new Denied(errorCode, message, null, null);
+        }
+
+        static Denied quotaDenied(ErrorCode errorCode, String message, String safeReasonCode) {
+            return new Denied(errorCode, message, null, safeReasonCode);
         }
     }
 
@@ -302,11 +306,19 @@ public class WritingHintTransactionCoordinator {
         }
 
         // 9. Đặt trước quota nguyên tử (P1-01: tryReserve không ném để tránh rollback recovery)
-        Optional<WritingHintQuotaAdapter.QuotaReservation> quotaResOpt = quotaAdapter.tryReserve(userId);
-        if (quotaResOpt.isEmpty()) {
-            return BeginDecision.denied(ErrorCode.QUOTA_EXCEEDED, "Hạn mức sử dụng tính năng gợi ý viết đã hết");
+        WritingHintQuotaAdapter.QuotaAttempt quotaAttempt = quotaAdapter.tryReserveDetailed(userId);
+        if (quotaAttempt == null) {
+            Optional<WritingHintQuotaAdapter.QuotaReservation> legacyAttempt = quotaAdapter.tryReserve(userId);
+            quotaAttempt = new WritingHintQuotaAdapter.QuotaAttempt(legacyAttempt.orElse(null),
+                    legacyAttempt.isPresent() ? null : "QUOTA_UNAVAILABLE");
         }
-        WritingHintQuotaAdapter.QuotaReservation quotaRes = quotaResOpt.get();
+        if (quotaAttempt.reservation() == null) {
+            String denialCode = quotaAttempt.denialCode() == null
+                    ? "QUOTA_CONFIGURATION_INVALID" : quotaAttempt.denialCode();
+            return BeginDecision.quotaDenied(ErrorCode.QUOTA_EXCEEDED,
+                    "Hạn mức sử dụng tính năng gợi ý viết đã hết hoặc chưa khả dụng", denialCode);
+        }
+        WritingHintQuotaAdapter.QuotaReservation quotaRes = quotaAttempt.reservation();
 
         // 10. Tạo mới hoặc cập nhật ledger dòng PENDING
         Duration leaseExtension = writingHintsProperties.getLeaseExtension() != null

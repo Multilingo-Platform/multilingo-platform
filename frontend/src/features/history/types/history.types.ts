@@ -46,7 +46,7 @@ export interface HistoryAttemptItem {
   examLanguage: string;
   isExamDeleted?: boolean;
   testMode: 'MOCK_TEST' | 'PRACTICE';
-  testScope: 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART';
+  testScope: 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART' | 'MULTI_PART';
   status: 'COMPLETED' | 'IN_PROGRESS' | 'GRADING_FAILED' | 'AI_GRADING' | 'AI_GRADING_QUEUED' | 'SUBMITTED' | 'EXPIRED' | string;
   startTime: string;
   endTime: string | null;

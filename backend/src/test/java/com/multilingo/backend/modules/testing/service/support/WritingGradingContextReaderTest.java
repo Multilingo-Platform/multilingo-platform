@@ -421,8 +421,8 @@ class WritingGradingContextReaderTest {
     }
 
     @Test
-    @DisplayName("Should return UNSUPPORTED_MEDIA when HTML contains embedded <img> tag")
-    void read_htmlWithImgTag_returnsUnsupportedMedia() {
+    @DisplayName("HTML prompt projects to text and carries HTTPS image references into grading context")
+    void read_htmlWithImgTag_projectsTextAndImageReference() {
         Map<String, Object> questionMap = new LinkedHashMap<>();
         questionMap.put("question_id", "w_1");
         questionMap.put("type", "ESSAY");
@@ -436,8 +436,10 @@ class WritingGradingContextReaderTest {
         List<AttemptAnswer> answers = createAnswers(10, "w_1", submitted);
 
         ContextDecision decision = readerWithImagesEnabled.read(attempt, 10, "w_1", answers);
-        assertThat(decision).isInstanceOf(ContextDecision.Unavailable.class);
-        assertThat(((ContextDecision.Unavailable) decision).reasonCode()).isEqualTo("UNSUPPORTED_MEDIA");
+        assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
+        WritingGradingContext context = ((ContextDecision.Eligible) decision).context();
+        assertThat(context.taskPrompt()).isEqualTo("Look at this image: and write an essay.");
+        assertThat(context.images()).extracting(WritingImageRef::url).containsExactly("https://malicious.org/tracker.png");
     }
 
     @Test
@@ -652,8 +654,8 @@ class WritingGradingContextReaderTest {
     }
 
     @Test
-    @DisplayName("P1-03: Padded whitespace in URL must be preserved raw without trimming")
-    void p1_03_paddedUrl_preservesRawUrlWithoutTrimming() {
+    @DisplayName("P1-03: URL whitespace is normalized before validation")
+    void p1_03_paddedUrl_isTrimmed() {
         String paddedUrl = "  https://storage.multilingo.com/chart.png  ";
         Map<String, Object> questionMap = new LinkedHashMap<>();
         questionMap.put("question_id", "w_1");
@@ -672,12 +674,12 @@ class WritingGradingContextReaderTest {
         assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
         WritingGradingContext context = ((ContextDecision.Eligible) decision).context();
         assertThat(context.images()).hasSize(1);
-        assertThat(context.images().get(0).url()).isEqualTo(paddedUrl);
+        assertThat(context.images().get(0).url()).isEqualTo("https://storage.multilingo.com/chart.png");
     }
 
     @Test
-    @DisplayName("P1-03: Two URLs differing only by whitespace must both be preserved and not deduped")
-    void p1_03_twoUrlsDifferingOnlyByWhitespace_bothPreservedAndNotDeduped() {
+    @DisplayName("P1-03: Two URLs differing only by whitespace are normalized and deduplicated")
+    void p1_03_twoUrlsDifferingOnlyByWhitespace_areDeduplicated() {
         String url1 = "https://storage.multilingo.com/chart.png ";
         String url2 = "https://storage.multilingo.com/chart.png";
         Map<String, Object> questionMap = new LinkedHashMap<>();
@@ -696,9 +698,8 @@ class WritingGradingContextReaderTest {
         ContextDecision decision = readerWithImagesEnabled.read(attempt, 10, "w_1", answers);
         assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
         WritingGradingContext context = ((ContextDecision.Eligible) decision).context();
-        assertThat(context.images()).hasSize(2);
-        assertThat(context.images().get(0).url()).isEqualTo(url1);
-        assertThat(context.images().get(1).url()).isEqualTo(url2);
+        assertThat(context.images()).hasSize(1);
+        assertThat(context.images().get(0).url()).isEqualTo(url2);
     }
 
     @Test
@@ -786,8 +787,8 @@ class WritingGradingContextReaderTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"question_text", "content", "title", "text", "prompt"})
-    @DisplayName("P1-04: Supported prompt aliases containing <img> with 11 words essay must return UNSUPPORTED_MEDIA for both imagesEnabled=true and false")
-    void p1_04_promptAliasesWithImgTag_longEssay_returnsUnsupportedMedia(String aliasKey) {
+    @DisplayName("P1-04: Supported prompt aliases containing <img> project text and image when enabled")
+    void p1_04_promptAliasesWithImgTag_longEssay_projectsContext(String aliasKey) {
         String htmlWithImg = "Describe <img src='https://cdn.example.test/chart.png'> and write an essay.";
         Map<String, Object> questionMap = new LinkedHashMap<>();
         questionMap.put("question_id", "w_1");
@@ -801,15 +802,16 @@ class WritingGradingContextReaderTest {
         String submitted = "The bar chart compares the percentage of renewable energy production across several European countries in recent years."; // 18 words
         List<AttemptAnswer> answers = createAnswers(10, "w_1", submitted);
 
-        // Test with imagesEnabled = false
+        // Explicitly disabled image grading remains unavailable, without fetching during context creation.
         ContextDecision decisionFalse = reader.read(attempt, 10, "w_1", answers);
         assertThat(decisionFalse).isInstanceOf(ContextDecision.Unavailable.class);
-        assertThat(((ContextDecision.Unavailable) decisionFalse).reasonCode()).isEqualTo("UNSUPPORTED_MEDIA");
+        assertThat(((ContextDecision.Unavailable) decisionFalse).reasonCode()).isEqualTo("VISUAL_CONTEXT_UNSUPPORTED");
 
-        // Test with imagesEnabled = true
         ContextDecision decisionTrue = readerWithImagesEnabled.read(attempt, 10, "w_1", answers);
-        assertThat(decisionTrue).isInstanceOf(ContextDecision.Unavailable.class);
-        assertThat(((ContextDecision.Unavailable) decisionTrue).reasonCode()).isEqualTo("UNSUPPORTED_MEDIA");
+        assertThat(decisionTrue).isInstanceOf(ContextDecision.Eligible.class);
+        WritingGradingContext context = ((ContextDecision.Eligible) decisionTrue).context();
+        assertThat(context.taskPrompt()).isEqualTo("Describe and write an essay.");
+        assertThat(context.images()).hasSize(1);
     }
 
     @ParameterizedTest
@@ -838,8 +840,8 @@ class WritingGradingContextReaderTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"instruction", "instructions", "description", "context"})
-    @DisplayName("P1-04: Supported part instruction aliases containing <img> with 11 words essay must return UNSUPPORTED_MEDIA")
-    void p1_04_partInstructionAliasesWithImgTag_returnsUnsupportedMedia(String instructionKey) {
+    @DisplayName("P1-04: Supported part instruction aliases project HTML text and image")
+    void p1_04_partInstructionAliasesWithImgTag_projectsContext(String instructionKey) {
         String htmlWithImg = "Look at <img src='https://cdn.example.test/chart.png'> and follow instructions.";
         Map<String, Object> questionMap = new LinkedHashMap<>();
         questionMap.put("question_id", "w_1");
@@ -855,14 +857,16 @@ class WritingGradingContextReaderTest {
         List<AttemptAnswer> answers = createAnswers(10, "w_1", submitted);
 
         ContextDecision decision = readerWithImagesEnabled.read(attempt, 10, "w_1", answers);
-        assertThat(decision).isInstanceOf(ContextDecision.Unavailable.class);
-        assertThat(((ContextDecision.Unavailable) decision).reasonCode()).isEqualTo("UNSUPPORTED_MEDIA");
+        assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
+        WritingGradingContext context = ((ContextDecision.Eligible) decision).context();
+        assertThat(context.partInstruction()).contains("Look at and follow instructions.");
+        assertThat(context.images()).hasSize(1);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"instruction", "instructions", "context", "passage", "description"})
-    @DisplayName("P1-04: Supported group instruction aliases containing <img> with 11 words essay must return UNSUPPORTED_MEDIA")
-    void p1_04_groupInstructionAliasesWithImgTag_returnsUnsupportedMedia(String groupInstructionKey) {
+    @DisplayName("P1-04: Supported group instruction aliases project HTML text and image")
+    void p1_04_groupInstructionAliasesWithImgTag_projectsContext(String groupInstructionKey) {
         String htmlWithImg = "Group instructions: <img src='https://cdn.example.test/chart.png'>";
         Map<String, Object> questionMap = new LinkedHashMap<>();
         questionMap.put("question_id", "w_1");
@@ -882,7 +886,44 @@ class WritingGradingContextReaderTest {
         List<AttemptAnswer> answers = createAnswers(10, "w_1", submitted);
 
         ContextDecision decision = readerWithImagesEnabled.read(attempt, 10, "w_1", answers);
+        assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
+        WritingGradingContext context = ((ContextDecision.Eligible) decision).context();
+        assertThat(context.groupInstruction()).contains("Group instructions:");
+        assertThat(context.images()).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/relative/chart.png", "data:image/png;base64,AAAA", "http://cdn.example.test/chart.png"})
+    @DisplayName("HTML image references must use absolute HTTPS URLs")
+    void htmlImageReferenceRejectsRelativeDataAndHttpUrls(String url) {
+        Map<String, Object> question = new LinkedHashMap<>();
+        question.put("question_id", "w_1"); question.put("type", "ESSAY");
+        question.put("prompt", "Describe <img src='" + url + "'> in the chart.");
+        TestAttempt attempt = createAttempt(createWritingSnapshot("en", Map.of("questions", List.of(question))));
+        ContextDecision decision = readerWithImagesEnabled.read(attempt, 10, "w_1", createAnswers(10, "w_1",
+                "The bar chart compares renewable energy production across several European countries."));
         assertThat(decision).isInstanceOf(ContextDecision.Unavailable.class);
-        assertThat(((ContextDecision.Unavailable) decision).reasonCode()).isEqualTo("UNSUPPORTED_MEDIA");
+        assertThat(((ContextDecision.Unavailable) decision).reasonCode()).isEqualTo("INVALID_IMAGE_URL");
+    }
+
+    @Test
+    @DisplayName("HTML and structured image references are deduplicated and other questions stay out of context")
+    void htmlAndStructuredImagesAreDeduplicatedWithinTargetQuestionScope() {
+        String selectedUrl = "https://cdn.example.test/selected.png";
+        Map<String, Object> target = new LinkedHashMap<>();
+        target.put("question_id", "w_1"); target.put("type", "ESSAY");
+        target.put("prompt", "Describe <img src='" + selectedUrl + "'>.");
+        target.put("image_url", selectedUrl);
+        Map<String, Object> unrelated = Map.of("question_id", "w_2", "type", "ESSAY",
+                "prompt", "Other task <img src='https://cdn.example.test/unrelated.png'>.");
+        TestAttempt attempt = createAttempt(createWritingSnapshot("en", Map.of("questions", List.of(target, unrelated))));
+
+        ContextDecision decision = readerWithImagesEnabled.read(attempt, 10, "w_1", createAnswers(10, "w_1",
+                "The bar chart compares renewable energy production across several European countries."));
+
+        assertThat(decision).isInstanceOf(ContextDecision.Eligible.class);
+        WritingGradingContext context = ((ContextDecision.Eligible) decision).context();
+        assertThat(context.images()).extracting(WritingImageRef::url).containsExactly(selectedUrl);
+        assertThat(context.taskPrompt()).doesNotContain("unrelated");
     }
 }

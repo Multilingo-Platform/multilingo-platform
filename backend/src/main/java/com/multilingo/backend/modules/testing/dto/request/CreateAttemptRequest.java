@@ -6,6 +6,8 @@ import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * Request DTO for creating a new test attempt.
  * userId is NOT accepted from client — always resolved from IdentityAdapter.
@@ -32,4 +34,8 @@ public class CreateAttemptRequest {
     /** Required when testScope = SINGLE_PART */
     @JsonAlias({"part_id", "targetPartId"})
     private Integer targetPartId;
+
+    /** Required when testScope = MULTI_PART; aliases preserve existing request naming conventions. */
+    @JsonAlias({"part_ids", "target_part_ids"})
+    private List<Integer> targetPartIds;
 }

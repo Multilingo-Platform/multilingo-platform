@@ -218,6 +218,7 @@ describe('WritingWorkspaceLayout (WW-02)', () => {
     expect(questionCard!.textContent).not.toContain('The chart below shows the population of New York.');
     // And instructions shouldn't appear inside the card
     expect(questionCard!.textContent).not.toContain('You should spend about 20 minutes on this task.');
+    expect(questionCard!.querySelector('fieldset')!.textContent).not.toContain('Summarise the information by selecting and reporting the main features.');
     // Textarea is immediately accessible inside card
     expect(questionCard!.querySelector('textarea')).not.toBeNull();
   });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PracticeDictionaryPopover } from '../components/practice/PracticeDictionaryPopover';
 
@@ -8,6 +8,35 @@ const base = {
 };
 
 describe('PracticeDictionaryPopover', () => {
+  it('grows from loading to a result and expanded context without retaining the previous height cap', async () => {
+    const measure = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (!this.hasAttribute('data-dictionary-popover')) return new DOMRect();
+      const naturalHeight = this.querySelector('details[open]') ? 900 : this.querySelector('details') ? 600 : 140;
+      const cap = Number.parseFloat(this.style.maxHeight);
+      return new DOMRect(0, 0, 360, Number.isFinite(cap) ? Math.min(naturalHeight, cap) : naturalHeight);
+    });
+    const oldHeight = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    try {
+      const { rerender } = render(<PracticeDictionaryPopover {...base} ownerId={null} nativeOnly phase="loading" />);
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style.maxHeight).toBe('140px');
+      rerender(<PracticeDictionaryPopover {...base} ownerId={null} nativeOnly phase="ready" data={{
+        requestId: 'f98eb3d0-808c-4cc0-88d0-d8f94f1a7347', attemptId: 42, partId: 7,
+        source: { kind: 'QUESTION_TEXT', questionId: 'q1' }, policyVersion: 'NATIVE_PROFILE_V1',
+        selectedText: '水', sourceContext: '水は大切です。', definition: {
+          schemaVersion: 2, learningLanguage: 'ja', meaningLanguage: 'vi', meaning: 'nước',
+          phonetic: null, partOfSpeech: null, example: '水は大切です。', exampleTranslation: 'Nước rất quan trọng.',
+        },
+      }} />);
+      expect(dialog.style.maxHeight).toBe('600px');
+      dialog.querySelector('details')!.open = true;
+      await waitFor(() => expect(dialog.style.maxHeight).toBe('776px'));
+    } finally {
+      measure.mockRestore();
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: oldHeight });
+    }
+  });
   it('RD07 native-only mode has no language selector or second lookup action', () => {
     render(<PracticeDictionaryPopover {...base} nativeOnly phase="loading" />);
     expect(screen.queryByRole('combobox')).toBeNull();
@@ -22,6 +51,26 @@ describe('PracticeDictionaryPopover', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Ngôn ngữ giải thích' }), { target: { value: 'ja' } });
     fireEvent.click(screen.getByRole('button', { name: 'Tra từ' }));
     expect(base.onLookup).toHaveBeenCalledExactlyOnceWith('ja');
+  });
+
+  it('keeps the popup within the visible viewport and recomputes its height on resize', () => {
+    const oldWidth = window.innerWidth;
+    const oldHeight = window.innerHeight;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    const { unmount } = render(<PracticeDictionaryPopover {...base} x={350} y={490} phase="idle" />);
+    const dialog = screen.getByRole('dialog');
+    expect(Number.parseFloat(dialog.style.top)).toBeGreaterThanOrEqual(12);
+    expect(Number.parseFloat(dialog.style.top) + Number.parseFloat(dialog.style.maxHeight)).toBeLessThanOrEqual(488);
+
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 300 });
+    fireEvent.resize(window);
+    expect(dialog.style.maxHeight).toBe('276px');
+    expect(Number.parseFloat(dialog.style.top)).toBe(12);
+
+    unmount();
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: oldWidth });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: oldHeight });
   });
 
   it('renders the v2 definition as inert localized text and retries only after explicit click', () => {

@@ -9,8 +9,19 @@ public record WritingGradingFailure(
         String safeMessage,
         boolean isRetryable,
         boolean isWaiting,
-        TerminalDestination destination
+        TerminalDestination destination,
+        ValidationCode validationCode
 ) {
+    /** Safe, fixed parser diagnostics; never contains provider or learner content. */
+    public enum ValidationCode {
+        JSON_INVALID,
+        FIELD_INVALID,
+        SCORE_INVALID,
+        LIMIT_EXCEEDED,
+        CORRECTIONS_INVALID,
+        RECONSTRUCTION_MISMATCH
+    }
+
     public enum TerminalDestination {
         NONE,
         FAILED,
@@ -31,7 +42,12 @@ public record WritingGradingFailure(
 
     public WritingGradingFailure(String errorCode, String safeMessage, boolean isRetryable, boolean isWaiting) {
         this(errorCode, safeMessage, isRetryable, isWaiting,
-                (isRetryable || isWaiting) ? TerminalDestination.NONE : TerminalDestination.FAILED);
+                (isRetryable || isWaiting) ? TerminalDestination.NONE : TerminalDestination.FAILED, null);
+    }
+
+    public WritingGradingFailure(String errorCode, String safeMessage, boolean isRetryable, boolean isWaiting,
+                                 TerminalDestination destination) {
+        this(errorCode, safeMessage, isRetryable, isWaiting, destination, null);
     }
 
     public static WritingGradingFailure retryable(String errorCode, String safeMessage) {
@@ -48,6 +64,10 @@ public record WritingGradingFailure(
 
     public static WritingGradingFailure waiting(String errorCode, String safeMessage) {
         return new WritingGradingFailure(errorCode, safeMessage, false, true, TerminalDestination.NONE);
+    }
+
+    public WritingGradingFailure withValidationCode(ValidationCode code) {
+        return new WritingGradingFailure(errorCode, safeMessage, isRetryable, isWaiting, destination, code);
     }
 
     public boolean isTerminal() {

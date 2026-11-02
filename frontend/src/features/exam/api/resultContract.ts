@@ -162,7 +162,7 @@ export function normalizeAttemptResult(data: unknown, expectedAttemptId: number)
   return {
     attemptId: expectedAttemptId,
     status: enumeration(source.status, ['SUBMITTED', 'AI_GRADING', 'AI_GRADING_QUEUED', 'GRADING_FAILED', 'COMPLETED', 'EXPIRED']),
-    testScope: enumeration(source.testScope, ['FULL_EXAM', 'SINGLE_SKILL', 'SINGLE_PART']),
+    testScope: enumeration(source.testScope, ['FULL_EXAM', 'SINGLE_SKILL', 'SINGLE_PART', 'MULTI_PART']),
     testMode: enumeration(source.testMode, ['MOCK_TEST', 'PRACTICE']), startTime: instant(source.startTime),
     endTime: source.endTime == null ? null : instant(source.endTime),
     timeSpentSeconds: source.timeSpentSeconds == null ? null : count(source.timeSpentSeconds),

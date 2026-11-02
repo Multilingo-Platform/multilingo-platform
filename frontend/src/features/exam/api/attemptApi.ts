@@ -300,7 +300,7 @@ function normalizeWorkspace(
   }
 
   const testScope = pickField(raw, 'testScope', 'test_scope') as TestScope;
-  if (testScope !== 'FULL_EXAM' && testScope !== 'SINGLE_SKILL' && testScope !== 'SINGLE_PART') {
+  if (testScope !== 'FULL_EXAM' && testScope !== 'SINGLE_SKILL' && testScope !== 'SINGLE_PART' && testScope !== 'MULTI_PART') {
     throw new WorkspaceContractError();
   }
 
@@ -459,6 +459,7 @@ export async function createAttempt(req: CreateAttemptRequest): Promise<Workspac
     testMode: req.test_mode,
     targetSectionId: req.section_id,
     targetPartId: req.part_id,
+    ...(req.part_ids ? { targetPartIds: req.part_ids } : {}),
   };
   const clientBefore = Date.now();
   const res = await axiosClient.post<unknown, ApiResponse<any>>('/v1/attempts', payload);

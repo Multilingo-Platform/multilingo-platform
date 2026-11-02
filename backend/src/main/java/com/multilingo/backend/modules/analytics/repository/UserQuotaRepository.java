@@ -52,6 +52,19 @@ public interface UserQuotaRepository extends JpaRepository<UserQuota, Integer> {
             @Param("resetDate") Instant resetDate
     );
 
+    /** Atomic first-use provisioning for either independent Writing feature quota. */
+    @Modifying
+    @Query(value = "INSERT INTO user_quotas (user_id, feature_code, used_count, max_limit, reset_date, created_at, updated_at) " +
+            "VALUES (:userId, :featureCode, 0, :maxLimit, :resetDate, :now, :now) " +
+            "ON CONFLICT DO NOTHING", nativeQuery = true)
+    int insertWritingQuotaIfAbsent(
+            @Param("userId") Integer userId,
+            @Param("featureCode") String featureCode,
+            @Param("maxLimit") Integer maxLimit,
+            @Param("now") Instant now,
+            @Param("resetDate") Instant resetDate
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT q FROM UserQuota q WHERE q.id = :id")
     Optional<UserQuota> findByIdForUpdate(@Param("id") Integer id);

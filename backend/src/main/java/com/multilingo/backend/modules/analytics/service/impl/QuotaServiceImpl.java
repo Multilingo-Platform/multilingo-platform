@@ -1,5 +1,7 @@
 package com.multilingo.backend.modules.analytics.service.impl;
 
+import com.multilingo.backend.common.exception.AppException;
+import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.analytics.dto.request.UpdateQuotaRequest;
 import com.multilingo.backend.modules.analytics.dto.response.UserQuotaResponse;
 import com.multilingo.backend.modules.analytics.entity.UserQuota;
@@ -23,7 +25,8 @@ public class QuotaServiceImpl implements QuotaService {
     private final AuditService auditService;
 
     private static final List<String> SUPPORTED_FEATURES = List.of(
-            "WRITING_ASSISTANT",
+            "AI_WRITING_HINTS",
+            "AI_WRITING_GRADING",
             "DICTIONARY_LOOKUP",
             "CHAT_TUTOR"
     );
@@ -31,13 +34,15 @@ public class QuotaServiceImpl implements QuotaService {
     private static final List<String> SUPPORTED_TIERS = List.of("FREE", "VIP");
 
     private static final Map<String, Integer> DEFAULT_FREE_LIMITS = Map.of(
-            "WRITING_ASSISTANT", 5,
+            "AI_WRITING_HINTS", 5,
+            "AI_WRITING_GRADING", 5,
             "DICTIONARY_LOOKUP", 20,
             "CHAT_TUTOR", 3
     );
 
     private static final Map<String, Integer> DEFAULT_VIP_LIMITS = Map.of(
-            "WRITING_ASSISTANT", 100,
+            "AI_WRITING_HINTS", 20,
+            "AI_WRITING_GRADING", 20,
             "DICTIONARY_LOOKUP", 500,
             "CHAT_TUTOR", 50
     );
@@ -86,6 +91,9 @@ public class QuotaServiceImpl implements QuotaService {
     public UserQuotaResponse updateQuota(Integer currentAdminId, UpdateQuotaRequest request, String ipAddress) {
         String tier = request.getTier().trim().toUpperCase();
         String feature = request.getFeature().trim().toUpperCase();
+        if (!SUPPORTED_TIERS.contains(tier) || !SUPPORTED_FEATURES.contains(feature)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Unsupported quota feature or tier");
+        }
         int tierUserId = getTierUserId(tier);
 
         UserQuota quota = userQuotaRepository.findByUserIdAndFeatureCode(tierUserId, feature)

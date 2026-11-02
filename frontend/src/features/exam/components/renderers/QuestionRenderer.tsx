@@ -76,6 +76,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           value={currentAnswer as string | null}
           onChange={onChange}
           questionText={question_text}
+          showPrompt={showPrompt}
         />
       );
 
@@ -89,6 +90,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           value={currentAnswer as string | null}
           onChange={onChange}
           questionText={question_text}
+          showPrompt={showPrompt}
         />
       );
 

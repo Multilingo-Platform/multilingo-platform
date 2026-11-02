@@ -11,7 +11,7 @@ import { WritingFeedbackContractError } from '../api/writingFeedbackContract';
 describe('writingFeedbackErrors', () => {
   describe('mapReasonCodeToMessage', () => {
     it('maps all allowed reason codes to safe Vietnamese messages', () => {
-      expect(ALLOWED_REASON_CODES.size).toBe(15);
+      expect(ALLOWED_REASON_CODES.size).toBe(19);
       for (const code of ALLOWED_REASON_CODES) {
         const msg = mapReasonCodeToMessage(code);
         expect(typeof msg).toBe('string');
@@ -28,6 +28,12 @@ describe('writingFeedbackErrors', () => {
       expect(mapReasonCodeToMessage('')).toBe(DEFAULT_SAFE_FEEDBACK_MESSAGE);
       expect(mapReasonCodeToMessage('INVENTED_CODE')).toBe(DEFAULT_SAFE_FEEDBACK_MESSAGE);
       expect(mapReasonCodeToMessage('http://evil.com/leak')).toBe(DEFAULT_SAFE_FEEDBACK_MESSAGE);
+    });
+
+    it('explains MALFORMED_OUTPUT without exposing parser diagnostics', () => {
+      expect(mapReasonCodeToMessage('MALFORMED_OUTPUT'))
+        .not.toMatch(/cập nhật|thử lại/i);
+      expect(mapReasonCodeToMessage('MALFORMED_OUTPUT')).toMatch(/định dạng|không hợp lệ/i);
     });
   });
 

@@ -21,8 +21,16 @@ public class DbWritingGradingQuotaAdapter implements WritingGradingQuotaAdapter 
 
     @Override
     public Optional<QuotaReservation> tryReserve(Integer userId) {
-        return quotaReservationService.tryReserve(userId, UserQuotaReservationService.GRADING_FEATURE_CODE)
-                .map(res -> new QuotaReservation(res.quotaId(), res.resetDate()));
+        return Optional.ofNullable(tryReserveDetailed(userId).reservation());
+    }
+
+    @Override
+    public QuotaAttempt tryReserveDetailed(Integer userId) {
+        UserQuotaReservationService.QuotaReservationAttempt attempt = quotaReservationService.tryReserveDetailed(
+                userId, UserQuotaReservationService.GRADING_FEATURE_CODE);
+        QuotaReservation reservation = attempt.reservation() == null ? null
+                : new QuotaReservation(attempt.reservation().quotaId(), attempt.reservation().resetDate());
+        return new QuotaAttempt(reservation, attempt.denialReason() == null ? null : attempt.denialReason().name());
     }
 
     @Override

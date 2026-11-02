@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -162,10 +164,12 @@ public class WritingGradingContextReader {
             }
         }
 
-        String partTitle = hintContext.partTitle();
-        String partInstruction = hintContext.partInstruction();
-        String groupInstruction = hintContext.groupInstruction();
-        String prompt = hintContext.taskPrompt();
+        ProjectedWritingContext projectedContext = projectContext(snapshot, partId, questionId, hintContext);
+        if (projectedContext.error() != null) return projectedContext.error();
+        String partTitle = projectedContext.partTitle();
+        String partInstruction = projectedContext.partInstruction();
+        String groupInstruction = projectedContext.groupInstruction();
+        String prompt = projectedContext.taskPrompt();
 
         // 4. Trích xuất bài nộp của thí sinh từ answers
         String originalText = extractSubmittedEssay(answers, partId, questionId);
@@ -201,7 +205,7 @@ public class WritingGradingContextReader {
         }
 
         // 8. Với bài >10 từ: Trích xuất và xác thực tham chiếu hình ảnh multimodal (Revision R2)
-        MediaExtractionResult mediaResult = extractImageReferences(snapshot, partId, questionId, hintContext, imagesEnabledOverride);
+        MediaExtractionResult mediaResult = extractImageReferences(snapshot, partId, questionId, projectedContext, imagesEnabledOverride);
         if (mediaResult.error() != null) {
             return mediaResult.error();
         }
@@ -239,13 +243,83 @@ public class WritingGradingContextReader {
         return "";
     }
 
+    private ProjectedWritingContext projectContext(
+            Map<String, Object> snapshot,
+            Integer partId,
+            String questionId,
+            WritingHintContextReader.HintContext source) {
+        Map<?, ?> part = findRawPartMap(snapshot, partId);
+        if (part == null) return ProjectedWritingContext.error(new ContextDecision.Unavailable("PART_NOT_FOUND", "Part not found in attempt snapshot"));
+        PartMediaScope scope = locateMediaScope(part, questionId);
+        if (scope == null) return ProjectedWritingContext.error(new ContextDecision.Unavailable("QUESTION_NOT_FOUND", "Question not found in part"));
+
+        WritingHtmlProjector.Projection title = WritingHtmlProjector.project(source.partTitle());
+        WritingHtmlProjector.Projection instruction = WritingHtmlProjector.project(source.partInstruction());
+        WritingHtmlProjector.Projection groupInstruction = WritingHtmlProjector.project(source.groupInstruction());
+        WritingHtmlProjector.Projection prompt = WritingHtmlProjector.project(source.taskPrompt());
+        WritingHtmlProjector.Projection partHtml = WritingHtmlProjector.project(firstText(part, "contentHtml", "content_html"));
+        WritingHtmlProjector.Projection groupHtml = WritingHtmlProjector.project(scope.groupMap() == null
+                ? null : firstText(scope.groupMap(), "contentHtml", "content_html"));
+        WritingHtmlProjector.Projection questionHtml = WritingHtmlProjector.project(firstText(scope.questionMap(), "contentHtml", "content_html"));
+
+        String partInstruction = joinContext(instruction.text(), partHtml.text());
+        String groupText = joinContext(groupInstruction.text(), groupHtml.text());
+        String taskPrompt = joinContext(prompt.text(), questionHtml.text());
+        int codePoints = codePointLength(title.text()) + codePointLength(partInstruction)
+                + codePointLength(groupText) + codePointLength(taskPrompt);
+        if (codePoints > MAX_CONTEXT_CODE_POINTS) {
+            return ProjectedWritingContext.error(new ContextDecision.Unavailable("CONTEXT_TOO_LONG", "Context exceeds 16,000 code points"));
+        }
+
+        Set<String> htmlImageUrls = new LinkedHashSet<>();
+        List<WritingHtmlProjector.Projection> projections = List.of(title, instruction, groupInstruction, prompt, partHtml, groupHtml, questionHtml);
+        for (WritingHtmlProjector.Projection projection : projections) htmlImageUrls.addAll(projection.imageUrls());
+        boolean invalidHtmlImage = projections.stream().anyMatch(WritingHtmlProjector.Projection::invalidImageReference);
+        return new ProjectedWritingContext(title.text(), partInstruction, groupText, taskPrompt,
+                List.copyOf(htmlImageUrls), invalidHtmlImage, null);
+    }
+
+    private static String firstText(Map<?, ?> map, String... keys) {
+        for (String key : keys) {
+            Object value = map.get(key);
+            if (value instanceof String text && !text.isBlank()) return text;
+        }
+        return null;
+    }
+
+    private static String joinContext(String first, String second) {
+        String a = first == null ? "" : first.strip();
+        String b = second == null ? "" : second.strip();
+        if (a.isEmpty()) return b;
+        if (b.isEmpty() || a.equals(b)) return a;
+        return a + " " + b;
+    }
+
+    private static int codePointLength(String value) {
+        return value == null ? 0 : value.codePointCount(0, value.length());
+    }
+
     private record MediaExtractionResult(List<WritingImageRef> images, ContextDecision.Unavailable error) {}
+
+    private record ProjectedWritingContext(
+            String partTitle,
+            String partInstruction,
+            String groupInstruction,
+            String taskPrompt,
+            List<String> htmlImageUrls,
+            boolean invalidHtmlImageReference,
+            ContextDecision.Unavailable error
+    ) {
+        static ProjectedWritingContext error(ContextDecision.Unavailable error) {
+            return new ProjectedWritingContext(null, null, null, null, List.of(), false, error);
+        }
+    }
 
     private MediaExtractionResult extractImageReferences(
             Map<String, Object> snapshot,
             Integer partId,
             String questionId,
-            WritingHintContextReader.HintContext hintContext,
+            ProjectedWritingContext projectedContext,
             boolean imagesEnabled) {
         Map<?, ?> rawPartMap = findRawPartMap(snapshot, partId);
         if (rawPartMap == null) {
@@ -257,21 +331,12 @@ public class WritingGradingContextReader {
             return new MediaExtractionResult(null, new ContextDecision.Unavailable("QUESTION_NOT_FOUND", "Question not found in part"));
         }
 
-        // A. Kiểm tra thẻ <img> nhúng trong HTML ở text projection đã resolved và raw contentHtml fields
-        if (containsImgTag(hintContext.partTitle())
-                || containsImgTag(hintContext.partInstruction())
-                || containsImgTag(hintContext.groupInstruction())
-                || containsImgTag(hintContext.taskPrompt())
-                || containsImgTag(rawPartMap.get("contentHtml"))
-                || containsImgTag(rawPartMap.get("content_html"))
-                || (mediaScope.groupMap != null && (containsImgTag(mediaScope.groupMap.get("contentHtml"))
-                    || containsImgTag(mediaScope.groupMap.get("content_html"))))
-                || containsImgTag(mediaScope.questionMap.get("contentHtml"))
-                || containsImgTag(mediaScope.questionMap.get("content_html"))) {
-            return new MediaExtractionResult(null, new ContextDecision.Unavailable("UNSUPPORTED_MEDIA", "HTML contains embedded <img> tag"));
+        // HTML image references are projected from this part and the target question/group only.
+        if (projectedContext.invalidHtmlImageReference()) {
+            return new MediaExtractionResult(null, new ContextDecision.Unavailable("INVALID_IMAGE_URL", "HTML image is missing a valid src"));
         }
 
-        // B. Kiểm tra media không phải ảnh có cấu trúc (audio, video, pdf)
+        // Kiểm tra media không phải ảnh có cấu trúc (audio, video, pdf)
         if (hasUnsupportedMedia(rawPartMap)
                 || (mediaScope.groupMap != null && hasUnsupportedMedia(mediaScope.groupMap))
                 || hasUnsupportedMedia(mediaScope.questionMap)) {
@@ -281,6 +346,11 @@ public class WritingGradingContextReader {
         // C. Trích xuất danh sách URL theo thứ tự xác định: Part -> Group -> Question, dedupe bằng LinkedHashSet
         Set<String> distinctUrls = new LinkedHashSet<>();
         List<ContextDecision.Unavailable> errors = new ArrayList<>();
+
+        for (String url : projectedContext.htmlImageUrls()) {
+            processUrlString(url, distinctUrls, errors);
+            if (!errors.isEmpty()) return new MediaExtractionResult(null, errors.getFirst());
+        }
 
         collectMediaUrls(rawPartMap, distinctUrls, errors);
         if (!errors.isEmpty()) {
@@ -386,18 +456,29 @@ public class WritingGradingContextReader {
             errors.add(new ContextDecision.Unavailable("INVALID_IMAGE_URL", "Image URL must not be blank"));
             return;
         }
-        if (rawUrl.length() > MAX_IMAGE_URL_LENGTH) {
+        String normalizedUrl = rawUrl.trim();
+        if (normalizedUrl.length() > MAX_IMAGE_URL_LENGTH) {
             errors.add(new ContextDecision.Unavailable("INVALID_IMAGE_URL", "Image URL exceeds 2048 characters"));
             return;
         }
-        String lower = rawUrl.toLowerCase(Locale.ROOT);
+        try {
+            URI uri = new URI(normalizedUrl);
+            if (!uri.isAbsolute() || !"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null) {
+                errors.add(new ContextDecision.Unavailable("INVALID_IMAGE_URL", "Image URL must be an absolute HTTPS URL"));
+                return;
+            }
+        } catch (URISyntaxException e) {
+            errors.add(new ContextDecision.Unavailable("INVALID_IMAGE_URL", "Image URL is malformed"));
+            return;
+        }
+        String lower = normalizedUrl.toLowerCase(Locale.ROOT);
         for (String ext : NON_IMAGE_EXTENSIONS) {
             if (lower.endsWith(ext) || lower.contains(ext + "?") || lower.contains(ext + "#")) {
                 errors.add(new ContextDecision.Unavailable("UNSUPPORTED_MEDIA", "Non-image media file extension detected"));
                 return;
             }
         }
-        distinctUrls.add(rawUrl);
+        distinctUrls.add(normalizedUrl);
     }
 
     private void processMediaMap(Map<?, ?> mediaMap, Set<String> distinctUrls, List<ContextDecision.Unavailable> errors) {

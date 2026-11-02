@@ -45,14 +45,15 @@ class DbWritingGradingQuotaAdapterTest {
         UserQuotaReservationService.QuotaReservation reservation =
                 new UserQuotaReservationService.QuotaReservation(200, resetDate);
 
-        when(reservationService.tryReserve(10, FEATURE_CODE)).thenReturn(Optional.of(reservation));
+        when(reservationService.tryReserveDetailed(10, FEATURE_CODE))
+                .thenReturn(new UserQuotaReservationService.QuotaReservationAttempt(reservation, null));
 
         Optional<WritingGradingQuotaAdapter.QuotaReservation> result = adapter.tryReserve(10);
 
         assertThat(result).isPresent();
         assertThat(result.get().quotaId()).isEqualTo(200);
         assertThat(result.get().resetDate()).isEqualTo(resetDate);
-        verify(reservationService).tryReserve(10, FEATURE_CODE);
+        verify(reservationService).tryReserveDetailed(10, FEATURE_CODE);
     }
 
     @Test

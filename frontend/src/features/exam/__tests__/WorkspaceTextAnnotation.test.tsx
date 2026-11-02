@@ -255,6 +255,19 @@ describe('WorkspaceText and WorkspaceAnnotations', () => {
       expect(select).toBeInTheDocument();
     });
 
+    it('allows the workspace to hide repeated prompts while keeping the option bank annotated', () => {
+      render(<MatchingRenderer options={[{ id: 'A', text: 'Heading One' }]} value={null} onChange={vi.fn()}
+        questionText="Match statement with heading" questionId="q-match" showPrompt={false} />);
+      expect(screen.queryByText('Match statement with heading')).toBeNull();
+      expect(screen.getByText('Heading One')).toHaveAttribute('data-highlight-scope', 'OPTION_TEXT:7:q-match:1:A');
+    });
+
+    it('allows the workspace to hide repeated fill-in prompts and preserves the answer field', () => {
+      render(<FillInBlankRenderer value={null} onChange={vi.fn()} questionText="Complete the sentence" questionId="q-fill" showPrompt={false} />);
+      expect(screen.queryByText('Complete the sentence')).toBeNull();
+      expect(screen.getByRole('textbox', { name: /Complete the sentence/ })).toBeInTheDocument();
+    });
+
     it('FillInBlankRenderer and EssayRenderer annotate question text but NOT user input fields', () => {
       render(
         <div>

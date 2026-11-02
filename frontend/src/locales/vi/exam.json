@@ -1,6 +1,7 @@
 {
   "scope": {
-    "singlePart": "Một phần"
+    "singlePart": "Một phần",
+    "multiPart": "Nhiều phần"
   },
   "language": {
     "source": "Ngôn ngữ đề",
@@ -289,6 +290,15 @@
     "full_exam_badda6": "Toàn bộ đề",
     "all_parts_and_questions_91d4e3": "Đầy đủ tất cả các phần và câu hỏi",
     "single_skill_4a2406": "Một kỹ năng",
+    "multi_part_scope": "Nhiều phần",
+    "multi_parts_result_scope": "Nhiều phần thi",
+    "select_skills_and_parts": "Chọn kỹ năng và Part:",
+    "selected_parts_count": "Đã chọn {{v0}} phần",
+    "mock_duration_total": "Tổng thời lượng Mock: {{v0}} phút",
+    "select_two_parts": "Chọn ít nhất hai Part để bắt đầu.",
+    "missing_selected_duration": "Thiếu thời lượng hợp lệ ở một kỹ năng đã chọn.",
+    "practice_unlimited_time": "Practice không giới hạn thời gian.",
+    "multi_parts_scope_description": "Chọn nhiều Part từ một hoặc nhiều kỹ năng",
     "focus_on_one_skill_5f3cab": "Chọn 1 kỹ năng trọng tâm",
     "practise_a_single_part_3a0d8b": "Luyện riêng từng Part",
     "countdown_timer_and_automatic_submission_0ad8fc": "Đồng hồ đếm ngược, tự động nộp bài",

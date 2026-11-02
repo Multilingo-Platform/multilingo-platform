@@ -79,7 +79,7 @@ describe('automatic Reading highlights through WorkspacePage', () => {
     http.get.mockResolvedValue({ success: true, data: [{ id: 3, userId: 21, name: 'Native deck', targetLanguage: 'en', sourceLanguage: 'vi', isPublic: false }] } as never);
     http.post.mockImplementation(async (url, body: any) => {
       if (String(url).includes('dictionary-lookups')) return { success: true, data: { requestId: body.requestId, attemptId: 42, partId: 7, source: body.source, selectedText: body.selectedText, sourceContext: body.contextText, policyVersion: 'NATIVE_PROFILE_V1', definition: { schemaVersion: 2, learningLanguage: 'en', meaningLanguage: 'vi', meaning: 'nghĩa thử nghiệm', phonetic: null, partOfSpeech: null, example: 'A chosen word.', exampleTranslation: 'Một từ được chọn.' } } } as never;
-      return { success: true, data: { id: 12, deckId: 3, customWord: 'chosen', customMeaning: 'nghĩa thử nghiệm', exampleSentence: 'Before chosen words after.' } } as never;
+      return { success: true, data: { id: 12, deckId: 3, customWord: 'chosen', customMeaning: 'nghĩa thử nghiệm', exampleSentence: body.exampleSentence } } as never;
     });
     const text = scope.querySelector('b')!.firstChild!;
     pointer(text, 'pointerdown'); select(text, 0, 6); pointer(text, 'pointerup');
@@ -89,6 +89,7 @@ describe('automatic Reading highlights through WorkspacePage', () => {
     await screen.findByText('Đã lưu vào bộ thẻ.');
     expect(http.post.mock.calls.map(call => call[0])).toEqual(['/v3/attempts/42/dictionary-lookups', '/v1/vocab/decks/3/cards']);
     expect(http.post.mock.calls[1][1]).toMatchObject({ customWord: 'chosen', customMeaning: 'nghĩa thử nghiệm' });
+    expect(http.post.mock.calls[1][1]).toMatchObject({ exampleSentence: 'A chosen word.' });
   });
   it('RD07 sends a v3 request on the first lookup click without a language selector', async () => {
     const { scope } = await open('PRACTICE');

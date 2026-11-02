@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { StudySessionCardDto } from '../../types/vocab.types';
 import { SpeakButton } from '../../components/common/SpeakButton';
+import { selectFlashcardExample } from '../../utils/flashcardExample';
 
 export interface FlipCardProps {
   card: StudySessionCardDto;
@@ -98,6 +99,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
 
   // Tính góc nghiêng khi kéo (tối đa ~15 độ)
   const rotationAngle = Math.max(-15, Math.min(15, dragOffset.x * 0.05));
+  const example = selectFlashcardExample(card.customWord, null, card.fullSentence || card.maskedSentence);
 
   return (
     <div
@@ -199,7 +201,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
           {/* ========================================================
               2. MẶT SAU (BACK FACE)
              ======================================================== */}
-          <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-slate-50 via-white to-amber-50/30 rounded-2xl border-2 border-amber-300 shadow-lg p-6 sm:p-8 flex flex-col justify-between">
+          <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-slate-50 via-white to-amber-50/30 rounded-2xl border-2 border-amber-300 shadow-lg p-6 sm:p-8 flex flex-col">
             {/* Header mặt sau */}
             <div className="flex items-center justify-between w-full border-b border-slate-100 pb-2.5">
               <div className="flex items-center gap-2">
@@ -223,7 +225,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
             </div>
 
             {/* Nội dung trung tâm: Dịch nghĩa & Câu ví dụ ngữ cảnh */}
-            <div className="text-center my-auto py-2">
+            <div className="min-h-0 flex-1 overflow-y-auto text-center py-2">
               <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug mb-2">
                 {card.customMeaning}
               </h3>
@@ -240,20 +242,20 @@ export const FlipCard: React.FC<FlipCardProps> = ({
               )}
 
               {/* Câu ví dụ hoàn chỉnh */}
-              {(card.fullSentence || card.maskedSentence) && (
+              {example && (
                 <div className="mt-3.5 p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/60 text-slate-700 text-xs sm:text-sm leading-relaxed text-center max-w-lg mx-auto shadow-2xs">
                   <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block mb-1">
                     Ví dụ ngữ cảnh:
                   </span>
                   <p className="italic text-slate-800">
-                    “{card.fullSentence || card.maskedSentence}”
+                    “{example}”
                   </p>
                 </div>
               )}
             </div>
 
             {/* Footer mặt sau */}
-            <div className="text-center pt-2.5 border-t border-slate-100">
+            <div className="shrink-0 text-center pt-2.5 border-t border-slate-100">
               <p className="text-xs text-slate-500 font-medium">
                 Chọn <span className="text-rose-600 font-bold">Quên (1)</span> hoặc <span className="text-emerald-600 font-bold">Đã thuộc (2)</span>
               </p>

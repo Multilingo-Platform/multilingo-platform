@@ -7,11 +7,12 @@ interface Props {
   onChange: (v: string) => void;
   questionText: string;
   questionId?: string;
+  showPrompt?: boolean;
 }
 
-const FillInBlankRenderer: React.FC<Props> = ({ value, onChange, questionText, questionId = 'unknown' }) => (
+const FillInBlankRenderer: React.FC<Props> = ({ value, onChange, questionText, questionId = 'unknown', showPrompt = true }) => (
   <div className="space-y-2">
-    {questionText && (
+    {showPrompt && questionText && (
       <WorkspaceText
         source={{ kind: 'QUESTION_TEXT', questionId }}
         format="TEXT"

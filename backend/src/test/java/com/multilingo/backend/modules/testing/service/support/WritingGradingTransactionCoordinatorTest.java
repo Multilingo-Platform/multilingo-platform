@@ -406,7 +406,8 @@ class WritingGradingTransactionCoordinatorTest {
         );
         Claim claim = new Claim(1, 10, 101, "q-1", "run-uuid-1", now.plusSeconds(30), 1, "test-hash-123", context);
 
-        WritingGradingFailure failure = WritingGradingFailure.terminal("MALFORMED_OUTPUT", "JSON corrupted");
+        WritingGradingFailure failure = WritingGradingFailure.terminal("MALFORMED_OUTPUT", "JSON corrupted")
+                .withValidationCode(WritingGradingFailure.ValidationCode.RECONSTRUCTION_MISMATCH);
 
         coordinator.fail(claim, failure);
 
@@ -414,6 +415,7 @@ class WritingGradingTransactionCoordinatorTest {
         assertThat(job.getLastErrorCode()).isEqualTo("MALFORMED_OUTPUT");
         assertThat(job.getCompletedAt()).isEqualTo(now);
         assertThat(job.getQuotaReserved()).isFalse();
+        assertThat(job.getModelMetadata()).containsEntry("validationCode", "RECONSTRUCTION_MISMATCH");
         verify(quotaAdapter).refund(99, resetDate);
     }
 

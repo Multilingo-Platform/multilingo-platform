@@ -79,6 +79,44 @@ class TestAttemptServiceTest {
         assertThat(response.getStatus()).isEqualTo(AttemptStatus.IN_PROGRESS);
     }
 
+    @Test
+    void createAttempt_multi_part_filters_snapshot_and_sums_mock_duration_per_section() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1);
+        req.setTestScope(TestScope.MULTI_PART);
+        req.setTestMode(TestMode.MOCK_TEST);
+        req.setTargetPartIds(List.of(1, 4));
+
+        WorkspaceResponse response = service.createAttempt(req);
+
+        assertThat(response.getDeadline()).isNotNull();
+        assertThat(response.getDeadline()).isAfter(Instant.now().plusSeconds(99 * 60));
+        assertThat(response.getDeadline()).isBefore(Instant.now().plusSeconds(101 * 60));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> sections = (List<Map<String, Object>>) response.getExamSnapshot().get("sections");
+        assertThat(sections).hasSize(2);
+        assertThat(sections.stream().map(section -> section.get("id")).toList()).containsExactly(1, 2);
+        assertThat(sections.stream().map(section -> ((List<?>) section.get("parts")).size()).toList()).containsExactly(1, 1);
+    }
+
+    @Test
+    void createAttempt_multi_part_rejects_duplicate_or_unknown_ids_and_mixed_single_scope_fields() {
+        CreateAttemptRequest duplicate = new CreateAttemptRequest();
+        duplicate.setExamId(1); duplicate.setTestScope(TestScope.MULTI_PART); duplicate.setTestMode(TestMode.PRACTICE);
+        duplicate.setTargetPartIds(List.of(1, 1));
+        assertThatThrownBy(() -> service.createAttempt(duplicate)).isInstanceOf(AppException.class);
+
+        CreateAttemptRequest unknown = new CreateAttemptRequest();
+        unknown.setExamId(1); unknown.setTestScope(TestScope.MULTI_PART); unknown.setTestMode(TestMode.PRACTICE);
+        unknown.setTargetPartIds(List.of(1, 99999));
+        assertThatThrownBy(() -> service.createAttempt(unknown)).isInstanceOf(AppException.class);
+
+        CreateAttemptRequest mixed = new CreateAttemptRequest();
+        mixed.setExamId(1); mixed.setTestScope(TestScope.MULTI_PART); mixed.setTestMode(TestMode.PRACTICE);
+        mixed.setTargetPartIds(List.of(1, 4)); mixed.setTargetPartId(1);
+        assertThatThrownBy(() -> service.createAttempt(mixed)).isInstanceOf(AppException.class);
+    }
+
     // ─── UC-01: Exam not found ──────────────────────────────────────────────────
 
     @Test

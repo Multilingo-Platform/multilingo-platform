@@ -291,4 +291,34 @@ describe('ScopeModePicker', () => {
       part_id: null,
     });
   });
+
+  it('submits multiple parts across skill groups and preserves the earlier selection with a summed Mock duration', () => {
+    render(<ScopeModePicker examId={42} sections={mockSections} onSubmit={mockSubmit} isLoading={false} error={null} />);
+    fireEvent.click(screen.getByText('Nhiều phần'));
+    fireEvent.click(screen.getByText('Mock Test'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reading Section' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Reading Part 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Listening Section' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Listening Part 1' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('Đã chọn 2 phần');
+    expect(screen.getByText(/tổng thời lượng mock: 100 phút/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
+    expect(mockSubmit).toHaveBeenCalledWith({
+      exam_id: 42, test_scope: 'MULTI_PART', test_mode: 'MOCK_TEST', section_id: null, part_id: null, part_ids: [701, 951],
+    });
+  });
+
+  it('requires at least two parts and does not permit Mock when a selected skill has no valid duration', () => {
+    const noDuration = mockSections.map(section => ({ ...section, durationMinutes: null }));
+    render(<ScopeModePicker examId={42} sections={noDuration} onSubmit={mockSubmit} isLoading={false} error={null} />);
+    fireEvent.click(screen.getByText('Nhiều phần'));
+    fireEvent.click(screen.getByText('Mock Test'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reading Section' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Reading Part 1' }));
+    expect(screen.getByRole('button', { name: /bắt đầu/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Listening Section' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Listening Part 1' }));
+    expect(screen.getByRole('button', { name: /bắt đầu/i })).toBeDisabled();
+  });
 });

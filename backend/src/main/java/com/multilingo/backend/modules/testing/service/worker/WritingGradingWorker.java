@@ -98,8 +98,9 @@ public class WritingGradingWorker {
                     claim.jobId(), claim.attemptId());
 
         } catch (WritingGradingException e) {
-            log.warn("Writing grading failed for job {}: errorCode={}, retryable={}, destination={}",
-                    claim.jobId(), e.getFailure().errorCode(), e.getFailure().isRetryable(), e.getFailure().destination());
+            log.warn("Writing grading failed for job {} (attemptId={}): errorCode={}, validationCode={}, retryable={}, destination={}",
+                    claim.jobId(), claim.attemptId(), e.getFailure().errorCode(), e.getFailure().validationCode(),
+                    e.getFailure().isRetryable(), e.getFailure().destination());
             try {
                 coordinator.fail(claim, e.getFailure());
             } catch (Exception ex) {
