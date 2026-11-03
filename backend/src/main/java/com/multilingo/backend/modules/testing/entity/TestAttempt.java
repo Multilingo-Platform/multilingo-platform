@@ -49,9 +49,7 @@ public class TestAttempt extends BaseEntity {
     @Column(name = "end_time")
     private Instant endTime;
 
-    /**
-     * Sprint 01: deadline — null for PRACTICE mode, startTime + duration for MOCK_TEST.
-     */
+    /** Server-issued deadline; null only for legacy attempts created without a time limit. */
     @Column(name = "deadline")
     private Instant deadline;
 
@@ -61,6 +59,10 @@ public class TestAttempt extends BaseEntity {
 
     @Column(name = "overall_score", precision = 10, scale = 2)
     private BigDecimal overallScore;
+
+    /** Unit used by overallScore; null means legacy attempt without explicit score semantics. */
+    @Column(name = "score_unit", length = 30)
+    private String scoreUnit;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "section_scores", columnDefinition = "json")

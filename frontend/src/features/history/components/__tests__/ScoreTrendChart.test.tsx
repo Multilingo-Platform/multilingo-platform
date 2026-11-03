@@ -10,6 +10,7 @@ describe('ScoreTrendChart', () => {
       examTitle: 'IELTS Test 1',
       certType: 'IELTS',
       score: 6.5,
+      scoreUnit: 'IELTS_BAND',
       maxScore: 9.0,
       percentage: 72.2,
       completedAt: '2026-10-20T10:00:00Z',
@@ -19,6 +20,7 @@ describe('ScoreTrendChart', () => {
       examTitle: 'IELTS Test 2',
       certType: 'IELTS',
       score: 7.5,
+      scoreUnit: 'IELTS_BAND',
       maxScore: 9.0,
       percentage: 83.3,
       completedAt: '2026-10-22T10:00:00Z',
@@ -28,6 +30,7 @@ describe('ScoreTrendChart', () => {
       examTitle: 'TOEIC ETS 2024 Test 1',
       certType: 'TOEIC',
       score: 750,
+      scoreUnit: 'TOEIC_SCALED',
       maxScore: 990,
       percentage: 75.8,
       completedAt: '2026-10-24T10:00:00Z',
@@ -67,6 +70,7 @@ describe('ScoreTrendChart', () => {
         examTitle: 'IELTS Test 1',
         certType: 'IELTS',
         score: 6.5,
+        scoreUnit: 'IELTS_BAND',
         maxScore: 9.0,
         percentage: 72.2,
         completedAt: '2026-10-20T10:00:00Z',
@@ -77,5 +81,16 @@ describe('ScoreTrendChart', () => {
 
     expect(screen.queryByText(/Tất cả \(/)).not.toBeInTheDocument();
     expect(screen.getByText('1 lần làm bài gần nhất')).toBeInTheDocument();
+  });
+
+  it('breaks trend lines at unit changes and omits raw values from the scaled percentage plot', () => {
+    const mixed: ScoreTrendItem[] = [
+      { ...sampleTrends[0], scoreUnit: 'IELTS_BAND' },
+      { ...sampleTrends[2], scoreUnit: 'TOEIC_SCALED' },
+      { ...sampleTrends[0], attemptId: 4, score: 20, scoreUnit: 'RAW_OBJECTIVE', maxScore: null, percentage: null },
+    ];
+    const { container } = render(<ScoreTrendChart trends={mixed} loading={false} />);
+    expect(container.querySelectorAll('.history-chart-svg path[fill="none"]')).toHaveLength(2);
+    expect(container.querySelectorAll('.history-chart-svg circle')).toHaveLength(2);
   });
 });

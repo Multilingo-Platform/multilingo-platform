@@ -24,7 +24,7 @@ describe('HistoryKpiCards', () => {
     expect(screen.getByText('4 hoàn thành • 7 dở dang • 3 lỗi chấm')).toBeInTheDocument();
     expect(screen.getByText('3h 5m')).toBeInTheDocument();
     expect(screen.getByText('3 ngày')).toBeInTheDocument();
-    expect(screen.getByText('6.5')).toBeInTheDocument();
+    expect(screen.getByText('6.5 raw')).toBeInTheDocument();
   });
 
   it('formats average score appropriately according to active certificate', () => {
@@ -71,8 +71,19 @@ describe('HistoryKpiCards', () => {
     };
 
     render(<HistoryKpiCards stats={mockStats} loading={false} activeCert="ALL" />);
-    expect(screen.getByText('Band 7.2')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.getByText('IELTS: Band 7.2 • TOEIC: 750đ')).toBeInTheDocument();
+  });
+
+  it('does not fall back to an average from another certificate scale', () => {
+    const stats: HistoryStatsResponse = {
+      totalAttempts: 2, completedAttempts: 2, inProgressAttempts: 0,
+      averageScore: 800, highestScore: 850, totalPracticeMinutes: 30, currentStreak: 0,
+      targetAchievedCount: 0, recentScoreTrends: [], averageScoresByType: { TOEIC: 800 },
+    };
+    render(<HistoryKpiCards stats={stats} loading={false} activeCert="IELTS" />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByText(/chưa có điểm theo thang chứng chỉ này/i)).toBeInTheDocument();
   });
 
   it('renders fallback when stats is null', () => {

@@ -302,7 +302,7 @@ describe('ScopeModePicker', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Listening Part 1' }));
 
     expect(screen.getByRole('status')).toHaveTextContent('Đã chọn 2 phần');
-    expect(screen.getByText(/tổng thời lượng mock: 100 phút/i)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Thời gian làm bài: 100 phút');
     fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
     expect(mockSubmit).toHaveBeenCalledWith({
       exam_id: 42, test_scope: 'MULTI_PART', test_mode: 'MOCK_TEST', section_id: null, part_id: null, part_ids: [701, 951],
@@ -320,5 +320,51 @@ describe('ScopeModePicker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Listening Section' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Listening Part 1' }));
     expect(screen.getByRole('button', { name: /bắt đầu/i })).toBeDisabled();
+  });
+
+  it('previews the configured scoped duration and submits a selected preset in either mode', () => {
+    render(<ScopeModePicker examId={42} sections={mockSections} onSubmit={mockSubmit} isLoading={false} error={null} />);
+    fireEvent.click(screen.getByText('Một kỹ năng'));
+    fireEvent.click(screen.getByText('Practice'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reading Section' }));
+
+    expect(screen.getByRole('option', { name: 'Mặc định — 60 phút' })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Thời gian làm bài' }), { target: { value: '45' } });
+    expect(screen.getByText('Thời gian làm bài: 45 phút')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      test_scope: 'SINGLE_SKILL', test_mode: 'PRACTICE', time_limit_minutes: 45,
+    }));
+  });
+
+  it('validates custom duration bounds and uses 360 minutes as the upper limit', () => {
+    render(<ScopeModePicker examId={42} sections={mockSections} onSubmit={mockSubmit} isLoading={false} error={null} />);
+    fireEvent.click(screen.getByText('Một kỹ năng'));
+    fireEvent.click(screen.getByText('Mock Test'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reading Section' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Thời gian làm bài' }), { target: { value: 'CUSTOM' } });
+    const input = screen.getByRole('spinbutton', { name: 'Thời gian tùy chỉnh (phút)' });
+    fireEvent.change(input, { target: { value: '361' } });
+    expect(screen.getByRole('button', { name: /bắt đầu/i })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('1–360');
+
+    fireEvent.change(input, { target: { value: '360' } });
+    expect(screen.getByRole('button', { name: /bắt đầu/i })).not.toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ time_limit_minutes: 360 }));
+  });
+
+  it('shows fixed full-exam time and drops a previous scoped override', () => {
+    render(<ScopeModePicker examId={42} examType="IELTS_ACADEMIC" examDurationMinutes={99}
+      sections={mockSections} onSubmit={mockSubmit} isLoading={false} error={null} />);
+    fireEvent.click(screen.getByText('Một kỹ năng'));
+    fireEvent.click(screen.getByText('Practice'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reading Section' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Thời gian làm bài' }), { target: { value: '30' } });
+    fireEvent.click(screen.getByText('Toàn bộ đề'));
+    expect(screen.queryByRole('combobox', { name: 'Thời gian làm bài' })).toBeNull();
+    expect(screen.getByText('Thời gian cố định: 150 phút')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
+    expect(mockSubmit).toHaveBeenCalledWith(expect.not.objectContaining({ time_limit_minutes: expect.anything() }));
   });
 });

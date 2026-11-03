@@ -64,19 +64,31 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
   const n = displayedTrends.length;
   const points = displayedTrends.map((item, idx) => {
     const x = n === 1 ? width / 2 : paddingX + (idx / (n - 1)) * chartWidth;
-    const clampedPercentage = Math.min(100, Math.max(0, item.percentage));
-    const y = paddingTop + chartHeight - (clampedPercentage / 100) * chartHeight;
+    const clampedPercentage = item.percentage === null ? null : Math.min(100, Math.max(0, item.percentage));
+    const y = clampedPercentage === null ? paddingTop + chartHeight : paddingTop + chartHeight - (clampedPercentage / 100) * chartHeight;
     return { x, y, item };
   });
 
-  // Construct SVG path for line and area
-  const linePath = points.reduce((acc, pt, idx) => {
-    return idx === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
-  }, '');
-
-  const areaPath = n === 1
-    ? ''
-    : `${linePath} L ${points[n - 1]?.x ?? width} ${paddingTop + chartHeight} L ${points[0]?.x ?? 0} ${paddingTop + chartHeight} Z`;
+  // Never connect points with different score units, or bridge raw-only attempts.
+  const lineSegments: string[] = [];
+  let currentSegment = '';
+  let currentUnit: string | null = null;
+  for (const point of points) {
+    const unit = point.item.scoreUnit ?? 'LEGACY_RAW';
+    if (point.item.percentage === null) {
+      if (currentSegment) lineSegments.push(currentSegment);
+      currentSegment = '';
+      currentUnit = null;
+      continue;
+    }
+    if (currentSegment && currentUnit === unit) currentSegment += ` L ${point.x} ${point.y}`;
+    else {
+      if (currentSegment) lineSegments.push(currentSegment);
+      currentSegment = `M ${point.x} ${point.y}`;
+      currentUnit = unit;
+    }
+  }
+  if (currentSegment) lineSegments.push(currentSegment);
 
   const formatDate = (isoStr: string) => {
     const d = new Date(isoStr);
@@ -85,8 +97,9 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
 
   const formatScoreBadge = (item: ScoreTrendItem) => {
     if (item.score === null) return '—';
-    if (item.certType === 'IELTS') return `Band ${item.score}`;
-    if (item.certType === 'TOEIC') return `${Math.round(item.score)} đ`;
+    if (item.scoreUnit === 'IELTS_BAND') return `Band ${item.score}`;
+    if (item.scoreUnit === 'TOEIC_SCALED') return `${Math.round(item.score)} đ`;
+    if (item.scoreUnit === 'RAW_OBJECTIVE' || item.scoreUnit === 'LEGACY_RAW' || !item.scoreUnit) return `${item.score} raw`;
     if (item.certType === 'NLTV') return `Bậc ${item.score}`;
     return `${item.score} đ`;
   };
@@ -170,31 +183,15 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
             );
           })}
 
-          {/* Area Fill */}
-          {areaPath && (
-            <path
-              d={areaPath}
-              fill="url(#historyTrendGradient)"
-            />
-          )}
-
           {/* Curve Stroke Line */}
-          {linePath && (
-            <path
-              d={linePath}
-              fill="none"
-              stroke="#ea580c"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
+          {lineSegments.map((path, idx) => <path key={idx} d={path} fill="none" stroke="#ea580c" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />)}
 
           {/* Point Circles and Labels */}
           {points.map((pt, idx) => {
             const isHovered = hoveredIdx === idx;
             return (
               <g key={idx}>
+                {pt.item.percentage !== null && <>
                 {/* Score badge above circle */}
                 <rect
                   x={pt.x - 28}
@@ -229,6 +226,7 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
                 />
+                </>}
 
                 {/* Date label at bottom */}
                 <text
@@ -262,8 +260,8 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
               {points[hoveredIdx].item.examTitle}
             </div>
             <div className="history-tooltip-score">
-              {t('history.chart.tooltip_score', 'Điểm:')} <strong>{points[hoveredIdx].item.score} / {points[hoveredIdx].item.maxScore}</strong>
-              <span className="history-tooltip-pct">({points[hoveredIdx].item.percentage}%)</span>
+              {t('history.chart.tooltip_score', 'Điểm:')} <strong>{points[hoveredIdx].item.score} {points[hoveredIdx].item.scoreUnit === 'IELTS_BAND' ? 'IELTS band' : points[hoveredIdx].item.scoreUnit === 'TOEIC_SCALED' ? 'TOEIC estimate' : 'raw'}</strong>
+              {points[hoveredIdx].item.percentage !== null && <span className="history-tooltip-pct">({points[hoveredIdx].item.percentage}%)</span>}
             </div>
           </div>
         )}

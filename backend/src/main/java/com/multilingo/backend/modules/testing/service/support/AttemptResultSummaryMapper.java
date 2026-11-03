@@ -10,6 +10,8 @@ import com.multilingo.backend.modules.testing.entity.WritingGradingJob;
 import com.multilingo.backend.modules.testing.entity.enums.WritingGradingJobStatus;
 import com.multilingo.backend.modules.testing.ai.grading.WritingGradingResultCodec;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
+import com.multilingo.backend.modules.testing.grading.CertificateScoreProjector;
+import com.multilingo.backend.modules.testing.util.CertificateExamPolicy;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope.ScopedPart;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope.ScopedQuestion;
@@ -248,8 +250,9 @@ public class AttemptResultSummaryMapper {
                 return null;
             }
 
-            // Consistency check against attempt overallScore if present
-            if (attempt.getOverallScore() != null && attempt.getOverallScore().compareTo(verifiedTotalScore) != 0) {
+            // Legacy and raw-scoped attempts store raw overallScore. Certificate attempts store a scaled unit.
+            if ((attempt.getScoreUnit() == null || "RAW_OBJECTIVE".equals(attempt.getScoreUnit()))
+                    && attempt.getOverallScore() != null && attempt.getOverallScore().compareTo(verifiedTotalScore) != 0) {
                 return null;
             }
 
@@ -404,15 +407,22 @@ public class AttemptResultSummaryMapper {
                 }
             }
 
-            return ResultSummaryResponse.builder()
+            ResultSummaryResponse.ResultSummaryResponseBuilder response = ResultSummaryResponse.builder()
                     .partResults(allowlistPartResults)
                     .totalScore(verifiedTotalScore)
                     .correctCount(verifiedCorrectCount)
                     .totalObjectiveCount(verifiedTotalCount)
                     .sectionScores(sectionScores)
                     .objective(objective)
-                    .writing(writing)
-                    .build();
+                    .writing(writing);
+            if (attempt.getTestScope() == com.multilingo.backend.modules.testing.entity.enums.TestScope.FULL_EXAM
+                    && CertificateScoreProjector.POLICY_VERSION.equals(attempt.getExamSnapshot().get("scorePolicyVersion"))
+                    && attempt.getScoreUnit() != null
+                    && attempt.getScoreUnit().equals(CertificateExamPolicy.scoreUnit(String.valueOf(attempt.getExamSnapshot().get("type"))))) {
+                response.certificateScore(new CertificateScoreProjector().project(
+                        String.valueOf(attempt.getExamSnapshot().get("type")), bySkill, writingTasks).orElse(null));
+            }
+            return response.build();
         } catch (Exception e) {
             log.warn("Result summary mapping failed for attempt {}: {}", attempt.getId(), e.getClass().getSimpleName());
             return null;

@@ -36,6 +36,39 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 @Transactional
 class TestAttemptServiceTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"PRACTICE,false", "MOCK_TEST,false", "PRACTICE,true", "MOCK_TEST,true"})
+    void legacy_attempt_keeps_raw_score_and_null_unit_when_submitted(TestMode mode, boolean timeout) {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1); req.setTestScope(TestScope.FULL_EXAM); req.setTestMode(mode);
+        var created = service.createAttempt(req);
+        var legacy = testAttemptRepository.findById(created.getAttemptId()).orElseThrow();
+        legacy.setScoreUnit(null);
+        legacy.getExamSnapshot().remove("scorePolicyVersion");
+        legacy.getExamSnapshot().remove("scoreUnit");
+        testAttemptRepository.saveAndFlush(legacy);
+        service.getAttemptWorkspace(legacy.getId());
+        var savedAnswers = AutosaveAnswersRequest.builder().version(1).answers(List.of(
+                AutosaveAnswersRequest.PartAnswerDto.builder().partId(1).answers(List.of(
+                        AutosaveAnswersRequest.QuestionAnswerDto.builder().questionId("q_1").answer("A").build())).build())).build();
+        service.autosaveAnswers(legacy.getId(), savedAnswers);
+        var submit = AutosaveAnswersRequest.builder().version(2).answers(List.of()).build();
+        if (timeout) {
+            legacy.setDeadline(Instant.now().minusSeconds(60));
+            testAttemptRepository.saveAndFlush(legacy);
+            service.expireAttemptBySystem(legacy.getId());
+        } else service.submitAttempt(legacy.getId(), submit);
+        assertThat(legacy.getOverallScore()).isEqualByComparingTo(BigDecimal.ONE);
+        assertThat(legacy.getScoreUnit()).isNull();
+        assertThat(legacy.getExamSnapshot()).doesNotContainKey("scorePolicyVersion");
+        service.submitAttempt(legacy.getId(), submit);
+        assertThat(legacy.getOverallScore()).isEqualByComparingTo(BigDecimal.ONE);
+        var result = service.getAttemptResult(legacy.getId());
+        assertThat(result.getOverallScore()).isEqualByComparingTo(BigDecimal.ONE);
+        assertThat(result.getScoreUnit()).isNull();
+        assertThat(result.getResultSummary().getCertificateScore()).isNull();
+    }
+
     @Autowired
     TestAttemptService service;
 
@@ -67,7 +100,7 @@ class TestAttemptServiceTest {
     // ─── UC-01: createAttempt FULL_EXAM PRACTICE ───────────────────────────────
 
     @Test
-    void createAttempt_practice_mode_has_null_deadline() {
+    void createAttempt_practice_full_exam_uses_fixed_ielts_deadline() {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
         req.setTestScope(TestScope.FULL_EXAM);
@@ -75,8 +108,9 @@ class TestAttemptServiceTest {
 
         WorkspaceResponse response = service.createAttempt(req);
 
-        assertThat(response.getDeadline()).isNull();
+        assertThat(java.time.Duration.between(response.getStartTime(), response.getDeadline()).toSeconds()).isEqualTo(150 * 60L);
         assertThat(response.getStatus()).isEqualTo(AttemptStatus.IN_PROGRESS);
+        assertThat(response.getExamSnapshot()).containsEntry("durationMinutes", 150);
     }
 
     @Test
@@ -130,18 +164,58 @@ class TestAttemptServiceTest {
                 .isInstanceOf(AppException.class);
     }
 
-    // ─── UC-01: MOCK_TEST with null duration rejected ───────────────────────────
+    // ─── UC-01: Full IELTS uses its fixed duration despite a missing fixture duration ─────
 
     @Test
-    void createAttempt_mock_test_with_null_duration_exam_throws_invalid_request() {
-        // examId=2 has durationMinutes=null in fixture
+    void createAttempt_mock_test_with_fixed_ielts_duration_when_fixture_duration_is_null() {
+        // IELTS full duration is fixed from certificate type, even when the fixture omits it.
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(2);
         req.setTestScope(TestScope.FULL_EXAM);
         req.setTestMode(TestMode.MOCK_TEST);
 
-        assertThatThrownBy(() -> service.createAttempt(req))
-                .isInstanceOf(AppException.class);
+        WorkspaceResponse response = service.createAttempt(req);
+        assertThat(java.time.Duration.between(response.getStartTime(), response.getDeadline()).toSeconds()).isEqualTo(150 * 60L);
+        assertThat(response.getExamSnapshot()).containsEntry("durationMinutes", 150);
+    }
+
+    @Test
+    void createAttempt_practice_part_accepts_custom_duration_when_default_is_unconfigured() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(2);
+        req.setTestScope(TestScope.SINGLE_PART);
+        req.setTargetPartId(8);
+        req.setTestMode(TestMode.PRACTICE);
+        req.setTimeLimitMinutes(45);
+
+        WorkspaceResponse response = service.createAttempt(req);
+
+        assertThat(response.getDeadline()).isAfter(Instant.now().plusSeconds(44 * 60));
+        assertThat(response.getDeadline()).isBefore(Instant.now().plusSeconds(46 * 60));
+        assertThat(response.getExamSnapshot()).containsEntry("durationMinutes", 45);
+        assertThat(response.getExamSnapshot()).containsEntry("durationSource", "LEARNER_CUSTOM");
+    }
+
+    @Test
+    void createAttempt_rejects_full_exam_override_and_invalid_custom_duration() {
+        CreateAttemptRequest full = new CreateAttemptRequest();
+        full.setExamId(1); full.setTestScope(TestScope.FULL_EXAM); full.setTestMode(TestMode.PRACTICE); full.setTimeLimitMinutes(60);
+        assertThatThrownBy(() -> service.createAttempt(full)).isInstanceOf(AppException.class);
+
+        CreateAttemptRequest tooLow = new CreateAttemptRequest();
+        tooLow.setExamId(1); tooLow.setTestScope(TestScope.SINGLE_SKILL); tooLow.setTargetSectionId(1);
+        tooLow.setTestMode(TestMode.PRACTICE); tooLow.setTimeLimitMinutes(0);
+        assertThatThrownBy(() -> service.createAttempt(tooLow)).isInstanceOf(AppException.class);
+
+        tooLow.setTimeLimitMinutes(361);
+        assertThatThrownBy(() -> service.createAttempt(tooLow)).isInstanceOf(AppException.class);
+    }
+
+    @Test
+    void createAttempt_rejects_scoped_default_when_configuration_is_missing() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(2); req.setTestScope(TestScope.SINGLE_PART); req.setTargetPartId(8); req.setTestMode(TestMode.PRACTICE);
+        assertThatThrownBy(() -> service.createAttempt(req)).isInstanceOf(AppException.class);
     }
 
     // ─── UC-02: getAttemptWorkspace — own attempt ───────────────────────────────
@@ -211,6 +285,21 @@ class TestAttemptServiceTest {
         ));
 
         assertDoesNotThrow(() -> service.autosaveAnswers(attempt.getAttemptId(), saveReq));
+    }
+
+    @Test
+    void autosaveAnswers_rejects_practice_attempt_after_server_deadline() {
+        CreateAttemptRequest req = new CreateAttemptRequest();
+        req.setExamId(1); req.setTestScope(TestScope.FULL_EXAM); req.setTestMode(TestMode.PRACTICE);
+        WorkspaceResponse attempt = service.createAttempt(req);
+        TestAttempt persisted = testAttemptRepository.findById(attempt.getAttemptId()).orElseThrow();
+        persisted.setDeadline(Instant.now().minusSeconds(1));
+        testAttemptRepository.saveAndFlush(persisted);
+
+        AutosaveAnswersRequest saveReq = new AutosaveAnswersRequest();
+        saveReq.setVersion(1); saveReq.setAnswers(Collections.emptyList());
+        assertThatThrownBy(() -> service.autosaveAnswers(attempt.getAttemptId(), saveReq))
+                .isInstanceOf(AppException.class);
     }
 
     // ─── UC-04: submitAttempt ──────────────────────────────────────────────────
@@ -305,7 +394,7 @@ class TestAttemptServiceTest {
     }
 
     @Test
-    void submitAttempt_persists_overallScore_on_attempt() {
+    void submitAttempt_does_not_persist_raw_as_incomplete_ielts_certificate_score() {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
         req.setTestScope(TestScope.FULL_EXAM);
@@ -317,9 +406,10 @@ class TestAttemptServiceTest {
 
         service.submitAttempt(attempt.getAttemptId(), emptyReq);
 
-        // Verify overallScore được ghi vào TestAttempt
+        // IELTS certificate total must remain unavailable when required bands are missing.
         TestAttempt saved = testAttemptRepository.findById(attempt.getAttemptId()).orElseThrow();
-        assertThat(saved.getOverallScore()).isNotNull();
+        assertThat(saved.getScoreUnit()).isEqualTo("IELTS_BAND");
+        assertThat(saved.getOverallScore()).isNull();
     }
 
     // ─── TC_SUBMIT_02: idempotency không ghi đè score ───────────────────────────

@@ -18,5 +18,6 @@ public class RecentScoreTrendItem {
     private Double score;
     private Double maxScore;
     private Double percentage;
+    private String scoreUnit;
     private Instant completedAt;
 }

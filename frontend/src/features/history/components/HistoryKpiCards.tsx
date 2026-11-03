@@ -31,10 +31,10 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
   };
 
   const renderAverageScoreInfo = (s: HistoryStatsResponse | null, cert?: string) => {
-    if (!s || s.averageScore === null) {
+    if (!s) {
       return {
         value: '—',
-        subtext: s && s.highestScore !== null ? t('history.kpi.highest', { score: s.highestScore, defaultValue: `Cao nhất: ${s.highestScore}` }) : t('history.kpi.no_score', 'Chưa có điểm'),
+        subtext: t('history.kpi.no_score', 'Chưa có điểm'),
       };
     }
 
@@ -43,7 +43,8 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
 
     // If specific cert tab is active (and not 'ALL')
     if (cert && cert !== 'ALL') {
-      const certScore = byType[cert] ?? s.averageScore;
+      const certScore = byType[cert];
+      if (certScore === undefined) return { value: '—', subtext: t('history.kpi.no_score_scale', 'Chưa có điểm theo thang chứng chỉ này') };
       let label = `${certScore}`;
       let scale = '';
       if (cert.startsWith('IELTS')) {
@@ -62,7 +63,7 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
       };
     }
 
-    // If 'ALL' is selected
+    // If 'ALL' is selected, show per-certificate values without averaging their scales.
     if (typeKeys.length === 1) {
       const singleType = typeKeys[0];
       const singleScore = byType[singleType];
@@ -85,25 +86,16 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
         return `${k}: ${sc}`;
       }).join(' • ');
 
-      let mainLabel = `${s.averageScore}`;
-      for (const k of typeKeys) {
-        if (byType[k] === s.averageScore) {
-          if (k === 'IELTS') mainLabel = `Band ${s.averageScore}`;
-          else if (k === 'TOEIC') mainLabel = `${Math.round(s.averageScore)} đ`;
-          else if (k === 'NLTV') mainLabel = `Bậc ${s.averageScore}`;
-          break;
-        }
-      }
-
       return {
-        value: mainLabel,
+        value: '—',
         subtext: breakdown,
       };
     }
 
+    if (s.averageScore === null) return { value: '—', subtext: t('history.kpi.no_score', 'Chưa có điểm phù hợp') };
     return {
-      value: s.averageScore,
-      subtext: s.highestScore !== null ? `Cao nhất: ${s.highestScore}` : 'Chưa có điểm',
+      value: `${s.averageScore} raw`,
+      subtext: t('history.kpi.raw_score', 'Điểm raw'),
     };
   };
 

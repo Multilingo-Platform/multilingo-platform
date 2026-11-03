@@ -46,6 +46,7 @@ export interface CreateAttemptRequest {
   section_id: number | null;
   part_id: number | null;
   part_ids?: number[];
+  time_limit_minutes?: number;
 }
 
 /**
@@ -63,7 +64,7 @@ export interface WorkspaceResponse {
   test_scope: TestScope;
   test_mode: TestMode;
   startTime: string;            // ISO-8601 UTC Instant
-  deadline: string | null;      // ISO-8601 UTC Instant; null for PRACTICE
+  deadline: string | null;      // ISO-8601 UTC Instant; null only for legacy unlimited attempts
   serverTime: string;           // ISO-8601 UTC Instant timestamp from server
   gracePeriodSeconds: number;   // e.g. 15
   lockedSections: number[];     // array of locked section IDs
@@ -145,6 +146,29 @@ export interface ResultSummary {
       scoreUnit?: 'BAND_0_9' | 'PRACTICE_0_10' | null;
     }>;
   } | null;
+  certificateScore?: CertificateScore | null;
+}
+
+export type ResultScoreUnit = 'RAW_OBJECTIVE' | 'IELTS_BAND' | 'TOEIC_SCALED';
+
+export interface CertificateSkillScore {
+  rawScore: number | null;
+  rawCorrect: number | null;
+  rawTotal: number | null;
+  score: number | null;
+  displayValue: string;
+  status: 'AVAILABLE' | 'UNAVAILABLE';
+  unavailableReasonCode: string | null;
+}
+
+export interface CertificateScore {
+  policyVersion: 'CERTIFICATE_SCORE_V1';
+  scoreUnit: 'IELTS_BAND' | 'TOEIC_SCALED';
+  status: 'COMPLETE' | 'PARTIAL' | 'UNAVAILABLE';
+  skillScores: Record<string, CertificateSkillScore>;
+  overallScore: number | null;
+  overallDisplay: string;
+  unavailableReasonCode: string | null;
 }
 
 export interface ReviewPartNavigation {
@@ -162,6 +186,7 @@ export interface ExamResultResponse {
   endTime: string | null;
   timeSpentSeconds: number | null;
   overallScore: number | null;
+  scoreUnit?: ResultScoreUnit | null;
   summaryAvailable: boolean;
   resultSummary: ResultSummary | null;
   reviewParts: ReviewPartNavigation[];

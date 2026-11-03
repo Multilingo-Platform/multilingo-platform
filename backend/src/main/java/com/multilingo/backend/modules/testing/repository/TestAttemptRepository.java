@@ -48,13 +48,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
 
     Optional<TestAttempt> findFirstByUserIdAndStatusOrderByEndTimeDesc(Integer userId, AttemptStatus status);
 
-    @Query("SELECT AVG(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.overallScore IS NOT NULL")
+    @Query("SELECT AVG(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.overallScore IS NOT NULL AND (a.scoreUnit IS NULL OR a.scoreUnit = 'RAW_OBJECTIVE')")
     Double findAverageScoreByUserId(@Param("userId") Integer userId);
 
     @Query("SELECT COUNT(a) FROM TestAttempt a WHERE a.examId = :examId")
     long countByExamId(@Param("examId") Integer examId);
 
-    @Query("SELECT AVG(a.overallScore) FROM TestAttempt a WHERE a.examId = :examId AND a.overallScore IS NOT NULL")
+    @Query("SELECT AVG(a.overallScore) FROM TestAttempt a WHERE a.examId = :examId AND a.overallScore IS NOT NULL AND (a.scoreUnit IS NULL OR a.scoreUnit = 'RAW_OBJECTIVE')")
     Double findAverageScoreByExamId(@Param("examId") Integer examId);
 
     @Query("SELECT COUNT(a) FROM TestAttempt a WHERE a.examId = :examId AND a.status = 'COMPLETED'")
@@ -66,13 +66,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
     @Query("SELECT a.examId, COUNT(a) FROM TestAttempt a GROUP BY a.examId")
     List<Object[]> countAttemptsGroupByExamId();
 
-    @Query("SELECT a.examId, COUNT(a), MAX(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.status = 'COMPLETED' GROUP BY a.examId")
+    @Query("SELECT a.examId, COUNT(a), MAX(CASE WHEN a.scoreUnit IS NULL OR a.scoreUnit = 'RAW_OBJECTIVE' THEN a.overallScore ELSE NULL END) FROM TestAttempt a WHERE a.userId = :userId AND a.status = 'COMPLETED' GROUP BY a.examId")
     List<Object[]> findUserAttemptSummariesByUserId(@Param("userId") Integer userId);
 
     @Query("SELECT COALESCE(SUM(a.timeSpentSeconds), 0) FROM TestAttempt a WHERE a.userId = :userId")
     Long sumTimeSpentSecondsByUserId(@Param("userId") Integer userId);
 
-    @Query("SELECT MAX(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.status = 'COMPLETED'")
+    @Query("SELECT MAX(a.overallScore) FROM TestAttempt a WHERE a.userId = :userId AND a.status = 'COMPLETED' AND (a.scoreUnit IS NULL OR a.scoreUnit = 'RAW_OBJECTIVE')")
     java.math.BigDecimal findHighestScoreByUserId(@Param("userId") Integer userId);
 
     List<TestAttempt> findTop10ByUserIdAndStatusOrderByEndTimeDesc(Integer userId, AttemptStatus status);
@@ -164,7 +164,7 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
     );
 
     @Query("SELECT AVG(a.overallScore) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
-           "AND a.overallScore IS NOT NULL " +
+           "AND a.overallScore IS NOT NULL AND (a.scoreUnit IS NULL OR a.scoreUnit = 'RAW_OBJECTIVE') " +
            "AND (:hasLang = false OR ( " +
            "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
@@ -180,7 +180,7 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
     );
 
     @Query("SELECT MAX(a.overallScore) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
-           "AND a.status = 'COMPLETED' " +
+           "AND a.status = 'COMPLETED' AND (a.scoreUnit IS NULL OR a.scoreUnit = 'RAW_OBJECTIVE') " +
            "AND (:hasLang = false OR ( " +
            "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
@@ -229,14 +229,14 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
             org.springframework.data.domain.Pageable pageable
     );
 
-    @Query("SELECT UPPER(e.type), AVG(a.overallScore) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
+    @Query("SELECT UPPER(e.type), a.scoreUnit, AVG(a.overallScore), MAX(a.overallScore) FROM TestAttempt a JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
            "AND a.status = 'COMPLETED' AND a.overallScore IS NOT NULL " +
            "AND (:hasLang = false OR ( " +
            "    (:targetLang = 'en' AND LOWER(e.examLanguage) IN ('en', 'english')) OR " +
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            ")) " +
-           "GROUP BY UPPER(e.type)")
+           "GROUP BY UPPER(e.type), a.scoreUnit")
     List<Object[]> findAverageScoresGroupedByType(
             @Param("userId") Integer userId,
             @Param("targetLang") String targetLang,

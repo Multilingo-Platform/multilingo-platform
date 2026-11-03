@@ -40,6 +40,57 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class StudentHistoryServiceImplTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"IELTS_ACADEMIC,RAW_OBJECTIVE", "IELTS_ACADEMIC,LEGACY_RAW", "TOEIC_LR,RAW_OBJECTIVE", "TOEIC_LR,LEGACY_RAW"})
+    void raw_only_history_does_not_fail_or_invent_certificate_scores(String type, String unit) {
+        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), any(), anyBoolean()))
+                .thenReturn(List.<Object[]>of(new Object[]{type, "LEGACY_RAW".equals(unit) ? null : unit, 30.0, 35.0}));
+        var attempt = TestAttempt.builder().userId(userId).examId(101).overallScore(BigDecimal.valueOf(30))
+                .scoreUnit("LEGACY_RAW".equals(unit) ? null : unit).build();
+        attempt.setId(501);
+        var exam = new Exam(); exam.setId(101); exam.setType(type);
+        when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED),
+                any(), anyBoolean(), any(), anyBoolean(), any()))
+                .thenReturn(List.<Object[]>of(new Object[]{attempt, exam}));
+        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), any(), anyBoolean(), any(), anyBoolean()))
+                .thenReturn(1L);
+        when(testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(eq(userId), any(), anyBoolean(), any(), anyBoolean()))
+                .thenReturn(600L);
+        var stats = studentHistoryService.getStudentStats(userId, null, null);
+        assertThat(stats.getAverageScore()).isNull();
+        assertThat(stats.getHighestScore()).isNull();
+        assertThat(stats.getAverageScoresByType()).isEmpty();
+        assertThat(stats.getTotalAttempts()).isEqualTo(1);
+        assertThat(stats.getTotalPracticeMinutes()).isEqualTo(10);
+        assertThat(stats.getRecentScoreTrends()).hasSize(1);
+        assertThat(stats.getRecentScoreTrends().get(0).getScore()).isEqualTo(30);
+        assertThat(stats.getRecentScoreTrends().get(0).getPercentage()).isNull();
+    }
+
+    @Test
+    void empty_history_has_no_certificate_scores() {
+        var stats = studentHistoryService.getStudentStats(userId, null, null);
+        assertThat(stats.getAverageScoresByType()).isEmpty();
+        assertThat(stats.getAverageScore()).isNull();
+        assertThat(stats.getHighestScore()).isNull();
+        assertThat(stats.getRecentScoreTrends()).isEmpty();
+    }
+
+    @Test
+    void mixed_history_aggregates_only_matching_certificate_units() {
+        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), any(), anyBoolean()))
+                .thenReturn(List.<Object[]>of(
+                        new Object[]{"IELTS_ACADEMIC", null, 39.0, 40.0},
+                        new Object[]{"IELTS_ACADEMIC", "RAW_OBJECTIVE", 35.0, 38.0},
+                        new Object[]{"IELTS_ACADEMIC", "IELTS_BAND", 6.5, 7.0},
+                        new Object[]{"TOEIC_LR", "RAW_OBJECTIVE", 99.0, 100.0},
+                        new Object[]{"TOEIC_LR", "TOEIC_SCALED", 800.0, 900.0}));
+        var stats = studentHistoryService.getStudentStats(userId, "IELTS", null);
+        assertThat(stats.getAverageScoresByType()).containsEntry("IELTS", 6.5).containsEntry("TOEIC", 800.0);
+        assertThat(stats.getAverageScore()).isEqualTo(6.5);
+        assertThat(stats.getHighestScore()).isEqualTo(7.0);
+    }
+
     @Mock
     private TestAttemptRepository testAttemptRepository;
 
@@ -69,8 +120,6 @@ class StudentHistoryServiceImplTest {
         when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(3L);
         when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.IN_PROGRESS), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(1L);
         when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.GRADING_FAILED), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(1L);
-        when(testAttemptRepository.findAverageScoreByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(7.2);
-        when(testAttemptRepository.findHighestScoreByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(BigDecimal.valueOf(8.5));
         when(testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(7200L); // 120 minutes
 
         UserTarget target = new UserTarget();
@@ -87,6 +136,7 @@ class StudentHistoryServiceImplTest {
                 .userId(userId)
                 .examId(10)
                 .overallScore(BigDecimal.valueOf(7.5))
+                .scoreUnit("IELTS_BAND")
                 .status(AttemptStatus.COMPLETED)
                 .endTime(Instant.now())
                 .build();
@@ -104,7 +154,7 @@ class StudentHistoryServiceImplTest {
                 .thenReturn(recentRows);
 
         List<Object[]> avgRows = new ArrayList<>();
-        avgRows.add(new Object[]{"IELTS_ACADEMIC", 7.2});
+        avgRows.add(new Object[]{"IELTS_ACADEMIC", "IELTS_BAND", 7.2, 8.5});
         when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
                 .thenReturn(avgRows);
 
@@ -131,8 +181,6 @@ class StudentHistoryServiceImplTest {
     void getStudentStats_WithMultipleCertTypes_CalculatesAverageScoresByType() {
         when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(4L);
         when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), any(), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
-        when(testAttemptRepository.findAverageScoreByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(378.5);
-
         UserTarget target = new UserTarget();
         target.setTargetLanguage("en");
         target.setTargetCertificate("IELTS");
@@ -140,8 +188,8 @@ class StudentHistoryServiceImplTest {
         when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
         List<Object[]> avgRows = new ArrayList<>();
-        avgRows.add(new Object[]{"IELTS_ACADEMIC", 7.5});
-        avgRows.add(new Object[]{"TOEIC_LR", 750.0});
+        avgRows.add(new Object[]{"IELTS_ACADEMIC", "IELTS_BAND", 7.5, 8.0});
+        avgRows.add(new Object[]{"TOEIC_LR", "TOEIC_SCALED", 750.0, 850.0});
         when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
                 .thenReturn(avgRows);
 
@@ -162,6 +210,7 @@ class StudentHistoryServiceImplTest {
                 .userId(userId)
                 .examId(20)
                 .overallScore(BigDecimal.valueOf(800.0))
+                .scoreUnit("TOEIC_SCALED")
                 .status(AttemptStatus.COMPLETED)
                 .testMode(TestMode.MOCK_TEST)
                 .testScope(TestScope.FULL_EXAM)
@@ -180,6 +229,7 @@ class StudentHistoryServiceImplTest {
 
         UserTarget target = new UserTarget();
         target.setTargetScore(BigDecimal.valueOf(750.0));
+        target.setTargetCertificate("TOEIC_LR");
         when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
 
         List<Object[]> rows = new ArrayList<>();

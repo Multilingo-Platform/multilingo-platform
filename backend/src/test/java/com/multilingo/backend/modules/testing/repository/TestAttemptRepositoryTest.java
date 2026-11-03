@@ -21,6 +21,46 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(JpaTestConfig.class)
 class TestAttemptRepositoryTest {
 
+    @Test
+    void raw_and_legacy_only_summary_retains_count_and_max() {
+        repository.save(TestAttempt.builder().userId(773).examId(993).startTime(Instant.now())
+                .status(AttemptStatus.COMPLETED).overallScore(new java.math.BigDecimal("15")).build());
+        repository.save(TestAttempt.builder().userId(773).examId(993).startTime(Instant.now())
+                .status(AttemptStatus.COMPLETED).scoreUnit("RAW_OBJECTIVE").overallScore(new java.math.BigDecimal("18")).build());
+        repository.flush();
+        var rows = repository.findUserAttemptSummariesByUserId(773);
+        assertThat(rows).hasSize(1);
+        assertThat(((Number) rows.get(0)[1]).intValue()).isEqualTo(2);
+        assertThat((java.math.BigDecimal) rows.get(0)[2]).isEqualByComparingTo("18");
+    }
+
+    @Test
+    void summary_counts_all_completed_units_but_max_is_raw_only() {
+        for (String unit : new String[]{null, "RAW_OBJECTIVE", "IELTS_BAND", "TOEIC_SCALED"}) {
+            repository.save(TestAttempt.builder().userId(771).examId(991).startTime(Instant.now())
+                    .status(AttemptStatus.COMPLETED).scoreUnit(unit)
+                    .overallScore(new java.math.BigDecimal(unit == null ? "12" : "8")).build());
+        }
+        repository.save(TestAttempt.builder().userId(771).examId(991).startTime(Instant.now())
+                .status(AttemptStatus.IN_PROGRESS).overallScore(new java.math.BigDecimal("99")).build());
+        repository.flush();
+        var rows = repository.findUserAttemptSummariesByUserId(771);
+        assertThat(rows).hasSize(1);
+        assertThat(((Number) rows.get(0)[1]).intValue()).isEqualTo(4);
+        assertThat((java.math.BigDecimal) rows.get(0)[2]).isEqualByComparingTo("12");
+    }
+
+    @Test
+    void certificate_only_summary_counts_completed_even_without_total_and_has_no_raw_max() {
+        repository.save(TestAttempt.builder().userId(772).examId(992).startTime(Instant.now())
+                .status(AttemptStatus.COMPLETED).scoreUnit("IELTS_BAND").build());
+        repository.flush();
+        var rows = repository.findUserAttemptSummariesByUserId(772);
+        assertThat(rows).hasSize(1);
+        assertThat(((Number) rows.get(0)[1]).intValue()).isEqualTo(1);
+        assertThat(rows.get(0)[2]).isNull();
+    }
+
     @Autowired
     TestAttemptRepository repository;
 

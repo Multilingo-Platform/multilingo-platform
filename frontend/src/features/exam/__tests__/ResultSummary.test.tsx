@@ -26,6 +26,19 @@ describe('backend summary components', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByText('0/0')).not.toBeInTheDocument();
   });
+  it('shows certificate unit scores separately from objective raw results', () => {
+    const certificateScore = {
+      policyVersion: 'CERTIFICATE_SCORE_V1' as const, scoreUnit: 'TOEIC_SCALED' as const, status: 'PARTIAL' as const,
+      skillScores: {
+        LISTENING: { rawScore: 80, rawCorrect: 80, rawTotal: 100, score: 430, displayValue: '80/100 → 430', status: 'AVAILABLE' as const, unavailableReasonCode: null },
+        READING: { rawScore: 50, rawCorrect: 50, rawTotal: 90, score: null, displayValue: 'Raw only', status: 'UNAVAILABLE' as const, unavailableReasonCode: 'TOEIC_SKILL_NOT_100_QUESTIONS' },
+      }, overallScore: null, overallDisplay: 'Chưa đủ cả Listening và Reading', unavailableReasonCode: 'TOEIC_REQUIRES_COMPLETE_LISTENING_AND_READING',
+    };
+    render(<ObjectiveResultSummary objective={summary().objective} certificateScore={certificateScore} />);
+    expect(screen.getByRole('region', { name: 'Điểm TOEIC ước lượng' })).toBeInTheDocument();
+    expect(screen.getByText('80/100 → 430')).toBeInTheDocument();
+    expect(screen.getAllByText('5,5').length).toBeGreaterThan(0);
+  });
   it.each([
     ['PENDING', 'Đang chờ chấm'], ['QUEUED', 'Đang chờ xử lý'],
     ['FAILED', 'Chấm Writing thất bại'], ['UNAVAILABLE', 'Chưa có kết quả chấm Writing'],
