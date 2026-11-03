@@ -1,4 +1,4 @@
-import type { ExamResultResponse, ObjectiveResultStats, ResultSummary, ResultWritingStatus, ReviewPartNavigation } from '../types/api.types';
+import type { CertificateScore, CertificateSkillScore, ExamResultResponse, ObjectiveResultStats, ResultScoreUnit, ResultSummary, ResultWritingStatus, ReviewPartNavigation } from '../types/api.types';
 
 export class ResultContractError extends Error {
   constructor() {
@@ -73,6 +73,44 @@ function writingStatus(value: unknown): ResultWritingStatus {
   return enumeration(value, ['PENDING', 'QUEUED', 'DONE', 'FAILED', 'UNAVAILABLE']);
 }
 
+function normalizeCertificateScore(value: unknown): CertificateScore | null {
+  if (value == null) return null;
+  const source = record(value);
+  requireValue(source.policyVersion === 'CERTIFICATE_SCORE_V1');
+  const scoreUnit = enumeration(source.scoreUnit, ['IELTS_BAND', 'TOEIC_SCALED']);
+  const rawSkills = record(source.skillScores);
+  const skillScores: Record<string, CertificateSkillScore> = {};
+  for (const [skill, rawValue] of Object.entries(rawSkills)) {
+    requireValue(['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(skill));
+    const item = record(rawValue);
+    const status = enumeration(item.status, ['AVAILABLE', 'UNAVAILABLE']);
+    const score = item.score == null ? null : nonnegative(item.score);
+    const rawScore = item.rawScore == null ? null : nonnegative(item.rawScore);
+    const rawCorrect = item.rawCorrect == null ? null : count(item.rawCorrect);
+    const rawTotal = item.rawTotal == null ? null : count(item.rawTotal);
+    requireValue((score !== null) === (status === 'AVAILABLE'));
+    if (score !== null) requireValue(scoreUnit === 'IELTS_BAND' ? score <= 9 : score >= 5 && score <= 495 && score % 5 === 0);
+    if (rawCorrect !== null && rawTotal !== null) requireValue(rawCorrect <= rawTotal);
+    requireValue(typeof item.displayValue === 'string');
+    requireValue(item.unavailableReasonCode == null || typeof item.unavailableReasonCode === 'string');
+    skillScores[skill] = {
+      rawScore, rawCorrect, rawTotal, score, displayValue: item.displayValue, status,
+      unavailableReasonCode: item.unavailableReasonCode == null ? null : item.unavailableReasonCode,
+    };
+  }
+  const overallScore = source.overallScore == null ? null : nonnegative(source.overallScore);
+  requireValue((overallScore !== null) === (source.status === 'COMPLETE'));
+  if (overallScore !== null) requireValue(scoreUnit === 'IELTS_BAND' ? overallScore <= 9 : overallScore >= 10 && overallScore <= 990);
+  requireValue(typeof source.overallDisplay === 'string');
+  requireValue(source.unavailableReasonCode == null || typeof source.unavailableReasonCode === 'string');
+  return {
+    policyVersion: 'CERTIFICATE_SCORE_V1', scoreUnit,
+    status: enumeration(source.status, ['COMPLETE', 'PARTIAL', 'UNAVAILABLE']),
+    skillScores, overallScore, overallDisplay: source.overallDisplay,
+    unavailableReasonCode: source.unavailableReasonCode == null ? null : source.unavailableReasonCode,
+  };
+}
+
 function normalizeSummary(value: unknown): ResultSummary {
   const summary = record(value);
   const objective = record(summary.objective);
@@ -135,7 +173,10 @@ function normalizeSummary(value: unknown): ResultSummary {
       }),
     };
   }
-  return { objective: { ...stats(objective), scoreUnit: 'RAW_OBJECTIVE', byPart, bySkill }, writing };
+  return {
+    objective: { ...stats(objective), scoreUnit: 'RAW_OBJECTIVE', byPart, bySkill }, writing,
+    certificateScore: normalizeCertificateScore(summary.certificateScore),
+  };
 }
 
 function normalizeReviewParts(value: unknown): ReviewPartNavigation[] {
@@ -159,6 +200,10 @@ export function normalizeAttemptResult(data: unknown, expectedAttemptId: number)
   requireValue(positiveId(expectedAttemptId) && source.attemptId === expectedAttemptId);
   requireValue(typeof source.summaryAvailable === 'boolean');
   if (!source.summaryAvailable) requireValue(source.resultSummary == null);
+  const scoreUnit = source.scoreUnit == null ? null
+    : enumeration(source.scoreUnit, ['RAW_OBJECTIVE', 'IELTS_BAND', 'TOEIC_SCALED']) as ResultScoreUnit;
+  const resultSummary = source.summaryAvailable ? normalizeSummary(source.resultSummary) : null;
+  requireValue(resultSummary?.certificateScore == null || resultSummary.certificateScore.scoreUnit === scoreUnit);
   return {
     attemptId: expectedAttemptId,
     status: enumeration(source.status, ['SUBMITTED', 'AI_GRADING', 'AI_GRADING_QUEUED', 'GRADING_FAILED', 'COMPLETED', 'EXPIRED']),
@@ -167,8 +212,9 @@ export function normalizeAttemptResult(data: unknown, expectedAttemptId: number)
     endTime: source.endTime == null ? null : instant(source.endTime),
     timeSpentSeconds: source.timeSpentSeconds == null ? null : count(source.timeSpentSeconds),
     overallScore: source.overallScore == null ? null : nonnegative(source.overallScore),
+    scoreUnit,
     summaryAvailable: source.summaryAvailable,
-    resultSummary: source.summaryAvailable ? normalizeSummary(source.resultSummary) : null,
+    resultSummary,
     reviewParts: normalizeReviewParts(source.reviewParts),
   };
 }

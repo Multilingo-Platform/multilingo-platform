@@ -26,6 +26,7 @@ public class ExamResultResponse {
     private Instant endTime;
     private Integer timeSpentSeconds;
     private BigDecimal overallScore;
+    private String scoreUnit;
 
     @JsonProperty("summaryAvailable")
     private boolean summaryAvailable;

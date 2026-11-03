@@ -11,6 +11,8 @@ import type {
 
 interface ScopeModePickerProps {
   examId: number;
+  examType?: string;
+  examDurationMinutes?: number | null;
   sections?: LearnerExamStructureSection[];
   initialMode?: TestMode | '';
   initialScope?: TestScope | '';
@@ -28,8 +30,17 @@ const SCOPE_OPTIONS: { value: TestScope; label: string; desc: string }[] = [
 
 const MODE_OPTIONS: { value: TestMode; label: string; desc: string; activeColor: string }[] = [
   { value: 'MOCK_TEST', label: 'Mock Test', desc: 'Đồng hồ đếm ngược, tự động nộp bài', activeColor: '#d97706' },
-  { value: 'PRACTICE', label: 'Practice', desc: 'Không giới hạn thời gian, tự do tra từ AI', activeColor: '#059669' },
+  { value: 'PRACTICE', label: 'Practice', desc: 'Có đồng hồ theo thời gian đã chọn, tự do tra từ AI', activeColor: '#059669' },
 ];
+
+const TIME_PRESETS = [5, 10, 15, 20, 30, 45, 60, 90, 120, 150, 180];
+
+function fixedCertificateDuration(type?: string): number | null {
+  const normalized = type?.trim().toUpperCase();
+  if (normalized === 'IELTS_ACADEMIC' || normalized === 'IELTS_GENERAL_TRAINING') return 150;
+  if (normalized === 'TOEIC_LR') return 120;
+  return null;
+}
 
 // --- Styles ---
 const scopeButtonBase: React.CSSProperties = {
@@ -124,6 +135,8 @@ const Spinner = () => (
 
 const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   examId,
+  examType,
+  examDurationMinutes,
   sections = [],
   initialMode,
   initialScope,
@@ -140,6 +153,8 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
   const [partId, setPartId] = useState('');
   const [selectedPartIds, setSelectedPartIds] = useState<number[]>([]);
   const [activeSkillType, setActiveSkillType] = useState(sections.find(section => section.parts?.length)?.skillType ?? '');
+  const [timeSelection, setTimeSelection] = useState('DEFAULT');
+  const [customTime, setCustomTime] = useState('');
 
   const needsSection = scope === 'SINGLE_SKILL' || scope === 'SINGLE_PART';
   const needsPart = scope === 'SINGLE_PART';
@@ -159,6 +174,26 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
     && selectedMultiSections.every(section => Number.isSafeInteger(section.durationMinutes) && !!section.durationMinutes && section.durationMinutes > 0)
     ? selectedMultiSections.reduce((total, section) => total + (section.durationMinutes ?? 0), 0)
     : null;
+  const selectedScopedDuration = scope === 'MULTI_PART'
+    ? multiPartDuration
+    : selectedSection?.durationMinutes ?? null;
+  const fixedDuration = fixedCertificateDuration(examType);
+  const fullExamDuration = fixedDuration ?? examDurationMinutes ?? null;
+  const fullDurationIsValid = fullExamDuration !== null && Number.isSafeInteger(fullExamDuration) && fullExamDuration > 0;
+  const isScoped = !!scope && scope !== 'FULL_EXAM';
+  const customTimeIsValid = /^\d+$/.test(customTime)
+    && Number.isSafeInteger(Number(customTime))
+    && Number(customTime) >= 1 && Number(customTime) <= 360;
+  const selectedDuration = timeSelection === 'CUSTOM'
+    ? (customTimeIsValid ? Number(customTime) : null)
+    : timeSelection === 'DEFAULT'
+      ? selectedScopedDuration
+      : Number(timeSelection);
+  const durationChoiceIsValid = !isScoped || (timeSelection === 'CUSTOM'
+    ? customTimeIsValid
+    : timeSelection === 'DEFAULT'
+      ? selectedDuration !== null && Number.isSafeInteger(selectedDuration) && selectedDuration > 0
+      : Number.isSafeInteger(selectedDuration) && (selectedDuration ?? 0) >= 1 && (selectedDuration ?? 0) <= 360);
   const orderedSelectedPartIds = sections.flatMap(section =>
     (section.parts ?? []).filter(part => selectedPartIds.includes(part.id)).map(part => part.id)
   );
@@ -168,7 +203,9 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
     mode !== '' &&
     (!needsSection || sectionId !== '') &&
     (!needsPart || (partId !== '' && !!selectedSection && selectedSection.parts.length > 0)) &&
-    (scope !== 'MULTI_PART' || (orderedSelectedPartIds.length >= 2 && (mode !== 'MOCK_TEST' || (multiPartDuration !== null && multiPartDuration > 0))));
+    (scope !== 'MULTI_PART' || orderedSelectedPartIds.length >= 2) &&
+    durationChoiceIsValid &&
+    (scope !== 'FULL_EXAM' || examDurationMinutes === undefined || fullDurationIsValid);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,6 +217,9 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
       section_id: needsSection && sectionId ? parseInt(sectionId, 10) : null,
       part_id: needsPart && partId ? parseInt(partId, 10) : null,
       ...(scope === 'MULTI_PART' ? { part_ids: orderedSelectedPartIds } : {}),
+      ...(isScoped && timeSelection !== 'DEFAULT' && selectedDuration !== null
+        ? { time_limit_minutes: selectedDuration }
+        : {}),
     });
   };
 
@@ -202,7 +242,10 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
                 key={opt.value}
                 type="button"
                 aria-pressed={scope === opt.value ? 'true' : 'false'}
-                onClick={() => { setScope(opt.value); setSectionId(''); setPartId(''); }}
+                onClick={() => {
+                  setScope(opt.value); setSectionId(''); setPartId('');
+                  if (opt.value === 'FULL_EXAM') { setTimeSelection('DEFAULT'); setCustomTime(''); }
+                }}
                 style={scope === opt.value ? scopeButtonActive : scopeButtonBase}
               >
                 <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.8rem', color: '#111827', marginBottom: '0.125rem' }}>
@@ -292,11 +335,44 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
             </div>
             <div role="status" style={{ marginTop: '0.65rem', padding: '0.65rem', background: '#f9fafb', borderRadius: '0.5rem', color: '#4b5563', fontSize: '0.78rem' }}>
               {em('Đã chọn {{v0}} phần', { v0: orderedSelectedPartIds.length })}
-              {mode === 'MOCK_TEST' && (multiPartDuration === null || multiPartDuration <= 0
-                ? ` · ${em(orderedSelectedPartIds.length < 2 ? 'Chọn ít nhất hai Part để bắt đầu.' : 'Thiếu thời lượng hợp lệ ở một kỹ năng đã chọn.')}`
-                : ` · ${em('Tổng thời lượng Mock: {{v0}} phút', { v0: multiPartDuration })}`)}
-              {mode === 'PRACTICE' && ` · ${em('Practice không giới hạn thời gian.')}`}
+              {orderedSelectedPartIds.length < 2 && ` · ${em('Chọn ít nhất hai Part để bắt đầu.')}`}
+              {timeSelection === 'DEFAULT' && selectedScopedDuration === null && ` · ${em('Thiếu thời lượng hợp lệ ở một kỹ năng đã chọn.')}`}
+              {selectedDuration !== null && ` · ${em('Thời gian làm bài: {{v0}} phút', { v0: selectedDuration })}`}
             </div>
+          </div>
+        )}
+
+        {scope === 'FULL_EXAM' && fullDurationIsValid && (
+          <div aria-live="polite" style={{ padding: '0.75rem', border: '1px solid #fde68a', borderRadius: '0.5rem', background: '#fffbeb', color: '#92400e', fontSize: '0.82rem' }}>
+            {em('Thời gian cố định: {{v0}} phút', { v0: fullExamDuration! })}
+          </div>
+        )}
+        {scope === 'FULL_EXAM' && !fullDurationIsValid && examDurationMinutes !== undefined && (
+          <p role="alert" className="text-sm text-red-700">{em('Đề thi chưa có thời lượng cố định hợp lệ.')}</p>
+        )}
+
+        {isScoped && (
+          <div style={{ display: 'grid', gap: '0.45rem', animation: 'fadeIn 0.2s ease-out' }}>
+            <label htmlFor="attempt-time-limit" style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.78rem', color: '#374151' }}>
+              {em('Thời gian làm bài')}
+            </label>
+            <select id="attempt-time-limit" aria-label={em('Thời gian làm bài')} value={timeSelection}
+              onChange={event => setTimeSelection(event.target.value)}
+              style={{ minHeight: '2.75rem', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', background: '#fff', color: '#1f2937' }}>
+              <option value="DEFAULT">{em('Mặc định — {{v0}} phút', { v0: selectedScopedDuration ?? 'chưa cấu hình' })}</option>
+              {TIME_PRESETS.map(minutes => <option key={minutes} value={String(minutes)}>{minutes} {em('phút')}</option>)}
+              <option value="CUSTOM">{em('Tùy chỉnh')}</option>
+            </select>
+            {timeSelection === 'CUSTOM' && <>
+              <label htmlFor="custom-attempt-time" style={{ fontSize: '0.75rem', color: '#4b5563' }}>{em('Số phút tùy chỉnh (1–360)')}</label>
+              <input id="custom-attempt-time" aria-label={em('Thời gian tùy chỉnh (phút)')} aria-invalid={!customTimeIsValid}
+                inputMode="numeric" type="number" min={1} max={360} step={1} value={customTime}
+                onChange={event => setCustomTime(event.target.value)}
+                style={{ minHeight: '2.75rem', padding: '0.5rem 0.75rem', border: `1px solid ${customTimeIsValid ? '#cbd5e1' : '#ef4444'}`, borderRadius: '0.5rem' }} />
+              {!customTimeIsValid && <p role="alert" className="text-sm text-red-700">{em('Nhập số nguyên từ 1–360 phút.')}</p>}
+            </>}
+            {timeSelection === 'DEFAULT' && selectedScopedDuration === null && <p role="alert" className="text-sm text-red-700">{em('Chưa có thời lượng mặc định hợp lệ. Hãy chọn thời gian tùy chỉnh.')}</p>}
+            {selectedDuration !== null && <p aria-live="polite" className="text-sm text-slate-600">{em('Thời gian làm bài: {{v0}} phút', { v0: selectedDuration })}</p>}
           </div>
         )}
 

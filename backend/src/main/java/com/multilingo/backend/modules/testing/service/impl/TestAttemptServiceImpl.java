@@ -43,6 +43,8 @@ import com.multilingo.backend.modules.testing.dto.response.DictionaryLanguageCon
 import com.multilingo.backend.modules.testing.service.support.DictionaryNativeLanguageResolver;
 import com.multilingo.backend.modules.testing.service.support.WritingGradingEnqueuer;
 import com.multilingo.backend.modules.testing.util.AttemptDuration;
+import com.multilingo.backend.modules.testing.util.AttemptDurationPolicy;
+import com.multilingo.backend.modules.testing.util.CertificateExamPolicy;
 import com.multilingo.backend.modules.testing.util.AttemptResultScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -216,12 +218,26 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         Instant now = Instant.now();
 
-        // 2. Validate mode/scope constraints
-        Instant deadline = computeDeadline(exam, request, now);
+        // 2. Resolve one server-authoritative duration for either mode.
+        Integer durationMinutes = resolveDuration(exam, request);
+        if (durationMinutes == null || durationMinutes <= 0) {
+            throw new AppException(ErrorCode.INVALID_REQUEST,
+                    "Cannot create attempt: selected scope has no configured duration");
+        }
+        Instant deadline = now.plus(durationMinutes, ChronoUnit.MINUTES);
 
         // 3. Build server-side exam snapshot (safe — no correct answers, filtered by scope)
         Map<String, Object> snapshot = buildExamSnapshot(exam, request);
         snapshot.put("languagePolicyVersion", com.multilingo.backend.modules.testing.dto.response.AttemptLanguageContextResponse.CURRENT_POLICY_VERSION);
+        snapshot.put("durationPolicyVersion", "ATTEMPT_DURATION_V1");
+        snapshot.put("durationMinutes", durationMinutes);
+        snapshot.put("durationSource", request.getTimeLimitMinutes() == null ? "SCOPE_DEFAULT" : "LEARNER_CUSTOM");
+        String scoreUnit = request.getTestScope() == TestScope.FULL_EXAM
+                ? CertificateExamPolicy.scoreUnit(exam.getType()) : "RAW_OBJECTIVE";
+        snapshot.put("scoreUnit", scoreUnit);
+        String scorePolicyVersion = request.getTestScope() == TestScope.FULL_EXAM
+                ? CertificateExamPolicy.scorePolicyVersion(exam.getType()) : null;
+        if (scorePolicyVersion != null) snapshot.put("scorePolicyVersion", scorePolicyVersion);
 
         // 4. Persist attempt
         TestAttempt attempt = TestAttempt.builder()
@@ -229,6 +245,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .examId(request.getExamId())
                 .testScope(request.getTestScope())
                 .testMode(request.getTestMode())
+                .scoreUnit(scoreUnit)
                 .startTime(now)
                 .deadline(deadline)
                 .examSnapshot(snapshot)
@@ -249,8 +266,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                         "Attempt not found or access denied: " + attemptId));
 
         Instant now = Instant.now();
-        if (attempt.getTestMode() == TestMode.MOCK_TEST
-                && attempt.getStatus() == AttemptStatus.IN_PROGRESS
+        if (attempt.getStatus() == AttemptStatus.IN_PROGRESS
                 && attempt.getDeadline() != null
                 && now.isAfter(attempt.getDeadline().plusSeconds(15))) {
             finalizeAndGradeAttempt(attempt, SubmitReason.TIMEOUT_SERVER, null, userId);
@@ -260,8 +276,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     private TestAttempt ensureFinalized(TestAttempt attempt, Integer userId) {
-        if (attempt.getTestMode() == TestMode.MOCK_TEST
-                && attempt.getStatus() == AttemptStatus.IN_PROGRESS
+        if (attempt.getStatus() == AttemptStatus.IN_PROGRESS
                 && attempt.getDeadline() != null
                 && Instant.now().isAfter(attempt.getDeadline().plusSeconds(15))) {
             
@@ -295,7 +310,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             throw new AppException(ErrorCode.ATTEMPT_ALREADY_SUBMITTED);
         }
 
-        if (attempt.getTestMode() == TestMode.MOCK_TEST && attempt.getDeadline() != null && Instant.now().isAfter(attempt.getDeadline())) {
+        if (attempt.getDeadline() != null && Instant.now().isAfter(attempt.getDeadline())) {
             throw new AppException(ErrorCode.ATTEMPT_EXPIRED);
         }
 
@@ -347,7 +362,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 ? request.getReason()
                 : SubmitReason.MANUAL;
 
-        if (attempt.getTestMode() == TestMode.MOCK_TEST && attempt.getDeadline() != null) {
+        if (attempt.getDeadline() != null) {
             if (reason == SubmitReason.MANUAL && now.isAfter(attempt.getDeadline())) {
                 throw new AppException(ErrorCode.ATTEMPT_EXPIRED);
             }
@@ -452,7 +467,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             attemptAnswerRepository.saveAll(savedAnswers);
 
             attempt.setResultSummary(serializedSummary);
-            attempt.setOverallScore(gradingResult.getTotalScore());
+            attempt.setOverallScore((attempt.getScoreUnit() == null || "RAW_OBJECTIVE".equals(attempt.getScoreUnit()))
+                    ? gradingResult.getTotalScore() : null);
             Map<String, Object> sectionMap = new HashMap<>(gradingResult.getSectionScores());
             attempt.setSectionScores(sectionMap);
             attempt.setStatus(AttemptStatus.COMPLETED);
@@ -474,10 +490,23 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             List<AttemptAnswer> updatedAnswers = attemptAnswerRepository.findByAttemptId(attempt.getId());
             AttemptStatus aggregatedStatus = stateResolver.resolve(jobs, updatedAnswers);
             attempt.setStatus(aggregatedStatus);
+            refreshCertificateOverallScore(attempt, updatedAnswers, jobs);
             testAttemptRepository.save(attempt);
         }
 
         return SubmitResultResponse.from(attempt.getId(), attempt.getStatus());
+    }
+
+    private void refreshCertificateOverallScore(TestAttempt attempt, List<AttemptAnswer> answers,
+                                                List<WritingGradingJob> jobs) {
+        if (attempt.getScoreUnit() == null || "RAW_OBJECTIVE".equals(attempt.getScoreUnit())
+                || attempt.getExamSnapshot() == null
+                || !CertificateExamPolicy.isFullCertificateScoringType(String.valueOf(attempt.getExamSnapshot().get("type")))) {
+            return;
+        }
+        ResultSummaryResponse summary = summaryMapper.map(attempt, answers, jobs);
+        attempt.setOverallScore(summary != null && summary.getCertificateScore() != null
+                ? summary.getCertificateScore().getOverallScore() : null);
     }
 
     @Override
@@ -540,6 +569,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .endTime(attempt.getEndTime())
                 .timeSpentSeconds(duration)
                 .overallScore(attempt.getOverallScore())
+                .scoreUnit(attempt.getScoreUnit())
                 .summaryAvailable(summaryAvailable)
                 .resultSummary(resultSummary)
                 .reviewParts(reviewParts)
@@ -671,27 +701,15 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     /**
-     * Computes deadline based on scope and mode.
-     * PRACTICE mode → always null.
-     * MOCK_TEST + FULL_EXAM → startTime + exam.durationMinutes (must not be null).
-     * MOCK_TEST + SINGLE_SKILL/PART → startTime + relevant section/part duration.
+     * Resolves the deadline duration for every mode from server policy and selected scope.
      */
-    private Instant computeDeadline(ExamFixture exam, CreateAttemptRequest request, Instant startTime) {
-        if (request.getTestMode() == TestMode.PRACTICE) {
-            return null;
-        }
-        // MOCK_TEST — duration required
-        Integer durationMinutes = resolveDuration(exam, request);
-        if (durationMinutes == null || durationMinutes <= 0) {
-            throw new AppException(ErrorCode.INVALID_REQUEST,
-                    "Cannot create MOCK_TEST attempt: exam has no configured duration");
-        }
-        return startTime.plus(durationMinutes, ChronoUnit.MINUTES);
-    }
-
     private Integer resolveDuration(ExamFixture exam, CreateAttemptRequest request) {
         if (request.getTestScope() == TestScope.FULL_EXAM) {
-            return exam.getDurationMinutes();
+            Integer fixedDuration = CertificateExamPolicy.fullExamDurationMinutes(exam.getType());
+            return fixedDuration != null ? fixedDuration : exam.getDurationMinutes();
+        }
+        if (request.getTimeLimitMinutes() != null) {
+            return AttemptDurationPolicy.resolveScopedDuration(null, request.getTimeLimitMinutes());
         }
         if (request.getTestScope() == TestScope.SINGLE_SKILL) {
             if (request.getTargetSectionId() == null) {
@@ -728,10 +746,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 }
                 if (!countedSections.add(section.getId())) continue;
                 Integer sectionDuration = section.getDurationMinutes();
-                if (sectionDuration == null || sectionDuration <= 0) {
-                    throw new AppException(ErrorCode.INVALID_REQUEST,
-                            "Cannot create MOCK_TEST attempt: selected skill has no configured duration");
-                }
+                if (sectionDuration == null || sectionDuration <= 0) throw new AppException(ErrorCode.INVALID_REQUEST,
+                        "Cannot create attempt: selected skill has no configured duration");
                 try {
                     totalMinutes = Math.addExact(totalMinutes, sectionDuration);
                 } catch (ArithmeticException overflow) {
@@ -745,6 +761,12 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
     private void validateScopeRequest(ExamFixture exam, CreateAttemptRequest request) {
         List<Integer> partIds = request.getTargetPartIds();
+        if (request.getTimeLimitMinutes() != null && !AttemptDurationPolicy.isValidCustomDuration(request.getTimeLimitMinutes())) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Custom time limit must be an integer from 1 to 360 minutes");
+        }
+        if (request.getTestScope() == TestScope.FULL_EXAM && request.getTimeLimitMinutes() != null) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Full exam time limit is fixed by certificate policy");
+        }
         if (request.getTestScope() == TestScope.MULTI_PART) {
             if (request.getTargetSectionId() != null || request.getTargetPartId() != null) {
                 throw new AppException(ErrorCode.INVALID_REQUEST,
@@ -868,9 +890,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 }
             }
             cloned.setSections(selectedSections);
-            if (request.getTestMode() == TestMode.MOCK_TEST) {
-                cloned.setDurationMinutes(resolveDuration(exam, request));
-            }
+            cloned.setDurationMinutes(resolveDuration(exam, request));
             return objectMapper.convertValue(cloned, Map.class);
         }
 

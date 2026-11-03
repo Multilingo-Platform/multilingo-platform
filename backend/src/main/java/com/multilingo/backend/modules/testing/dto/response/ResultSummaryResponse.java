@@ -27,6 +27,35 @@ public class ResultSummaryResponse {
     // Structured summary
     private ObjectiveSummary objective;
     private WritingSummary writing;
+    private CertificateScore certificateScore;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CertificateScore {
+        private String policyVersion;
+        private String scoreUnit;
+        private String status;
+        private Map<String, CertificateSkillScore> skillScores;
+        private BigDecimal overallScore;
+        private String overallDisplay;
+        private String unavailableReasonCode;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CertificateSkillScore {
+        private BigDecimal rawScore;
+        private Integer rawCorrect;
+        private Integer rawTotal;
+        private BigDecimal score;
+        private String displayValue;
+        private String status;
+        private String unavailableReasonCode;
+    }
 
     @Data
     @Builder

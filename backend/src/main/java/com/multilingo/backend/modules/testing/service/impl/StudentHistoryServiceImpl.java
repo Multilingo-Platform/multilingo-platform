@@ -66,27 +66,52 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
         long completedAttempts = testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(userId, AttemptStatus.COMPLETED, resolvedLang, hasLang, certPrefix, hasCert);
         long inProgressAttempts = testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(userId, AttemptStatus.IN_PROGRESS, resolvedLang, hasLang, certPrefix, hasCert);
         long failedAttempts = testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(userId, AttemptStatus.GRADING_FAILED, resolvedLang, hasLang, certPrefix, hasCert);
-        Double rawAverageScore = testAttemptRepository.findAverageScoreByUserIdAndLanguageAndCert(userId, resolvedLang, hasLang, certPrefix, hasCert);
-        BigDecimal highestScoreBd = testAttemptRepository.findHighestScoreByUserIdAndLanguageAndCert(userId, resolvedLang, hasLang, certPrefix, hasCert);
-        Double highestScore = highestScoreBd != null ? highestScoreBd.doubleValue() : null;
         Long totalTimeSeconds = testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(userId, resolvedLang, hasLang, certPrefix, hasCert);
         long totalPracticeMinutes = totalTimeSeconds != null ? totalTimeSeconds / 60 : 0;
 
         // Grouped averages by certificate type (e.g. IELTS, TOEIC, NLTV)
         java.util.Map<String, Double> averageScoresByType = new java.util.HashMap<>();
+        java.util.Map<String, Double> highestScoresByType = new java.util.HashMap<>();
         List<Object[]> groupedAvgs = testAttemptRepository.findAverageScoresGroupedByType(userId, resolvedLang, hasLang);
-        java.util.Map<String, List<Double>> scoresByCertGroup = new java.util.HashMap<>();
+        java.util.Map<String, java.util.Map<String, List<Double>>> scoresByCertGroup = new java.util.HashMap<>();
+        java.util.Map<String, java.util.Map<String, Double>> highestByCertGroup = new java.util.HashMap<>();
         for (Object[] row : groupedAvgs) {
             String rawType = (String) row[0];
-            Number avgNum = (Number) row[1];
+            String scoreUnit = row.length > 1 && row[1] != null ? row[1].toString() : "LEGACY_RAW";
+            Number avgNum = row.length > 2 ? (Number) row[2] : null;
+            Number maxNum = row.length > 3 ? (Number) row[3] : null;
             if (rawType != null && avgNum != null) {
                 String certGroup = resolveCertType(rawType);
-                scoresByCertGroup.computeIfAbsent(certGroup, k -> new java.util.ArrayList<>()).add(avgNum.doubleValue());
+                scoresByCertGroup.computeIfAbsent(certGroup, k -> new java.util.HashMap<>())
+                        .computeIfAbsent(scoreUnit, k -> new java.util.ArrayList<>()).add(avgNum.doubleValue());
+                if (maxNum != null) highestByCertGroup.computeIfAbsent(certGroup, k -> new java.util.HashMap<>())
+                        .merge(scoreUnit, maxNum.doubleValue(), Math::max);
             }
         }
-        for (java.util.Map.Entry<String, List<Double>> entry : scoresByCertGroup.entrySet()) {
-            double mean = entry.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-            averageScoresByType.put(entry.getKey(), Math.round(mean * 10.0) / 10.0);
+        for (java.util.Map.Entry<String, java.util.Map<String, List<Double>>> entry : scoresByCertGroup.entrySet()) {
+            String preferredUnit = switch (entry.getKey()) {
+                case "IELTS" -> "IELTS_BAND";
+                case "TOEIC" -> "TOEIC_SCALED";
+                default -> "RAW_OBJECTIVE";
+            };
+            List<Double> comparable = entry.getValue().getOrDefault(preferredUnit, List.of());
+            if ((comparable == null || comparable.isEmpty()) && !"IELTS".equals(entry.getKey()) && !"TOEIC".equals(entry.getKey())) {
+                comparable = new ArrayList<>();
+                comparable.addAll(entry.getValue().getOrDefault("RAW_OBJECTIVE", List.of()));
+                comparable.addAll(entry.getValue().getOrDefault("LEGACY_RAW", List.of()));
+            }
+            if (!comparable.isEmpty()) {
+                double mean = comparable.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+                averageScoresByType.put(entry.getKey(), Math.round(mean * 10.0) / 10.0);
+            }
+            Double highest = highestByCertGroup.getOrDefault(entry.getKey(), java.util.Map.of()).get(preferredUnit);
+            if (highest == null && !"IELTS".equals(entry.getKey()) && !"TOEIC".equals(entry.getKey())) {
+                highest = java.util.stream.Stream.of(
+                        highestByCertGroup.getOrDefault(entry.getKey(), java.util.Map.of()).get("RAW_OBJECTIVE"),
+                        highestByCertGroup.getOrDefault(entry.getKey(), java.util.Map.of()).get("LEGACY_RAW"))
+                        .filter(java.util.Objects::nonNull).max(Double::compareTo).orElse(null);
+            }
+            if (highest != null) highestScoresByType.put(entry.getKey(), highest);
         }
 
         UserTarget userTarget = userTargetRepository.findFirstByUserId(userId).orElse(null);
@@ -97,17 +122,12 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
                 ? resolveCertType(userTarget.getTargetCertificate())
                 : null;
 
-        // Resolve context-aware averageScore
-        Double displayAverageScore;
-        if (hasCert && averageScoresByType.containsKey(certPrefix)) {
-            displayAverageScore = averageScoresByType.get(certPrefix);
-        } else if (userTargetCert != null && averageScoresByType.containsKey(userTargetCert)) {
-            displayAverageScore = averageScoresByType.get(userTargetCert);
-        } else if (averageScoresByType.size() == 1) {
-            displayAverageScore = averageScoresByType.values().iterator().next();
-        } else {
-            displayAverageScore = rawAverageScore != null ? Math.round(rawAverageScore * 10.0) / 10.0 : null;
-        }
+        // Resolve an average and highest value from the same certificate/unit only.
+        String displayCertGroup = hasCert ? resolveCertType(certPrefix)
+                : userTargetCert != null ? userTargetCert
+                : averageScoresByType.size() == 1 ? averageScoresByType.keySet().iterator().next() : null;
+        Double displayAverageScore = displayCertGroup == null ? null : averageScoresByType.get(displayCertGroup);
+        Double highestScore = displayCertGroup == null ? null : highestScoresByType.get(displayCertGroup);
 
         int currentStreak = userStudyStatRepository.findByUserId(userId)
                 .map(UserStudyStat::getCurrentStreak)
@@ -124,13 +144,16 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
             Exam exam = (Exam) record[1];
             String title = exam != null ? exam.getTitle() : "Đề thi #" + attempt.getExamId();
             String examType = exam != null ? exam.getType() : "";
-            double maxScore = resolveMaxScore(examType);
+            String scoreUnit = attempt.getScoreUnit() == null ? "LEGACY_RAW" : attempt.getScoreUnit();
+            Double maxScore = resolveMaxScore(examType, scoreUnit);
             String itemCertType = resolveCertType(examType);
 
             Double score = attempt.getOverallScore() != null ? attempt.getOverallScore().doubleValue() : null;
-            Double percentage = (score != null && maxScore > 0) ? Math.min(100.0, (score / maxScore) * 100.0) : 0.0;
+            Double percentage = (score != null && maxScore != null && maxScore > 0)
+                    ? Math.min(100.0, (score / maxScore) * 100.0) : null;
 
-            if (score != null && targetScoreVal != null && score >= targetScoreVal) {
+            if (score != null && targetScoreVal != null && targetScoreCertMatches(userTargetCert, itemCertType)
+                    && !"RAW_OBJECTIVE".equals(scoreUnit) && !"LEGACY_RAW".equals(scoreUnit) && score >= targetScoreVal) {
                 targetAchievedCount++;
             }
 
@@ -140,7 +163,8 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
                     .certType(itemCertType)
                     .score(score)
                     .maxScore(maxScore)
-                    .percentage(Math.round(percentage * 10.0) / 10.0)
+                    .percentage(percentage == null ? null : Math.round(percentage * 10.0) / 10.0)
+                    .scoreUnit(scoreUnit)
                     .completedAt(attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getCreatedAt())
                     .build());
         }
@@ -219,6 +243,9 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
         Double targetScoreVal = userTarget != null && userTarget.getTargetScore() != null
                 ? userTarget.getTargetScore().doubleValue()
                 : null;
+        String userTargetCert = userTarget != null && userTarget.getTargetCertificate() != null
+                ? resolveCertType(userTarget.getTargetCertificate())
+                : null;
 
         Page<Object[]> rawPage = testAttemptRepository.findUserAttemptsWithExam(
                 userId,
@@ -246,13 +273,16 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
             String examType = e != null ? e.getType() : "OTHER";
             String examLanguage = e != null ? e.getExamLanguage() : "vi";
 
-            double maxScore = resolveMaxScore(examType);
+            String scoreUnit = a.getScoreUnit() == null ? "LEGACY_RAW" : a.getScoreUnit();
+            Double maxScore = resolveMaxScore(examType, scoreUnit);
             int durationMinutes = a.getTimeSpentSeconds() != null ? Math.max(1, a.getTimeSpentSeconds() / 60) : 0;
 
             Double score = a.getOverallScore() != null ? a.getOverallScore().doubleValue() : null;
-            Boolean targetAchieved = (score != null && targetScoreVal != null) ? score >= targetScoreVal : null;
-            Boolean passed = (score != null) ? score >= (maxScore * 0.5) : null;
-            Double accuracyPercentage = (score != null && maxScore > 0) ? Math.min(100.0, (score / maxScore) * 100.0) : null;
+            boolean comparableToTarget = targetScoreCertMatches(userTargetCert, resolveCertType(examType))
+                    && !"RAW_OBJECTIVE".equals(scoreUnit) && !"LEGACY_RAW".equals(scoreUnit);
+            Boolean targetAchieved = (score != null && targetScoreVal != null && comparableToTarget) ? score >= targetScoreVal : null;
+            Boolean passed = (score != null && maxScore != null && maxScore > 0) ? score >= (maxScore * 0.5) : null;
+            Double accuracyPercentage = (score != null && maxScore != null && maxScore > 0) ? Math.min(100.0, (score / maxScore) * 100.0) : null;
             if (accuracyPercentage != null) {
                 accuracyPercentage = Math.round(accuracyPercentage * 10.0) / 10.0;
             }
@@ -274,6 +304,7 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
                     .durationMinutes(durationMinutes)
                     .overallScore(score)
                     .maxScore(maxScore)
+                    .scoreUnit(scoreUnit)
                     .targetScore(targetScoreVal)
                     .targetAchieved(targetAchieved)
                     .passed(passed)
@@ -291,7 +322,10 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
                 .build();
     }
 
-    private double resolveMaxScore(String examType) {
+    private Double resolveMaxScore(String examType, String scoreUnit) {
+        if ("IELTS_BAND".equals(scoreUnit)) return 9.0;
+        if ("TOEIC_SCALED".equals(scoreUnit)) return 990.0;
+        if (scoreUnit == null || "RAW_OBJECTIVE".equals(scoreUnit) || scoreUnit.endsWith("RAW")) return null;
         if (examType == null) return 100.0;
         String upper = examType.toUpperCase();
         if (upper.startsWith("IELTS")) return 9.0;
@@ -301,6 +335,10 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
         }
         if (upper.startsWith("NLTV")) return 10.0;
         return 100.0;
+    }
+
+    private boolean targetScoreCertMatches(String targetCert, String resultCert) {
+        return targetCert != null && targetCert.equals(resultCert);
     }
 
     private String resolveCertType(String examType) {

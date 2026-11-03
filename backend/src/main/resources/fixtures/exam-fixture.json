@@ -3,6 +3,8 @@
     {
       "id": 1,
       "title": "IELTS Mock Test - Full",
+      "type": "IELTS_ACADEMIC",
+      "code": "IELTS-FIXTURE-FULL",
       "examLanguage": "en",
       "durationMinutes": 180,
       "sections": [
@@ -177,6 +179,8 @@
     {
       "id": 2,
       "title": "IELTS Academic Reading - Practice 02",
+      "type": "IELTS_ACADEMIC",
+      "code": "IELTS-FIXTURE-READING",
       "examLanguage": "en",
       "durationMinutes": null,
       "sections": [

@@ -492,6 +492,21 @@ describe('getWorkspace and createAttempt contracts', () => {
     expect(validRes.deadline).toBe('2026-10-10T04:00:00Z');
   });
 
+  it('accepts server-issued Practice deadlines while preserving legacy unlimited Practice attempts', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1000);
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData, testMode: 'PRACTICE', startTime: '2026-10-10T03:00:00Z',
+      deadline: '2026-10-10T04:00:00Z',
+    } });
+    const timed = await getWorkspace(42);
+    expect(timed.deadline).toBe('2026-10-10T04:00:00Z');
+
+    mockAxios.get.mockResolvedValueOnce({ success: true, data: {
+      ...validWorkspaceData, testMode: 'PRACTICE', deadline: null,
+    } });
+    expect((await getWorkspace(42)).deadline).toBeNull();
+  });
+
   it('rejects missing, non-integer, negative, zero or out of bounds version without defaulting to 0', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1000);
     const testVersions = [undefined, null, 0, -1, '7', 1.5, NaN, 2147483648];

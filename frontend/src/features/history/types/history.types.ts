@@ -18,8 +18,9 @@ export interface ScoreTrendItem {
   examTitle: string;
   certType: string;
   score: number | null;
-  maxScore: number;
-  percentage: number;
+  maxScore: number | null;
+  percentage: number | null;
+  scoreUnit?: string | null;
   completedAt: string;
 }
 
@@ -53,7 +54,8 @@ export interface HistoryAttemptItem {
   timeSpentSeconds: number;
   durationMinutes: number;
   overallScore: number | null;
-  maxScore: number;
+  maxScore: number | null;
+  scoreUnit?: string | null;
   targetScore: number | null;
   targetAchieved: boolean | null;
   passed: boolean | null;

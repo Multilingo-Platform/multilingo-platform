@@ -1,6 +1,6 @@
 import { examMessage as em, useExamLocale } from '../../i18n/examMessages';
 import { Check, Minus, Target, X } from 'lucide-react';
-import type { ObjectiveResultStats, ResultSummary } from '../../types/api.types';
+import type { CertificateScore, ObjectiveResultStats, ResultSummary } from '../../types/api.types';
 import { formatResultAccuracy, formatResultScore } from '../../utils/resultPresentation';
 
 type StatsRow = ObjectiveResultStats & { key: string | number; label: string; skill: string };
@@ -35,9 +35,39 @@ function StatsTable({ title, rows }: { title: string; rows: StatsRow[] }) {
   );
 }
 
-export function ObjectiveResultSummary({ objective }: { objective: ResultSummary['objective'] }) {
+function CertificateScoreCard({ score }: { score: CertificateScore }) {
+  const unitLabel = score.scoreUnit === 'IELTS_BAND' ? em('Điểm IELTS band') : em('Điểm TOEIC ước lượng');
+  const skillLabels: Record<string, string> = {
+    LISTENING: 'Listening', READING: 'Reading', WRITING: 'Writing', SPEAKING: 'Speaking',
+  };
+  return (
+    <section aria-label={unitLabel} className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-semibold text-amber-950">{unitLabel}</h3>
+        <span className="text-sm font-semibold text-amber-900">{score.overallDisplay}</span>
+      </div>
+      <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Object.entries(score.skillScores).map(([skill, item]) => (
+          <div key={skill} className="rounded-lg border border-amber-100 bg-white p-3">
+            <dt className="text-sm text-slate-600">{skillLabels[skill] ?? skill}</dt>
+            <dd className="mt-1 font-semibold tabular-nums text-slate-900">{item.displayValue}</dd>
+          </div>
+        ))}
+      </dl>
+      {score.status !== 'COMPLETE' && <p className="mt-3 text-sm text-slate-700">{em('Chưa đủ dữ liệu để tính tổng điểm chứng chỉ.')}</p>}
+    </section>
+  );
+}
+
+export function ObjectiveResultSummary({ objective, certificateScore = null }: {
+  objective: ResultSummary['objective'];
+  certificateScore?: CertificateScore | null;
+}) {
   useExamLocale();
-  if (objective.total === 0) return <p className="rounded-xl border border-slate-200 bg-white p-5">{em("Không có câu khách quan trong phạm vi bài làm này.")}</p>;
+  if (objective.total === 0) return <section className="space-y-4">
+    <p className="rounded-xl border border-slate-200 bg-white p-5">{em("Không có câu khách quan trong phạm vi bài làm này.")}</p>
+    {certificateScore && <CertificateScoreCard score={certificateScore} />}
+  </section>;
   const cards = [
     { label: em("Điểm khách quan (raw)"), value: formatResultScore(objective.rawScore), icon: Target },
     { label: em("Câu đúng / tổng số câu"), value: `${objective.correct}/${objective.total}`, icon: Check },
@@ -58,6 +88,7 @@ export function ObjectiveResultSummary({ objective }: { objective: ResultSummary
       <p className="text-sm text-slate-700">{em("Độ chính xác:")}<strong>{formatResultAccuracy(objective.accuracy)}</strong></p>
       <StatsTable title={em("Kết quả theo kỹ năng")} rows={objective.bySkill.map((row, index) => ({ ...row, key: index, label: row.skill }))} />
       <StatsTable title={em("Kết quả theo phần thi")} rows={objective.byPart.map(row => ({ ...row, key: row.partId }))} />
+      {certificateScore && <CertificateScoreCard score={certificateScore} />}
     </section>
   );
 }

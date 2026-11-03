@@ -38,4 +38,9 @@ public class CreateAttemptRequest {
     /** Required when testScope = MULTI_PART; aliases preserve existing request naming conventions. */
     @JsonAlias({"part_ids", "target_part_ids"})
     private List<Integer> targetPartIds;
+
+    /** Optional learner-selected duration for non-full-exam scopes. */
+    @JsonAlias({"time_limit_minutes", "timeLimitMinutes"})
+    @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = StrictTimeLimitDeserializer.class)
+    private Integer timeLimitMinutes;
 }

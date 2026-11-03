@@ -59,6 +59,7 @@ public class WritingGradingTransactionCoordinator {
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final ObjectProvider<WritingGradingTransactionCoordinator> selfProvider;
+    private final AttemptResultSummaryMapper resultSummaryMapper;
 
     @Autowired
     public WritingGradingTransactionCoordinator(
@@ -73,7 +74,8 @@ public class WritingGradingTransactionCoordinator {
             @Autowired(required = false) EntityManager entityManager,
             ObjectMapper objectMapper,
             Clock clock,
-            ObjectProvider<WritingGradingTransactionCoordinator> selfProvider
+            ObjectProvider<WritingGradingTransactionCoordinator> selfProvider,
+            AttemptResultSummaryMapper resultSummaryMapper
     ) {
         this.jobRepository = Objects.requireNonNull(jobRepository, "jobRepository must not be null");
         this.testAttemptRepository = Objects.requireNonNull(testAttemptRepository, "testAttemptRepository must not be null");
@@ -87,6 +89,7 @@ public class WritingGradingTransactionCoordinator {
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.selfProvider = selfProvider;
+        this.resultSummaryMapper = Objects.requireNonNull(resultSummaryMapper, "resultSummaryMapper must not be null");
     }
 
     public WritingGradingTransactionCoordinator(
@@ -103,7 +106,8 @@ public class WritingGradingTransactionCoordinator {
             Clock clock
     ) {
         this(jobRepository, testAttemptRepository, attemptAnswerRepository, quotaAdapter, stateResolver,
-                properties, geminiProperties, imageFetchProperties, entityManager, objectMapper, clock, null);
+                properties, geminiProperties, imageFetchProperties, entityManager, objectMapper, clock, null,
+                new AttemptResultSummaryMapper(objectMapper));
     }
 
     public WritingGradingTransactionCoordinator(
@@ -118,7 +122,8 @@ public class WritingGradingTransactionCoordinator {
             Clock clock
     ) {
         this(jobRepository, testAttemptRepository, attemptAnswerRepository, quotaAdapter, stateResolver,
-                properties, geminiProperties, null, null, objectMapper, clock, null);
+                properties, geminiProperties, null, null, objectMapper, clock, null,
+                new AttemptResultSummaryMapper(objectMapper));
     }
 
     /**
@@ -584,10 +589,16 @@ public class WritingGradingTransactionCoordinator {
         List<WritingGradingJob> allJobs = jobRepository.findAllByAttemptId(attempt.getId());
         List<AttemptAnswer> answers = attemptAnswerRepository.findByAttemptId(attempt.getId());
         AttemptStatus resolved = stateResolver.resolve(allJobs, answers);
+        if (attempt.getScoreUnit() != null && !"RAW_OBJECTIVE".equals(attempt.getScoreUnit())
+                && attempt.getExamSnapshot() != null && attempt.getResultSummary() != null) {
+            var result = resultSummaryMapper.map(attempt, answers, allJobs);
+            attempt.setOverallScore(result != null && result.getCertificateScore() != null
+                    ? result.getCertificateScore().getOverallScore() : null);
+        }
         if (attempt.getStatus() != resolved) {
             attempt.setStatus(resolved);
-            testAttemptRepository.save(attempt);
         }
+        testAttemptRepository.save(attempt);
     }
 
     private Duration parseImageFetchTimeout() {

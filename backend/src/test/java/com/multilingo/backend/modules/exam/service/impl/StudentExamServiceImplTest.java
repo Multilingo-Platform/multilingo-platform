@@ -23,6 +23,19 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class StudentExamServiceImplTest {
 
+    @Test
+    void certificate_only_completed_exam_is_attempted_without_raw_highest_score() {
+        Exam exam = new Exam(); exam.setId(5); exam.setType("TOEIC_LR"); exam.setIsPublished(true);
+        when(examRepository.findPublishedExams(eq(""), eq(null), eq(false), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(exam)));
+        when(testAttemptRepository.findUserAttemptSummariesByUserId(1))
+                .thenReturn(List.<Object[]>of(new Object[]{5, 2L, null}));
+        var response = studentExamService.searchExams(null, null, 0, 10, "newest", null, 1);
+        assertThat(response.getItems().get(0).getIsAttempted()).isTrue();
+        assertThat(response.getItems().get(0).getUserAttemptsCount()).isEqualTo(2);
+        assertThat(response.getItems().get(0).getUserHighestScore()).isNull();
+    }
+
     @Mock
     private ExamRepository examRepository;
 

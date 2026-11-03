@@ -34,6 +34,36 @@ import org.springframework.security.test.context.support.WithMockUser;
 class TestAttemptControllerIT {
 
     @Autowired
+    com.multilingo.backend.modules.testing.repository.TestAttemptRepository attempts;
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"1", "360", "null"})
+    void integer_or_null_time_token_preserves_alias_and_default_contract(String token) throws Exception {
+        for (String alias : new String[]{"timeLimitMinutes", "time_limit_minutes"}) {
+            MvcResult result = mockMvc.perform(post("/api/v1/attempts").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"examId\":1,\"testScope\":\"SINGLE_SKILL\",\"targetSectionId\":1,\"testMode\":\"PRACTICE\",\"" + alias + "\":" + token + "}"))
+                    .andExpect(status().isCreated()).andReturn();
+            var data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+            long seconds = java.time.Duration.between(java.time.Instant.parse(data.path("startTime").asText()),
+                    java.time.Instant.parse(data.path("deadline").asText())).toSeconds();
+            assertThat(seconds).isEqualTo(("null".equals(token) ? 60L : Long.parseLong(token)) * 60);
+        }
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"1.0", "1.9", "360.9", "\"30\"", "true", "[]", "{}", "2147483648", "0", "361"})
+    void invalid_time_token_returns_400_without_inserting_attempt(String token) throws Exception {
+        for (String alias : new String[]{"timeLimitMinutes", "time_limit_minutes"}) {
+            long before = attempts.count();
+            mockMvc.perform(post("/api/v1/attempts").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"examId\":1,\"testScope\":\"SINGLE_SKILL\",\"targetSectionId\":1,\"testMode\":\"PRACTICE\",\"" + alias + "\":" + token + "}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value(400));
+            assertThat(attempts.count()).isEqualTo(before);
+        }
+    }
+
+    @Autowired
     MockMvc mockMvc;
 
     @Autowired
@@ -59,7 +89,7 @@ class TestAttemptControllerIT {
     }
 
     @Test
-    void post_attempts_practice_mode_returns_null_deadline() throws Exception {
+    void post_attempts_practice_mode_returns_deadline() throws Exception {
         CreateAttemptRequest req = new CreateAttemptRequest();
         req.setExamId(1);
         req.setTestScope(TestScope.FULL_EXAM);
@@ -69,7 +99,7 @@ class TestAttemptControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.deadline").doesNotExist());
+                .andExpect(jsonPath("$.data.deadline").isNotEmpty());
     }
 
     @Test

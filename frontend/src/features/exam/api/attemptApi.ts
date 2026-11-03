@@ -321,10 +321,8 @@ function normalizeWorkspace(
 
   let deadline: string | null = null;
   const rawDeadline = raw.deadline;
-  if (testMode === 'PRACTICE') {
-    if (rawDeadline !== undefined && rawDeadline !== null) {
-      throw new WorkspaceContractError();
-    }
+  if (testMode === 'PRACTICE' && (rawDeadline === undefined || rawDeadline === null)) {
+    // Legacy Practice attempts were unlimited. New attempts may carry a server deadline.
     deadline = null;
   } else {
     if (!isValidIsoInstant(rawDeadline)) {

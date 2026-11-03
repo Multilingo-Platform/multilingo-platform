@@ -28,6 +28,7 @@ public class StudentHistoryItemResponse {
     private Integer durationMinutes;
     private Double overallScore;
     private Double maxScore;
+    private String scoreUnit;
     private Double targetScore;
     private Boolean targetAchieved;
     private Boolean passed;

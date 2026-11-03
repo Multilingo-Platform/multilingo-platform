@@ -192,6 +192,8 @@ const TestHistory: React.FC = () => {
   const getScoreCircleClass = (item: HistoryAttemptItem) => {
     if (item.status === 'GRADING_FAILED') return 'failed';
     if (item.status === 'IN_PROGRESS') return 'in-progress';
+    if (item.scoreUnit === 'IELTS_BAND') return 'ielts';
+    if (item.scoreUnit === 'TOEIC_SCALED') return 'toeic';
     const type = item.examType ? item.examType.toUpperCase() : '';
     if (type.startsWith('IELTS')) return 'ielts';
     if (type.startsWith('TOEIC')) return 'toeic';
@@ -223,9 +225,25 @@ const TestHistory: React.FC = () => {
       return (
         <>
           <span className="history-score-number">—</span>
-          <span className="history-score-scale">/ {item.maxScore}</span>
+          <span className="history-score-scale">{item.scoreUnit === 'TOEIC_SCALED' ? 'Chưa đủ dữ liệu TOEIC' : item.scoreUnit === 'IELTS_BAND' ? 'Chưa đủ dữ liệu IELTS' : 'Chưa có điểm'}</span>
         </>
       );
+    }
+
+    if (item.scoreUnit === 'RAW_OBJECTIVE' || item.scoreUnit === 'LEGACY_RAW' || !item.scoreUnit) {
+      return (
+        <>
+          <span className="history-score-number">{item.overallScore}</span>
+          <span className="history-score-scale">Điểm raw</span>
+        </>
+      );
+    }
+
+    if (item.scoreUnit === 'IELTS_BAND') {
+      return <><span className="history-score-number">{item.overallScore}</span><span className="history-score-scale">IELTS band / 9</span></>;
+    }
+    if (item.scoreUnit === 'TOEIC_SCALED') {
+      return <><span className="history-score-number">{item.overallScore}</span><span className="history-score-scale">Điểm TOEIC ước lượng / 990</span></>;
     }
 
     const type = item.examType ? item.examType.toUpperCase() : '';

@@ -29,6 +29,30 @@ describe('TV3-11 result projection', () => {
       endTime: undefined, timeSpentSeconds: undefined, overallScore: undefined };
     expect(normalizeAttemptResult(wire, 42)).toMatchObject({ resultSummary: null, endTime: null, timeSpentSeconds: null, overallScore: null });
   });
+  it('accepts a versioned certificate projection alongside the unchanged raw summary', () => {
+    const wire = attemptResultFixture();
+    Object.assign(wire, { scoreUnit: 'IELTS_BAND' });
+    Object.assign(wire.resultSummary, { certificateScore: {
+      policyVersion: 'CERTIFICATE_SCORE_V1', scoreUnit: 'IELTS_BAND', status: 'PARTIAL',
+      skillScores: {
+        LISTENING: { rawScore: 9, rawCorrect: 9, rawTotal: 40, score: null, displayValue: '<4.0', status: 'UNAVAILABLE', unavailableReasonCode: 'IELTS_BELOW_BAND_4' },
+        READING: { rawScore: 39, rawCorrect: 39, rawTotal: 40, score: 9, displayValue: '9.0', status: 'AVAILABLE', unavailableReasonCode: null },
+      },
+      overallScore: null, overallDisplay: 'Chưa đủ 4 kỹ năng', unavailableReasonCode: 'IELTS_SKILL_SPEAKING_MISSING',
+    } });
+    const result = normalizeAttemptResult(wire, 42);
+    expect(result.scoreUnit).toBe('IELTS_BAND');
+    expect(result.resultSummary?.objective.rawScore).toBe(5.5);
+    expect(result.resultSummary?.certificateScore?.skillScores.LISTENING.displayValue).toBe('<4.0');
+  });
+  it('rejects an invalid certificate unit or score/status mismatch', () => {
+    const wire = attemptResultFixture();
+    Object.assign(wire.resultSummary, { certificateScore: {
+      policyVersion: 'CERTIFICATE_SCORE_V1', scoreUnit: 'RAW_OBJECTIVE', status: 'COMPLETE', skillScores: {},
+      overallScore: null, overallDisplay: 'invalid', unavailableReasonCode: null,
+    } });
+    expect(() => normalizeAttemptResult(wire, 42)).toThrow(ResultContractError);
+  });
   it('preserves real zero and allows Writing-only empty objective groups', () => {
     const wire = attemptResultFixture();
     wire.timeSpentSeconds = 0; wire.overallScore = 0;

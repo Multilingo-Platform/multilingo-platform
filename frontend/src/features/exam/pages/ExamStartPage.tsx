@@ -230,6 +230,8 @@ const ExamStartPage: React.FC = () => {
               {totalSections > 0 ? (
                 <ScopeModePicker
                   examId={numericExamId}
+                  examType={structure?.type}
+                  examDurationMinutes={structure?.durationMinutes}
                   sections={structure?.sections || []}
                   initialMode={initialMode}
                   initialScope={initialScope}
