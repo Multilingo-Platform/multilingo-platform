@@ -80,11 +80,14 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
     List<TestAttempt> findTop5ByUserIdAndStatusOrderByEndTimeDesc(Integer userId, AttemptStatus status);
 
     @Query("SELECT a FROM TestAttempt a, Exam e WHERE a.examId = e.id AND a.userId = :userId AND a.status = :status " +
+           "AND a.testMode = com.multilingo.backend.modules.testing.entity.enums.TestMode.MOCK_TEST " +
+           "AND a.testScope = com.multilingo.backend.modules.testing.entity.enums.TestScope.FULL_EXAM " +
+           "AND a.overallScore IS NOT NULL " +
            "AND (" +
-           "  (:certCategory = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
-           "  (:certCategory = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
-           "  (:certCategory = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
-           "  (:certCategory = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "  (:certCategory = 'IELTS' AND UPPER(e.type) IN ('IELTS', 'IELTS_ACADEMIC', 'IELTS_GENERAL', 'IELTS_GENERAL_TRAINING')) OR " +
+           "  (:certCategory = 'TOEIC_LR' AND UPPER(e.type) IN ('TOEIC', 'TOEIC_LR')) OR " +
+           "  (:certCategory = 'TOEIC_WRITING' AND UPPER(e.type) = 'TOEIC_WRITING') OR " +
+           "  (:certCategory = 'NLTV' AND (UPPER(e.type) = 'NLTV' OR UPPER(e.type) LIKE 'NLTV_%') AND UPPER(e.type) NOT IN ('NLTV_READING', 'NLTV_LISTENING', 'NLTV_WRITING', 'NLTV_SPEAKING')) OR " +
            "  (:certCategory = 'OTHER' AND UPPER(e.type) = :rawCert)" +
            ") " +
            "ORDER BY COALESCE(a.endTime, a.createdAt) DESC")
@@ -103,7 +106,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            "))) " +
            "AND (:hasSearch = false OR (e IS NOT NULL AND LOWER(e.title) LIKE LOWER(CONCAT('%', :search, '%')))) " +
-           "AND (:hasCert = false OR (e IS NOT NULL AND UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))) " +
+           "AND (:hasCert = false OR (e IS NOT NULL AND (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           "))) " +
            "AND (:hasMode = false OR a.testMode = :mode) " +
            "AND (:hasStatus = false OR a.status = :status)",
            countQuery = "SELECT COUNT(a) FROM TestAttempt a LEFT JOIN Exam e ON a.examId = e.id WHERE a.userId = :userId " +
@@ -113,7 +122,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            "))) " +
            "AND (:hasSearch = false OR (e IS NOT NULL AND LOWER(e.title) LIKE LOWER(CONCAT('%', :search, '%')))) " +
-           "AND (:hasCert = false OR (e IS NOT NULL AND UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))) " +
+           "AND (:hasCert = false OR (e IS NOT NULL AND (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           "))) " +
            "AND (:hasMode = false OR a.testMode = :mode) " +
            "AND (:hasStatus = false OR a.status = :status)")
     org.springframework.data.domain.Page<Object[]> findUserAttemptsWithExam(
@@ -137,7 +152,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            ")) " +
-           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+           "AND (:hasCert = false OR (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           "))")
     long countByUserIdAndLanguageAndCert(
             @Param("userId") Integer userId,
             @Param("targetLang") String targetLang,
@@ -153,7 +174,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            ")) " +
-           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+           "AND (:hasCert = false OR (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           "))")
     long countByUserIdAndStatusAndLanguageAndCert(
             @Param("userId") Integer userId,
             @Param("status") AttemptStatus status,
@@ -170,7 +197,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            ")) " +
-           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+           "AND (:hasCert = false OR (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           "))")
     Double findAverageScoreByUserIdAndLanguageAndCert(
             @Param("userId") Integer userId,
             @Param("targetLang") String targetLang,
@@ -186,7 +219,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            ")) " +
-           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+           "AND (:hasCert = false OR (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           "))")
     java.math.BigDecimal findHighestScoreByUserIdAndLanguageAndCert(
             @Param("userId") Integer userId,
             @Param("targetLang") String targetLang,
@@ -201,7 +240,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            ")) " +
-           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))")
+           "AND (:hasCert = false OR (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           "))")
     Long sumTimeSpentSecondsByUserIdAndLanguageAndCert(
             @Param("userId") Integer userId,
             @Param("targetLang") String targetLang,
@@ -217,7 +262,13 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
            "    (:targetLang = 'vi' AND LOWER(e.examLanguage) IN ('vi', 'vietnamese')) OR " +
            "    (LOWER(e.examLanguage) = LOWER(:targetLang))" +
            ")) " +
-           "AND (:hasCert = false OR UPPER(e.type) LIKE CONCAT(:certPrefix, '%')) " +
+           "AND (:hasCert = false OR (" +
+           "    (:certPrefix = 'IELTS' AND UPPER(e.type) LIKE 'IELTS%') OR " +
+           "    (:certPrefix = 'TOEIC_LR' AND UPPER(e.type) LIKE 'TOEIC%' AND UPPER(e.type) NOT LIKE 'TOEIC_WRITING%' AND UPPER(e.type) NOT LIKE 'TW%') OR " +
+           "    (:certPrefix = 'TOEIC_WRITING' AND (UPPER(e.type) LIKE 'TOEIC_WRITING%' OR UPPER(e.type) LIKE 'TW%')) OR " +
+           "    (:certPrefix = 'NLTV' AND UPPER(e.type) LIKE 'NLTV%') OR " +
+           "    (UPPER(e.type) LIKE CONCAT(:certPrefix, '%'))" +
+           ")) " +
            "ORDER BY COALESCE(a.endTime, a.createdAt) DESC")
     List<Object[]> findRecentAttemptsWithExam(
             @Param("userId") Integer userId,

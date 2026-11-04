@@ -50,6 +50,9 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
       if (cert.startsWith('IELTS')) {
         label = `Band ${certScore}`;
         scale = 'Thang 9.0';
+      } else if (cert === 'TOEIC_WRITING') {
+        label = `${Math.round(certScore)} / 200`;
+        scale = 'Thang 200';
       } else if (cert.startsWith('TOEIC')) {
         label = `${Math.round(certScore)} đ`;
         scale = 'Thang 990';
@@ -69,6 +72,7 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
       const singleScore = byType[singleType];
       let label = `${singleScore}`;
       if (singleType.startsWith('IELTS')) label = `Band ${singleScore}`;
+      else if (singleType === 'TOEIC_WRITING') label = `${Math.round(singleScore)} / 200`;
       else if (singleType.startsWith('TOEIC')) label = `${Math.round(singleScore)} đ`;
       else if (singleType.startsWith('NLTV')) label = `Bậc ${singleScore}`;
       return {
@@ -81,7 +85,9 @@ export const HistoryKpiCards: React.FC<HistoryKpiCardsProps> = ({ stats, loading
       const breakdown = typeKeys.map(k => {
         const sc = byType[k];
         if (k === 'IELTS') return `IELTS: Band ${sc}`;
-        if (k === 'TOEIC') return `TOEIC: ${Math.round(sc)}đ`;
+        if (k === 'TOEIC_LR') return `TOEIC L&R: ${Math.round(sc)}đ`;
+        if (k === 'TOEIC_WRITING') return `TOEIC Writing: ${Math.round(sc)}/200`;
+        if (k.startsWith('TOEIC')) return `${k}: ${Math.round(sc)}đ`;
         if (k === 'NLTV') return `NLTV: Bậc ${sc}`;
         return `${k}: ${sc}`;
       }).join(' • ');

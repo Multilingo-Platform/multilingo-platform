@@ -469,7 +469,7 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
                 if (targetCertificate == null) return "OTHER";
                 String upper = targetCertificate.toUpperCase();
                 if (upper.startsWith("IELTS")) return "IELTS";
-                if (upper.equals("TOEIC_WRITING") || upper.equals("TW")) return "TOEIC_WRITING";
+                if (upper.contains("WRITING") || upper.startsWith("TW")) return "TOEIC_WRITING";
                 if (upper.startsWith("TOEIC")) return "TOEIC_LR";
                 if (upper.startsWith("NLTV")) return "NLTV";
                 return "OTHER";

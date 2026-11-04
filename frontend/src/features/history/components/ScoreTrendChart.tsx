@@ -6,12 +6,13 @@ import type { ScoreTrendItem } from '../types/history.types';
 interface ScoreTrendChartProps {
   trends: ScoreTrendItem[];
   loading: boolean;
+  activeCert?: string;
 }
 
-export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loading }) => {
+export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loading, activeCert }) => {
   const { t } = useTranslation();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [selectedCertFilter, setSelectedCertFilter] = useState<string>('ALL');
+  const [selectedCertFilter, setSelectedCertFilter] = useState<string>('');
 
   const availableCerts = React.useMemo(() => {
     if (!trends) return [];
@@ -24,11 +25,28 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
     return Array.from(set);
   }, [trends]);
 
+  // Sync with activeCert when provided and valid
+  React.useEffect(() => {
+    if (activeCert && activeCert !== 'ALL' && availableCerts.includes(activeCert)) {
+      setSelectedCertFilter(activeCert);
+    }
+  }, [activeCert, availableCerts]);
+
+  const effectiveCert = React.useMemo(() => {
+    if (selectedCertFilter && availableCerts.includes(selectedCertFilter)) {
+      return selectedCertFilter;
+    }
+    if (activeCert && activeCert !== 'ALL' && availableCerts.includes(activeCert)) {
+      return activeCert;
+    }
+    return availableCerts[0] || '';
+  }, [selectedCertFilter, activeCert, availableCerts]);
+
   const displayedTrends = React.useMemo(() => {
-    if (!trends) return [];
-    if (selectedCertFilter === 'ALL') return trends;
-    return trends.filter((t) => t.certType === selectedCertFilter);
-  }, [trends, selectedCertFilter]);
+    if (!trends || trends.length === 0) return [];
+    if (availableCerts.length <= 1) return trends;
+    return trends.filter((t) => t.certType === effectiveCert);
+  }, [trends, availableCerts, effectiveCert]);
 
   if (loading) {
     return (
@@ -97,8 +115,9 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
 
   const formatScoreBadge = (item: ScoreTrendItem) => {
     if (item.score === null) return '—';
-    if (item.scoreUnit === 'IELTS_BAND') return `Band ${item.score}`;
-    if (item.scoreUnit === 'TOEIC_SCALED') return `${Math.round(item.score)} đ`;
+    if (item.scoreUnit === 'IELTS_BAND' || item.certType === 'IELTS') return `Band ${item.score}`;
+    if (item.certType === 'TOEIC_WRITING') return `${Math.round(item.score)}/200`;
+    if (item.scoreUnit === 'TOEIC_SCALED' || item.certType === 'TOEIC_LR' || item.certType === 'TOEIC') return `${Math.round(item.score)} đ`;
     if (item.scoreUnit === 'RAW_OBJECTIVE' || item.scoreUnit === 'LEGACY_RAW' || !item.scoreUnit) return `${item.score} raw`;
     if (item.certType === 'NLTV') return `Bậc ${item.score}`;
     return `${item.score} đ`;
@@ -114,23 +133,17 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
         <div className="history-chart-actions">
           {availableCerts.length > 1 && (
             <div className="history-chart-cert-filters" role="tablist">
-              <button
-                type="button"
-                className={`history-chart-filter-chip ${selectedCertFilter === 'ALL' ? 'active' : ''}`}
-                onClick={() => setSelectedCertFilter('ALL')}
-              >
-                {t('history.chart.filter_all', 'Tất cả')} ({trends.length})
-              </button>
               {availableCerts.map((c) => {
                 const count = trends.filter((t) => t.certType === c).length;
+                const label = c === 'TOEIC_LR' ? 'TOEIC L&R' : c === 'TOEIC_WRITING' ? 'TOEIC Writing' : c;
                 return (
                   <button
                     key={c}
                     type="button"
-                    className={`history-chart-filter-chip ${selectedCertFilter === c ? 'active' : ''}`}
+                    className={`history-chart-filter-chip ${effectiveCert === c ? 'active' : ''}`}
                     onClick={() => setSelectedCertFilter(c)}
                   >
-                    {c} ({count})
+                    {label} ({count})
                   </button>
                 );
               })}

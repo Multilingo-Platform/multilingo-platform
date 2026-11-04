@@ -42,15 +42,21 @@ describe('ScoreTrendChart', () => {
     expect(screen.getByText('Chưa có dữ liệu tiến độ điểm số')).toBeInTheDocument();
   });
 
-  it('renders filter chips when multiple exam types exist in trends', () => {
+  it('renders separated filter chips without merged "Tất cả" when multiple exam types exist in trends', () => {
     render(<ScoreTrendChart trends={sampleTrends} loading={false} />);
 
     expect(screen.getByText('Tiến Độ Điểm Số Gần Đây')).toBeInTheDocument();
-    // Filter chips for ALL, IELTS, and TOEIC
-    expect(screen.getByText('Tất cả (3)')).toBeInTheDocument();
+    // Never combine certificate types into "Tất cả"
+    expect(screen.queryByText(/Tất cả/)).not.toBeInTheDocument();
     expect(screen.getByText('IELTS (2)')).toBeInTheDocument();
     expect(screen.getByText('TOEIC (1)')).toBeInTheDocument();
-    expect(screen.getByText('3 lần làm bài gần nhất')).toBeInTheDocument();
+    // Defaults to first cert (IELTS with 2 attempts)
+    expect(screen.getByText('2 lần làm bài gần nhất')).toBeInTheDocument();
+  });
+
+  it('respects activeCert prop from parent to isolate that certificate trend', () => {
+    render(<ScoreTrendChart trends={sampleTrends} loading={false} activeCert="TOEIC" />);
+    expect(screen.getByText('1 lần làm bài gần nhất')).toBeInTheDocument();
   });
 
   it('filters trends dynamically when user clicks a specific cert chip', () => {
@@ -83,10 +89,10 @@ describe('ScoreTrendChart', () => {
     expect(screen.getByText('1 lần làm bài gần nhất')).toBeInTheDocument();
   });
 
-  it('breaks trend lines at unit changes and omits raw values from the scaled percentage plot', () => {
+  it('breaks trend lines at unit changes and omits raw values from the scaled percentage plot within certificate', () => {
     const mixed: ScoreTrendItem[] = [
       { ...sampleTrends[0], scoreUnit: 'IELTS_BAND' },
-      { ...sampleTrends[2], scoreUnit: 'TOEIC_SCALED' },
+      { ...sampleTrends[1], scoreUnit: 'IELTS_OVERALL_V2' },
       { ...sampleTrends[0], attemptId: 4, score: 20, scoreUnit: 'RAW_OBJECTIVE', maxScore: null, percentage: null },
     ];
     const { container } = render(<ScoreTrendChart trends={mixed} loading={false} />);
