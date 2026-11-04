@@ -12,6 +12,11 @@ import {
   FileQuestion,
   Target,
   Percent,
+  Layers,
+  Award,
+  BookOpen,
+  PenTool,
+  Globe,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -26,15 +31,26 @@ import { HistoryKpiCards } from '../../components/HistoryKpiCards';
 import { ScoreTrendChart } from '../../components/ScoreTrendChart';
 import './TestHistory.css';
 
+const resolveTargetCategory = (rawCert?: string): string => {
+  if (!rawCert) return '';
+  const upper = rawCert.toUpperCase();
+  if (upper.startsWith('IELTS')) return 'IELTS';
+  if (upper.includes('WRITING') || upper === 'TW') return 'TOEIC_WRITING';
+  if (upper.startsWith('TOEIC')) return 'TOEIC_LR';
+  if (upper.startsWith('NLTV')) return 'NLTV';
+  return '';
+};
+
 const TestHistory: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   const certTabs = React.useMemo(() => [
-    { id: 'ALL', label: t('history.filters.all_certs', 'Tất Cả Chứng Chỉ') },
-    { id: 'IELTS', label: 'IELTS' },
-    { id: 'TOEIC', label: 'TOEIC' },
-    { id: 'NLTV', label: 'NLTV' },
+    { id: 'ALL', label: t('history.filters.all_certs', 'Tất Cả Chứng Chỉ'), icon: <Layers size={15} /> },
+    { id: 'IELTS', label: 'IELTS', icon: <Award size={15} /> },
+    { id: 'TOEIC_LR', label: 'TOEIC L&R', icon: <BookOpen size={15} /> },
+    { id: 'TOEIC_WRITING', label: 'TOEIC Writing', icon: <PenTool size={15} /> },
+    { id: 'NLTV', label: 'NLTV', icon: <Globe size={15} /> },
   ], [t]);
 
   const modeOptions = React.useMemo(() => [
@@ -60,19 +76,14 @@ const TestHistory: React.FC = () => {
 
   // Target certificate category
   const targetCategory = React.useMemo(() => {
-    if (!userTarget?.targetCertificate) return '';
-    const upper = userTarget.targetCertificate.toUpperCase();
-    if (upper.startsWith('IELTS')) return 'IELTS';
-    if (upper.startsWith('TOEIC')) return 'TOEIC';
-    if (upper.startsWith('NLTV')) return 'NLTV';
-    return '';
+    return resolveTargetCategory(userTarget?.targetCertificate);
   }, [userTarget]);
 
   // Target language derived synchronously from userTarget
   const userTargetLanguage = React.useMemo(() => {
     if (userTarget?.targetLanguage) return userTarget.targetLanguage.toLowerCase();
     if (targetCategory === 'NLTV') return 'vi';
-    if (targetCategory === 'IELTS' || targetCategory === 'TOEIC') return 'en';
+    if (targetCategory === 'IELTS' || targetCategory.startsWith('TOEIC')) return 'en';
     return '';
   }, [userTarget, targetCategory]);
 
@@ -84,15 +95,6 @@ const TestHistory: React.FC = () => {
   const [historyData, setHistoryData] = useState<PageResponse<HistoryAttemptItem> | null>(null);
   const [historyLoading, setHistoryLoading] = useState<boolean>(true);
 
-  // Filters state
-  const [cert, setCert] = useState<string>('ALL');
-  const [mode, setMode] = useState<string>('ALL');
-  const [status, setStatus] = useState<string>('ALL');
-  const [search, setSearch] = useState<string>('');
-  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
-  const [sort, setSort] = useState<string>('newest');
-  const [page, setPage] = useState<number>(0);
-
   // Dynamic tabs filtered by target language
   const visibleTabs = React.useMemo(() => {
     if (!userTargetLanguage) return certTabs;
@@ -101,18 +103,43 @@ const TestHistory: React.FC = () => {
     return certTabs.filter((tab) => {
       if (tab.id === 'ALL') return true;
       if (tab.id === 'NLTV') return isVi;
-      if (tab.id === 'IELTS' || tab.id === 'TOEIC') return isEn;
+      if (tab.id === 'IELTS' || tab.id === 'TOEIC_LR' || tab.id === 'TOEIC_WRITING') return isEn;
       return true;
     });
   }, [userTargetLanguage, certTabs]);
 
-  // Reset cert to ALL if not in visible tabs
+  // Target initialization tracking to prevent race conditions & premature unfiltered fetches
+  const [isCertInitialized, setIsCertInitialized] = useState<boolean>(() => !isOnboardingLoading && !!userTarget);
+
+  // Filters state
+  const [cert, setCert] = useState<string>(() => {
+    const initialTarget = resolveTargetCategory(userTarget?.targetCertificate);
+    return initialTarget || 'ALL';
+  });
+  const [mode, setMode] = useState<string>('ALL');
+  const [status, setStatus] = useState<string>('ALL');
+  const [search, setSearch] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [sort, setSort] = useState<string>('newest');
+  const [page, setPage] = useState<number>(0);
+
+  // Default cert to user's target category once loaded if available in visibleTabs
   useEffect(() => {
+    if (isOnboardingLoading || isCertInitialized) return;
+    if (targetCategory && visibleTabs.some((t) => t.id === targetCategory)) {
+      setCert(targetCategory);
+    }
+    setIsCertInitialized(true);
+  }, [isOnboardingLoading, isCertInitialized, targetCategory, visibleTabs]);
+
+  // Reset cert to ALL if not in visible tabs (only after cert is initialized)
+  useEffect(() => {
+    if (!isCertInitialized) return;
     if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === cert)) {
       setCert('ALL');
       setPage(0);
     }
-  }, [visibleTabs, cert]);
+  }, [visibleTabs, cert, isCertInitialized]);
 
   // Debounce search input
   useEffect(() => {
@@ -125,7 +152,9 @@ const TestHistory: React.FC = () => {
 
   // Load KPI stats on mount or when cert/language changes
   useEffect(() => {
-    if (isOnboardingLoading) return;
+    if (!isCertInitialized || isOnboardingLoading) return;
+    let isSubscribed = true;
+
     const fetchStats = async () => {
       try {
         setStatsLoading(true);
@@ -133,22 +162,31 @@ const TestHistory: React.FC = () => {
           cert: cert !== 'ALL' ? cert : undefined,
           targetLanguage: userTargetLanguage || undefined,
         });
-        if (res.code === 200 && res.data) {
+        if (isSubscribed && res.code === 200 && res.data) {
           setStats(res.data);
         }
       } catch (err) {
-        console.error('Failed to load history stats:', err);
+        if (isSubscribed) {
+          console.error('Failed to load history stats:', err);
+        }
       } finally {
-        setStatsLoading(false);
+        if (isSubscribed) {
+          setStatsLoading(false);
+        }
       }
     };
 
     fetchStats();
-  }, [cert, userTargetLanguage, isOnboardingLoading]);
+    return () => {
+      isSubscribed = false;
+    };
+  }, [cert, userTargetLanguage, isCertInitialized, isOnboardingLoading]);
 
   // Load paginated history list
   useEffect(() => {
-    if (isOnboardingLoading) return;
+    if (!isCertInitialized || isOnboardingLoading) return;
+    let isSubscribed = true;
+
     const fetchHistory = async () => {
       try {
         setHistoryLoading(true);
@@ -163,18 +201,25 @@ const TestHistory: React.FC = () => {
           size: 10,
         });
 
-        if (res.code === 200 && res.data) {
+        if (isSubscribed && res.code === 200 && res.data) {
           setHistoryData(res.data);
         }
       } catch (err) {
-        console.error('Failed to load history list:', err);
+        if (isSubscribed) {
+          console.error('Failed to load history list:', err);
+        }
       } finally {
-        setHistoryLoading(false);
+        if (isSubscribed) {
+          setHistoryLoading(false);
+        }
       }
     };
 
     fetchHistory();
-  }, [cert, mode, status, debouncedSearch, userTargetLanguage, sort, page, isOnboardingLoading]);
+    return () => {
+      isSubscribed = false;
+    };
+  }, [cert, mode, status, debouncedSearch, userTargetLanguage, sort, page, isCertInitialized, isOnboardingLoading]);
 
   // Format date helper
   const formatDate = (dateStr: string) => {
@@ -279,6 +324,31 @@ const TestHistory: React.FC = () => {
           <p className="history-hero-desc">
             {t('history.hero.desc', 'Theo dõi sự tiến bộ, đánh giá điểm mạnh - điểm yếu và duy trì chuỗi học tập đều đặn mỗi ngày.')}
           </p>
+
+          {/* Certificate Selection Tabs inside Hero */}
+          <div className="history-hero-cert-bar">
+            <div className="history-hero-cert-tabs" role="tablist">
+              {visibleTabs.map((tab) => {
+                const isActive = cert === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`history-hero-cert-btn ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setCert(tab.id);
+                      setPage(0);
+                    }}
+                  >
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -291,26 +361,11 @@ const TestHistory: React.FC = () => {
         <ScoreTrendChart
           trends={stats?.recentScoreTrends || []}
           loading={statsLoading}
+          activeCert={cert}
         />
 
         {/* Filter & Search Panel */}
         <div className="history-filter-panel">
-          {/* Certificate Tabs */}
-          <div className="history-tabs-bar">
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab.id}
-                className={`history-tab-btn ${cert === tab.id ? 'active' : ''}`}
-                onClick={() => {
-                  setCert(tab.id);
-                  setPage(0);
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
           {/* Controls Row: Mode, Status, Search & Sort */}
           <div className="history-filter-controls-row">
             {/* Mode & Status Chips */}

@@ -16,6 +16,8 @@ import com.multilingo.backend.modules.gamification.repository.UserStudyStatRepos
 import com.multilingo.backend.modules.gamification.service.impl.StudentDashboardServiceImpl;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
+import com.multilingo.backend.modules.testing.entity.enums.TestMode;
+import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.vocab.dto.response.UserVocabStatsProjection;
 import com.multilingo.backend.modules.vocab.repository.UserFlashcardRepository;
@@ -388,15 +390,15 @@ class StudentDashboardServiceTest {
                 .build();
         when(userTargetRepository.findFirstByUserId(1)).thenReturn(Optional.of(target));
 
-        TestAttempt a1 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(5.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        TestAttempt a1 = TestAttempt.builder().examId(10).testMode(TestMode.MOCK_TEST).testScope(TestScope.FULL_EXAM).overallScore(BigDecimal.valueOf(5.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
         a1.setId(1);
-        TestAttempt a2 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        TestAttempt a2 = TestAttempt.builder().examId(10).testMode(TestMode.MOCK_TEST).testScope(TestScope.FULL_EXAM).overallScore(BigDecimal.valueOf(6.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
         a2.setId(2);
-        TestAttempt a3 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        TestAttempt a3 = TestAttempt.builder().examId(10).testMode(TestMode.MOCK_TEST).testScope(TestScope.FULL_EXAM).overallScore(BigDecimal.valueOf(6.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
         a3.setId(3);
-        TestAttempt a4 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        TestAttempt a4 = TestAttempt.builder().examId(10).testMode(TestMode.MOCK_TEST).testScope(TestScope.FULL_EXAM).overallScore(BigDecimal.valueOf(6.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
         a4.setId(4);
-        TestAttempt a5 = TestAttempt.builder().examId(10).overallScore(BigDecimal.valueOf(6.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        TestAttempt a5 = TestAttempt.builder().examId(10).testMode(TestMode.MOCK_TEST).testScope(TestScope.FULL_EXAM).overallScore(BigDecimal.valueOf(6.5)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
         a5.setId(5);
 
         when(testAttemptRepository.findTopRecentAttemptsByCertCategory(eq(1), eq(AttemptStatus.COMPLETED), eq("IELTS"), eq("IELTS_ACADEMIC"), any()))
@@ -436,9 +438,9 @@ class StudentDashboardServiceTest {
                 .build();
         when(userTargetRepository.findFirstByUserId(1)).thenReturn(Optional.of(target));
 
-        TestAttempt a1 = TestAttempt.builder().examId(20).overallScore(BigDecimal.valueOf(4.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        TestAttempt a1 = TestAttempt.builder().examId(20).testMode(TestMode.MOCK_TEST).testScope(TestScope.FULL_EXAM).overallScore(BigDecimal.valueOf(4.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
         a1.setId(10);
-        TestAttempt a2 = TestAttempt.builder().examId(20).overallScore(BigDecimal.valueOf(5.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
+        TestAttempt a2 = TestAttempt.builder().examId(20).testMode(TestMode.MOCK_TEST).testScope(TestScope.FULL_EXAM).overallScore(BigDecimal.valueOf(5.0)).endTime(Instant.now()).status(AttemptStatus.COMPLETED).build();
         a2.setId(11);
 
         when(testAttemptRepository.findTopRecentAttemptsByCertCategory(eq(1), eq(AttemptStatus.COMPLETED), eq("NLTV"), eq("NLTV"), any()))

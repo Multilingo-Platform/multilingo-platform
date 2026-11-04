@@ -73,6 +73,6 @@ describe('GoalProgressTrackerCard', () => {
 
     expect(screen.getByText('TOEIC Listening & Reading')).toBeInTheDocument();
     expect(screen.getByText(/850 Điểm/i)).toBeInTheDocument();
-    expect(screen.getByText(/Bạn chưa có bài thi nào hoàn thành/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bạn chưa có bài thi thử \(mock test\) full đề nào hoàn thành/i)).toBeInTheDocument();
   });
 });

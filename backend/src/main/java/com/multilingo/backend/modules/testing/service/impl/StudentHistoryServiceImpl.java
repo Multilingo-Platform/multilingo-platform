@@ -91,21 +91,27 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
         for (java.util.Map.Entry<String, java.util.Map<String, List<Double>>> entry : scoresByCertGroup.entrySet()) {
             String preferredUnit = switch (entry.getKey()) {
                 case "IELTS" -> "IELTS_BAND";
-                case "TOEIC" -> "TOEIC_SCALED";
+                case "TOEIC_LR" -> "TOEIC_SCALED";
+                case "TOEIC_WRITING" -> "TOEIC_WRITING";
                 default -> "RAW_OBJECTIVE";
             };
             List<Double> comparable = entry.getValue().getOrDefault(preferredUnit, List.of());
-            if ((comparable == null || comparable.isEmpty()) && !"IELTS".equals(entry.getKey()) && !"TOEIC".equals(entry.getKey())) {
+            if ((comparable == null || comparable.isEmpty()) && !"IELTS".equals(entry.getKey()) && !"TOEIC_LR".equals(entry.getKey())) {
                 comparable = new ArrayList<>();
+                comparable.addAll(entry.getValue().getOrDefault("TOEIC_WRITING", List.of()));
                 comparable.addAll(entry.getValue().getOrDefault("RAW_OBJECTIVE", List.of()));
                 comparable.addAll(entry.getValue().getOrDefault("LEGACY_RAW", List.of()));
             }
             if (!comparable.isEmpty()) {
                 double mean = comparable.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-                averageScoresByType.put(entry.getKey(), Math.round(mean * 10.0) / 10.0);
+                if ("TOEIC_LR".equals(entry.getKey()) || "TOEIC_WRITING".equals(entry.getKey())) {
+                    averageScoresByType.put(entry.getKey(), (double) Math.round(mean));
+                } else {
+                    averageScoresByType.put(entry.getKey(), Math.round(mean * 10.0) / 10.0);
+                }
             }
             Double highest = highestByCertGroup.getOrDefault(entry.getKey(), java.util.Map.of()).get(preferredUnit);
-            if (highest == null && !"IELTS".equals(entry.getKey()) && !"TOEIC".equals(entry.getKey())) {
+            if (highest == null && !"IELTS".equals(entry.getKey()) && !"TOEIC_LR".equals(entry.getKey())) {
                 highest = java.util.stream.Stream.of(
                         highestByCertGroup.getOrDefault(entry.getKey(), java.util.Map.of()).get("RAW_OBJECTIVE"),
                         highestByCertGroup.getOrDefault(entry.getKey(), java.util.Map.of()).get("LEGACY_RAW"))
@@ -325,14 +331,13 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
     private Double resolveMaxScore(String examType, String scoreUnit) {
         if ("IELTS_BAND".equals(scoreUnit)) return 9.0;
         if ("TOEIC_SCALED".equals(scoreUnit)) return 990.0;
+        if ("TOEIC_WRITING".equals(scoreUnit) || "PRACTICE_0_200".equals(scoreUnit)) return 200.0;
         if (scoreUnit == null || "RAW_OBJECTIVE".equals(scoreUnit) || scoreUnit.endsWith("RAW")) return null;
         if (examType == null) return 100.0;
         String upper = examType.toUpperCase();
         if (upper.startsWith("IELTS")) return 9.0;
-        if (upper.startsWith("TOEIC")) {
-            if (upper.contains("WRITING")) return 200.0;
-            return 990.0;
-        }
+        if (upper.contains("WRITING") || upper.startsWith("TW")) return 200.0;
+        if (upper.startsWith("TOEIC")) return 990.0;
         if (upper.startsWith("NLTV")) return 10.0;
         return 100.0;
     }
@@ -345,7 +350,8 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
         if (examType == null) return "OTHER";
         String upper = examType.toUpperCase();
         if (upper.startsWith("IELTS")) return "IELTS";
-        if (upper.startsWith("TOEIC")) return "TOEIC";
+        if (upper.contains("WRITING") || upper.startsWith("TW")) return "TOEIC_WRITING";
+        if (upper.startsWith("TOEIC")) return "TOEIC_LR";
         if (upper.startsWith("NLTV")) return "NLTV";
         return "OTHER";
     }

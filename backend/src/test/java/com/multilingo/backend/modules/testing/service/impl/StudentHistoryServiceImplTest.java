@@ -86,7 +86,7 @@ class StudentHistoryServiceImplTest {
                         new Object[]{"TOEIC_LR", "RAW_OBJECTIVE", 99.0, 100.0},
                         new Object[]{"TOEIC_LR", "TOEIC_SCALED", 800.0, 900.0}));
         var stats = studentHistoryService.getStudentStats(userId, "IELTS", null);
-        assertThat(stats.getAverageScoresByType()).containsEntry("IELTS", 6.5).containsEntry("TOEIC", 800.0);
+        assertThat(stats.getAverageScoresByType()).containsEntry("IELTS", 6.5).containsEntry("TOEIC_LR", 800.0);
         assertThat(stats.getAverageScore()).isEqualTo(6.5);
         assertThat(stats.getHighestScore()).isEqualTo(7.0);
     }
@@ -200,7 +200,47 @@ class StudentHistoryServiceImplTest {
         assertThat(response.getAverageScore()).isEqualTo(7.5);
         // Có đầy đủ điểm TB riêng cho từng loại đề
         assertThat(response.getAverageScoresByType()).containsEntry("IELTS", 7.5);
-        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC", 750.0);
+        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_LR", 750.0);
+    }
+
+    @Test
+    @DisplayName("getStudentStats: Tách bạch hoàn toàn TOEIC_LR (thang 990) và TOEIC_WRITING (thang 200)")
+    void getStudentStats_SeparatesToeicLrAndToeicWriting() {
+        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
+        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), any(), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
+        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
+        when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        List<Object[]> avgRows = new ArrayList<>();
+        avgRows.add(new Object[]{"TOEIC_LR", "TOEIC_SCALED", 850.0, 900.0});
+        avgRows.add(new Object[]{"TOEIC_WRITING", "TOEIC_WRITING", 160.0, 180.0});
+        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
+                .thenReturn(avgRows);
+
+        TestAttempt lrAttempt = TestAttempt.builder().userId(userId).examId(1).overallScore(BigDecimal.valueOf(850.0)).scoreUnit("TOEIC_SCALED").build();
+        lrAttempt.setId(1);
+        Exam lrExam = new Exam(); lrExam.setId(1); lrExam.setType("TOEIC_LR"); lrExam.setTitle("ETS Test 1");
+
+        TestAttempt twAttempt = TestAttempt.builder().userId(userId).examId(2).overallScore(BigDecimal.valueOf(160.0)).scoreUnit("TOEIC_WRITING").build();
+        twAttempt.setId(2);
+        Exam twExam = new Exam(); twExam.setId(2); twExam.setType("TOEIC_WRITING"); twExam.setTitle("Writing Test 1");
+
+        when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean(), any(Pageable.class)))
+                .thenReturn(List.of(new Object[]{twAttempt, twExam}, new Object[]{lrAttempt, lrExam}));
+
+        StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
+
+        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_LR", 850.0);
+        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_WRITING", 160.0);
+        assertThat(response.getRecentScoreTrends()).hasSize(2);
+        
+        var firstTrend = response.getRecentScoreTrends().get(0);
+        assertThat(firstTrend.getCertType()).isEqualTo("TOEIC_LR");
+        assertThat(firstTrend.getMaxScore()).isEqualTo(990.0);
+
+        var secondTrend = response.getRecentScoreTrends().get(1);
+        assertThat(secondTrend.getCertType()).isEqualTo("TOEIC_WRITING");
+        assertThat(secondTrend.getMaxScore()).isEqualTo(200.0);
     }
 
     @Test

@@ -53,6 +53,36 @@ describe('HistoryKpiCards', () => {
     expect(screen.getByText(/Thang 990/)).toBeInTheDocument();
   });
 
+  it('formats TOEIC_LR (990) and TOEIC_WRITING (200) separately with correct scales', () => {
+    const mockStats: HistoryStatsResponse = {
+      totalAttempts: 4,
+      completedAttempts: 4,
+      inProgressAttempts: 0,
+      averageScore: null,
+      highestScore: null,
+      totalPracticeMinutes: 80,
+      currentStreak: 1,
+      targetAchievedCount: 1,
+      recentScoreTrends: [],
+      averageScoresByType: {
+        TOEIC_LR: 820.0,
+        TOEIC_WRITING: 165.0,
+      },
+    };
+
+    const { rerender } = render(<HistoryKpiCards stats={mockStats} loading={false} activeCert="TOEIC_LR" />);
+    expect(screen.getByText('820 đ')).toBeInTheDocument();
+    expect(screen.getByText(/Thang 990/)).toBeInTheDocument();
+
+    rerender(<HistoryKpiCards stats={mockStats} loading={false} activeCert="TOEIC_WRITING" />);
+    expect(screen.getByText('165 / 200')).toBeInTheDocument();
+    expect(screen.getByText(/Thang 200/)).toBeInTheDocument();
+
+    rerender(<HistoryKpiCards stats={mockStats} loading={false} activeCert="ALL" />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByText('TOEIC L&R: 820đ • TOEIC Writing: 165/200')).toBeInTheDocument();
+  });
+
   it('displays breakdown subtext when ALL is selected and multiple exam types exist', () => {
     const mockStats: HistoryStatsResponse = {
       totalAttempts: 12,

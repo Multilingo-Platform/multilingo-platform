@@ -40,10 +40,10 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
 
   const getAdvice = () => {
     if (recentExamCount === 0) {
-      return t('dashboard.goal.advice_empty', 'Bạn chưa có bài thi nào hoàn thành. Hãy làm bài thi đầu tiên để bắt đầu theo dõi thanh đo tiến độ!');
+      return t('dashboard.goal.advice_empty', 'Bạn chưa có bài thi thử (mock test) full đề nào hoàn thành. Hãy làm bài thi thử full đề đầu tiên để bắt đầu theo dõi thanh đo tiến độ!');
     }
     if (progressPercent >= 100) {
-      return t('dashboard.goal.advice_achieved', 'Xuất sắc! Điểm trung bình 5 bài gần nhất đã đạt mục tiêu kỳ vọng. Hãy duy trì phong độ này cho kỳ thi thực tế!');
+      return t('dashboard.goal.advice_achieved', 'Xuất sắc! Điểm trung bình 5 bài mock test full đề gần nhất đã đạt mục tiêu kỳ vọng. Hãy duy trì phong độ này cho kỳ thi thực tế!');
     }
     if (progressPercent >= 80) {
       return t('dashboard.goal.advice_close', 'Phong độ rất tốt! Bạn đã đi được phần lớn chặng đường. Hãy rà soát lại các câu sai trong lịch sử làm bài để bứt phá.');
@@ -91,7 +91,7 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
               <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">
                 {t('dashboard.goal.badge', 'Mục Tiêu Học Tập')}
               </span>
-              <span className="text-xs text-slate-500 font-medium">{t('dashboard.goal.recent_5', '5 bài gần nhất')}</span>
+              <span className="text-xs text-slate-500 font-medium">{t('dashboard.goal.recent_5', '5 bài mocktest full đề gần nhất')}</span>
             </div>
             <h2 className="text-lg md:text-xl font-bold text-slate-900 mt-0.5 flex items-center gap-2">
               <span>{certName}</span>
@@ -127,7 +127,7 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
         {/* Left: Score Comparison */}
         <div className="lg:col-span-4 flex items-center justify-around sm:justify-start sm:gap-8 bg-slate-50/70 p-4 rounded-xl border border-slate-100">
           <div>
-            <span className="text-xs text-slate-500 font-medium block">{t('dashboard.goal.avg_5', 'Trung bình 5 bài')}</span>
+            <span className="text-xs text-slate-500 font-medium block">{t('dashboard.goal.avg_5', 'TB 5 bài mocktest full đề')}</span>
             <div className="text-2xl font-black text-slate-900 flex items-baseline gap-1 mt-0.5">
               <span>{formatScore(recentAverageScore)}</span>
               {recentExamCount > 0 && (
