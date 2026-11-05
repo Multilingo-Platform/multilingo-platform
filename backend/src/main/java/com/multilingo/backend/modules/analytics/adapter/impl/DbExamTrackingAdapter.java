@@ -6,6 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class DbExamTrackingAdapter implements ExamTrackingAdapter {
@@ -27,7 +32,25 @@ public class DbExamTrackingAdapter implements ExamTrackingAdapter {
     @Override
     @Transactional(readOnly = true)
     public long countTotalAttempts() {
-        return testAttemptRepository != null ? testAttemptRepository.count() : 0L;
+        return testAttemptRepository != null ? testAttemptRepository.countTotalValidAttempts() : 0L;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> countAttemptsByStatus() {
+        if (testAttemptRepository == null) {
+            return Collections.emptyMap();
+        }
+        List<Object[]> rows = testAttemptRepository.countAttemptsGroupedByStatus();
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            if (row != null && row.length >= 2 && row[0] != null) {
+                String status = row[0].toString();
+                Long count = ((Number) row[1]).longValue();
+                result.put(status, count);
+            }
+        }
+        return result;
     }
 
     @Override

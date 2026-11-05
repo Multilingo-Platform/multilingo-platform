@@ -118,6 +118,7 @@ export interface DashboardStats {
   totalRevenue: number;
   monthlyRevenue: number;
   totalExamsAttempted: number;
+  attemptsByStatus?: Record<string, number>;
 }
 
 export interface RevenueChartData {

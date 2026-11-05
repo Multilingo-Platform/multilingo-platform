@@ -60,6 +60,12 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
     @Query("SELECT COUNT(a) FROM TestAttempt a WHERE a.examId = :examId AND a.status = 'COMPLETED'")
     long countCompletedByExamId(@Param("examId") Integer examId);
 
+    @Query("SELECT COUNT(a) FROM TestAttempt a JOIN Exam e ON a.examId = e.id")
+    long countTotalValidAttempts();
+
+    @Query("SELECT a.status, COUNT(a) FROM TestAttempt a JOIN Exam e ON a.examId = e.id GROUP BY a.status")
+    List<Object[]> countAttemptsGroupedByStatus();
+
     @Query("SELECT COUNT(DISTINCT a.userId) FROM TestAttempt a WHERE a.startTime >= :since")
     long countDistinctActiveUsers(@Param("since") Instant since);
 
