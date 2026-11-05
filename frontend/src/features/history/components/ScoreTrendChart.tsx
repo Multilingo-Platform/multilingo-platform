@@ -14,16 +14,52 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [selectedCertFilter, setSelectedCertFilter] = useState<string>('');
 
-  const availableCerts = React.useMemo(() => {
+  // Biểu đồ chỉ dùng điểm của các bài thi full đề (cả mock test và practice)
+  const fullExamTrends = React.useMemo(() => {
     if (!trends) return [];
+    return trends.filter((t) => {
+      // 1. Phải có điểm hợp lệ
+      if (t.score === null || t.score === undefined) return false;
+
+      // 2. Không vẽ các bài luyện tập lẻ câu/part theo scoreUnit raw
+      if (t.scoreUnit === 'RAW_OBJECTIVE' || (t.scoreUnit && t.scoreUnit.endsWith('RAW'))) return false;
+
+      // 3. Nếu có trường testScope, bắt buộc phải là FULL_EXAM
+      if (t.testScope && t.testScope !== 'FULL_EXAM') return false;
+
+      // 4. Không dùng điểm TOEIC lẻ 1 kỹ năng (thang điểm 450)
+      if ((t.certType === 'TOEIC_LR' || t.certType === 'TOEIC') && t.maxScore === 450) return false;
+
+      // 5. Loại bỏ các bài thi lẻ kỹ năng hoặc part qua tiêu đề
+      const titleLower = (t.examTitle || '').toLowerCase();
+      if (
+        titleLower.includes('passage ') ||
+        titleLower.includes('part ') ||
+        titleLower.includes('phần ') ||
+        titleLower.includes(' - listening') ||
+        titleLower.includes(' - reading') ||
+        titleLower.includes(' - writing') ||
+        titleLower.includes(' - nghe') ||
+        titleLower.includes(' - đọc') ||
+        titleLower.includes(' - viết')
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [trends]);
+
+  const availableCerts = React.useMemo(() => {
+    if (!fullExamTrends) return [];
     const set = new Set<string>();
-    trends.forEach((t) => {
+    fullExamTrends.forEach((t) => {
       if (t.certType && t.certType !== 'OTHER') {
         set.add(t.certType);
       }
     });
     return Array.from(set);
-  }, [trends]);
+  }, [fullExamTrends]);
 
   // Sync with activeCert when provided and valid
   React.useEffect(() => {
@@ -43,10 +79,10 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
   }, [selectedCertFilter, activeCert, availableCerts]);
 
   const displayedTrends = React.useMemo(() => {
-    if (!trends || trends.length === 0) return [];
-    if (availableCerts.length <= 1) return trends;
-    return trends.filter((t) => t.certType === effectiveCert);
-  }, [trends, availableCerts, effectiveCert]);
+    if (!fullExamTrends || fullExamTrends.length === 0) return [];
+    if (availableCerts.length <= 1) return fullExamTrends;
+    return fullExamTrends.filter((t) => t.certType === effectiveCert);
+  }, [fullExamTrends, availableCerts, effectiveCert]);
 
   if (loading) {
     return (
@@ -56,7 +92,7 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
     );
   }
 
-  if (!trends || trends.length === 0) {
+  if (!fullExamTrends || fullExamTrends.length === 0) {
     return (
       <div className="history-chart-card empty">
         <div className="history-chart-empty-content">
@@ -134,7 +170,7 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({ trends, loadin
           {availableCerts.length > 1 && (
             <div className="history-chart-cert-filters" role="tablist">
               {availableCerts.map((c) => {
-                const count = trends.filter((t) => t.certType === c).length;
+                const count = fullExamTrends.filter((t) => t.certType === c).length;
                 const label = c === 'TOEIC_LR' ? 'TOEIC L&R' : c === 'TOEIC_WRITING' ? 'TOEIC Writing' : c;
                 return (
                   <button

@@ -99,4 +99,62 @@ describe('ScoreTrendChart', () => {
     expect(container.querySelectorAll('.history-chart-svg path[fill="none"]')).toHaveLength(2);
     expect(container.querySelectorAll('.history-chart-svg circle')).toHaveLength(2);
   });
+
+  it('filters out single skill and single part practice attempts from the chart', () => {
+    const mixedAttempts: ScoreTrendItem[] = [
+      {
+        attemptId: 10,
+        examTitle: 'Cambridge IELTS 20 Test 2',
+        certType: 'IELTS',
+        score: 7.5,
+        scoreUnit: 'IELTS_BAND',
+        maxScore: 9.0,
+        percentage: 83.3,
+        testMode: 'MOCK_TEST',
+        testScope: 'FULL_EXAM',
+        completedAt: '2026-11-01T10:00:00Z',
+      },
+      {
+        attemptId: 11,
+        examTitle: 'Cambridge IELTS 20 Test 1 - Reading',
+        certType: 'IELTS',
+        score: 7.5,
+        scoreUnit: 'IELTS_BAND',
+        maxScore: 9.0,
+        percentage: 83.3,
+        testMode: 'PRACTICE',
+        testScope: 'SINGLE_SKILL',
+        completedAt: '2026-11-02T10:00:00Z',
+      },
+      {
+        attemptId: 12,
+        examTitle: 'Cambridge IELTS 20 Reading Passage 1',
+        certType: 'IELTS',
+        score: 11,
+        scoreUnit: 'RAW_OBJECTIVE',
+        maxScore: 13,
+        percentage: 84.6,
+        testMode: 'PRACTICE',
+        testScope: 'SINGLE_PART',
+        completedAt: '2026-11-03T10:00:00Z',
+      },
+      {
+        attemptId: 13,
+        examTitle: 'Cambridge IELTS 20 Test 1 - Full Practice',
+        certType: 'IELTS',
+        score: 8.0,
+        scoreUnit: 'IELTS_BAND',
+        maxScore: 9.0,
+        percentage: 88.9,
+        testMode: 'PRACTICE',
+        testScope: 'FULL_EXAM',
+        completedAt: '2026-11-04T10:00:00Z',
+      },
+    ];
+
+    render(<ScoreTrendChart trends={mixedAttempts} loading={false} />);
+
+    // Only the 2 full exam attempts (attemptId 10 and attemptId 13) should be shown
+    expect(screen.getByText('2 lần làm bài gần nhất')).toBeInTheDocument();
+  });
 });

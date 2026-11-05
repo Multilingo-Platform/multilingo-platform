@@ -21,6 +21,8 @@ export interface ScoreTrendItem {
   maxScore: number | null;
   percentage: number | null;
   scoreUnit?: string | null;
+  testMode?: 'MOCK_TEST' | 'PRACTICE' | string | null;
+  testScope?: 'FULL_EXAM' | 'SINGLE_SKILL' | 'SINGLE_PART' | 'MULTI_PART' | string | null;
   completedAt: string;
 }
 
