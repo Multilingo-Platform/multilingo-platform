@@ -29,7 +29,7 @@ class QuotaServiceImplTest {
 
         var quotas = service.getAllQuotas();
 
-        assertThat(quotas).hasSize(8);
+        assertThat(quotas).hasSize(6);
         assertThat(quotas).filteredOn(q -> q.getFeature().equals("AI_WRITING_HINTS") && q.getTier().equals("FREE"))
                 .singleElement().extracting("dailyLimit").isEqualTo(5);
         assertThat(quotas).filteredOn(q -> q.getFeature().equals("AI_WRITING_HINTS") && q.getTier().equals("VIP"))
@@ -39,6 +39,7 @@ class QuotaServiceImplTest {
         assertThat(quotas).filteredOn(q -> q.getFeature().equals("AI_WRITING_GRADING") && q.getTier().equals("VIP"))
                 .singleElement().extracting("dailyLimit").isEqualTo(20);
         assertThat(quotas).noneMatch(q -> q.getFeature().equals("WRITING_ASSISTANT"));
+        assertThat(quotas).noneMatch(q -> q.getFeature().equals("CHAT_TUTOR"));
     }
 
     @Test
