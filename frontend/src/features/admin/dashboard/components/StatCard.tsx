@@ -7,7 +7,8 @@ interface StatCardProps {
   icon: React.ReactNode;
   trend?: string;
   trendPositive?: boolean;
-  tooltipContent?: React.ReactNode;
+  onClick?: () => void;
+  clickableHint?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -17,10 +18,32 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   trend,
   trendPositive = true,
-  tooltipContent,
+  onClick,
+  clickableHint,
 }) => {
+  const isClickable = !!onClick;
+
   return (
-    <div className="relative group bg-white rounded-xl border border-gray-200 p-5 shadow-xs hover:shadow-md transition-shadow">
+    <div
+      onClick={onClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={
+        isClickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`relative bg-white rounded-xl border border-gray-200 p-5 shadow-xs transition-all ${
+        isClickable
+          ? 'cursor-pointer hover:border-amber-400 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] focus:outline-hidden focus:ring-2 focus:ring-amber-500/20'
+          : 'hover:shadow-md'
+      }`}
+    >
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
           {title}
@@ -43,16 +66,16 @@ export const StatCard: React.FC<StatCardProps> = ({
           </span>
         )}
       </div>
-      {subValue && (
-        <p className="text-xs text-gray-500 mt-2 font-normal">{subValue}</p>
-      )}
-
-      {tooltipContent && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] hidden group-hover:block z-50 w-72 p-3.5 bg-gray-900/95 backdrop-blur-xs text-white text-xs rounded-xl shadow-2xl pointer-events-none transition-all">
-          {tooltipContent}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900/95" />
-        </div>
-      )}
+      <div className="flex items-center justify-between mt-2">
+        {subValue && (
+          <p className="text-xs text-gray-500 font-normal">{subValue}</p>
+        )}
+        {clickableHint && (
+          <span className="text-[11px] font-semibold text-amber-600 hover:text-amber-700 inline-flex items-center gap-0.5 ml-auto">
+            {clickableHint}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

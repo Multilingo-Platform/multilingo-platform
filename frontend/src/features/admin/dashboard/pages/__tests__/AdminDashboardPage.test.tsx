@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -53,21 +53,19 @@ describe('AdminDashboardPage - Attempts Breakdown Tooltip', () => {
     );
 
     // Verify main card content
-    expect(await screen.findByText('Lượt Nộp Bài Thi & Luyện Tập')).toBeInTheDocument();
-    const countElements = await screen.findAllByText('12');
-    expect(countElements.length).toBeGreaterThanOrEqual(1);
+    const card = await screen.findByText('Lượt Nộp Bài Thi & Luyện Tập');
+    expect(card).toBeInTheDocument();
 
-    // Verify friendly Vietnamese status names inside the tooltip
-    expect(screen.getByText('Chi tiết trạng thái bài làm')).toBeInTheDocument();
-    expect(screen.getByText('Đề chưa xóa')).toBeInTheDocument();
-    expect(screen.getByText('Đã hoàn thành')).toBeInTheDocument();
-    expect(screen.getByText('Đang làm bài')).toBeInTheDocument();
-    expect(screen.getByText('Quá hạn / Hết giờ')).toBeInTheDocument();
-    expect(screen.getByText('AI đang chấm điểm')).toBeInTheDocument();
+    // Click card to open modal
+    fireEvent.click(card);
 
-    // Verify count numbers
-    expect(screen.getByText('8')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
+    // Verify modal content
+    expect(await screen.findByText('Thống Kê Chi Tiết Trạng Thái Lượt Làm Bài')).toBeInTheDocument();
+    expect(screen.getByText('Chỉ tính đề thi còn tồn tại trên hệ thống')).toBeInTheDocument();
+    expect(screen.getAllByText('Đã hoàn thành').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Đang làm bài').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Quá hạn / Hết giờ').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('AI đang chấm điểm').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Chú Thích Ý Nghĩa Nghiệp Vụ Từng Trạng Thái')).toBeInTheDocument();
   });
 });

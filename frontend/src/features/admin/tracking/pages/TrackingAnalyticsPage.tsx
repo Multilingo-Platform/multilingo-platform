@@ -13,12 +13,16 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { UserTrackingItem, ExamTrackingItem } from '../../types/adminTypes';
+import { UserExamTrackingDrawer } from '../components/UserExamTrackingDrawer';
+import { ExamAttemptsTrackingDrawer } from '../components/ExamAttemptsTrackingDrawer';
 
 export const TrackingAnalyticsPage = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'exams'>('users');
   const [userKeyword, setUserKeyword] = useState('');
   const [userSearchInput, setUserSearchInput] = useState('');
   const [userPage, setUserPage] = useState(0);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
 
   // Tab 1: User Tracking
   const {
@@ -149,10 +153,17 @@ export const TrackingAnalyticsPage = () => {
                     </tr>
                   ) : (
                     userTrackingData?.items?.map((item: UserTrackingItem) => (
-                      <tr key={item.userId} className="hover:bg-amber-50/30 transition-colors">
+                      <tr
+                        key={item.userId}
+                        onClick={() => setSelectedUserId(item.userId)}
+                        className="hover:bg-amber-50/60 cursor-pointer transition-colors group"
+                      >
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-gray-900">
-                            {item.fullName || 'Chưa đặt tên'}
+                          <div className="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors flex items-center gap-1.5">
+                            <span>{item.fullName || 'Chưa đặt tên'}</span>
+                            <span className="text-[10px] text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity font-normal">
+                              (Xem đề đã làm ↗)
+                            </span>
                           </div>
                           <div className="text-[11px] text-gray-500">{item.email}</div>
                         </td>
@@ -265,13 +276,22 @@ export const TrackingAnalyticsPage = () => {
                   </tr>
                 ) : (
                   examTrackingData?.map((exam: ExamTrackingItem) => (
-                    <tr key={exam.examId} className="hover:bg-amber-50/30 transition-colors">
+                    <tr
+                      key={exam.examId}
+                      onClick={() => setSelectedExamId(exam.examId)}
+                      className="hover:bg-amber-50/60 cursor-pointer transition-colors group"
+                    >
                       <td className="py-3 px-4 font-mono font-semibold text-gray-700">
                         {exam.code}
                       </td>
 
-                      <td className="py-3 px-4 font-semibold text-gray-900">
-                        {exam.title}
+                      <td className="py-3 px-4 font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">
+                        <div className="flex items-center gap-1.5">
+                          <span>{exam.title}</span>
+                          <span className="text-[10px] text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity font-normal">
+                            (Xem danh sách thi ↗)
+                          </span>
+                        </div>
                       </td>
 
                       <td className="py-3 px-4 text-gray-700 font-medium">
@@ -313,6 +333,19 @@ export const TrackingAnalyticsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Detail Drawers */}
+      <UserExamTrackingDrawer
+        userId={selectedUserId}
+        isOpen={!!selectedUserId}
+        onClose={() => setSelectedUserId(null)}
+      />
+
+      <ExamAttemptsTrackingDrawer
+        examId={selectedExamId}
+        isOpen={!!selectedExamId}
+        onClose={() => setSelectedExamId(null)}
+      />
     </div>
   );
 };

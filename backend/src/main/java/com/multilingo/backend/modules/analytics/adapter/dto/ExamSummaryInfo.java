@@ -15,4 +15,5 @@ public class ExamSummaryInfo {
     private String code;
     private String type;
     private Boolean isPublished;
+    private Integer durationMinutes;
 }

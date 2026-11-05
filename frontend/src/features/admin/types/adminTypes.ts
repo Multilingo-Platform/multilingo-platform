@@ -77,6 +77,72 @@ export interface ExamTrackingItem {
   averageScore?: number;
 }
 
+export interface UserExamSummary {
+  examId: number;
+  examCode: string;
+  examTitle: string;
+  examType: string;
+  attemptCount: number;
+  highestScore?: number;
+  latestScore?: number;
+  latestAttemptAt?: string;
+}
+
+export interface UserAttemptDetail {
+  attemptId: number;
+  examId: number;
+  examCode: string;
+  examTitle: string;
+  testMode?: string;
+  testScope?: string;
+  status?: string;
+  startTime: string;
+  endTime?: string;
+  timeSpentSeconds?: number;
+  overallScore?: number;
+  scoreUnit?: string;
+}
+
+export interface UserExamTrackingDetail {
+  userId: number;
+  fullName: string;
+  email: string;
+  subscriptionTier: string;
+  totalExamsAttempted: number;
+  averageScore?: number;
+  examSummaries: UserExamSummary[];
+  attempts: UserAttemptDetail[];
+}
+
+export interface ExamAttemptUser {
+  attemptId: number;
+  userId: number;
+  fullName: string;
+  email: string;
+  subscriptionTier: string;
+  attemptNumber: number;
+  testMode?: string;
+  status?: string;
+  startTime: string;
+  endTime?: string;
+  timeSpentSeconds?: number;
+  overallScore?: number;
+  scoreUnit?: string;
+}
+
+export interface ExamTrackingDetail {
+  examId: number;
+  code: string;
+  title: string;
+  type: string;
+  durationMinutes?: number;
+  totalAttempts: number;
+  completedAttempts: number;
+  completionRate: number;
+  averageScore?: number;
+  attempts: ExamAttemptUser[];
+}
+
 // Quota Types
 export interface UserQuotaItem {
   id?: number;

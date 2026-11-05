@@ -18,4 +18,8 @@ public interface AnalyticsService {
     PageResponse<UserTrackingResponse> getUserTracking(String keyword, Pageable pageable);
 
     List<ExamTrackingResponse> getExamTracking();
+
+    com.multilingo.backend.modules.analytics.dto.response.UserExamTrackingDetailResponse getUserExamTrackingDetail(Integer userId);
+
+    com.multilingo.backend.modules.analytics.dto.response.ExamTrackingDetailResponse getExamTrackingDetail(Integer examId);
 }
