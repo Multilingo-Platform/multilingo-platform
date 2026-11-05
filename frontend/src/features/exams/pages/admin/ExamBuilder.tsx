@@ -2272,7 +2272,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     });
   };
 
-  const handleImportOtherExcel = async (file: File) => {
+  const handleImportOtherExcel = async (file: File, fallbackType?: string) => {
 
     try {
       const workbook = new ExcelJS.Workbook();
@@ -2333,6 +2333,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       }
       if (!importedType && workbook.subject && workbook.subject.trim()) {
         importedType = workbook.subject.trim();
+      }
+      if (!importedType && fallbackType) {
+        importedType = fallbackType;
       }
 
       // Fallback: deduce title from file name if not generic

@@ -160,6 +160,7 @@ const ExamLibrary: React.FC = () => {
     queryKey: ['onboarding-status'],
     queryFn: onboardingApi.getStatus,
     staleTime: 60 * 1000,
+    retry: false,
   });
   const userTarget = onboardingRes?.data;
   const hasOnboarded = Boolean(userTarget?.hasCompletedOnboarding && userTarget?.targetCertificate);

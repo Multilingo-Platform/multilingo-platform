@@ -92,6 +92,10 @@ export const router = createBrowserRouter([
     path: "/flashcards",
     element: <Navigate to="/student/flashcards" replace />,
   },
+  {
+    path: "/library",
+    element: <Navigate to="/exams" replace />,
+  },
 
   // --- MÀN HÌNH STUDENT ---
   {

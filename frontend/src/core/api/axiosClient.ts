@@ -37,6 +37,10 @@ axiosClient.interceptors.response.use(
     const originalRequest = error.config;
     
     if (error.response?.status === 401 && originalRequest.url !== '/auth/login' && originalRequest.url !== '/auth/refresh-token') {
+      const hadToken = Boolean(localStorage.getItem('token'));
+      if (!hadToken) {
+        return Promise.reject(error);
+      }
       if (!isRefreshing) {
         isRefreshing = true;
         try {

@@ -1772,6 +1772,18 @@ const WorkspacePage: React.FC = () => {
                                 disabled={isCurrentSectionLocked || submission.isLocked() || isFeedbackBlocked}
                               />
                             )}
+                            {isPracticeMode && isPrimaryMulti && nextQId && (!isWritingHintsPart || (nextQ && nextQ.type !== 'ESSAY')) && (
+                              <PracticeQuestionFeedback
+                                questionId={nextQId}
+                                questionNumber={nextQ ? nextQ.question_number : ''}
+                                questionType={nextQ ? nextQ.type : q.type}
+                                feedback={practiceFeedback.getFeedback(nextQId)}
+                                onCheck={practiceFeedback.check}
+                                onReload={handleReload}
+                                busy={practiceFeedback.busy}
+                                disabled={isCurrentSectionLocked || submission.isLocked() || isFeedbackBlocked}
+                              />
+                            )}
                           </div>
                         </div>
                       );
