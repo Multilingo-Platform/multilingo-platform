@@ -239,5 +239,49 @@ describe('Exam Library Scope Filter', () => {
       expect(screen.getByText('IELTS Academic Reading Test 1')).toBeInTheDocument();
       expect(screen.getByText('Cambridge IELTS 18 Reading Passage 1')).toBeInTheDocument();
     });
+
+    it('filters exams across the full dataset before paginating so matching items on later pages appear on page 1 (TC_EXAM_PAGINATION_FILTER_01)', async () => {
+      // 12 full exams followed by 3 single-part exams (which would be on page 2 if paginated before filtering)
+      const twentyExams = [
+        ...Array.from({ length: 12 }, (_, i) => ({
+          id: 100 + i,
+          type: 'IELTS_ACADEMIC',
+          title: `Full IELTS Test ${i + 1}`,
+          level: 'Academic',
+          tags: ['Reading'],
+          durationMinutes: 120,
+          joins: 10,
+        })),
+        { id: 201, type: 'IELTS_R1', title: 'Target Reading Passage 1', level: 'Academic', tags: ['Reading'], durationMinutes: 20, joins: 5 },
+        { id: 202, type: 'TOEIC_P5', title: 'Target TOEIC Part 5', level: 'General', tags: ['Reading'], durationMinutes: 15, joins: 5 },
+        { id: 203, type: 'NLTV_R1', title: 'Target NLTV Part 1', level: 'Đa bậc', tags: ['Đọc hiểu'], durationMinutes: 20, joins: 5 },
+      ];
+
+      vi.mocked(axiosClient.get).mockResolvedValue({
+        success: true,
+        data: {
+          items: twentyExams,
+          totalPages: 2,
+          totalElements: twentyExams.length,
+        },
+      } as any);
+
+      renderWithProviders(<MemoryRouter><ExamLibrary /></MemoryRouter>);
+
+      await screen.findByText('Full IELTS Test 1');
+
+      // Filter by Single Part
+      fireEvent.click(screen.getByText('1 Phần (Part / Passage)'));
+
+      // The 3 single-part exams MUST be visible on page 1 immediately
+      await waitFor(() => {
+        expect(screen.getByText('Target Reading Passage 1')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Target TOEIC Part 5')).toBeInTheDocument();
+      expect(screen.getByText('Target NLTV Part 1')).toBeInTheDocument();
+
+      // None of the 12 full exams should be visible
+      expect(screen.queryByText('Full IELTS Test 1')).not.toBeInTheDocument();
+    });
   });
 });
