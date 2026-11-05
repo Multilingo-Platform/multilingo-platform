@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Crown, 
-  ArrowRight, 
-  RotateCcw, 
-  Home, 
-  ShieldCheck, 
-  Calendar, 
-  CreditCard, 
+import {
+  CheckCircle2,
+  XCircle,
+  Crown,
+  ArrowRight,
+  RotateCcw,
+  Home,
+  ShieldCheck,
+  Calendar,
+  CreditCard,
   Receipt
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -43,7 +43,7 @@ export const PaymentResultPage: React.FC = () => {
       try {
         const queryParamsString = searchParams.toString();
         const response = await axiosClient.get(`/v1/billing/vnpay/payment-return?${queryParamsString}`);
-        
+
         if (response?.data) {
           setResult(response.data);
 
@@ -79,9 +79,9 @@ export const PaymentResultPage: React.FC = () => {
 
   const formatVND = (price?: number) => {
     if (!price && price !== 0) return i18n.language === 'en' ? '0 VND' : '0 ₫';
-    return new Intl.NumberFormat(i18n.language === 'en' ? 'en-US' : 'vi-VN', { 
-      style: 'currency', 
-      currency: 'VND' 
+    return new Intl.NumberFormat(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
+      style: 'currency',
+      currency: 'VND'
     }).format(price);
   };
 
@@ -235,7 +235,7 @@ export const PaymentResultPage: React.FC = () => {
 
             <div className="space-y-2.5">
               <button
-                onClick={() => navigate('/student/exams')}
+                onClick={() => navigate('/student/library')}
                 className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 transition active:scale-[0.99]"
               >
                 {t('paymentResult.btn_start_learning')}
@@ -270,7 +270,7 @@ export const PaymentResultPage: React.FC = () => {
 
         <div className="p-5 sm:p-6">
           <div className="bg-red-50/70 border border-red-100 rounded-2xl p-3 mb-4 text-center text-xs text-red-700">
-            {result?.status === 'INVALID_SIGNATURE' 
+            {result?.status === 'INVALID_SIGNATURE'
               ? t('paymentResult.invalid_signature_msg')
               : t('paymentResult.failed_default_msg')}
           </div>
