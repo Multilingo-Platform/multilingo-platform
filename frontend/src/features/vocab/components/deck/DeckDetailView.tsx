@@ -13,14 +13,12 @@ import {
   BookOpen,
   LayoutGrid,
   List,
-  Sparkles,
   Flame,
-  GraduationCap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { DeckSummary, Flashcard } from '../../types/vocab.types';
-import { SUPPORTED_LANGUAGES } from '../../types/vocab.types';
 import { speakWord } from '../../../../utils/speech';
+import flashcardDetailBannerImg from '../../../../assets/flashcard-detail-banner.png';
 
 /**
  * Interface định nghĩa các thuộc tính đầu vào (Props) cho Component DeckDetailView:
@@ -69,6 +67,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
   cards,
   loading,
   onBack,
+  onEditDeck,
   onStudyClick,
   onQuizClick,
   onTestClick,
@@ -90,21 +89,6 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
   const [displayMode, setDisplayMode] = useState<'GRID' | 'TABLE'>('GRID');
 
   /**
-   * Lấy mã ngắn gọn của ngôn ngữ (ví dụ: 'EN', 'VI', 'JA')
-   */
-  const getLangShort = (code: string) => {
-    return SUPPORTED_LANGUAGES.find((l) => l.code === code)?.shortLabel || code.toUpperCase();
-  };
-
-  /**
-   * Lấy tên đầy đủ dễ hiểu của ngôn ngữ (ví dụ: 'Tiếng Anh', 'Tiếng Nhật')
-   */
-  const getLangName = (code: string) => {
-    const found = SUPPORTED_LANGUAGES.find((l) => l.code === code);
-    return found ? found.name.split(' (')[0] : code.toUpperCase();
-  };
-
-  /**
    * Xử lý khi người dùng nhập từ khóa tìm kiếm
    */
   const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,12 +104,6 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
     setStatus(newStatus);
     onFilterChange(keyword, newStatus);
   };
-
-  // Tính tỷ lệ % từ vựng đã thành thạo trên tổng số từ của bộ thẻ
-  const masteredPercent =
-    deck.totalCards > 0
-      ? Math.round(((deck.masteredCards || 0) / deck.totalCards) * 100)
-      : 0;
 
   /**
    * Chuyển đổi loại từ (Part of Speech) sang dạng viết tắt chữ thường không có dấu chấm (n, v, adj, adv...)
@@ -208,268 +186,244 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      {/* ========================================================
-          1. HEADER THÔNG TIN BỘ THẺ & ĐIỀU HƯỚNG CHÍNH
-         ======================================================== */}
-      <div className="bg-white rounded-lg p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
-        {/* Hàng điều hướng: Nút Quay lại & Nút Thêm từ mới */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900 transition-colors px-3 py-2 rounded-md hover:bg-slate-100 -ml-2"
-          >
-            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-            <span>{t('vocab.deck_detail.back_to_decks')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onAddCardClick}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-sm transition-all active:translate-y-0 hover:-translate-y-0.5"
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-            <span>{t('vocab.deck_detail.add_card')}</span>
-          </button>
+    <div className="w-full pb-12 animate-in fade-in duration-300">
+      {/* 1. Hero Section - Full-width Banner Màu Cam & Minh Họa Sinh Động */}
+      <header className="relative w-full overflow-hidden bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-md shadow-orange-500/10">
+        {/* Vòng trang trí nền tạo hiệu ứng ánh sáng mờ */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/15 blur-3xl" />
+          <div className="absolute -bottom-20 left-10 w-80 h-80 rounded-full bg-yellow-300/20 blur-3xl" />
         </div>
 
-        {/* Thông tin chi tiết: Tags, Tên bộ thẻ, Mô tả */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Tag Cặp ngôn ngữ */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-50 text-amber-900 text-xs font-bold border border-amber-200 shadow-xs">
-              <span className="uppercase tracking-wide font-extrabold">{getLangShort(deck.targetLanguage)}</span>
-              <span className="text-amber-500 font-semibold">➔</span>
-              <span className="uppercase tracking-wide font-extrabold">{getLangShort(deck.sourceLanguage)}</span>
-              <span className="text-amber-700 font-semibold ml-1">({getLangName(deck.targetLanguage)})</span>
-            </div>
+        {/* Nội dung Banner căn giữa chuẩn max-w-7xl */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            {/* Cột trái: Điều hướng, Tiêu đề, Mô tả, Tags & Nút Thao tác */}
+            <div className="flex-1 max-w-2xl">
+              {/* Nút Quay lại danh sách bộ thẻ */}
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-100 hover:text-white transition-colors py-1.5 px-3 rounded-lg hover:bg-white/10 -ml-3 mb-4 backdrop-blur-xs"
+              >
+                <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+                <span>{t('vocab.deck_detail.back_to_decks', 'Quay lại danh sách bộ thẻ')}</span>
+              </button>
 
-            {/* Tag Số lượng từ */}
-            <span className="inline-flex items-center px-3 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
-              {t('vocab.cards_count', { count: deck.totalCards })}
-            </span>
-          </div>
+              {/* Tên bộ thẻ */}
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white mb-3 leading-tight">
+                {deck.name}
+              </h1>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            {deck.name}
-          </h1>
-
-          <p className="text-base text-slate-600 leading-relaxed font-medium max-w-3xl">
-            {deck.description || t('vocab.deck_detail.no_desc')}
-          </p>
-
-          {/* Thanh Tiến độ tổng thể */}
-          <div className="pt-2">
-            <div className="flex items-center justify-between text-sm font-bold mb-2">
-              <span className="text-slate-700">{t('vocab.deck_detail.overall_progress')}</span>
-              <span className="text-slate-900 font-black">{t('vocab.deck_detail.mastered_percent', { percent: masteredPercent })}</span>
-            </div>
-            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
-              <div
-                className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
-                style={{ width: `${masteredPercent}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================
-          2. BỐN THẺ THỐNG KÊ RỘNG RÃI (ĐỒNG NHẤT VỚI TRANG DANH SÁCH)
-         ======================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Thẻ 1: Tổng số từ */}
-        <div className="p-5 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-            <BookOpen className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-sm font-bold text-slate-700 block">{t('vocab.deck_detail.total_words')}</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-slate-900">{deck.totalCards}</span>
-              <span className="text-xs text-slate-500 font-medium">{t('vocab.deck_detail.words_unit')}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Thẻ 2: Cần ôn hôm nay */}
-        <div className="p-5 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-            <Flame className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-sm font-bold text-slate-700 block">{t('vocab.deck_detail.due_words')}</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-amber-600">{deck.dueTodayCards || 0}</span>
-              <span className="text-xs text-slate-500 font-medium">{t('vocab.deck_detail.due_unit')}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Thẻ 3: Đang học */}
-        <div className="p-5 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-sm font-bold text-slate-700 block">{t('vocab.deck_detail.learning_words')}</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-indigo-600">{deck.learningCards || 0}</span>
-              <span className="text-xs text-slate-500 font-medium">{t('vocab.deck_detail.learning_unit')}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Thẻ 4: Đã thành thạo */}
-        <div className="p-5 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-            <GraduationCap className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-sm font-bold text-slate-700 block">{t('vocab.deck_detail.mastered_words')}</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-2xl sm:text-3xl font-black text-emerald-600">{deck.masteredCards || 0}</span>
-              <span className="text-xs text-slate-500 font-medium">{t('vocab.deck_detail.mastered_unit')}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================
-          3. BỐN CHẾ ĐỘ HỌC & LUYỆN TẬP (ĐỒNG BỘ THIẾT KẾ CARD SẠCH SẼ)
-         ======================================================== */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-black text-slate-900">{t('vocab.deck_detail.modes_title')}</h2>
-          <p className="text-sm text-slate-600 font-medium mt-0.5">
-            {t('vocab.deck_detail.modes_subtitle')}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Chế độ 1: Flashcard SRS */}
-          <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-200 flex flex-col justify-between group">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 group-hover:scale-105 transition-transform">
-                  <Layers className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
-                  {deck.dueTodayCards
-                    ? t('vocab.deck_detail.mode_srs_badge', { count: deck.dueTodayCards })
-                    : t('vocab.deck_detail.mode_srs_default_badge')}
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors mb-1.5">
-                {t('vocab.deck_detail.mode_study_title')}
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-4">
-                {t('vocab.deck_detail.mode_study_desc')}
+              {/* Mô tả bộ thẻ */}
+              <p className="text-base sm:text-lg text-amber-50 leading-relaxed font-medium mb-3 opacity-95">
+                {deck.description || t('vocab.deck_detail.no_desc', 'Chưa có mô tả mục tiêu học tập cho bộ thẻ này.')}
               </p>
-            </div>
-            <button
-              type="button"
-              onClick={onStudyClick}
-              disabled={cards.length === 0}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-xs transition-colors disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <Layers className="w-4 h-4" />
-              <span>{t('vocab.deck_detail.mode_study_btn')}</span>
-            </button>
-          </div>
 
-          {/* Chế độ 2: Luyện tập Trắc nghiệm */}
-          <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-200 flex flex-col justify-between group">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 group-hover:scale-105 transition-transform">
-                  <Target className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                  {t('vocab.deck_detail.mode_quiz_badge')}
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors mb-1.5">
-                {t('vocab.deck_detail.mode_quiz_title')}
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-4">
-                {t('vocab.deck_detail.mode_quiz_desc')}
+              {/* Text bổ trợ cân đối và truyền cảm hứng học tập */}
+              <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed font-normal mb-6">
+                {t(
+                  'vocab.deck_detail.hero_supplement',
+                  'Luyện tập đều đặn với 4 chế độ học thông minh bên dưới để tối ưu hóa khả năng ghi nhớ ngắt quãng và làm chủ từ vựng nhanh chóng.'
+                )}
               </p>
-            </div>
-            <button
-              type="button"
-              onClick={onQuizClick}
-              disabled={cards.length < 4}
-              title={cards.length < 4 ? t('vocab.requirements.min_cards_quiz') : t('vocab.deck_detail.mode_quiz_btn')}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-xs transition-colors disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <Target className="w-4 h-4" />
-              <span>{cards.length < 4 ? t('vocab.deck_detail.mode_min_cards') : t('vocab.deck_detail.mode_quiz_btn')}</span>
-            </button>
-          </div>
 
-          {/* Chế độ 3: Thi thử Tính giờ */}
-          <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-200 flex flex-col justify-between group">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 group-hover:scale-105 transition-transform">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                  {t('vocab.deck_detail.mode_test_badge')}
-                </span>
+              {/* Hàng Nút Thao tác: + Thêm từ mới (Kích thước to, nổi bật) */}
+              <div className="flex items-center gap-3 flex-wrap pt-1">
+                <button
+                  type="button"
+                  onClick={onAddCardClick}
+                  className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 sm:py-4 rounded-xl bg-white text-orange-600 hover:text-orange-700 font-black text-base shadow-md hover:shadow-lg hover:bg-amber-50 transition-all transform hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap cursor-pointer"
+                >
+                  <Plus className="w-5 h-5 stroke-[3]" />
+                  <span>{t('vocab.deck_detail.add_card', 'Thêm từ mới')}</span>
+                </button>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors mb-1.5">
-                {t('vocab.deck_detail.mode_test_title')}
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-4">
-                {t('vocab.deck_detail.mode_test_desc')}
-              </p>
             </div>
-            <button
-              type="button"
-              onClick={onTestClick}
-              disabled={cards.length < 4}
-              title={cards.length < 4 ? t('vocab.requirements.min_cards_test') : t('vocab.deck_detail.mode_test_btn')}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-xs transition-colors disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <Clock className="w-4 h-4" />
-              <span>{cards.length < 4 ? t('vocab.deck_detail.mode_min_cards') : t('vocab.deck_detail.mode_test_btn')}</span>
-            </button>
-          </div>
 
-          {/* Chế độ 4: Ghép từ Tốc độ */}
-          <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-200 flex flex-col justify-between group">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 group-hover:scale-105 transition-transform">
-                  <Gamepad2 className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                  {t('vocab.deck_detail.mode_match_badge')}
-                </span>
+            {/* Cột phải: Minh họa bộ thẻ từ vựng đầy màu sắc */}
+            <div className="hidden lg:flex items-center justify-end shrink-0 select-none">
+              <div className="relative overflow-hidden rounded-xl shadow-2xl border-2 border-white/40 w-64 h-64 xl:w-72 xl:h-72 bg-white/15 backdrop-blur-xs p-4 flex items-center justify-center transform hover:scale-[1.03] transition-transform duration-300">
+                <img
+                  src={flashcardDetailBannerImg}
+                  alt="Minh họa bộ thẻ từ vựng"
+                  className="w-full h-full object-contain rounded-lg drop-shadow-md"
+                  loading="lazy"
+                />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors mb-1.5">
-                {t('vocab.deck_detail.mode_match_title')}
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-4">
-                {t('vocab.deck_detail.mode_match_desc')}
-              </p>
             </div>
-            <button
-              type="button"
-              onClick={onMatchGameClick}
-              disabled={cards.length < 6}
-              title={cards.length < 6 ? t('vocab.requirements.min_cards_match') : t('vocab.deck_detail.mode_match_btn')}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-xs transition-colors disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <Gamepad2 className="w-4 h-4" />
-              <span>{cards.length < 6 ? t('vocab.deck_detail.mode_min_cards') : t('vocab.deck_detail.mode_match_btn')}</span>
-            </button>
           </div>
         </div>
-      </section>
+      </header>
+
+      {/* 2. Nội dung chính bên dưới (4 Chế độ học tập, Bộ lọc & Danh sách từ vựng) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 sm:mt-12 space-y-12">
+        {/* BỐN CHẾ ĐỘ HỌC & LUYỆN TẬP */}
+        <section>
+          {/* Đề mục Section: Tiêu đề & Mô tả căn chỉnh lề (margin) rộng rãi, cân đối */}
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {t('vocab.deck_detail.modes_title', 'Chế độ Học & Luyện tập')}
+            </h2>
+            <p className="text-sm sm:text-base text-slate-600 font-medium mt-1.5">
+              {t(
+                'vocab.deck_detail.modes_subtitle',
+                'Lựa chọn phương pháp rèn luyện phù hợp để ghi nhớ từ vựng hiệu quả nhất'
+              )}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Chế độ 1: Flashcard SRS */}
+            <div className="relative overflow-hidden bg-white rounded-xl p-6 border border-slate-200/90 shadow-xs hover:shadow-md hover:border-orange-300 transition-all duration-200 flex flex-col justify-between group">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-amber-500" />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-100 group-hover:scale-105 group-hover:bg-orange-600 group-hover:text-white transition-all">
+                    <Layers className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-orange-50 text-orange-700 border border-orange-200/80">
+                    {deck.dueTodayCards
+                      ? t('vocab.deck_detail.mode_srs_badge', { count: deck.dueTodayCards })
+                      : t('vocab.deck_detail.mode_srs_default_badge', 'SRS Chuẩn')}
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 group-hover:text-orange-600 transition-colors mb-2">
+                  {t('vocab.deck_detail.mode_study_title', 'Flashcard')}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-5">
+                  {t(
+                    'vocab.deck_detail.mode_study_desc',
+                    'Lặp lại ngắt quãng thông minh chống quên, lật thẻ 3D ghi nhớ phản xạ tự nhiên.'
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onStudyClick}
+                disabled={cards.length === 0}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-xs hover:shadow transition-all disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Layers className="w-4 h-4" />
+                <span>{t('vocab.deck_detail.mode_study_btn', 'Ôn tập Flashcard')}</span>
+              </button>
+            </div>
+
+            {/* Chế độ 2: Luyện tập Trắc nghiệm */}
+            <div className="relative overflow-hidden bg-white rounded-xl p-6 border border-slate-200/90 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-200 flex flex-col justify-between group">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                    <Target className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                    {t('vocab.deck_detail.mode_quiz_badge', 'Phản xạ')}
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 group-hover:text-emerald-600 transition-colors mb-2">
+                  {t('vocab.deck_detail.mode_quiz_title', 'Luyện tập')}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-5">
+                  {t(
+                    'vocab.deck_detail.mode_quiz_desc',
+                    'Trắc nghiệm 4 đáp án chọn nghĩa từ vựng, củng cố phản xạ nhận diện từ ngữ.'
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onQuizClick}
+                disabled={cards.length < 4}
+                title={cards.length < 4 ? t('vocab.requirements.min_cards_quiz') : t('vocab.deck_detail.mode_quiz_btn')}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xs hover:shadow transition-all disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Target className="w-4 h-4" />
+                <span>
+                  {cards.length < 4
+                    ? t('vocab.deck_detail.mode_min_cards', 'Cần ≥ 4 từ vựng')
+                    : t('vocab.deck_detail.mode_quiz_btn', 'Bắt đầu Luyện tập')}
+                </span>
+              </button>
+            </div>
+
+            {/* Chế độ 3: Thi thử Tính giờ */}
+            <div className="relative overflow-hidden bg-white rounded-xl p-6 border border-slate-200/90 shadow-xs hover:shadow-md hover:border-sky-300 transition-all duration-200 flex flex-col justify-between group">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 to-indigo-500" />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 group-hover:scale-105 group-hover:bg-sky-600 group-hover:text-white transition-all">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 border border-sky-200/80">
+                    {t('vocab.deck_detail.mode_test_badge', 'Tính giờ')}
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 group-hover:text-sky-600 transition-colors mb-2">
+                  {t('vocab.deck_detail.mode_test_title', 'Thi thử')}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-5">
+                  {t(
+                    'vocab.deck_detail.mode_test_desc',
+                    'Bài kiểm tra từ vựng có tính giờ, chấm điểm tự động và tổng kết kết quả.'
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onTestClick}
+                disabled={cards.length < 4}
+                title={cards.length < 4 ? t('vocab.requirements.min_cards_test') : t('vocab.deck_detail.mode_test_btn')}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-xs hover:shadow transition-all disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Clock className="w-4 h-4" />
+                <span>
+                  {cards.length < 4
+                    ? t('vocab.deck_detail.mode_min_cards', 'Cần ≥ 4 từ vựng')
+                    : t('vocab.deck_detail.mode_test_btn', 'Làm bài Thi thử')}
+                </span>
+              </button>
+            </div>
+
+            {/* Chế độ 4: Ghép từ Tốc độ */}
+            <div className="relative overflow-hidden bg-white rounded-xl p-6 border border-slate-200/90 shadow-xs hover:shadow-md hover:border-purple-300 transition-all duration-200 flex flex-col justify-between group">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-pink-500" />
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 group-hover:scale-105 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                    <Gamepad2 className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200/80">
+                    {t('vocab.deck_detail.mode_match_badge', '60 Giây')}
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 group-hover:text-purple-600 transition-colors mb-2">
+                  {t('vocab.deck_detail.mode_match_title', 'Ghép từ')}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed min-h-[3rem] mb-5">
+                  {t(
+                    'vocab.deck_detail.mode_match_desc',
+                    'Trò chơi nối nhanh từ vựng với định nghĩa tương ứng, đua combo điểm số.'
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onMatchGameClick}
+                disabled={cards.length < 6}
+                title={cards.length < 6 ? t('vocab.requirements.min_cards_match') : t('vocab.deck_detail.mode_match_btn')}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-xs hover:shadow transition-all disabled:opacity-50 disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Gamepad2 className="w-4 h-4" />
+                <span>
+                  {cards.length < 6
+                    ? t('vocab.deck_detail.mode_min_cards', 'Cần ≥ 6 từ vựng')
+                    : t('vocab.deck_detail.mode_match_btn', 'Chơi Ghép từ')}
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
 
       {/* ========================================================
           4. DANH SÁCH TỪ VỰNG & THANH CÔNG CỤ TÌM KIẾM / LỌC
@@ -489,10 +443,10 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => handleStatusChange(tab.id)}
-                className={`px-3.5 py-2 rounded-md text-sm font-bold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all ${
                   status === tab.id
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-                    : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-300 hover:bg-slate-100'
+                    ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-xs'
+                    : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <span>{tab.label}</span>
@@ -504,24 +458,24 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
           <div className="flex items-center gap-3 self-end lg:self-auto w-full lg:w-auto">
             {/* Ô tìm kiếm từ vựng */}
             <div className="relative flex-1 lg:w-72">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={keyword}
                 onChange={handleKeywordChange}
                 placeholder={t('vocab.deck_detail.search_placeholder')}
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all placeholder:text-slate-400 font-medium shadow-xs"
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-slate-400 font-medium shadow-xs"
               />
             </div>
 
             {/* Bộ chuyển đổi kiểu xem Grid / Table */}
-            <div className="flex items-center p-1 rounded-md bg-white border border-slate-300 shadow-xs">
+            <div className="flex items-center p-1 rounded-lg bg-white border border-slate-200 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setDisplayMode('GRID')}
                 className={`p-1.5 rounded-md text-sm font-bold transition-all ${
                   displayMode === 'GRID'
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                    ? 'bg-orange-600 text-white shadow-xs'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                 }`}
                 title={t('vocab.deck_detail.view_grid')}
@@ -533,7 +487,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                 onClick={() => setDisplayMode('TABLE')}
                 className={`p-1.5 rounded-md text-sm font-bold transition-all ${
                   displayMode === 'TABLE'
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                    ? 'bg-orange-600 text-white shadow-xs'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                 }`}
                 title={t('vocab.deck_detail.view_table')}
@@ -548,13 +502,13 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-56 rounded-lg bg-slate-100 animate-pulse border border-slate-200" />
+              <div key={i} className="h-56 rounded-xl bg-slate-100 animate-pulse border border-slate-200" />
             ))}
           </div>
         ) : cards.length === 0 ? (
           /* Trạng thái trống (Empty State) */
-          <div className="flex flex-col items-center justify-center p-10 text-center bg-white rounded-lg border border-dashed border-slate-300">
-            <div className="w-16 h-16 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center mb-3 border border-amber-200">
+          <div className="flex flex-col items-center justify-center p-10 text-center bg-white rounded-xl border border-dashed border-slate-300">
+            <div className="w-16 h-16 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-3 border border-orange-200">
               <BookOpen className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-bold text-slate-900 mb-1.5">
@@ -570,7 +524,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
             <button
               type="button"
               onClick={onAddCardClick}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-sm transition-all"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>{t('vocab.deck_detail.add_card_btn')}</span>
@@ -584,7 +538,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
             {cards.map((card) => (
               <div
                 key={card.id}
-                className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-200 flex flex-col justify-between group relative"
+                className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-orange-400/80 transition-all duration-200 flex flex-col justify-between group relative"
               >
                 <div>
                   {/* Hàng Header thẻ: Nút loa + Từ vựng + Loại từ (n) + Nút Sửa/Xóa */}
@@ -593,13 +547,13 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                       <button
                         type="button"
                         onClick={() => speakWord(card.customWord, deck.targetLanguage)}
-                        className="p-1.5 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors shrink-0"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors shrink-0"
                         title={t('vocab.deck_detail.listen_audio')}
                       >
                         <Volume2 className="w-5 h-5" />
                       </button>
                       <div className="flex items-baseline gap-1.5 flex-wrap">
-                        <h3 className="text-xl font-black text-slate-900 group-hover:text-amber-600 transition-colors break-words">
+                        <h3 className="text-xl font-black text-slate-900 group-hover:text-orange-600 transition-colors break-words">
                           {card.customWord}
                         </h3>
                         {card.pos && (
@@ -615,7 +569,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onEditCard(card)}
-                        className="p-1.5 rounded-md text-slate-500 hover:text-amber-600 hover:bg-slate-100 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-orange-600 hover:bg-slate-100 transition-colors"
                         title={t('vocab.deck_detail.edit_card')}
                       >
                         <Edit2 className="w-4 h-4" />
@@ -623,7 +577,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onDeleteCard(card)}
-                        className="p-1.5 rounded-md text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                         title={t('vocab.deck_detail.delete_card')}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -647,7 +601,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
 
                   {/* Câu ví dụ ngữ cảnh minh họa */}
                   {card.exampleSentence && (
-                    <div className="mt-3 p-3 rounded-md bg-slate-50 border border-slate-100">
+                    <div className="mt-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
                       <p className="text-sm text-slate-600 italic line-clamp-2 leading-relaxed">
                         "{card.exampleSentence}"
                       </p>
@@ -656,7 +610,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
 
                   {/* Ảnh minh họa nếu có */}
                   {card.customImageUrl && (
-                    <div className="w-full h-40 rounded-md overflow-hidden my-3 border border-slate-200 bg-slate-50">
+                    <div className="w-full h-40 rounded-lg overflow-hidden my-3 border border-slate-200 bg-slate-50">
                       <img
                         src={card.customImageUrl}
                         alt={card.customWord}
@@ -683,7 +637,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
           /* ========================================================
              4.2 DẠNG BẢNG TRA CỨU CHI TIẾT (TABLE VIEW)
              ======================================================== */
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
@@ -706,7 +660,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                             <img
                               src={card.customImageUrl}
                               alt={card.customWord}
-                              className="w-11 h-11 object-cover rounded-md border border-slate-200 shrink-0"
+                              className="w-11 h-11 object-cover rounded-lg border border-slate-200 shrink-0"
                               onError={(e) => {
                                 (e.target as HTMLElement).style.display = 'none';
                               }}
@@ -716,7 +670,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                             type="button"
                             onClick={() => speakWord(card.customWord, deck.targetLanguage)}
                             title={t('vocab.deck_detail.listen_audio')}
-                            className="p-1.5 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors shrink-0"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors shrink-0"
                           >
                             <Volume2 className="w-5 h-5" />
                           </button>
@@ -776,7 +730,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onEditCard(card)}
-                            className="p-1.5 rounded-md text-slate-500 hover:text-amber-600 hover:bg-slate-100 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-orange-600 hover:bg-slate-100 transition-colors"
                             title={t('vocab.deck_detail.edit_card')}
                           >
                             <Edit2 className="w-4 h-4" />
@@ -784,7 +738,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onDeleteCard(card)}
-                            className="p-1.5 rounded-md text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                             title={t('vocab.deck_detail.delete_card_from_deck')}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -799,6 +753,7 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 };

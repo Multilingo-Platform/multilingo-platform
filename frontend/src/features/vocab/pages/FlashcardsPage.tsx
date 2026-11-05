@@ -290,7 +290,7 @@ export const FlashcardsPage: React.FC = () => {
   );
 
   return (
-    <div className={['DECK_DETAIL', 'TEST_MODE'].includes(viewMode) ? "container py-6" : ""}>
+    <div className={['TEST_MODE'].includes(viewMode) ? "container py-6" : ""}>
       {/* 1. Màn hình Danh sách Bộ thẻ */}
       {viewMode === 'DECKS_LIST' && (
         <DeckListView
