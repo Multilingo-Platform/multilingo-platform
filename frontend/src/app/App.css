@@ -253,15 +253,13 @@
 }
 
 .auth-google-btn-container > div {
-  width: 100% !important;
   display: flex !important;
   justify-content: center !important;
+  align-items: center !important;
 }
 
 .auth-google-btn-container iframe {
-  width: 100% !important;
   max-width: 100% !important;
-  border-radius: var(--radius-md) !important;
 }
 
 
