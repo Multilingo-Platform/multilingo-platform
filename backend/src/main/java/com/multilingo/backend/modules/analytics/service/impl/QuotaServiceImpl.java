@@ -28,7 +28,6 @@ public class QuotaServiceImpl implements QuotaService {
             "AI_WRITING_HINTS",
             "AI_WRITING_GRADING",
             "DICTIONARY_LOOKUP",
-            "CHAT_TUTOR"
     );
 
     private static final List<String> SUPPORTED_TIERS = List.of("FREE", "VIP");
@@ -37,14 +36,12 @@ public class QuotaServiceImpl implements QuotaService {
             "AI_WRITING_HINTS", 5,
             "AI_WRITING_GRADING", 5,
             "DICTIONARY_LOOKUP", 20,
-            "CHAT_TUTOR", 3
     );
 
     private static final Map<String, Integer> DEFAULT_VIP_LIMITS = Map.of(
             "AI_WRITING_HINTS", 20,
             "AI_WRITING_GRADING", 20,
             "DICTIONARY_LOOKUP", 500,
-            "CHAT_TUTOR", 50
     );
 
     @Override

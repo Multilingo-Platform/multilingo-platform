@@ -42,7 +42,7 @@ class QuotaServiceTest {
 
         List<UserQuotaResponse> quotas = quotaService.getAllQuotas();
 
-        assertThat(quotas).hasSize(8); // 4 features * 2 tiers
+        assertThat(quotas).hasSize(6); // 3 features * 2 tiers
         assertThat(quotas).anyMatch(q -> q.getFeature().equals("AI_WRITING_HINTS") && q.getTier().equals("FREE") && q.getDailyLimit() == 5);
         assertThat(quotas).anyMatch(q -> q.getFeature().equals("AI_WRITING_HINTS") && q.getTier().equals("VIP") && q.getDailyLimit() == 20);
         assertThat(quotas).anyMatch(q -> q.getFeature().equals("AI_WRITING_GRADING") && q.getTier().equals("FREE") && q.getDailyLimit() == 5);
