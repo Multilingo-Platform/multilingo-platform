@@ -50,10 +50,11 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
         key={btnWidth}
         onSuccess={onSuccess}
         onError={onError}
+        type="standard"
         text={text}
         shape="rectangular"
         theme="outline"
-        size="large"
+        size="medium"
         width={btnWidth}
         auto_select={false}
         use_fedcm_for_button={false}
@@ -63,3 +64,4 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 };
 
 export default GoogleLoginButton;
+
