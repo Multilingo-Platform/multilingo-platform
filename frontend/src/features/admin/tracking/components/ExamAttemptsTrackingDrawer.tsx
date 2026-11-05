@@ -2,18 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   X,
-  Users,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
   Calendar,
-  Layers,
-  Award,
+  Clock,
   Filter,
   Loader2,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { ExamAttemptUser } from '../../types/adminTypes';
+import {
+  formatAttemptStatusBadge,
+  formatAttemptScore,
+  formatDuration,
+} from '../utils/trackingFormatters';
 
 interface ExamAttemptsTrackingDrawerProps {
   examId: number | null;
@@ -21,53 +21,14 @@ interface ExamAttemptsTrackingDrawerProps {
   onClose: () => void;
 }
 
-const formatDuration = (seconds?: number) => {
-  if (!seconds || seconds <= 0) return '0 giây';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  if (m === 0) return `${s} giây`;
-  if (s === 0) return `${m} phút`;
-  return `${m} phút ${s} giây`;
-};
-
-const getStatusBadge = (status?: string) => {
-  switch (status) {
-    case 'COMPLETED':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-full">
-          <CheckCircle2 size={12} />
-          Đã nộp bài
-        </span>
-      );
-    case 'IN_PROGRESS':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-full">
-          <Clock size={12} />
-          Đang làm bài
-        </span>
-      );
-    case 'EXPIRED':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-full">
-          <AlertTriangle size={12} />
-          Quá hạn / Hết giờ
-        </span>
-      );
-    default:
-      return (
-        <span className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-          {status || 'Chưa xác định'}
-        </span>
-      );
-  }
-};
-
 export const ExamAttemptsTrackingDrawer: React.FC<ExamAttemptsTrackingDrawerProps> = ({
   examId,
   isOpen,
   onClose,
 }) => {
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'COMPLETED' | 'IN_PROGRESS' | 'EXPIRED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<
+    'ALL' | 'COMPLETED' | 'IN_PROGRESS' | 'EXPIRED' | 'GRADING_FAILED'
+  >('ALL');
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['adminExamTrackingDetail', examId],
@@ -200,6 +161,17 @@ export const ExamAttemptsTrackingDrawer: React.FC<ExamAttemptsTrackingDrawerProp
             >
               Quá hạn
             </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('GRADING_FAILED')}
+              className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                statusFilter === 'GRADING_FAILED'
+                  ? 'bg-white text-red-700 shadow-2xs font-bold'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Lỗi chấm
+            </button>
           </div>
         </div>
 
@@ -251,7 +223,7 @@ export const ExamAttemptsTrackingDrawer: React.FC<ExamAttemptsTrackingDrawerProp
                     </div>
                   </div>
 
-                  <div className="shrink-0">{getStatusBadge(item.status)}</div>
+                  <div className="shrink-0">{formatAttemptStatusBadge(item.status)}</div>
                 </div>
 
                 {/* Timestamps & Score Details */}
@@ -279,13 +251,7 @@ export const ExamAttemptsTrackingDrawer: React.FC<ExamAttemptsTrackingDrawerProp
                   <div>
                     <span className="text-[11px] text-gray-500 mr-1.5">Điểm số:</span>
                     <span className="text-xs font-bold text-gray-900">
-                      {item.overallScore !== null && item.overallScore !== undefined ? (
-                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-bold">
-                          {item.overallScore} {item.scoreUnit || 'đ'}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 italic">Chưa nộp bài</span>
-                      )}
+                      {formatAttemptScore(item.overallScore, item.scoreUnit, data?.type)}
                     </span>
                   </div>
                 </div>
