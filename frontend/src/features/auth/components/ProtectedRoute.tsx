@@ -16,6 +16,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const isUserAuthenticated = isAuthenticated || Boolean(token);
 
   if (!isUserAuthenticated) {
+    if (location.pathname === '/student/library') {
+      return <Navigate to="/exams" replace />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

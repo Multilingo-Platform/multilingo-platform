@@ -6,6 +6,99 @@ export interface PartHeaderInfo {
 }
 
 /**
+ * Safely extracts all questions from a part, supporting grouped canonical questions
+ * (e.g. `question_groups`, `questionGroups`, or within `contentData` / `content`)
+ * and falling back to a flat `questions` list.
+ */
+export function extractPartQuestions(part: any): any[] {
+  if (!part) return [];
+
+  const groups =
+    part.question_groups ??
+    part.questionGroups ??
+    part.contentData?.question_groups ??
+    part.contentData?.questionGroups ??
+    part.content?.question_groups ??
+    part.content?.questionGroups;
+
+  if (Array.isArray(groups) && groups.length > 0) {
+    const flattened = groups.flatMap((group: any) =>
+      Array.isArray(group?.questions) ? group.questions : []
+    );
+    if (flattened.length > 0) {
+      return flattened;
+    }
+  }
+
+  if (Array.isArray(part.questions) && part.questions.length > 0) {
+    return part.questions;
+  }
+  if (Array.isArray(part.contentData?.questions) && part.contentData.questions.length > 0) {
+    return part.contentData.questions;
+  }
+  if (Array.isArray(part.content?.questions) && part.content.questions.length > 0) {
+    return part.content.questions;
+  }
+
+  return [];
+}
+
+/**
+ * Returns the declared part number (1..N) if valid.
+ */
+export function declaredPartNumber(part: any): number | null {
+  const raw = part?.part_number ?? part?.partNumber;
+  return typeof raw === 'number' && Number.isSafeInteger(raw) && raw > 0 ? raw : null;
+}
+
+/**
+ * Extracts a numeric question number from the tail of a question id (e.g. "q_042" -> 42).
+ */
+export function parseQuestionNumberFromId(questionId: unknown): number | null {
+  if (typeof questionId !== 'string') return null;
+  const trimmed = questionId.trim();
+  const match = /(\d+)$/.exec(trimmed);
+  if (!match) return null;
+  const num = parseInt(match[1], 10);
+  return Number.isSafeInteger(num) && num > 0 ? num : null;
+}
+
+/**
+ * Detects whether two adjacent questions in a group represent an IELTS / Cambridge multi-choice
+ * pair (where two consecutive question slots share a 2-answer question).
+ */
+export function isMultiChoicePair(q1?: any | null, q2?: any | null): boolean {
+  if (!q1 || !q2) return false;
+  // Explicit multi-choice pair type
+  if (q1.type === 'MULTIPLE_CHOICE_MULTI' && q2.type === 'MULTIPLE_CHOICE_MULTI') {
+    return true;
+  }
+  
+  const text1 = (q1.question_text || '').trim();
+  const text2 = (q2.question_text || '').trim();
+  const isIdenticalText = Boolean(text1 && text1 === text2);
+  const hasTwoKeyword = /choose\s+two|chọn\s+2|which\s+two/i.test(text1) || /choose\s+two|chọn\s+2|which\s+two/i.test(text2);
+  const hasRange = /questions?\s*\d+\s*[-–]\s*\d+|câu\s*\d+\s*[-–]\s*\d+/i.test(text1) || /questions?\s*\d+\s*[-–]\s*\d+|câu\s*\d+\s*[-–]\s*\d+/i.test(text2);
+
+  // Shared answer_group id (e.g. Cambridge IELTS v2 datasets, IeltsExcelV2ExamParser)
+  const g1 = q1.answer_group?.id ?? q1.metadata?.answer_group?.id;
+  const g2 = q2.answer_group?.id ?? q2.metadata?.answer_group?.id;
+  const ids1 = q1.answer_group?.question_ids ?? q1.metadata?.answer_group?.question_ids;
+  const ids2 = q2.answer_group?.question_ids ?? q2.metadata?.answer_group?.question_ids;
+  const hasSharedGroup = Boolean((g1 && g2 && g1 === g2) || (Array.isArray(ids1) && Array.isArray(ids2) && ids1.includes(q2.question_id) && ids2.includes(q1.question_id)));
+
+  if (hasSharedGroup) {
+    return true;
+  }
+
+  // Range/Text matching in IELTS ("Question 17-18: Which TWO..." or "Choose TWO letters")
+  if (isIdenticalText && (hasTwoKeyword || hasRange)) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Trích xuất ngưỡng số từ tối thiểu (minWords) cho câu hỏi Writing.
  * Ưu tiên:
  * 1. Thuộc tính metadata min_words / minWords từ question hoặc part.
@@ -55,37 +148,43 @@ export function extractMinWords(question?: any, part?: any, examType?: string): 
 /**
  * Tính toán đơn vị kỹ năng và số thứ tự động cho header làm bài thi.
  * - WRITING: 'Task'
- * - READING: 'Passage'
+ * - READING: 'Passage' (hoặc 'Part' nếu thi TOEIC)
  * - LISTENING / SPEAKING / Khác: 'Part'
- * Mẫu số là tổng số phần trong kỹ năng/section hiện tại.
+ * Mẫu số là tổng số phần trong kỹ năng/section hiện tại hoặc toàn bài thi.
  */
 export function getPartHeaderInfo(
   currentSkill: string,
   currentPart?: any,
   sectionParts: any[] = [],
-  allParts: any[] = []
+  allParts: any[] = [],
+  examType?: string
 ): PartHeaderInfo {
   const normalizedSkill = (currentSkill || '').toUpperCase();
-  const unitLabel = normalizedSkill === 'WRITING'
+  const normalizedExamType = (examType || '').toUpperCase();
+  const isToeic = normalizedExamType.includes('TOEIC');
+
+  let unitLabel = normalizedSkill === 'WRITING'
     ? 'Task'
     : normalizedSkill === 'READING'
       ? 'Passage'
       : 'Part';
 
+  if (isToeic) {
+    unitLabel = 'Part';
+  }
+
   const partsInCurrentSection = Array.isArray(sectionParts) && sectionParts.length > 0
     ? sectionParts
     : (Array.isArray(allParts) && allParts.length > 0 ? allParts : []);
 
-  const totalCount = partsInCurrentSection.length || 1;
+  let totalCount = partsInCurrentSection.length || 1;
+
+  const partTitle = currentPart?.title || currentPart?.content?.part_title || '';
+  const titleNumberMatch = partTitle.match(/(?:Task|Passage|Part|Section|Phần)\s*(\d+)/i);
 
   // 1. Trích xuất số từ title nếu có (ví dụ: "Writing Task 1" -> 1, "Reading Passage 2" -> 2,
   //    "Part 5" -> 5). Title ưu tiên trước part_number vì IELTS đánh số cục bộ theo kỹ năng
   //    ("Reading Passage 1", "Writing Task 2") trong khi part_number là số toàn đề 1..9.
-  const partTitle = currentPart?.title || currentPart?.content?.part_title || '';
-  const titleNumberMatch = partTitle.match(/(?:Task|Passage|Part|Section)\s*(\d+)/i);
-
-  // 2. Số Part tường minh (part_number/partNumber) là nguồn chính xác khi title không chứa số
-  //    (ví dụ TOEIC title "Photographs"/"Text Completion").
   const declaredRaw = currentPart?.part_number ?? currentPart?.partNumber;
   const declaredPartNumber =
     typeof declaredRaw === 'number' && Number.isSafeInteger(declaredRaw) && declaredRaw > 0 ? declaredRaw : null;
@@ -109,6 +208,10 @@ export function getPartHeaderInfo(
       );
       currentNumber = indexInSection >= 0 ? indexInSection + 1 : 1;
     }
+  }
+
+  if (isToeic && allParts.length >= currentNumber) {
+    totalCount = allParts.length;
   }
 
   return {

@@ -174,13 +174,20 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
     && selectedMultiSections.every(section => Number.isSafeInteger(section.durationMinutes) && !!section.durationMinutes && section.durationMinutes > 0)
     ? selectedMultiSections.reduce((total, section) => total + (section.durationMinutes ?? 0), 0)
     : null;
-  const selectedScopedDuration = scope === 'MULTI_PART'
-    ? multiPartDuration
-    : selectedSection?.durationMinutes ?? null;
+  const sectionsTotalDuration = sections.length > 0
+    && sections.every(s => Number.isSafeInteger(s.durationMinutes) && !!s.durationMinutes && s.durationMinutes > 0)
+    ? sections.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
+    : null;
   const fixedDuration = fixedCertificateDuration(examType);
-  const fullExamDuration = fixedDuration ?? examDurationMinutes ?? null;
+  const fullExamDuration = fixedDuration ?? examDurationMinutes ?? sectionsTotalDuration ?? null;
   const fullDurationIsValid = fullExamDuration !== null && Number.isSafeInteger(fullExamDuration) && fullExamDuration > 0;
   const isScoped = !!scope && scope !== 'FULL_EXAM';
+  const isTimeCustomizable = isScoped || mode === 'PRACTICE';
+  const selectedScopedDuration = scope === 'MULTI_PART'
+    ? multiPartDuration
+    : scope === 'FULL_EXAM'
+      ? fullExamDuration
+      : selectedSection?.durationMinutes ?? null;
   const customTimeIsValid = /^\d+$/.test(customTime)
     && Number.isSafeInteger(Number(customTime))
     && Number(customTime) >= 1 && Number(customTime) <= 360;
@@ -189,10 +196,10 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
     : timeSelection === 'DEFAULT'
       ? selectedScopedDuration
       : Number(timeSelection);
-  const durationChoiceIsValid = !isScoped || (timeSelection === 'CUSTOM'
+  const durationChoiceIsValid = !isTimeCustomizable || (timeSelection === 'CUSTOM'
     ? customTimeIsValid
     : timeSelection === 'DEFAULT'
-      ? selectedDuration !== null && Number.isSafeInteger(selectedDuration) && selectedDuration > 0
+      ? (selectedDuration !== null && Number.isSafeInteger(selectedDuration) && selectedDuration > 0) || (scope === 'FULL_EXAM' && examDurationMinutes === undefined)
       : Number.isSafeInteger(selectedDuration) && (selectedDuration ?? 0) >= 1 && (selectedDuration ?? 0) <= 360);
   const orderedSelectedPartIds = sections.flatMap(section =>
     (section.parts ?? []).filter(part => selectedPartIds.includes(part.id)).map(part => part.id)
@@ -217,7 +224,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
       section_id: needsSection && sectionId ? parseInt(sectionId, 10) : null,
       part_id: needsPart && partId ? parseInt(partId, 10) : null,
       ...(scope === 'MULTI_PART' ? { part_ids: orderedSelectedPartIds } : {}),
-      ...(isScoped && timeSelection !== 'DEFAULT' && selectedDuration !== null
+      ...(isTimeCustomizable && timeSelection !== 'DEFAULT' && selectedDuration !== null
         ? { time_limit_minutes: selectedDuration }
         : {}),
     });
@@ -244,7 +251,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
                 aria-pressed={scope === opt.value ? 'true' : 'false'}
                 onClick={() => {
                   setScope(opt.value); setSectionId(''); setPartId('');
-                  if (opt.value === 'FULL_EXAM') { setTimeSelection('DEFAULT'); setCustomTime(''); }
+                  if (opt.value === 'FULL_EXAM' && mode !== 'PRACTICE') { setTimeSelection('DEFAULT'); setCustomTime(''); }
                 }}
                 style={scope === opt.value ? scopeButtonActive : scopeButtonBase}
               >
@@ -342,7 +349,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
           </div>
         )}
 
-        {scope === 'FULL_EXAM' && fullDurationIsValid && (
+        {scope === 'FULL_EXAM' && !isTimeCustomizable && fullDurationIsValid && (
           <div aria-live="polite" style={{ padding: '0.75rem', border: '1px solid #fde68a', borderRadius: '0.5rem', background: '#fffbeb', color: '#92400e', fontSize: '0.82rem' }}>
             {em('Thời gian cố định: {{v0}} phút', { v0: fullExamDuration! })}
           </div>
@@ -351,7 +358,7 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
           <p role="alert" className="text-sm text-red-700">{em('Đề thi chưa có thời lượng cố định hợp lệ.')}</p>
         )}
 
-        {isScoped && (
+        {isTimeCustomizable && (
           <div style={{ display: 'grid', gap: '0.45rem', animation: 'fadeIn 0.2s ease-out' }}>
             <label htmlFor="attempt-time-limit" style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.78rem', color: '#374151' }}>
               {em('Thời gian làm bài')}
@@ -388,7 +395,13 @@ const ScopeModePicker: React.FC<ScopeModePickerProps> = ({
                   key={opt.value}
                   type="button"
                   aria-pressed={isActive ? 'true' : 'false'}
-                  onClick={() => setMode(opt.value)}
+                  onClick={() => {
+                    setMode(opt.value);
+                    if (opt.value === 'MOCK_TEST' && scope === 'FULL_EXAM') {
+                      setTimeSelection('DEFAULT');
+                      setCustomTime('');
+                    }
+                  }}
                   style={isActive ? activeStyle : modeButtonBase}
                 >
                   {/* Color indicator dot */}

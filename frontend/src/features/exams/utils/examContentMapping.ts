@@ -111,14 +111,23 @@ export function toEditorParts(request: any): ExamPart[] {
 function inferOfficialSkill(type: string, partNumber: number, partTitle: string): string {
   const title = (partTitle || '').toLowerCase();
   if (type === 'NLTV' || type?.startsWith('NLTV')) {
-    if (title.includes('listen') || title.includes('nghe')) return 'LISTENING';
-    if (title.includes('read') || title.includes('đọc')) return 'READING';
-    if (title.includes('writ') || title.includes('viết') || title.includes('chính tả')) return 'WRITING';
+    if (title.includes('listen') || title.includes('nghe') || type.includes('LISTENING') || type.startsWith('NLTV_L')) return 'LISTENING';
+    if (title.includes('read') || title.includes('đọc') || type.includes('READING') || type.startsWith('NLTV_R')) return 'READING';
+    if (title.includes('writ') || title.includes('viết') || title.includes('chính tả') || type.includes('WRITING') || type.startsWith('NLTV_W')) return 'WRITING';
     return partNumber <= 4 ? 'LISTENING' : partNumber <= 6 ? 'READING' : 'WRITING';
   }
+  if (type === 'TOEIC_LISTENING' || (type.startsWith('TOEIC_P') && ['TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4'].includes(type))) {
+    return 'LISTENING';
+  }
+  if (type === 'TOEIC_READING' || (type.startsWith('TOEIC_P') && ['TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'].includes(type))) {
+    return 'READING';
+  }
   if (type === 'TOEIC_LR') return partNumber <= 4 ? 'LISTENING' : 'READING';
-  if (type === 'TOEIC_WRITING') return 'WRITING';
-  if (type === 'IELTS_ACADEMIC') {
+  if (type.startsWith('TOEIC_W') || type.startsWith('TW')) return 'WRITING';
+  if (type.startsWith('IELTS')) {
+    if (type.includes('LISTENING') || type.startsWith('IELTS_L')) return 'LISTENING';
+    if (type.includes('READING') || type.startsWith('IELTS_R')) return 'READING';
+    if (type.includes('WRITING') || type.startsWith('IELTS_W')) return 'WRITING';
     if (partNumber <= 4) return 'LISTENING';
     if (partNumber <= 7) return 'READING';
     return 'WRITING';
@@ -130,9 +139,11 @@ function inferOfficialSkill(type: string, partNumber: number, partTitle: string)
 }
 
 function defaultOfficialDuration(type: string, skillType: string): number {
-  if (type === 'TOEIC_LR') return skillType === 'LISTENING' ? 45 : 75;
-  if (type === 'TOEIC_WRITING') return 60;
-  if (type === 'IELTS_ACADEMIC') return skillType === 'LISTENING' ? 30 : 60;
+  if (type.startsWith('TOEIC') || type.startsWith('TW')) {
+    return skillType === 'LISTENING' ? 45 : skillType === 'READING' ? 75 : 60;
+  }
+  if (type.startsWith('IELTS')) return skillType === 'LISTENING' ? 30 : 60;
+  if (type.startsWith('NLTV')) return 60;
   return 60;
 }
 

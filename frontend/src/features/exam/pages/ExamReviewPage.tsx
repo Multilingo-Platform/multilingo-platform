@@ -227,13 +227,25 @@ const ExamReviewPage: React.FC = () => {
           })}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <Link
             to={`/attempts/${attemptId}/result`}
-            className="text-sm font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition"
+            className="text-sm font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition mr-2"
           >
             <span>←</span>
             <span>{em("Quay lại bảng điểm")}</span>
+          </Link>
+          <Link
+            to="/student/history"
+            className="text-xs font-semibold text-slate-600 hover:text-amber-600 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-1 transition"
+          >
+            <span>{em("Lịch sử làm bài")}</span>
+          </Link>
+          <Link
+            to="/student/library"
+            className="text-xs font-semibold text-slate-600 hover:text-amber-600 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-1 transition"
+          >
+            <span>{em("Thư viện đề thi")}</span>
           </Link>
         </div>
       </div>

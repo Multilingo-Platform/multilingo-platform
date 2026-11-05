@@ -120,6 +120,18 @@ export function PracticeDictionaryPopover({
                   {em("Hạn mức tra từ AI trong ngày đã hết. Bạn có thể tiếp tục làm bài và tra từ lại vào ngày mai.")}
                 </p>
               )}
+              {error.kind === 'quota' && (
+                <div className="pt-1.5">
+                  <a
+                    href="/student/premium"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 transition-colors"
+                  >
+                    <span>{em("Nâng cấp Premium (500 lượt/ngày)")}</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
           {error.retryAfterSeconds !== null && <p>{em("Thử lại sau")}{' '}{error.retryAfterSeconds} {em("giây.")}</p>}

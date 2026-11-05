@@ -312,14 +312,22 @@ public class AttemptReviewMapper {
             Object inheritedGroupOptions,
             PartGradingKey fallbackKey) {
 
+        Map<String, Object> metadata = asMap(qMap.get("metadata"));
+
         String questionId = getString(qMap, "question_id", "questionId", "id");
         String type = getString(qMap, "type");
         String questionText = getString(qMap, "question_text", "content", "title", "text");
         String prompt = getString(qMap, "prompt");
         String label = getString(qMap, "label");
         String explanation = getString(qMap, "explanation");
+        if (explanation == null && metadata != null) {
+            explanation = getString(metadata, "explanation");
+        }
 
         Object correctAnswer = qMap.containsKey("correct_answer") ? qMap.get("correct_answer") : qMap.get("correctAnswer");
+        if (correctAnswer == null && metadata != null) {
+            correctAnswer = metadata.containsKey("correct_answer") ? metadata.get("correct_answer") : metadata.get("correctAnswer");
+        }
         if (correctAnswer == null && fallbackKey != null && fallbackKey.getAnswers() != null && questionId != null) {
             GradingKey gk = fallbackKey.getAnswers().get(questionId);
             if (gk != null) {
@@ -372,13 +380,17 @@ public class AttemptReviewMapper {
         }
 
         Object rawOptions = qMap.get("options");
+        if (rawOptions == null && metadata != null) {
+            rawOptions = metadata.get("options");
+        }
         if (rawOptions == null) {
             rawOptions = inheritedGroupOptions;
         }
         List<ReviewOptionDto> options = null;
         if (rawOptions instanceof List<?> optList) {
             options = new ArrayList<>();
-            for (Object optObj : optList) {
+            for (int i = 0; i < optList.size(); i++) {
+                Object optObj = optList.get(i);
                 if (optObj instanceof Map<?, ?> optMap) {
                     Map<String, Object> opt = (Map<String, Object>) optMap;
                     String optId = getString(opt, "id", "key");
@@ -388,6 +400,15 @@ public class AttemptReviewMapper {
                             .id(optId)
                             .text(optText)
                             .content(optText)
+                            .isCorrect(isCorrectOpt)
+                            .build());
+                } else if (optObj instanceof String optStr) {
+                    String optId = String.valueOf((char) ('A' + i));
+                    boolean isCorrectOpt = isOptionCorrect(optId, optStr, correctAnswer);
+                    options.add(ReviewOptionDto.builder()
+                            .id(optId)
+                            .text(optStr)
+                            .content(optStr)
                             .isCorrect(isCorrectOpt)
                             .build());
                 }

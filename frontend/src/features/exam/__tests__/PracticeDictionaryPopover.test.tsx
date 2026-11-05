@@ -102,5 +102,8 @@ describe('PracticeDictionaryPopover', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/bạn đã dùng hết lượt tra từ hôm nay/i);
     expect(screen.getByRole('alert')).toHaveTextContent(/hạn mức tra từ ai trong ngày đã hết/i);
     expect(screen.queryByRole('button', { name: 'Thử lại' })).toBeNull();
+    const ctaLink = screen.getByRole('link', { name: /nâng cấp premium/i });
+    expect(ctaLink).toBeInTheDocument();
+    expect(ctaLink).toHaveAttribute('href', '/student/premium');
   });
 });

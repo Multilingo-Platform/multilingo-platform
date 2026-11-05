@@ -3,26 +3,36 @@ package com.multilingo.backend.modules.analytics.service.impl;
 import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.analytics.dto.request.UpdateQuotaRequest;
+import com.multilingo.backend.modules.analytics.dto.response.StudentQuotaResponse;
 import com.multilingo.backend.modules.analytics.dto.response.UserQuotaResponse;
 import com.multilingo.backend.modules.analytics.entity.UserQuota;
 import com.multilingo.backend.modules.analytics.repository.UserQuotaRepository;
 import com.multilingo.backend.modules.analytics.service.AuditService;
 import com.multilingo.backend.modules.analytics.service.QuotaService;
-import lombok.RequiredArgsConstructor;
+import com.multilingo.backend.modules.auth.entity.SubscriptionTier;
+import com.multilingo.backend.modules.auth.entity.User;
+import com.multilingo.backend.modules.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class QuotaServiceImpl implements QuotaService {
 
     private final UserQuotaRepository userQuotaRepository;
     private final AuditService auditService;
+    private final UserRepository userRepository;
+    private final Clock clock;
+
+    private static final ZoneId DAILY_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private static final List<String> SUPPORTED_FEATURES = List.of(
             "AI_WRITING_HINTS",
@@ -43,6 +53,23 @@ public class QuotaServiceImpl implements QuotaService {
             "AI_WRITING_GRADING", 20,
             "DICTIONARY_LOOKUP", 500
     );
+
+    public QuotaServiceImpl(UserQuotaRepository userQuotaRepository, AuditService auditService) {
+        this(userQuotaRepository, auditService, null, Clock.system(DAILY_ZONE));
+    }
+
+    @Autowired
+    public QuotaServiceImpl(
+            UserQuotaRepository userQuotaRepository,
+            AuditService auditService,
+            @Autowired(required = false) UserRepository userRepository,
+            @Autowired(required = false) Clock clock
+    ) {
+        this.userQuotaRepository = userQuotaRepository;
+        this.auditService = auditService;
+        this.userRepository = userRepository;
+        this.clock = clock != null ? clock : Clock.system(DAILY_ZONE);
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -123,6 +150,84 @@ public class QuotaServiceImpl implements QuotaService {
                 .resetCycle(request.getResetCycle())
                 .updatedAt(quota.getUpdatedAt() != null ? quota.getUpdatedAt() : Instant.now())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentQuotaResponse> getMyQuotas(Integer userId) {
+        Instant now = clock.instant();
+        boolean isVip = false;
+        if (userRepository != null && userId != null && userId > 0) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null && user.getSubscriptionTier() == SubscriptionTier.PREMIUM
+                    && user.getPremiumExpiresAt() != null && user.getPremiumExpiresAt().isAfter(now)) {
+                isVip = true;
+            }
+        }
+
+        String tier = isVip ? "VIP" : "FREE";
+        int tierUserId = isVip ? -1 : 0;
+        Instant resetAt = nextLocalMidnight(now);
+
+        List<StudentQuotaResponse> responses = new ArrayList<>();
+        List<String> studentFeatures = List.of(
+                "AI_WRITING_HINTS",
+                "AI_WRITING_GRADING",
+                "DICTIONARY_LOOKUP"
+        );
+
+        Map<String, String> featureNames = Map.of(
+                "AI_WRITING_HINTS", "Gợi ý Writing AI",
+                "AI_WRITING_GRADING", "AI chấm bài Writing",
+                "DICTIONARY_LOOKUP", "Tra cứu từ điển AI"
+        );
+
+        for (String feature : studentFeatures) {
+            int defaultLimit = isVip
+                    ? DEFAULT_VIP_LIMITS.getOrDefault(feature, 20)
+                    : DEFAULT_FREE_LIMITS.getOrDefault(feature, 5);
+
+            // Kiểm tra template hạn mức đã được admin cấu hình chưa
+            Optional<UserQuota> templateOpt = userQuotaRepository.findByUserIdAndFeatureCode(tierUserId, feature);
+            int effectiveLimit = templateOpt.map(UserQuota::getMaxLimit).filter(l -> l != null && l >= 0).orElse(defaultLimit);
+
+            // Kiểm tra dòng quota thực tế của người dùng
+            int usedCount = 0;
+            Instant userResetDate = resetAt;
+
+            if (userId != null && userId > 0) {
+                Optional<UserQuota> userQuotaOpt = userQuotaRepository.findByUserIdAndFeatureCode(userId, feature);
+                if (userQuotaOpt.isPresent()) {
+                    UserQuota q = userQuotaOpt.get();
+                    if (q.getResetDate() != null && q.getResetDate().isAfter(now)) {
+                        usedCount = q.getUsedCount() != null ? q.getUsedCount() : 0;
+                        userResetDate = q.getResetDate();
+                        if (q.getMaxLimit() != null && q.getMaxLimit() > 0) {
+                            effectiveLimit = q.getMaxLimit();
+                        }
+                    }
+                }
+            }
+
+            int remaining = Math.max(0, effectiveLimit - usedCount);
+
+            responses.add(StudentQuotaResponse.builder()
+                    .featureCode(feature)
+                    .featureName(featureNames.getOrDefault(feature, feature))
+                    .usedCount(usedCount)
+                    .maxLimit(effectiveLimit)
+                    .remaining(remaining)
+                    .tier(tier)
+                    .resetDate(userResetDate)
+                    .build());
+        }
+
+        return responses;
+    }
+
+    private static Instant nextLocalMidnight(Instant now) {
+        LocalDate localDate = now.atZone(DAILY_ZONE).toLocalDate();
+        return localDate.plusDays(1).atStartOfDay(DAILY_ZONE).toInstant();
     }
 
     private int getTierUserId(String tier) {

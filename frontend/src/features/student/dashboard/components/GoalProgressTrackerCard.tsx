@@ -173,9 +173,14 @@ export const GoalProgressTrackerCard: React.FC<GoalProgressTrackerCardProps> = (
               <div
                 key={pill.id}
                 title={pill.title}
+                onClick={() => {
+                  if (pill.filled && typeof pill.id === 'number') {
+                    navigate(`/attempts/${pill.id}/result`);
+                  }
+                }}
                 className={`p-2 rounded-lg text-center transition-all ${
                   pill.filled
-                    ? 'bg-indigo-50/70 border border-indigo-200/80 text-indigo-900 shadow-2xs'
+                    ? 'bg-indigo-50/70 border border-indigo-200/80 text-indigo-900 shadow-2xs cursor-pointer hover:border-indigo-400 hover:shadow-xs'
                     : 'bg-slate-50 border border-dashed border-slate-200 text-slate-400'
                 }`}
               >

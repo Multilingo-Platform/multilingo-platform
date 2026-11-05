@@ -33,10 +33,26 @@ public class LearnerExamStructureServiceImpl implements LearnerExamStructureServ
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
         List<LearnerExamStructureResponse.Section> sections = sectionRepository.findByExam_Id(exam.getId()).stream()
-                .sorted(Comparator.comparing(ExamSection::getOrderIndex, Comparator.nullsLast(Comparator.naturalOrder()))
+                .sorted(Comparator
+                        .comparing(ExamSection::getOrderIndex, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(ExamSection::getId, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(this::toSection)
                 .toList();
+
+        Integer duration = exam.getDurationMinutes();
+        if (duration == null || duration <= 0) {
+            duration = com.multilingo.backend.modules.testing.util.CertificateExamPolicy
+                    .fullExamDurationMinutes(exam.getType());
+        }
+        if (duration == null || duration <= 0) {
+            int sum = sections.stream()
+                    .filter(s -> s.getDurationMinutes() != null && s.getDurationMinutes() > 0)
+                    .mapToInt(LearnerExamStructureResponse.Section::getDurationMinutes)
+                    .sum();
+            if (sum > 0) {
+                duration = sum;
+            }
+        }
 
         return LearnerExamStructureResponse.builder()
                 .id(exam.getId())
@@ -44,7 +60,7 @@ public class LearnerExamStructureServiceImpl implements LearnerExamStructureServ
                 .title(exam.getTitle())
                 .type(exam.getType())
                 .examLanguage(exam.getExamLanguage())
-                .durationMinutes(exam.getDurationMinutes())
+                .durationMinutes(duration)
                 .sections(sections)
                 .build();
     }

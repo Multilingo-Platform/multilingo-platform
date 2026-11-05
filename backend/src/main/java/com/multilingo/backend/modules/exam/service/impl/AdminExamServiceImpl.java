@@ -181,6 +181,13 @@ public class AdminExamServiceImpl implements AdminExamService {
                 } else if ("WRITING".equalsIgnoreCase(skill)) {
                     resp.setType("NLTV_WRITING");
                 }
+            } else if (("TOEIC".equalsIgnoreCase(resp.getType()) || "TOEIC_LR".equalsIgnoreCase(resp.getType())) && sections.size() == 1) {
+                String skill = sections.get(0).getSkillType();
+                if ("READING".equalsIgnoreCase(skill)) {
+                    resp.setType("TOEIC_READING");
+                } else if ("LISTENING".equalsIgnoreCase(skill)) {
+                    resp.setType("TOEIC_LISTENING");
+                }
             }
             
             return resp;
@@ -271,9 +278,28 @@ public class AdminExamServiceImpl implements AdminExamService {
                 })
                 .toList();
 
+        String resolvedType = exam.getType();
+        if ("NLTV".equalsIgnoreCase(resolvedType) && sectionRequests.size() == 1) {
+            String skill = sectionRequests.get(0).getSkillType();
+            if ("READING".equalsIgnoreCase(skill)) {
+                resolvedType = "NLTV_READING";
+            } else if ("LISTENING".equalsIgnoreCase(skill)) {
+                resolvedType = "NLTV_LISTENING";
+            } else if ("WRITING".equalsIgnoreCase(skill)) {
+                resolvedType = "NLTV_WRITING";
+            }
+        } else if (("TOEIC".equalsIgnoreCase(resolvedType) || "TOEIC_LR".equalsIgnoreCase(resolvedType)) && sectionRequests.size() == 1) {
+            String skill = sectionRequests.get(0).getSkillType();
+            if ("READING".equalsIgnoreCase(skill)) {
+                resolvedType = "TOEIC_READING";
+            } else if ("LISTENING".equalsIgnoreCase(skill)) {
+                resolvedType = "TOEIC_LISTENING";
+            }
+        }
+
         return ExamBuilderRequest.builder()
                 .title(exam.getTitle())
-                .type(exam.getType())
+                .type(resolvedType)
                 .examLanguage(exam.getExamLanguage())
                 .isPublished(exam.getIsPublished())
                 .sections(sectionRequests)
@@ -315,6 +341,14 @@ public class AdminExamServiceImpl implements AdminExamService {
             } else if ("WRITING".equalsIgnoreCase(skill)) {
                 normalized.setType("NLTV_WRITING");
             }
+        } else if (("TOEIC".equalsIgnoreCase(normalized.getType()) || "TOEIC_LR".equalsIgnoreCase(normalized.getType()))
+                && normalized.getSections() != null && normalized.getSections().size() == 1) {
+            String skill = normalized.getSections().get(0).getSkillType();
+            if ("READING".equalsIgnoreCase(skill)) {
+                normalized.setType("TOEIC_READING");
+            } else if ("LISTENING".equalsIgnoreCase(skill)) {
+                normalized.setType("TOEIC_LISTENING");
+            }
         }
         validateRegisteredIdentity(normalized, examCode);
         new ExamPublicationValidator().requireStructure(normalized);
@@ -355,8 +389,10 @@ public class AdminExamServiceImpl implements AdminExamService {
     }
     private void setDuration(Exam exam,ExamBuilderRequest request) {
         if (request.getType() != null && (java.util.Set.of("TOEIC_LR", "IELTS_ACADEMIC", "LANGUAGE_PRACTICE", "NLTV").contains(request.getType())
-                || request.getType().startsWith("NLTV")))
-            exam.setDurationMinutes(request.getSections().stream().mapToInt(s -> s.getDurationMinutes()).sum());
+                || request.getType().startsWith("NLTV")
+                || request.getType().startsWith("TOEIC")
+                || request.getType().startsWith("IELTS")))
+            exam.setDurationMinutes(request.getSections().stream().mapToInt(s -> s.getDurationMinutes() != null ? s.getDurationMinutes() : 0).sum());
     }
 
     @Override

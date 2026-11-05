@@ -22,6 +22,10 @@ const MultipleChoiceRenderer: React.FC<Props> = ({ options, value, onChange, max
     if (isCurrentlyChecked) {
       onChange(safeValue.filter(v => v !== opt.id && v !== opt.text));
     } else {
+      if (maxSelections === 1) {
+        onChange([opt.id]);
+        return;
+      }
       if (maxSelections && safeValue.length >= maxSelections) {
         return; // Prevent selecting more than allowed
       }

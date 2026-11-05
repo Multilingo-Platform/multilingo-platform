@@ -240,4 +240,169 @@ describe('server-backed Excel import', () => {
     expect(saved.parts).toHaveLength(1);
     expect(saved.parts[0].question_groups).toHaveLength(5);
   });
+
+  it('displays correct certificate type in select dropdown when editing TOEIC Listening, TOEIC Reading, and NLTV Reading exams', () => {
+    const mockPart = (title: string, num: number) => ({
+      partNumber: num,
+      contentData: {
+        part_title: title,
+        question_groups: [{ group_id: 'g1', questions: [{ question_id: 'q1', type: 'MULTIPLE_CHOICE' }] }]
+      }
+    });
+
+    // 1. TOEIC_LISTENING
+    const { container: c1, unmount: unmount1 } = render(
+      <ExamBuilder
+        initialData={{
+          title: 'TOEIC Listening Test 01',
+          type: 'TOEIC_LISTENING',
+          sections: [{ skillType: 'LISTENING', durationMinutes: 45, parts: [mockPart('Part 1: Photographs', 1)] }]
+        }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const select1 = c1.querySelector('.eb-info-type-group select') as HTMLSelectElement;
+    expect(select1.value).toBe('TOEIC_LISTENING');
+    expect(select1.options[select1.selectedIndex].text).toBe('TOEIC Listening');
+    unmount1();
+
+    // 2. TOEIC_READING
+    const { container: c2, unmount: unmount2 } = render(
+      <ExamBuilder
+        initialData={{
+          title: 'TOEIC Reading Test 01',
+          type: 'TOEIC_READING',
+          sections: [{ skillType: 'READING', durationMinutes: 75, parts: [mockPart('Part 5: Incomplete Sentences', 5)] }]
+        }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const select2 = c2.querySelector('.eb-info-type-group select') as HTMLSelectElement;
+    expect(select2.value).toBe('TOEIC_READING');
+    expect(select2.options[select2.selectedIndex].text).toBe('TOEIC Reading');
+    unmount2();
+
+    // 3. NLTV_READING
+    const { container: c3, unmount: unmount3 } = render(
+      <ExamBuilder
+        initialData={{
+          title: 'NLTV Kỹ năng Đọc',
+          type: 'NLTV_READING',
+          sections: [{ skillType: 'READING', durationMinutes: 60, parts: [mockPart('Kỹ năng Đọc - Phần 1', 1)] }]
+        }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const select3 = c3.querySelector('.eb-info-type-group select') as HTMLSelectElement;
+    expect(select3.value).toBe('NLTV_READING');
+    expect(select3.options[select3.selectedIndex].text).toBe('NLTV Đọc');
+    unmount3();
+
+    // 4. Legacy NLTV with single READING section infers NLTV_READING
+    const { container: c4, unmount: unmount4 } = render(
+      <ExamBuilder
+        initialData={{
+          title: 'Đề thi Đọc hiểu Tiếng Việt',
+          type: 'NLTV',
+          sections: [{ skillType: 'READING', durationMinutes: 60, parts: [mockPart('Đọc hiểu', 1)] }]
+        }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const select4 = c4.querySelector('.eb-info-type-group select') as HTMLSelectElement;
+    expect(select4.value).toBe('NLTV_READING');
+    expect(select4.options[select4.selectedIndex].text).toBe('NLTV Đọc');
+    unmount4();
+
+    // 5. Legacy TOEIC_LR with single LISTENING section infers TOEIC_LISTENING
+    const { container: c5, unmount: unmount5 } = render(
+      <ExamBuilder
+        initialData={{
+          title: 'TOEIC Listening Practice Test',
+          type: 'TOEIC_LR',
+          sections: [{ skillType: 'LISTENING', durationMinutes: 45, parts: [mockPart('Part 1', 1)] }]
+        }}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const select5 = c5.querySelector('.eb-info-type-group select') as HTMLSelectElement;
+    expect(select5.value).toBe('TOEIC_LISTENING');
+    expect(select5.options[select5.selectedIndex].text).toBe('TOEIC Listening');
+    unmount5();
+  });
+
+  it('correctly imports TOEIC Listening and TOEIC Reading and NLTV Reading Excel files and sets matching exam_type', async () => {
+    // Test TOEIC Listening Excel import
+    const wbLis = new ExcelJS.Workbook();
+    const infoLis = wbLis.addWorksheet('Thông Tin Đề Thi');
+    infoLis.addRow(['Tên đề thi', 'TOEIC Listening Practice']);
+    infoLis.addRow(['Mã loại chứng chỉ', 'TOEIC_LISTENING']);
+    const sheetLis = wbLis.addWorksheet('Exam Template');
+    sheetLis.addRow([
+      'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+      'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+      'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G', 'Lựa chọn H',
+      'Đáp án đúng', 'Giải thích', 'File âm thanh/hình ảnh phần', 'Đính kèm chung nhóm', 'Đính kèm riêng câu'
+    ]);
+    sheetLis.addRow([
+      'Part 1: Photographs', 'Instructions', 'Group 1', 'MULTIPLE_CHOICE',
+      '', '', 'Question 1',
+      'Opt A', 'Opt B', 'Opt C', 'Opt D', '', '', '', '',
+      'A', 'Explanation', '', '', ''
+    ]);
+    const bytesLis = await wbLis.xlsx.writeBuffer();
+    const fileLis = new File([bytesLis], 'TOEIC_Listening.xlsx');
+    Object.defineProperty(fileLis, 'arrayBuffer', { value: async () => bytesLis });
+
+    const onSaveLis = vi.fn();
+    const { container: containerLis, unmount: unmountLis } = render(<ExamBuilder initialData={null} onSave={onSaveLis} onCancel={vi.fn()} />);
+    fireEvent.change(containerLis.querySelector('input[type="file"]')!, { target: { files: [fileLis] } });
+    fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
+    await waitFor(() => expect(onSaveLis).toHaveBeenCalledTimes(1));
+    const savedLis = JSON.parse(onSaveLis.mock.calls[0][0]);
+    expect(savedLis.exam_type).toBe('TOEIC_P1');
+    unmountLis();
+
+    // Test TOEIC Reading Excel import (multiple parts 5 and 6)
+    const wbRead = new ExcelJS.Workbook();
+    const infoRead = wbRead.addWorksheet('Thông Tin Đề Thi');
+    infoRead.addRow(['Tên đề thi', 'TOEIC Reading Practice']);
+    infoRead.addRow(['Mã loại chứng chỉ', 'TOEIC_READING']);
+    const sheetRead = wbRead.addWorksheet('Exam Template');
+    sheetRead.addRow([
+      'Phần (Part)', 'Hướng dẫn chung (Phần)', 'Nhóm (Group)', 'Loại câu hỏi (Type)',
+      'Hướng dẫn riêng (Nhóm)', 'Nội dung nhóm (Văn bản đọc/nghe)', 'Câu hỏi (Question Text)',
+      'Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D', 'Lựa chọn E', 'Lựa chọn F', 'Lựa chọn G', 'Lựa chọn H',
+      'Đáp án đúng', 'Giải thích', 'File âm thanh/hình ảnh phần', 'Đính kèm chung nhóm', 'Đính kèm riêng câu'
+    ]);
+    sheetRead.addRow([
+      'Part 5: Incomplete Sentences', 'Instructions', 'Group 1', 'MULTIPLE_CHOICE',
+      '', '', 'Question 101',
+      'A', 'B', 'C', 'D', '', '', '', '',
+      'B', 'Explanation', '', '', ''
+    ]);
+    sheetRead.addRow([
+      'Part 6: Text Completion', 'Instructions', 'Group 2', 'MULTIPLE_CHOICE',
+      '', '', 'Question 131',
+      'A', 'B', 'C', 'D', '', '', '', '',
+      'C', 'Explanation', '', '', ''
+    ]);
+    const bytesRead = await wbRead.xlsx.writeBuffer();
+    const fileRead = new File([bytesRead], 'TOEIC_Reading.xlsx');
+    Object.defineProperty(fileRead, 'arrayBuffer', { value: async () => bytesRead });
+
+    const onSaveRead = vi.fn();
+    const { container: containerRead, unmount: unmountRead } = render(<ExamBuilder initialData={null} onSave={onSaveRead} onCancel={vi.fn()} />);
+    fireEvent.change(containerRead.querySelector('input[type="file"]')!, { target: { files: [fileRead] } });
+    fireEvent.click(await screen.findByRole('button', { name: /lưu đề thi/i }));
+    await waitFor(() => expect(onSaveRead).toHaveBeenCalledTimes(1));
+    const savedRead = JSON.parse(onSaveRead.mock.calls[0][0]);
+    expect(savedRead.exam_type).toBe('TOEIC_READING');
+    unmountRead();
+  });
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BarChart2,
   Search,
@@ -43,7 +43,13 @@ const resolveTargetCategory = (rawCert?: string): string => {
 
 const TestHistory: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+
+  const urlCert = searchParams.get('cert') || '';
+  const urlMode = searchParams.get('mode') || '';
+  const urlStatus = searchParams.get('status') || '';
+  const urlSearch = searchParams.get('search') || '';
 
   const certTabs = React.useMemo(() => [
     { id: 'ALL', label: t('history.filters.all_certs', 'Tất Cả Chứng Chỉ'), icon: <Layers size={15} /> },
@@ -109,28 +115,39 @@ const TestHistory: React.FC = () => {
   }, [userTargetLanguage, certTabs]);
 
   // Target initialization tracking to prevent race conditions & premature unfiltered fetches
-  const [isCertInitialized, setIsCertInitialized] = useState<boolean>(() => !isOnboardingLoading && !!userTarget);
+  const [isCertInitialized, setIsCertInitialized] = useState<boolean>(() => {
+    if (urlCert) return true;
+    return !isOnboardingLoading && !!userTarget;
+  });
 
   // Filters state
   const [cert, setCert] = useState<string>(() => {
+    if (urlCert) return urlCert;
     const initialTarget = resolveTargetCategory(userTarget?.targetCertificate);
     return initialTarget || 'ALL';
   });
-  const [mode, setMode] = useState<string>('ALL');
-  const [status, setStatus] = useState<string>('ALL');
-  const [search, setSearch] = useState<string>('');
-  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [mode, setMode] = useState<string>(() => {
+    if (urlMode && ['MOCK_TEST', 'PRACTICE'].includes(urlMode)) return urlMode;
+    return 'ALL';
+  });
+  const [status, setStatus] = useState<string>(() => {
+    if (urlStatus && ['COMPLETED', 'IN_PROGRESS', 'GRADING_FAILED'].includes(urlStatus)) return urlStatus;
+    return 'ALL';
+  });
+  const [search, setSearch] = useState<string>(() => urlSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState<string>(() => urlSearch);
   const [sort, setSort] = useState<string>('newest');
   const [page, setPage] = useState<number>(0);
 
-  // Default cert to user's target category once loaded if available in visibleTabs
+  // Default cert to user's target category once loaded if available in visibleTabs and not specified in URL
   useEffect(() => {
+    if (urlCert) return;
     if (isOnboardingLoading || isCertInitialized) return;
     if (targetCategory && visibleTabs.some((t) => t.id === targetCategory)) {
       setCert(targetCategory);
     }
     setIsCertInitialized(true);
-  }, [isOnboardingLoading, isCertInitialized, targetCategory, visibleTabs]);
+  }, [isOnboardingLoading, isCertInitialized, targetCategory, visibleTabs, urlCert]);
 
   // Reset cert to ALL if not in visible tabs (only after cert is initialized)
   useEffect(() => {
@@ -246,12 +263,72 @@ const TestHistory: React.FC = () => {
     return 'ielts';
   };
 
+  // Helper to check if item is part practice (only shows raw correct questions count)
+  const isPartPracticeAttempt = (item: HistoryAttemptItem) => {
+    if (item.testScope === 'SINGLE_PART' || item.testScope === 'MULTI_PART') return true;
+    if (item.testScope !== 'FULL_EXAM' && item.testScope !== 'SINGLE_SKILL') {
+      const type = item.examType ? item.examType.toUpperCase() : '';
+      if (!type.startsWith('NLTV') && (item.scoreUnit === 'RAW_OBJECTIVE' || item.scoreUnit === 'LEGACY_RAW')) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Helper to check if TOEIC is single skill (listening or reading, max 450)
+  const isToeicSingleSkillAttempt = (item: HistoryAttemptItem) => {
+    return item.testScope === 'SINGLE_SKILL' || item.maxScore === 450 || item.examType === 'TOEIC_LISTENING' || item.examType === 'TOEIC_READING';
+  };
+
+  // Tooltip for score circle
+  const getScoreTooltip = (item: HistoryAttemptItem) => {
+    if (item.status === 'GRADING_FAILED') return t('history.card.grading_failed', 'Lỗi chấm bài');
+    if (item.status === 'IN_PROGRESS') return t('history.card.unsubmitted', 'Chưa nộp bài');
+    if (item.overallScore === null) {
+      return item.scoreUnit === 'TOEIC_SCALED'
+        ? 'Chưa đủ dữ liệu TOEIC'
+        : item.scoreUnit === 'IELTS_BAND'
+        ? 'Chưa đủ dữ liệu IELTS'
+        : 'Chưa có điểm';
+    }
+
+    if (isPartPracticeAttempt(item)) {
+      return item.maxScore
+        ? t('history.card.tooltip_questions_correct', 'Kết quả: {{score}} / {{total}} câu đúng', {
+            score: Math.round(item.overallScore),
+            total: Math.round(item.maxScore),
+          })
+        : t('history.card.tooltip_questions_correct_no_max', 'Kết quả: {{score}} câu đúng', {
+            score: Math.round(item.overallScore),
+          });
+    }
+
+    if (item.scoreUnit === 'IELTS_BAND') {
+      return `IELTS Band ${item.overallScore} / 9.0`;
+    }
+    if (item.scoreUnit === 'TOEIC_SCALED') {
+      const maxToeic = isToeicSingleSkillAttempt(item) ? 450 : 990;
+      return t('history.card.tooltip_toeic', 'Điểm TOEIC: {{score}} / {{max}}', {
+        score: item.overallScore,
+        max: maxToeic,
+      });
+    }
+    if (item.scoreUnit === 'TOEIC_WRITING') {
+      return `Điểm TOEIC Writing: ${item.overallScore} / 200`;
+    }
+    const type = item.examType ? item.examType.toUpperCase() : '';
+    if (type.startsWith('NLTV')) {
+      return `Bậc ${item.overallScore} / ${item.maxScore || 6}`;
+    }
+    return item.maxScore ? `Điểm số: ${item.overallScore} / ${item.maxScore}` : `Điểm số: ${item.overallScore}`;
+  };
+
   // Render score inside circle
   const renderScoreValue = (item: HistoryAttemptItem) => {
     if (item.status === 'GRADING_FAILED') {
       return (
         <>
-          <span className="history-score-number" style={{ fontSize: '1.25rem' }}>⚠️</span>
+          <span className="history-score-number icon">⚠️</span>
           <span className="history-score-scale">{t('history.card.grading_failed', 'Lỗi chấm')}</span>
         </>
       );
@@ -260,7 +337,7 @@ const TestHistory: React.FC = () => {
     if (item.status === 'IN_PROGRESS') {
       return (
         <>
-          <span className="history-score-number" style={{ fontSize: '1.25rem' }}>⏳</span>
+          <span className="history-score-number icon">⏳</span>
           <span className="history-score-scale">{t('history.card.unsubmitted', 'Chưa nộp')}</span>
         </>
       );
@@ -270,41 +347,74 @@ const TestHistory: React.FC = () => {
       return (
         <>
           <span className="history-score-number">—</span>
-          <span className="history-score-scale">{item.scoreUnit === 'TOEIC_SCALED' ? 'Chưa đủ dữ liệu TOEIC' : item.scoreUnit === 'IELTS_BAND' ? 'Chưa đủ dữ liệu IELTS' : 'Chưa có điểm'}</span>
+          <span className="history-score-scale">{t('history.card.no_score', 'Chưa có điểm')}</span>
         </>
       );
     }
 
-    if (item.scoreUnit === 'RAW_OBJECTIVE' || item.scoreUnit === 'LEGACY_RAW' || !item.scoreUnit) {
+    const isLarge = typeof item.overallScore === 'number' && item.overallScore >= 100;
+    const numClass = `history-score-number${isLarge ? ' is-large' : ''}`;
+
+    if (isPartPracticeAttempt(item)) {
       return (
         <>
-          <span className="history-score-number">{item.overallScore}</span>
-          <span className="history-score-scale">Điểm raw</span>
+          <span className={numClass}>{Math.round(item.overallScore)}</span>
+          <span className="history-score-scale">
+            {item.maxScore
+              ? t('history.card.scale_questions_with_max', { max: Math.round(item.maxScore), defaultValue: `/ ${Math.round(item.maxScore)} câu` })
+              : t('history.card.scale_correct_questions', 'Câu đúng')}
+          </span>
         </>
       );
     }
 
     if (item.scoreUnit === 'IELTS_BAND') {
-      return <><span className="history-score-number">{item.overallScore}</span><span className="history-score-scale">IELTS band / 9</span></>;
+      return (
+        <>
+          <span className={numClass}>{item.overallScore}</span>
+          <span className="history-score-scale">{t('history.card.scale_ielts', 'Band / 9.0')}</span>
+        </>
+      );
     }
+
     if (item.scoreUnit === 'TOEIC_SCALED') {
-      return <><span className="history-score-number">{item.overallScore}</span><span className="history-score-scale">Điểm TOEIC ước lượng / 990</span></>;
+      return (
+        <>
+          <span className={numClass}>{item.overallScore}</span>
+          <span className="history-score-scale">
+            {isToeicSingleSkillAttempt(item)
+              ? t('history.card.scale_toeic_skill', 'TOEIC / 450')
+              : t('history.card.scale_toeic', 'TOEIC / 990')}
+          </span>
+        </>
+      );
+    }
+
+    if (item.scoreUnit === 'TOEIC_WRITING') {
+      return (
+        <>
+          <span className={numClass}>{item.overallScore}</span>
+          <span className="history-score-scale">{t('history.card.scale_toeic_writing', 'TOEIC / 200')}</span>
+        </>
+      );
     }
 
     const type = item.examType ? item.examType.toUpperCase() : '';
     if (type.startsWith('NLTV')) {
       return (
         <>
-          <span className="history-score-number">{item.overallScore}</span>
-          <span className="history-score-scale">{t('history.card.scale_nltv', { max: item.maxScore, defaultValue: `Bậc / ${item.maxScore}` })}</span>
+          <span className={numClass}>{item.overallScore}</span>
+          <span className="history-score-scale">
+            {t('history.card.scale_nltv', { max: item.maxScore || 6, defaultValue: `Bậc / ${item.maxScore || 6}` })}
+          </span>
         </>
       );
     }
 
     return (
       <>
-        <span className="history-score-number">{item.overallScore}</span>
-        <span className="history-score-scale">/ {item.maxScore}</span>
+        <span className={numClass}>{item.overallScore}</span>
+        <span className="history-score-scale">{item.maxScore ? `/ ${item.maxScore}` : t('history.card.score_unit', 'Điểm')}</span>
       </>
     );
   };
@@ -439,7 +549,10 @@ const TestHistory: React.FC = () => {
             historyData.items.map((item) => (
               <div key={item.attemptId} className="history-attempt-card">
                 {/* Score Circle */}
-                <div className={`history-score-circle ${getScoreCircleClass(item)}`}>
+                <div 
+                  className={`history-score-circle ${getScoreCircleClass(item)}`}
+                  title={getScoreTooltip(item)}
+                >
                   {renderScoreValue(item)}
                 </div>
 
@@ -541,7 +654,7 @@ const TestHistory: React.FC = () => {
                     <button
                       className="history-action-btn primary"
                       style={{ background: '#d97706' }}
-                      onClick={() => navigate(`/attempts/${item.attemptId}/workspace`)}
+                      onClick={() => navigate(`/attempts/${item.attemptId}`)}
                     >
                       {t('history.card.continue', 'Tiếp tục')} <Play size={15} />
                     </button>

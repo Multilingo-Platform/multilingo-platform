@@ -481,4 +481,62 @@ describe('Cambridge IELTS V2 workspace/review contract', () => {
     expect(http.post).toHaveBeenCalledTimes(1);
   });
 
+  it('renders paired Cambridge IELTS questions l_017 and l_018 as a single combined card and does not duplicate the question', async () => {
+    const fixture = buildCambridgeWorkspaceFixture();
+    http.get.mockResolvedValueOnce(envelope(fixture) as never);
+
+    const store = configureStore({
+      reducer: { answers: answerReducer },
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/attempts/42/workspace']}>
+          <Routes>
+            <Route path="/attempts/:attemptId/workspace" element={<WorkspacePage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Cambridge IELTS 20 Test 1')).toBeInTheDocument();
+    });
+
+    // Navigate to Part 2 (Listening Part 2 containing l_017 and l_018)
+    const part2Tab = screen.getByRole('button', { name: /part 2/i });
+    fireEvent.click(part2Tab);
+
+    // Question 17-18 should be rendered as a combined badge "17 - 18"
+    await waitFor(() => {
+      expect(screen.getByText('17 - 18')).toBeInTheDocument();
+    });
+
+    // There should be only 1 question card for 17-18 (card for l_017 exists, l_018 has no separate card)
+    const card17 = document.getElementById('q-l_017');
+    expect(card17).toBeInTheDocument();
+    expect(card17?.querySelector('.font-heading')).toHaveTextContent('17 - 18');
+
+    // On single-choice questions (e.g. Question 11), user can only select 1 answer
+    const card11 = document.getElementById('q-l_011');
+    expect(card11).toBeInTheDocument();
+    const optA11 = within(card11!).getByText(/answer a/i);
+    const optB11 = within(card11!).getByText(/answer b/i);
+
+    fireEvent.click(optA11);
+    expect(store.getState().answers.answers[2]?.['l_011']).toBe('A');
+
+    fireEvent.click(optB11);
+    // Option B replaces Option A — does not allow multiple selections!
+    expect(store.getState().answers.answers[2]?.['l_011']).toBe('B');
+
+    // On paired question 17-18, user can select up to 2 answers
+    const optA17 = within(card17!).getByText(/answer a/i);
+    const optB17 = within(card17!).getByText(/answer b/i);
+
+    fireEvent.click(optA17);
+    fireEvent.click(optB17);
+    expect(store.getState().answers.answers[2]?.['l_017']).toBe('A');
+    expect(store.getState().answers.answers[2]?.['l_018']).toBe('B');
+  });
 });

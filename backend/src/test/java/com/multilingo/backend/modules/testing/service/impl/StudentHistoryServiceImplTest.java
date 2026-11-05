@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -40,389 +42,480 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class StudentHistoryServiceImplTest {
 
-    @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.CsvSource({"IELTS_ACADEMIC,RAW_OBJECTIVE", "IELTS_ACADEMIC,LEGACY_RAW", "TOEIC_LR,RAW_OBJECTIVE", "TOEIC_LR,LEGACY_RAW"})
-    void raw_only_history_does_not_fail_or_invent_certificate_scores(String type, String unit) {
-        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), any(), anyBoolean()))
-                .thenReturn(List.<Object[]>of(new Object[]{type, "LEGACY_RAW".equals(unit) ? null : unit, 30.0, 35.0}));
-        var attempt = TestAttempt.builder().userId(userId).examId(101).overallScore(BigDecimal.valueOf(30))
-                .scoreUnit("LEGACY_RAW".equals(unit) ? null : unit).build();
-        attempt.setId(501);
-        var exam = new Exam(); exam.setId(101); exam.setType(type);
-        when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED),
-                any(), anyBoolean(), any(), anyBoolean(), any()))
-                .thenReturn(List.<Object[]>of(new Object[]{attempt, exam}));
-        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), any(), anyBoolean(), any(), anyBoolean()))
-                .thenReturn(1L);
-        when(testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(eq(userId), any(), anyBoolean(), any(), anyBoolean()))
-                .thenReturn(600L);
-        var stats = studentHistoryService.getStudentStats(userId, null, null);
-        assertThat(stats.getAverageScore()).isNull();
-        assertThat(stats.getHighestScore()).isNull();
-        assertThat(stats.getAverageScoresByType()).isEmpty();
-        assertThat(stats.getTotalAttempts()).isEqualTo(1);
-        assertThat(stats.getTotalPracticeMinutes()).isEqualTo(10);
-        assertThat(stats.getRecentScoreTrends()).hasSize(1);
-        assertThat(stats.getRecentScoreTrends().get(0).getScore()).isEqualTo(30);
-        assertThat(stats.getRecentScoreTrends().get(0).getPercentage()).isNull();
-    }
+        @org.junit.jupiter.params.ParameterizedTest
+        @org.junit.jupiter.params.provider.CsvSource({ "IELTS_ACADEMIC,RAW_OBJECTIVE", "IELTS_ACADEMIC,LEGACY_RAW",
+                        "TOEIC_LR,RAW_OBJECTIVE", "TOEIC_LR,LEGACY_RAW" })
+        void raw_only_history_does_not_fail_or_invent_certificate_scores(String type, String unit) {
+                when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), any(), anyBoolean()))
+                                .thenReturn(List.<Object[]>of(new Object[] { type,
+                                                "LEGACY_RAW".equals(unit) ? null : unit, 30.0, 35.0 }));
+                var attempt = TestAttempt.builder().userId(userId).examId(101).overallScore(BigDecimal.valueOf(30))
+                                .scoreUnit("LEGACY_RAW".equals(unit) ? null : unit).build();
+                attempt.setId(501);
+                var exam = new Exam();
+                exam.setId(101);
+                exam.setType(type);
+                when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED),
+                                any(), anyBoolean(), any(), anyBoolean(), any()))
+                                .thenReturn(List.<Object[]>of(new Object[] { attempt, exam }));
+                when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), any(), anyBoolean(), any(),
+                                anyBoolean()))
+                                .thenReturn(1L);
+                when(testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(eq(userId), any(),
+                                anyBoolean(), any(), anyBoolean()))
+                                .thenReturn(600L);
+                var stats = studentHistoryService.getStudentStats(userId, null, null);
+                assertThat(stats.getAverageScore()).isNull();
+                assertThat(stats.getHighestScore()).isNull();
+                assertThat(stats.getAverageScoresByType()).isEmpty();
+                assertThat(stats.getTotalAttempts()).isEqualTo(1);
+                assertThat(stats.getTotalPracticeMinutes()).isEqualTo(10);
+                assertThat(stats.getRecentScoreTrends()).hasSize(1);
+                assertThat(stats.getRecentScoreTrends().get(0).getScore()).isEqualTo(30);
+                assertThat(stats.getRecentScoreTrends().get(0).getPercentage()).isNull();
+        }
 
-    @Test
-    void empty_history_has_no_certificate_scores() {
-        var stats = studentHistoryService.getStudentStats(userId, null, null);
-        assertThat(stats.getAverageScoresByType()).isEmpty();
-        assertThat(stats.getAverageScore()).isNull();
-        assertThat(stats.getHighestScore()).isNull();
-        assertThat(stats.getRecentScoreTrends()).isEmpty();
-    }
+        @Test
+        void empty_history_has_no_certificate_scores() {
+                var stats = studentHistoryService.getStudentStats(userId, null, null);
+                assertThat(stats.getAverageScoresByType()).isEmpty();
+                assertThat(stats.getAverageScore()).isNull();
+                assertThat(stats.getHighestScore()).isNull();
+                assertThat(stats.getRecentScoreTrends()).isEmpty();
+        }
 
-    @Test
-    void mixed_history_aggregates_only_matching_certificate_units() {
-        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), any(), anyBoolean()))
-                .thenReturn(List.<Object[]>of(
-                        new Object[]{"IELTS_ACADEMIC", null, 39.0, 40.0},
-                        new Object[]{"IELTS_ACADEMIC", "RAW_OBJECTIVE", 35.0, 38.0},
-                        new Object[]{"IELTS_ACADEMIC", "IELTS_BAND", 6.5, 7.0},
-                        new Object[]{"TOEIC_LR", "RAW_OBJECTIVE", 99.0, 100.0},
-                        new Object[]{"TOEIC_LR", "TOEIC_SCALED", 800.0, 900.0}));
-        var stats = studentHistoryService.getStudentStats(userId, "IELTS", null);
-        assertThat(stats.getAverageScoresByType()).containsEntry("IELTS", 6.5).containsEntry("TOEIC_LR", 800.0);
-        assertThat(stats.getAverageScore()).isEqualTo(6.5);
-        assertThat(stats.getHighestScore()).isEqualTo(7.0);
-    }
+        @Test
+        void mixed_history_aggregates_only_matching_certificate_units() {
+                when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), any(), anyBoolean()))
+                                .thenReturn(List.<Object[]>of(
+                                                new Object[] { "IELTS_ACADEMIC", null, 39.0, 40.0 },
+                                                new Object[] { "IELTS_ACADEMIC", "RAW_OBJECTIVE", 35.0, 38.0 },
+                                                new Object[] { "IELTS_ACADEMIC", "IELTS_BAND", 6.5, 7.0 },
+                                                new Object[] { "TOEIC_LR", "RAW_OBJECTIVE", 99.0, 100.0 },
+                                                new Object[] { "TOEIC_LR", "TOEIC_SCALED", 800.0, 900.0 }));
+                var stats = studentHistoryService.getStudentStats(userId, "IELTS", null);
+                assertThat(stats.getAverageScoresByType()).containsEntry("IELTS", 6.5).containsEntry("TOEIC_LR", 800.0);
+                assertThat(stats.getAverageScore()).isEqualTo(6.5);
+                assertThat(stats.getHighestScore()).isEqualTo(7.0);
+        }
 
-    @Mock
-    private TestAttemptRepository testAttemptRepository;
+        @Mock
+        private TestAttemptRepository testAttemptRepository;
 
-    @Mock
-    private ExamRepository examRepository;
+        @Mock
+        private ExamRepository examRepository;
 
-    @Mock
-    private UserStudyStatRepository userStudyStatRepository;
+        @Mock
+        private UserStudyStatRepository userStudyStatRepository;
 
-    @Mock
-    private UserTargetRepository userTargetRepository;
+        @Mock
+        private UserTargetRepository userTargetRepository;
 
-    @InjectMocks
-    private StudentHistoryServiceImpl studentHistoryService;
+        @InjectMocks
+        private StudentHistoryServiceImpl studentHistoryService;
 
-    private Integer userId;
+        private Integer userId;
 
-    @BeforeEach
-    void setUp() {
-        userId = 1;
-    }
+        @BeforeEach
+        void setUp() {
+                userId = 1;
+        }
 
-    @Test
-    @DisplayName("getStudentStats: Tính toán đúng các chỉ số tổng hợp, streak và danh sách trend điểm số")
-    void getStudentStats_ComputesAverageScoreAndTrendCorrectly() {
-        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(5L);
-        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(3L);
-        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.IN_PROGRESS), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(1L);
-        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), eq(AttemptStatus.GRADING_FAILED), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(1L);
-        when(testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(7200L); // 120 minutes
+        @Test
+        @DisplayName("getStudentStats: Tính toán đúng các chỉ số tổng hợp, streak và danh sách trend điểm số")
+        void getStudentStats_ComputesAverageScoreAndTrendCorrectly() {
+                when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(),
+                                anyString(), anyBoolean())).thenReturn(5L);
+                when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId),
+                                eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean()))
+                                .thenReturn(3L);
+                when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId),
+                                eq(AttemptStatus.IN_PROGRESS), anyString(), anyBoolean(), anyString(), anyBoolean()))
+                                .thenReturn(1L);
+                when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId),
+                                eq(AttemptStatus.GRADING_FAILED), anyString(), anyBoolean(), anyString(), anyBoolean()))
+                                .thenReturn(1L);
+                when(testAttemptRepository.sumTimeSpentSecondsByUserIdAndLanguageAndCert(eq(userId), anyString(),
+                                anyBoolean(), anyString(), anyBoolean())).thenReturn(7200L); // 120 minutes
 
-        UserTarget target = new UserTarget();
-        target.setTargetScore(BigDecimal.valueOf(7.0));
-        target.setTargetLanguage("en");
-        target.setTargetCertificate("IELTS");
-        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
+                UserTarget target = new UserTarget();
+                target.setTargetScore(BigDecimal.valueOf(7.0));
+                target.setTargetLanguage("en");
+                target.setTargetCertificate("IELTS");
+                when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
 
-        UserStudyStat studyStat = new UserStudyStat();
-        studyStat.setCurrentStreak(6);
-        when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.of(studyStat));
+                UserStudyStat studyStat = new UserStudyStat();
+                studyStat.setCurrentStreak(6);
+                when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.of(studyStat));
 
-        TestAttempt attempt1 = TestAttempt.builder()
-                .userId(userId)
-                .examId(10)
-                .overallScore(BigDecimal.valueOf(7.5))
-                .scoreUnit("IELTS_BAND")
-                .status(AttemptStatus.COMPLETED)
-                .endTime(Instant.now())
-                .build();
-        attempt1.setId(101);
+                TestAttempt attempt1 = TestAttempt.builder()
+                                .userId(userId)
+                                .examId(10)
+                                .overallScore(BigDecimal.valueOf(7.5))
+                                .scoreUnit("IELTS_BAND")
+                                .status(AttemptStatus.COMPLETED)
+                                .endTime(Instant.now())
+                                .build();
+                attempt1.setId(101);
 
-        Exam exam1 = new Exam();
-        exam1.setId(10);
-        exam1.setTitle("IELTS Academic Test 1");
-        exam1.setType("IELTS_ACADEMIC");
-        exam1.setExamLanguage("en");
+                Exam exam1 = new Exam();
+                exam1.setId(10);
+                exam1.setTitle("IELTS Academic Test 1");
+                exam1.setType("IELTS_ACADEMIC");
+                exam1.setExamLanguage("en");
 
-        List<Object[]> recentRows = new ArrayList<>();
-        recentRows.add(new Object[]{attempt1, exam1});
-        when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean(), any(Pageable.class)))
-                .thenReturn(recentRows);
+                List<Object[]> recentRows = new ArrayList<>();
+                recentRows.add(new Object[] { attempt1, exam1 });
+                when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED),
+                                anyString(), anyBoolean(), anyString(), anyBoolean(), any(Pageable.class)))
+                                .thenReturn(recentRows);
 
-        List<Object[]> avgRows = new ArrayList<>();
-        avgRows.add(new Object[]{"IELTS_ACADEMIC", "IELTS_BAND", 7.2, 8.5});
-        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
-                .thenReturn(avgRows);
+                List<Object[]> avgRows = new ArrayList<>();
+                avgRows.add(new Object[] { "IELTS_ACADEMIC", "IELTS_BAND", 7.2, 8.5 });
+                when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
+                                .thenReturn(avgRows);
 
-        StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
+                StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
 
-        assertThat(response).isNotNull();
-        assertThat(response.getTotalAttempts()).isEqualTo(5L);
-        assertThat(response.getCompletedAttempts()).isEqualTo(3L);
-        assertThat(response.getInProgressAttempts()).isEqualTo(1L);
-        assertThat(response.getFailedAttempts()).isEqualTo(1L);
-        assertThat(response.getAverageScore()).isEqualTo(7.2);
-        assertThat(response.getAverageScoresByType()).containsEntry("IELTS", 7.2);
-        assertThat(response.getHighestScore()).isEqualTo(8.5);
-        assertThat(response.getTotalPracticeMinutes()).isEqualTo(120L);
-        assertThat(response.getCurrentStreak()).isEqualTo(6);
-        assertThat(response.getTargetAchievedCount()).isEqualTo(1L);
-        assertThat(response.getRecentScoreTrends()).hasSize(1);
-        assertThat(response.getRecentScoreTrends().get(0).getCertType()).isEqualTo("IELTS");
-        assertThat(response.getRecentScoreTrends().get(0).getMaxScore()).isEqualTo(9.0);
-    }
+                assertThat(response).isNotNull();
+                assertThat(response.getTotalAttempts()).isEqualTo(5L);
+                assertThat(response.getCompletedAttempts()).isEqualTo(3L);
+                assertThat(response.getInProgressAttempts()).isEqualTo(1L);
+                assertThat(response.getFailedAttempts()).isEqualTo(1L);
+                assertThat(response.getAverageScore()).isEqualTo(7.2);
+                assertThat(response.getAverageScoresByType()).containsEntry("IELTS", 7.2);
+                assertThat(response.getHighestScore()).isEqualTo(8.5);
+                assertThat(response.getTotalPracticeMinutes()).isEqualTo(120L);
+                assertThat(response.getCurrentStreak()).isEqualTo(6);
+                assertThat(response.getTargetAchievedCount()).isEqualTo(1L);
+                assertThat(response.getRecentScoreTrends()).hasSize(1);
+                assertThat(response.getRecentScoreTrends().get(0).getCertType()).isEqualTo("IELTS");
+                assertThat(response.getRecentScoreTrends().get(0).getMaxScore()).isEqualTo(9.0);
+        }
 
-    @Test
-    @DisplayName("getStudentStats: Tính điểm trung bình riêng theo từng loại đề khi học viên làm nhiều loại đề")
-    void getStudentStats_WithMultipleCertTypes_CalculatesAverageScoresByType() {
-        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(4L);
-        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), any(), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
-        UserTarget target = new UserTarget();
-        target.setTargetLanguage("en");
-        target.setTargetCertificate("IELTS");
-        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
-        when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("getStudentStats: Tính điểm trung bình riêng theo từng loại đề khi học viên làm nhiều loại đề")
+        void getStudentStats_WithMultipleCertTypes_CalculatesAverageScoresByType() {
+                when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(),
+                                anyString(), anyBoolean())).thenReturn(4L);
+                when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), any(), anyString(),
+                                anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
+                UserTarget target = new UserTarget();
+                target.setTargetLanguage("en");
+                target.setTargetCertificate("IELTS");
+                when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
+                when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
-        List<Object[]> avgRows = new ArrayList<>();
-        avgRows.add(new Object[]{"IELTS_ACADEMIC", "IELTS_BAND", 7.5, 8.0});
-        avgRows.add(new Object[]{"TOEIC_LR", "TOEIC_SCALED", 750.0, 850.0});
-        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
-                .thenReturn(avgRows);
+                List<Object[]> avgRows = new ArrayList<>();
+                avgRows.add(new Object[] { "IELTS_ACADEMIC", "IELTS_BAND", 7.5, 8.0 });
+                avgRows.add(new Object[] { "TOEIC_LR", "TOEIC_SCALED", 750.0, 850.0 });
+                when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
+                                .thenReturn(avgRows);
 
-        StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
+                StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
 
-        assertThat(response).isNotNull();
-        // Điểm TB tổng quát ưu tiên hiển thị theo target certificate (IELTS) thay vì gộp số học vô nghĩa
-        assertThat(response.getAverageScore()).isEqualTo(7.5);
-        // Có đầy đủ điểm TB riêng cho từng loại đề
-        assertThat(response.getAverageScoresByType()).containsEntry("IELTS", 7.5);
-        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_LR", 750.0);
-    }
+                assertThat(response).isNotNull();
+                // Điểm TB tổng quát ưu tiên hiển thị theo target certificate (IELTS) thay vì
+                // gộp số học vô nghĩa
+                assertThat(response.getAverageScore()).isEqualTo(7.5);
+                // Có đầy đủ điểm TB riêng cho từng loại đề
+                assertThat(response.getAverageScoresByType()).containsEntry("IELTS", 7.5);
+                assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_LR", 750.0);
+        }
 
-    @Test
-    @DisplayName("getStudentStats: Tách bạch hoàn toàn TOEIC_LR (thang 990) và TOEIC_WRITING (thang 200)")
-    void getStudentStats_SeparatesToeicLrAndToeicWriting() {
-        when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
-        when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), any(), anyString(), anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
-        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
-        when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("getStudentStats: Tách bạch hoàn toàn TOEIC_LR (thang 990) và TOEIC_WRITING (thang 200)")
+        void getStudentStats_SeparatesToeicLrAndToeicWriting() {
+                when(testAttemptRepository.countByUserIdAndLanguageAndCert(eq(userId), anyString(), anyBoolean(),
+                                anyString(), anyBoolean())).thenReturn(2L);
+                when(testAttemptRepository.countByUserIdAndStatusAndLanguageAndCert(eq(userId), any(), anyString(),
+                                anyBoolean(), anyString(), anyBoolean())).thenReturn(2L);
+                when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
+                when(userStudyStatRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
-        List<Object[]> avgRows = new ArrayList<>();
-        avgRows.add(new Object[]{"TOEIC_LR", "TOEIC_SCALED", 850.0, 900.0});
-        avgRows.add(new Object[]{"TOEIC_WRITING", "TOEIC_WRITING", 160.0, 180.0});
-        when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
-                .thenReturn(avgRows);
+                List<Object[]> avgRows = new ArrayList<>();
+                avgRows.add(new Object[] { "TOEIC_LR", "TOEIC_SCALED", 850.0, 900.0 });
+                avgRows.add(new Object[] { "TOEIC_WRITING", "TOEIC_WRITING", 160.0, 180.0 });
+                when(testAttemptRepository.findAverageScoresGroupedByType(eq(userId), anyString(), anyBoolean()))
+                                .thenReturn(avgRows);
 
-        TestAttempt lrAttempt = TestAttempt.builder().userId(userId).examId(1).overallScore(BigDecimal.valueOf(850.0)).scoreUnit("TOEIC_SCALED").build();
-        lrAttempt.setId(1);
-        Exam lrExam = new Exam(); lrExam.setId(1); lrExam.setType("TOEIC_LR"); lrExam.setTitle("ETS Test 1");
+                TestAttempt lrAttempt = TestAttempt.builder().userId(userId).examId(1)
+                                .overallScore(BigDecimal.valueOf(850.0)).scoreUnit("TOEIC_SCALED").build();
+                lrAttempt.setId(1);
+                Exam lrExam = new Exam();
+                lrExam.setId(1);
+                lrExam.setType("TOEIC_LR");
+                lrExam.setTitle("ETS Test 1");
 
-        TestAttempt twAttempt = TestAttempt.builder().userId(userId).examId(2).overallScore(BigDecimal.valueOf(160.0)).scoreUnit("TOEIC_WRITING").build();
-        twAttempt.setId(2);
-        Exam twExam = new Exam(); twExam.setId(2); twExam.setType("TOEIC_WRITING"); twExam.setTitle("Writing Test 1");
+                TestAttempt twAttempt = TestAttempt.builder().userId(userId).examId(2)
+                                .overallScore(BigDecimal.valueOf(160.0)).scoreUnit("TOEIC_WRITING").build();
+                twAttempt.setId(2);
+                Exam twExam = new Exam();
+                twExam.setId(2);
+                twExam.setType("TOEIC_WRITING");
+                twExam.setTitle("Writing Test 1");
 
-        when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED), anyString(), anyBoolean(), anyString(), anyBoolean(), any(Pageable.class)))
-                .thenReturn(List.of(new Object[]{twAttempt, twExam}, new Object[]{lrAttempt, lrExam}));
+                when(testAttemptRepository.findRecentAttemptsWithExam(eq(userId), eq(AttemptStatus.COMPLETED),
+                                anyString(), anyBoolean(), anyString(), anyBoolean(), any(Pageable.class)))
+                                .thenReturn(List.of(new Object[] { twAttempt, twExam },
+                                                new Object[] { lrAttempt, lrExam }));
 
-        StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
+                StudentHistoryStatsResponse response = studentHistoryService.getStudentStats(userId);
 
-        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_LR", 850.0);
-        assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_WRITING", 160.0);
-        assertThat(response.getRecentScoreTrends()).hasSize(2);
-        
-        var firstTrend = response.getRecentScoreTrends().get(0);
-        assertThat(firstTrend.getCertType()).isEqualTo("TOEIC_LR");
-        assertThat(firstTrend.getMaxScore()).isEqualTo(990.0);
+                assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_LR", 850.0);
+                assertThat(response.getAverageScoresByType()).containsEntry("TOEIC_WRITING", 160.0);
+                assertThat(response.getRecentScoreTrends()).hasSize(2);
 
-        var secondTrend = response.getRecentScoreTrends().get(1);
-        assertThat(secondTrend.getCertType()).isEqualTo("TOEIC_WRITING");
-        assertThat(secondTrend.getMaxScore()).isEqualTo(200.0);
-    }
+                var firstTrend = response.getRecentScoreTrends().get(0);
+                assertThat(firstTrend.getCertType()).isEqualTo("TOEIC_LR");
+                assertThat(firstTrend.getMaxScore()).isEqualTo(990.0);
 
-    @Test
-    @DisplayName("getStudentHistory: Lọc danh sách lượt thi phân trang chính xác")
-    void getStudentHistory_AppliesCertificateAndStatusFilter() {
-        TestAttempt attempt = TestAttempt.builder()
-                .userId(userId)
-                .examId(20)
-                .overallScore(BigDecimal.valueOf(800.0))
-                .scoreUnit("TOEIC_SCALED")
-                .status(AttemptStatus.COMPLETED)
-                .testMode(TestMode.MOCK_TEST)
-                .testScope(TestScope.FULL_EXAM)
-                .startTime(Instant.now().minusSeconds(3600))
-                .endTime(Instant.now())
-                .timeSpentSeconds(3600)
-                .build();
-        attempt.setId(201);
+                var secondTrend = response.getRecentScoreTrends().get(1);
+                assertThat(secondTrend.getCertType()).isEqualTo("TOEIC_WRITING");
+                assertThat(secondTrend.getMaxScore()).isEqualTo(200.0);
+        }
 
-        Exam exam = new Exam();
-        exam.setId(20);
-        exam.setCode("TOEIC-2024-01");
-        exam.setTitle("TOEIC ETS 2024 Test 1");
-        exam.setType("TOEIC_LR");
-        exam.setExamLanguage("en");
+        @Test
+        @DisplayName("getStudentHistory: Lọc danh sách lượt thi phân trang chính xác")
+        void getStudentHistory_AppliesCertificateAndStatusFilter() {
+                TestAttempt attempt = TestAttempt.builder()
+                                .userId(userId)
+                                .examId(20)
+                                .overallScore(BigDecimal.valueOf(800.0))
+                                .scoreUnit("TOEIC_SCALED")
+                                .status(AttemptStatus.COMPLETED)
+                                .testMode(TestMode.MOCK_TEST)
+                                .testScope(TestScope.FULL_EXAM)
+                                .startTime(Instant.now().minusSeconds(3600))
+                                .endTime(Instant.now())
+                                .timeSpentSeconds(3600)
+                                .build();
+                attempt.setId(201);
 
-        UserTarget target = new UserTarget();
-        target.setTargetScore(BigDecimal.valueOf(750.0));
-        target.setTargetCertificate("TOEIC_LR");
-        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
+                Exam exam = new Exam();
+                exam.setId(20);
+                exam.setCode("TOEIC-2024-01");
+                exam.setTitle("TOEIC ETS 2024 Test 1");
+                exam.setType("TOEIC_LR");
+                exam.setExamLanguage("en");
 
-        List<Object[]> rows = new ArrayList<>();
-        rows.add(new Object[]{attempt, exam});
-        PageImpl<Object[]> pageResult = new PageImpl<>(rows);
+                UserTarget target = new UserTarget();
+                target.setTargetScore(BigDecimal.valueOf(750.0));
+                target.setTargetCertificate("TOEIC_LR");
+                when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
 
-        when(testAttemptRepository.findUserAttemptsWithExam(
-                eq(userId),
-                anyString(),
-                anyBoolean(),
-                anyString(),
-                anyBoolean(),
-                eq("TOEIC"),
-                eq(true),
-                eq(TestMode.MOCK_TEST),
-                eq(true),
-                eq(AttemptStatus.COMPLETED),
-                eq(true),
-                any(Pageable.class)
-        )).thenReturn(pageResult);
+                List<Object[]> rows = new ArrayList<>();
+                rows.add(new Object[] { attempt, exam });
+                PageImpl<Object[]> pageResult = new PageImpl<>(rows);
 
-        PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
-                userId, "", "TOEIC", "MOCK_TEST", "COMPLETED", 0, 10, "newest"
-        );
+                when(testAttemptRepository.findUserAttemptsWithExam(
+                                eq(userId),
+                                anyString(),
+                                anyBoolean(),
+                                anyString(),
+                                anyBoolean(),
+                                eq("TOEIC"),
+                                eq(true),
+                                eq(TestMode.MOCK_TEST),
+                                eq(true),
+                                eq(AttemptStatus.COMPLETED),
+                                eq(true),
+                                any(Pageable.class))).thenReturn(pageResult);
 
-        assertThat(pageResponse).isNotNull();
-        assertThat(pageResponse.getItems()).hasSize(1);
-        StudentHistoryItemResponse item = pageResponse.getItems().get(0);
-        assertThat(item.getAttemptId()).isEqualTo(201);
-        assertThat(item.getExamTitle()).isEqualTo("TOEIC ETS 2024 Test 1");
-        assertThat(item.getExamType()).isEqualTo("TOEIC_LR");
-        assertThat(item.getOverallScore()).isEqualTo(800.0);
-        assertThat(item.getMaxScore()).isEqualTo(990.0);
-        assertThat(item.getDurationMinutes()).isEqualTo(60);
-        assertThat(item.getTargetAchieved()).isTrue();
-    }
+                PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
+                                userId, "", "TOEIC", "MOCK_TEST", "COMPLETED", 0, 10, "newest");
 
-    @Test
-    @DisplayName("getStudentHistory: Trả về danh sách rỗng khi user chưa có bài thi nào")
-    void getStudentHistory_ReturnsEmptyWhenNoAttempts() {
-        List<Object[]> emptyRows = new ArrayList<>();
-        PageImpl<Object[]> emptyPage = new PageImpl<>(emptyRows);
+                assertThat(pageResponse).isNotNull();
+                assertThat(pageResponse.getItems()).hasSize(1);
+                StudentHistoryItemResponse item = pageResponse.getItems().get(0);
+                assertThat(item.getAttemptId()).isEqualTo(201);
+                assertThat(item.getExamTitle()).isEqualTo("TOEIC ETS 2024 Test 1");
+                assertThat(item.getExamType()).isEqualTo("TOEIC_LR");
+                assertThat(item.getOverallScore()).isEqualTo(800.0);
+                assertThat(item.getMaxScore()).isEqualTo(990.0);
+                assertThat(item.getDurationMinutes()).isEqualTo(60);
+                assertThat(item.getTargetAchieved()).isTrue();
+        }
 
-        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("getStudentHistory: Trả về danh sách rỗng khi user chưa có bài thi nào")
+        void getStudentHistory_ReturnsEmptyWhenNoAttempts() {
+                List<Object[]> emptyRows = new ArrayList<>();
+                PageImpl<Object[]> emptyPage = new PageImpl<>(emptyRows);
 
-        when(testAttemptRepository.findUserAttemptsWithExam(
-                eq(userId),
-                anyString(),
-                anyBoolean(),
-                anyString(),
-                anyBoolean(),
-                anyString(),
-                anyBoolean(),
-                any(),
-                anyBoolean(),
-                any(),
-                anyBoolean(),
-                any(Pageable.class)
-        )).thenReturn(emptyPage);
+                when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
 
-        PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
-                userId, null, null, null, null, 0, 10, null
-        );
+                when(testAttemptRepository.findUserAttemptsWithExam(
+                                eq(userId),
+                                anyString(),
+                                anyBoolean(),
+                                anyString(),
+                                anyBoolean(),
+                                anyString(),
+                                anyBoolean(),
+                                any(),
+                                anyBoolean(),
+                                any(),
+                                anyBoolean(),
+                                any(Pageable.class))).thenReturn(emptyPage);
 
-        assertThat(pageResponse).isNotNull();
-        assertThat(pageResponse.getItems()).isEmpty();
-        assertThat(pageResponse.getTotalElements()).isEqualTo(0);
-    }
+                PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
+                                userId, null, null, null, null, 0, 10, null);
 
-    @Test
-    @DisplayName("getStudentHistory: Xử lý an toàn khi bài thi đã bị xóa khỏi hệ thống (Exam là null)")
-    void getStudentHistory_HandlesDeletedExam_WithLeftJoinFallback() {
-        TestAttempt attempt = TestAttempt.builder()
-                .userId(userId)
-                .examId(999)
-                .overallScore(null)
-                .status(AttemptStatus.GRADING_FAILED)
-                .testMode(TestMode.PRACTICE)
-                .testScope(TestScope.FULL_EXAM)
-                .startTime(Instant.now().minusSeconds(180))
-                .endTime(Instant.now())
-                .timeSpentSeconds(180)
-                .build();
-        attempt.setId(301);
+                assertThat(pageResponse).isNotNull();
+                assertThat(pageResponse.getItems()).isEmpty();
+                assertThat(pageResponse.getTotalElements()).isEqualTo(0);
+        }
 
-        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("getStudentHistory: Xử lý an toàn khi bài thi đã bị xóa khỏi hệ thống (Exam là null)")
+        void getStudentHistory_HandlesDeletedExam_WithLeftJoinFallback() {
+                TestAttempt attempt = TestAttempt.builder()
+                                .userId(userId)
+                                .examId(999)
+                                .overallScore(null)
+                                .status(AttemptStatus.GRADING_FAILED)
+                                .testMode(TestMode.PRACTICE)
+                                .testScope(TestScope.FULL_EXAM)
+                                .startTime(Instant.now().minusSeconds(180))
+                                .endTime(Instant.now())
+                                .timeSpentSeconds(180)
+                                .build();
+                attempt.setId(301);
 
-        List<Object[]> rows = new ArrayList<>();
-        // Record with null Exam (LEFT JOIN when exam was deleted)
-        rows.add(new Object[]{attempt, null});
-        PageImpl<Object[]> pageResult = new PageImpl<>(rows);
+                when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.empty());
 
-        when(testAttemptRepository.findUserAttemptsWithExam(
-                eq(userId),
-                anyString(),
-                anyBoolean(),
-                anyString(),
-                anyBoolean(),
-                anyString(),
-                anyBoolean(),
-                any(),
-                anyBoolean(),
-                any(),
-                anyBoolean(),
-                any(Pageable.class)
-        )).thenReturn(pageResult);
+                List<Object[]> rows = new ArrayList<>();
+                // Record with null Exam (LEFT JOIN when exam was deleted)
+                rows.add(new Object[] { attempt, null });
+                PageImpl<Object[]> pageResult = new PageImpl<>(rows);
 
-        PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
-                userId, null, null, null, null, 0, 10, null
-        );
+                when(testAttemptRepository.findUserAttemptsWithExam(
+                                eq(userId),
+                                anyString(),
+                                anyBoolean(),
+                                anyString(),
+                                anyBoolean(),
+                                anyString(),
+                                anyBoolean(),
+                                any(),
+                                anyBoolean(),
+                                any(),
+                                anyBoolean(),
+                                any(Pageable.class))).thenReturn(pageResult);
 
-        assertThat(pageResponse).isNotNull();
-        assertThat(pageResponse.getItems()).hasSize(1);
-        StudentHistoryItemResponse item = pageResponse.getItems().get(0);
-        assertThat(item.getAttemptId()).isEqualTo(301);
-        assertThat(item.getExamId()).isEqualTo(999);
-        assertThat(item.getExamTitle()).isEqualTo("Đề thi đã ngừng phát hành (#999)");
-        assertThat(item.getExamCode()).isEqualTo("N/A");
-        assertThat(item.getIsExamDeleted()).isTrue();
-        assertThat(item.getStatus()).isEqualTo("GRADING_FAILED");
-    }
+                PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
+                                userId, null, null, null, null, 0, 10, null);
 
-    @Test
-    @DisplayName("getStudentHistory: Áp dụng ngôn ngữ mục tiêu của user để loại bỏ đề khác ngôn ngữ")
-    void getStudentHistory_AppliesTargetLanguageFilter() {
-        UserTarget target = new UserTarget();
-        target.setTargetLanguage("vi");
-        target.setTargetCertificate("NLTV");
-        when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
+                assertThat(pageResponse).isNotNull();
+                assertThat(pageResponse.getItems()).hasSize(1);
+                StudentHistoryItemResponse item = pageResponse.getItems().get(0);
+                assertThat(item.getAttemptId()).isEqualTo(301);
+                assertThat(item.getExamId()).isEqualTo(999);
+                assertThat(item.getExamTitle()).isEqualTo("Đề thi đã ngừng phát hành (#999)");
+                assertThat(item.getExamCode()).isEqualTo("N/A");
+                assertThat(item.getIsExamDeleted()).isTrue();
+                assertThat(item.getStatus()).isEqualTo("GRADING_FAILED");
+        }
 
-        List<Object[]> rows = new ArrayList<>();
-        PageImpl<Object[]> pageResult = new PageImpl<>(rows);
+        @Test
+        @DisplayName("getStudentHistory: Áp dụng ngôn ngữ mục tiêu của user để loại bỏ đề khác ngôn ngữ")
+        void getStudentHistory_AppliesTargetLanguageFilter() {
+                UserTarget target = new UserTarget();
+                target.setTargetLanguage("vi");
+                target.setTargetCertificate("NLTV");
+                when(userTargetRepository.findFirstByUserId(userId)).thenReturn(Optional.of(target));
 
-        when(testAttemptRepository.findUserAttemptsWithExam(
-                eq(userId),
-                eq("vi"),
-                eq(true),
-                anyString(),
-                anyBoolean(),
-                anyString(),
-                anyBoolean(),
-                any(),
-                anyBoolean(),
-                any(),
-                anyBoolean(),
-                any(Pageable.class)
-        )).thenReturn(pageResult);
+                List<Object[]> rows = new ArrayList<>();
+                PageImpl<Object[]> pageResult = new PageImpl<>(rows);
 
-        PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
-                userId, null, null, null, null, 0, 10, null
-        );
+                when(testAttemptRepository.findUserAttemptsWithExam(
+                                eq(userId),
+                                eq("vi"),
+                                eq(true),
+                                anyString(),
+                                anyBoolean(),
+                                anyString(),
+                                anyBoolean(),
+                                any(),
+                                anyBoolean(),
+                                any(),
+                                anyBoolean(),
+                                any(Pageable.class))).thenReturn(pageResult);
 
-        assertThat(pageResponse).isNotNull();
-        assertThat(pageResponse.getItems()).isEmpty();
-    }
+                PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
+                                userId, null, null, null, null, 0, 10, null);
+
+                assertThat(pageResponse).isNotNull();
+                assertThat(pageResponse.getItems()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("getStudentHistory: TOEIC single skill có điểm tối đa 450, full exam là 990, và làm lẻ part hiển thị số câu đúng")
+        void getStudentHistory_ToeicSingleSkillHasMaxScore450AndPartPracticeIsRawCount() {
+                Exam fullToeic = new Exam();
+                fullToeic.setId(1);
+                fullToeic.setType("TOEIC_LR");
+                fullToeic.setExamLanguage("en");
+                TestAttempt fullAttempt = TestAttempt.builder()
+                                .userId(userId).examId(1).testScope(TestScope.FULL_EXAM).scoreUnit("TOEIC_SCALED")
+                                .overallScore(BigDecimal.valueOf(860)).build();
+                fullAttempt.setId(21);
+
+                Exam listeningToeic = new Exam();
+                listeningToeic.setId(2);
+                listeningToeic.setType("TOEIC_LISTENING");
+                listeningToeic.setExamLanguage("en");
+                TestAttempt listeningAttempt = TestAttempt.builder()
+                                .userId(userId).examId(2).testScope(TestScope.SINGLE_SKILL).scoreUnit("TOEIC_SCALED")
+                                .overallScore(BigDecimal.valueOf(450)).build();
+                listeningAttempt.setId(22);
+
+                Exam part5Exam = new Exam();
+                part5Exam.setId(3);
+                part5Exam.setType("TOEIC_READING");
+                part5Exam.setExamLanguage("en");
+                TestAttempt partAttempt = TestAttempt.builder()
+                                .userId(userId).examId(3).testScope(TestScope.SINGLE_PART).scoreUnit("TOEIC_SCALED")
+                                .overallScore(BigDecimal.valueOf(26))
+                                .resultSummary("{\"totalObjectiveCount\": 30}")
+                                .build();
+                partAttempt.setId(34);
+
+                List<Object[]> rows = List.of(
+                                new Object[] { fullAttempt, fullToeic },
+                                new Object[] { listeningAttempt, listeningToeic },
+                                new Object[] { partAttempt, part5Exam });
+                PageImpl<Object[]> pageResult = new PageImpl<>(rows);
+
+                when(testAttemptRepository.findUserAttemptsWithExam(
+                                eq(userId), any(), anyBoolean(), any(), anyBoolean(), any(), anyBoolean(), any(),
+                                anyBoolean(), any(), anyBoolean(), any(Pageable.class))).thenReturn(pageResult);
+
+                PageResponse<StudentHistoryItemResponse> pageResponse = studentHistoryService.getStudentHistory(
+                                userId, null, null, null, null, 0, 10, null);
+
+                assertThat(pageResponse.getItems()).hasSize(3);
+
+                // 1. Full TOEIC
+                StudentHistoryItemResponse itemFull = pageResponse.getItems().get(0);
+                assertThat(itemFull.getOverallScore()).isEqualTo(860.0);
+                assertThat(itemFull.getMaxScore()).isEqualTo(990.0);
+                assertThat(itemFull.getScoreUnit()).isEqualTo("TOEIC_SCALED");
+                assertThat(itemFull.getAccuracyPercentage()).isEqualTo(86.9);
+
+                // 2. Single Skill TOEIC
+                StudentHistoryItemResponse itemSkill = pageResponse.getItems().get(1);
+                assertThat(itemSkill.getOverallScore()).isEqualTo(450.0);
+                assertThat(itemSkill.getMaxScore()).isEqualTo(450.0);
+                assertThat(itemSkill.getScoreUnit()).isEqualTo("TOEIC_SCALED");
+                assertThat(itemSkill.getAccuracyPercentage()).isEqualTo(100.0);
+
+                // 3. Single Part Practice
+                StudentHistoryItemResponse itemPart = pageResponse.getItems().get(2);
+                assertThat(itemPart.getOverallScore()).isEqualTo(26.0);
+                assertThat(itemPart.getMaxScore()).isEqualTo(30.0);
+                assertThat(itemPart.getScoreUnit()).isEqualTo("RAW_OBJECTIVE");
+                assertThat(itemPart.getAccuracyPercentage()).isEqualTo(86.7);
+        }
 }
