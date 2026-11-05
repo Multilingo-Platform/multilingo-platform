@@ -123,9 +123,12 @@ export const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({
                       <Clock size={14} className="text-amber-500" />
                       <span>Tổng giờ học</span>
                     </div>
-                    <span className="text-base font-bold text-gray-900">
-                      {Math.round((user.totalLearningMinutes / 60) * 10) / 10} giờ
-                    </span>
+                    <div className="text-base font-bold text-gray-900 leading-tight">
+                      {(Number(user.totalLearningMinutes || 0) / 60).toFixed(2)} giờ
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">
+                      {(user.totalLearningMinutes ?? 0).toLocaleString()} phút
+                    </div>
                   </div>
 
                   <div className="p-3 bg-white border border-gray-200 rounded-xl">
