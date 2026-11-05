@@ -335,7 +335,6 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
     if (isConfirmed) {
       quizSessionStore.clearActiveSession(deck.id);
       if (session) quizSessionStore.clearProgress(session.sessionId);
-      frozenPayloadRef.current = null;
       onBack();
     }
   }, [submissionResult, session, onBack, deck.id]);
