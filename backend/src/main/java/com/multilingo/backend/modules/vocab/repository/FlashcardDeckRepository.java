@@ -15,4 +15,8 @@ public interface FlashcardDeckRepository extends JpaRepository<FlashcardDeck, In
     Optional<FlashcardDeck> findByIdAndUserId(Integer id, Integer userId);
 
     boolean existsByIdAndUserId(Integer id, Integer userId);
+
+    boolean existsByUserIdAndNameIgnoreCase(Integer userId, String name);
+
+    boolean existsByUserIdAndNameIgnoreCaseAndIdNot(Integer userId, String name, Integer id);
 }

@@ -180,19 +180,18 @@ class FlashcardStudyControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/vocab/cards/{cardId}/review - Rating để trống trả về lỗi validation 422")
+    @DisplayName("POST /api/v1/vocab/cards/{cardId}/review - Rating để trống trả về lỗi validation")
     void reviewCard_blankRating_validationError() throws Exception {
         ReviewCardRequest request = ReviewCardRequest.builder()
                 .rating("")
                 .build();
 
-        // Base Architecture quy định MethodArgumentNotValidException trả về 422 UNPROCESSABLE_ENTITY
         mockMvc.perform(post("/api/v1/vocab/cards/101/review")
                         .header("X-User-Id", 1)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value(422));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1213));
     }
 
     @Test

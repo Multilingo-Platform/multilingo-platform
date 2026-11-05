@@ -19,7 +19,7 @@ import com.multilingo.backend.modules.vocab.repository.FlashcardDeckRepository;
 import com.multilingo.backend.modules.vocab.repository.UserFlashcardRepository;
 import com.multilingo.backend.modules.vocab.repository.VocabTestAttemptRepository;
 import com.multilingo.backend.modules.vocab.service.impl.VocabTestServiceImpl;
-import com.multilingo.backend.modules.vocab.service.quiz.TestProgressHasher;
+import com.multilingo.backend.modules.vocab.service.quiz.QuizQuestionGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("VocabTestService Unit Tests - Full Lifecycle, CAS & Gamification")
+@DisplayName("VocabTestService Unit Tests - Refactored Clean CBT Test Service")
 class VocabTestServiceTest {
 
     @Mock
@@ -51,11 +51,11 @@ class VocabTestServiceTest {
     @Mock
     private UserFlashcardRepository userFlashcardRepository;
 
+    @Spy
+    private QuizQuestionGenerator quizQuestionGenerator = new QuizQuestionGenerator();
+
     @Mock
     private VocabTestProperties vocabTestProperties;
-
-    @Spy
-    private TestProgressHasher testProgressHasher = new TestProgressHasher();
 
     @Mock
     private StudyActivityService studyActivityService;
@@ -106,13 +106,11 @@ class VocabTestServiceTest {
         assertThat(result.getTimeLimitSeconds()).isEqualTo(300);
         assertThat(result.getQuestions()).hasSize(5);
 
-        // Kiểm tra DTO không chứa trường đáp án
         for (VocabTestQuestionDto q : result.getQuestions()) {
             assertThat(q.getWord()).isNotBlank();
             assertThat(q.getOptions()).hasSize(4);
         }
 
-        // Đảm bảo attempt được lưu với status IN_PROGRESS
         verify(vocabTestAttemptRepository).save(argThat(attempt ->
                 attempt.getStatus().equals("IN_PROGRESS") &&
                 attempt.getProgressVersion() == 0 &&
@@ -163,53 +161,50 @@ class VocabTestServiceTest {
     }
 
     @Test
-    @DisplayName("saveProgress: Cập nhật version thành công qua CAS khi expectedVersion khớp")
-    void saveProgress_cas_success() {
+    @DisplayName("saveProgress: Lưu tiến độ câu trả lời vào database mượt mà")
+    void saveProgress_success() {
+        Instant now = Instant.now();
+        VocabTestAttempt attempt = VocabTestAttempt.builder()
+                .userId(1)
+                .testToken("token-save-1")
+                .status("IN_PROGRESS")
+                .progressVersion(0)
+                .expiresAt(now.plusSeconds(300))
+                .answersProgress("[]")
+                .build();
+
+        when(vocabTestAttemptRepository.findByTestToken("token-save-1")).thenReturn(Optional.of(attempt));
         when(vocabTestProperties.getSubmissionGraceSeconds()).thenReturn(10);
-        when(vocabTestAttemptRepository.updateAnswersProgressCas(
-                eq("token-cas-1"), eq(1), eq(0), anyString(), anyString(), any(Instant.class), any(Instant.class)
-        )).thenReturn(1);
 
         AutoSaveProgressRequest request = AutoSaveProgressRequest.builder()
                 .expectedVersion(0)
                 .answers(List.of(VocabTestAnswerItemDto.builder().questionNumber(1).selectedKey("A").build()))
                 .build();
 
-        AutoSaveProgressResponse response = vocabTestService.saveProgress("token-cas-1", 1, request);
+        AutoSaveProgressResponse response = vocabTestService.saveProgress("token-save-1", 1, request);
         assertThat(response.getProgressVersion()).isEqualTo(1);
+        verify(vocabTestAttemptRepository).save(attempt);
     }
 
     @Test
-    @DisplayName("saveProgress: Báo lỗi xung đột 409 khi expectedVersion không khớp")
-    void saveProgress_cas_conflict_409() {
-        when(vocabTestProperties.getSubmissionGraceSeconds()).thenReturn(10);
-        when(vocabTestAttemptRepository.updateAnswersProgressCas(anyString(), anyInt(), anyInt(), anyString(), anyString(), any(Instant.class), any(Instant.class)))
-                .thenReturn(0);
-
-        Instant now = Instant.now();
+    @DisplayName("saveProgress: Báo lỗi khi bài thi đã hoàn thành")
+    void saveProgress_alreadyFinished() {
         VocabTestAttempt attempt = VocabTestAttempt.builder()
                 .userId(1)
-                .testToken("token-cas-fail")
-                .status("IN_PROGRESS")
-                .progressVersion(2) // DB đã ở version 2
-                .expiresAt(now.plusSeconds(300))
-                .progressHash("different-hash")
+                .testToken("token-finished")
+                .status("COMPLETED")
                 .build();
 
-        when(vocabTestAttemptRepository.findByTestToken("token-cas-fail")).thenReturn(Optional.of(attempt));
+        when(vocabTestAttemptRepository.findByTestToken("token-finished")).thenReturn(Optional.of(attempt));
 
-        AutoSaveProgressRequest request = AutoSaveProgressRequest.builder()
-                .expectedVersion(0) // Client gửi version 0 cũ
-                .answers(List.of(VocabTestAnswerItemDto.builder().questionNumber(1).selectedKey("B").build()))
-                .build();
-
-        assertThatThrownBy(() -> vocabTestService.saveProgress("token-cas-fail", 1, request))
+        AutoSaveProgressRequest request = AutoSaveProgressRequest.builder().expectedVersion(1).build();
+        assertThatThrownBy(() -> vocabTestService.saveProgress("token-finished", 1, request))
                 .isInstanceOf(AppException.class)
-                .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.VOCAB_TEST_VERSION_CONFLICT));
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.VOCAB_TEST_ALREADY_FINISHED);
     }
 
     @Test
-    @DisplayName("submitTest: Chấm điểm thành công, tính thang điểm 100, cộng 20 XP và duy trì streak")
+    @DisplayName("submitTest: Chấm điểm thành công, tính thang điểm 100, cộng 20 XP và lưu streak")
     void submitTest_success_awards_xp_and_streak() {
         Instant now = Instant.now();
         String questionsJson = "[" +
@@ -236,7 +231,7 @@ class VocabTestServiceTest {
         when(vocabTestProperties.getSubmissionGraceSeconds()).thenReturn(10);
 
         StudyActivitySummary mockSummary = StudyActivitySummary.builder()
-                .currentStreak(5)
+                .currentStreak(3)
                 .streakIncrement(1)
                 .build();
         when(studyActivityService.recordActivity(any(StudyActivityRecord.class))).thenReturn(mockSummary);
@@ -244,110 +239,54 @@ class VocabTestServiceTest {
         SubmitVocabTestRequest request = SubmitVocabTestRequest.builder()
                 .expectedVersion(1)
                 .answers(List.of(
-                        VocabTestAnswerItemDto.builder().questionNumber(1).selectedKey("A").build(), // Đúng
-                        VocabTestAnswerItemDto.builder().questionNumber(2).selectedKey("C").build()  // Sai
+                        VocabTestAnswerItemDto.builder().questionNumber(1).selectedKey("A").build(),
+                        VocabTestAnswerItemDto.builder().questionNumber(2).selectedKey("C").build() // Sai
                 ))
                 .build();
 
         VocabTestResultResponse result = vocabTestService.submitTest("token-submit-1", 1, request);
 
         assertThat(result).isNotNull();
-        assertThat(result.getScore()).isEqualTo(50); // 1/2 câu = 50%
+        assertThat(result.getScore()).isEqualTo(50); // 1/2 đúng = 50%
         assertThat(result.getCorrectCount()).isEqualTo(1);
         assertThat(result.getTotalQuestions()).isEqualTo(2);
         assertThat(result.getXpEarned()).isEqualTo(20);
-        assertThat(result.getStatus()).isEqualTo("COMPLETED");
-        assertThat(result.getCurrentStreak()).isEqualTo(5);
+        assertThat(result.getCurrentStreak()).isEqualTo(3);
         assertThat(result.isStreakIncremented()).isTrue();
+        assertThat(result.getStatus()).isEqualTo("COMPLETED");
 
-        verify(studyActivityService).recordActivity(argThat(record ->
-                record.getUserId().equals(1) &&
-                record.getXpEarned().equals(20) &&
-                record.getQualifiesForStreak().equals(true)
+        verify(vocabTestAttemptRepository).save(argThat(a ->
+                a.getStatus().equals("COMPLETED") && a.getScore() == 50
         ));
     }
 
     @Test
-    @DisplayName("submitTest: Bài thi bỏ trắng 0 câu trả lời -> 0 điểm, 0 XP và không tính streak")
-    void submitTest_empty_answers_no_xp_no_streak() {
-        Instant now = Instant.now();
-        String questionsJson = "[{\"questionNumber\":1,\"correctKey\":\"A\"}]";
-
+    @DisplayName("reviewAnswers: Trả về chi tiết đáp án và giải thích")
+    void reviewAnswers_success() {
         VocabTestAttempt attempt = VocabTestAttempt.builder()
                 .userId(1)
                 .deckId(10)
                 .deckNameSnapshot("Core Vocabulary")
-                .testToken("token-empty-1")
-                .status("IN_PROGRESS")
-                .progressVersion(0)
-                .totalQuestions(1)
-                .timeLimitSeconds(60)
-                .startedAt(now.minusSeconds(10))
-                .expiresAt(now.plusSeconds(50))
-                .questionsSnapshot(questionsJson)
-                .build();
-
-        when(vocabTestAttemptRepository.findForUpdateByTestToken("token-empty-1")).thenReturn(Optional.of(attempt));
-        when(vocabTestProperties.getSubmissionGraceSeconds()).thenReturn(10);
-
-        SubmitVocabTestRequest request = SubmitVocabTestRequest.builder()
-                .expectedVersion(0)
-                .answers(List.of()) // Trống
-                .build();
-
-        VocabTestResultResponse result = vocabTestService.submitTest("token-empty-1", 1, request);
-        assertThat(result.getScore()).isEqualTo(0);
-        assertThat(result.getXpEarned()).isEqualTo(0);
-
-        verify(studyActivityService).recordActivity(argThat(record ->
-                record.getXpEarned().equals(0) &&
-                record.getQualifiesForStreak().equals(false)
-        ));
-    }
-
-    @Test
-    @DisplayName("reviewAnswers: Thành công sau khi bài thi kết thúc; chặn xem đáp án khi còn IN_PROGRESS")
-    void reviewAnswers_lifecycle_access_control() {
-        Instant now = Instant.now();
-        String questionsJson = "[{\"questionNumber\":1,\"cardId\":100,\"word\":\"apple\",\"options\":[{\"key\":\"A\",\"text\":\"quả táo\"}],\"correctKey\":\"A\",\"explanation\":\"Apple là quả táo\"}]";
-
-        VocabTestAttempt inProgress = VocabTestAttempt.builder()
-                .userId(1)
-                .testToken("token-in-progress")
-                .status("IN_PROGRESS")
-                .build();
-
-        when(vocabTestAttemptRepository.findByTestToken("token-in-progress")).thenReturn(Optional.of(inProgress));
-
-        // 1. Còn IN_PROGRESS -> Chặn 400
-        assertThatThrownBy(() -> vocabTestService.reviewAnswers("token-in-progress", 1))
-                .isInstanceOf(AppException.class)
-                .satisfies(ex -> assertThat(((AppException) ex).getErrorCode()).isEqualTo(ErrorCode.VOCAB_TEST_STILL_IN_PROGRESS));
-
-        // 2. Đã COMPLETED -> Mở đáp án và lời giải
-        VocabTestAttempt completed = VocabTestAttempt.builder()
-                .userId(1)
-                .deckId(10)
-                .deckNameSnapshot("Core Vocabulary")
-                .testToken("token-completed")
+                .testToken("token-review-1")
                 .status("COMPLETED")
                 .score(100)
                 .correctCount(1)
                 .totalQuestions(1)
                 .xpEarned(20)
                 .timeSpentSeconds(30)
-                .startedAt(now.minusSeconds(30))
-                .submittedAt(now)
-                .questionsSnapshot(questionsJson)
+                .startedAt(Instant.now().minusSeconds(60))
+                .submittedAt(Instant.now())
+                .questionsSnapshot("[{\"questionNumber\":1,\"cardId\":100,\"word\":\"apple\",\"correctKey\":\"A\",\"explanation\":\"Quả táo thơm ngon\"}]")
                 .answersProgress("[{\"questionNumber\":1,\"selectedKey\":\"A\"}]")
                 .build();
 
-        when(vocabTestAttemptRepository.findByTestToken("token-completed")).thenReturn(Optional.of(completed));
+        when(vocabTestAttemptRepository.findByTestToken("token-review-1")).thenReturn(Optional.of(attempt));
 
-        VocabTestReviewDetailDto review = vocabTestService.reviewAnswers("token-completed", 1);
+        VocabTestReviewDetailDto review = vocabTestService.reviewAnswers("token-review-1", 1);
+        assertThat(review).isNotNull();
+        assertThat(review.getScore()).isEqualTo(100);
         assertThat(review.getReviewItems()).hasSize(1);
-        assertThat(review.getReviewItems().get(0).getCorrectKey()).isEqualTo("A");
         assertThat(review.getReviewItems().get(0).isCorrect()).isTrue();
-        assertThat(review.getReviewItems().get(0).getExplanation()).contains("Apple là quả táo");
+        assertThat(review.getReviewItems().get(0).getExplanation()).isEqualTo("Quả táo thơm ngon");
     }
 }

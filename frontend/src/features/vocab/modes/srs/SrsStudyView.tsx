@@ -143,7 +143,7 @@ export const SrsStudyView: React.FC<SrsStudyViewProps> = ({
         console.error('Lỗi khi gửi kết quả phiên học lên server:', err);
         // Fallback hiển thị kết quả cục bộ nếu mạng lỗi
         setSummaryResult({
-          earnedXp: 10 + remembered * 2,
+          earnedXp: 10,
           currentStreak: 1,
           totalMasteredCards: 0,
           cardsReviewed: reviewed,
@@ -221,7 +221,7 @@ export const SrsStudyView: React.FC<SrsStudyViewProps> = ({
       confirmButtonText: 'Lưu & Thoát',
       denyButtonText: 'Thoát không lưu',
       cancelButtonText: 'Tiếp tục học',
-      confirmButtonColor: '#f59e0b',
+      confirmButtonColor: '#ea580c',
       denyButtonColor: '#ef4444',
       cancelButtonColor: '#94a3b8',
     });
@@ -316,7 +316,7 @@ export const SrsStudyView: React.FC<SrsStudyViewProps> = ({
         <div className="max-w-lg w-full py-6 animate-in fade-in duration-300">
           <SessionSummaryCard
             title="Hoàn thành phiên ôn tập!"
-            earnedXp={summaryResult?.earnedXp || 10 + rememberedCount * 2}
+            earnedXp={summaryResult?.earnedXp || 10}
             accuracyPercent={accuracy}
             correctCount={rememberedCount}
             incorrectCount={forgottenCount}
@@ -379,10 +379,10 @@ export const SrsStudyView: React.FC<SrsStudyViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsFlipped(true)}
-                className="w-full py-3.5 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                className="w-full py-3.5 px-6 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base shadow-md shadow-orange-600/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <span>Lật thẻ xem đáp án</span>
-                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-xs font-mono font-bold text-amber-950 shadow-2xs">
+                <kbd className="px-2 py-0.5 rounded-md bg-orange-500 text-xs font-mono font-bold text-white shadow-2xs">
                   Space
                 </kbd>
               </button>

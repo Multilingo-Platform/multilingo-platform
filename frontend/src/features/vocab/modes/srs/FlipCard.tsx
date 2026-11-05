@@ -153,7 +153,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
           {/* ========================================================
               1. MẶT TRƯỚC (FRONT FACE) - GIAO DIỆN HỌC TINH GỌN, KHÔNG CÂU GỢI Ý
              ======================================================== */}
-          <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white rounded-2xl border border-slate-200/90 shadow-md hover:shadow-lg p-6 sm:p-8 flex flex-col justify-between hover:border-amber-300 transition-all">
+          <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white rounded-2xl border border-slate-200/90 shadow-md hover:shadow-lg p-6 sm:p-8 flex flex-col justify-between hover:border-orange-400 transition-all">
             {/* Header: Từ loại & Loa phát âm */}
             <div className="flex items-center justify-between w-full">
               <span className="px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200/60">
@@ -168,7 +168,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
                   text={card.customWord}
                   langCode={targetLanguage}
                   size="md"
-                  className="bg-slate-50 hover:bg-amber-50 hover:text-amber-600 border border-slate-200 shadow-2xs"
+                  className="bg-slate-50 hover:bg-orange-50 hover:text-orange-600 border border-slate-200 shadow-2xs"
                 />
               </div>
             </div>
@@ -201,7 +201,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
           {/* ========================================================
               2. MẶT SAU (BACK FACE)
              ======================================================== */}
-          <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-slate-50 via-white to-amber-50/30 rounded-2xl border-2 border-amber-300 shadow-lg p-6 sm:p-8 flex flex-col">
+          <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-gradient-to-br from-slate-50 via-white to-orange-50/30 rounded-2xl border-2 border-orange-400 shadow-lg p-6 sm:p-8 flex flex-col">
             {/* Header mặt sau */}
             <div className="flex items-center justify-between w-full border-b border-slate-100 pb-2.5">
               <div className="flex items-center gap-2">
@@ -219,7 +219,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
                   text={card.customWord}
                   langCode={targetLanguage}
                   size="sm"
-                  className="bg-slate-50 hover:bg-amber-50 hover:text-amber-600 border border-slate-200"
+                  className="bg-slate-50 hover:bg-orange-50 hover:text-orange-600 border border-slate-200"
                 />
               </div>
             </div>
@@ -243,8 +243,8 @@ export const FlipCard: React.FC<FlipCardProps> = ({
 
               {/* Câu ví dụ hoàn chỉnh */}
               {example && (
-                <div className="mt-3.5 p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/60 text-slate-700 text-xs sm:text-sm leading-relaxed text-center max-w-lg mx-auto shadow-2xs">
-                  <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block mb-1">
+                <div className="mt-3.5 p-3.5 rounded-xl bg-orange-50/80 border border-orange-200/60 text-slate-700 text-xs sm:text-sm leading-relaxed text-center max-w-lg mx-auto shadow-2xs">
+                  <span className="text-[11px] font-bold text-orange-700 uppercase tracking-wider block mb-1">
                     Ví dụ ngữ cảnh:
                   </span>
                   <p className="italic text-slate-800">

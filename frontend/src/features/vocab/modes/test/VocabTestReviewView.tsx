@@ -52,7 +52,7 @@ export const VocabTestReviewView: React.FC<VocabTestReviewViewProps> = ({
   if (loading) {
     return (
       <div className="fixed inset-0 z-[200] bg-slate-100 flex flex-col items-center justify-center p-4 select-none">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-slate-600 font-semibold text-sm">Đang tải kết quả bài thi...</p>
       </div>
     );
@@ -81,7 +81,7 @@ export const VocabTestReviewView: React.FC<VocabTestReviewViewProps> = ({
 
   const isTimedOut = review.status === 'TIMED_OUT';
   const scoreColor =
-    review.score >= 80 ? 'text-emerald-600' : review.score >= 50 ? 'text-amber-600' : 'text-rose-600';
+    review.score >= 80 ? 'text-emerald-600' : review.score >= 50 ? 'text-orange-600' : 'text-rose-600';
 
   // Lọc danh sách câu hỏi
   const filteredQuestions = review.reviewItems.filter((item) => {
@@ -111,7 +111,7 @@ export const VocabTestReviewView: React.FC<VocabTestReviewViewProps> = ({
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-xs transition-colors cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Thi lại đề khác</span>
@@ -125,7 +125,7 @@ export const VocabTestReviewView: React.FC<VocabTestReviewViewProps> = ({
         <div className="bg-white rounded-md border border-slate-200 p-6 sm:p-7 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
             <div className="flex items-center gap-4">
-              <div className="w-13 h-13 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shrink-0">
+              <div className="w-13 h-13 rounded-md bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-200 shrink-0">
                 <Trophy className="w-6 h-6" />
               </div>
 
@@ -187,7 +187,7 @@ export const VocabTestReviewView: React.FC<VocabTestReviewViewProps> = ({
 
             <div className="p-3 rounded-md bg-slate-50 border border-slate-200">
               <span className="text-sm text-slate-600 font-medium block mb-1">Kinh nghiệm</span>
-              <span className="text-xl font-bold text-amber-600">+{review.xpEarned} XP</span>
+              <span className="text-xl font-bold text-orange-600">+{review.xpEarned} XP</span>
             </div>
 
             <div className="p-3 rounded-md bg-slate-50 border border-slate-200">
@@ -351,7 +351,7 @@ export const VocabTestReviewView: React.FC<VocabTestReviewViewProps> = ({
                   {/* Giải thích chi tiết */}
                   {q.explanation && (
                     <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-start gap-1.5 text-sm text-slate-700">
-                      <HelpCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <HelpCircle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                       <span>
                         <strong className="text-slate-800">Giải thích: </strong>
                         {q.explanation}
@@ -376,7 +376,7 @@ export const VocabTestReviewView: React.FC<VocabTestReviewViewProps> = ({
           <button
             type="button"
             onClick={onRetry}
-            className="px-6 py-2.5 rounded bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-xs transition-colors cursor-pointer"
+            className="px-6 py-2.5 rounded bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-xs transition-colors cursor-pointer"
           >
             Thi lại đề khác
           </button>

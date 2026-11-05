@@ -41,7 +41,6 @@ export const DeckModal: React.FC<DeckModalProps> = ({
   const [description, setDescription] = useState('');             // Mô tả mục tiêu học tập (tùy chọn)
   const [targetLanguage, setTargetLanguage] = useState('en');     // Ngôn ngữ cần học (mặc định: Tiếng Anh)
   const [sourceLanguage, setSourceLanguage] = useState('vi');     // Ngôn ngữ giải nghĩa (mặc định: Tiếng Việt)
-  const [isPublic, setIsPublic] = useState(false);                 // Quyền riêng tư (chia sẻ công khai hoặc riêng tư)
 
   // --- State quản lý trạng thái tương tác ---
   const [loading, setLoading] = useState(false);                   // Trạng thái đang gửi request API
@@ -58,13 +57,11 @@ export const DeckModal: React.FC<DeckModalProps> = ({
       setDescription(initialData.description || '');
       setTargetLanguage(initialData.targetLanguage || 'en');
       setSourceLanguage(initialData.sourceLanguage || 'vi');
-      setIsPublic(initialData.isPublic || false);
     } else {
       setName('');
       setDescription('');
       setTargetLanguage('en');
       setSourceLanguage('vi');
-      setIsPublic(false);
     }
     setError(null);
   }, [initialData, isOpen]);
@@ -95,7 +92,17 @@ export const DeckModal: React.FC<DeckModalProps> = ({
     e.preventDefault();
 
     if (!name.trim()) {
-      setError(t('vocab.deck_form.validation_name_required'));
+      setError(t('vocab.deck_form.validation_name_required', 'Vui lòng nhập tên bộ thẻ'));
+      return;
+    }
+
+    if (name.trim().length < 2) {
+      setError(t('vocab.deck_form.validation_name_min', 'Tên bộ thẻ phải có ít nhất 2 ký tự'));
+      return;
+    }
+
+    if (targetLanguage.toLowerCase() === sourceLanguage.toLowerCase()) {
+      setError(t('vocab.deck_form.validation_same_lang', 'Ngôn ngữ cần học và ngôn ngữ giải nghĩa không được trùng nhau'));
       return;
     }
 
@@ -107,7 +114,7 @@ export const DeckModal: React.FC<DeckModalProps> = ({
         description: description.trim() || undefined,
         targetLanguage,
         sourceLanguage,
-        isPublic,
+        isPublic: false,
       });
       onClose();
     } catch (err: unknown) {
@@ -132,7 +139,7 @@ export const DeckModal: React.FC<DeckModalProps> = ({
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md bg-amber-500/10 text-amber-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-600 border border-orange-200/60 flex items-center justify-center">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
@@ -147,7 +154,7 @@ export const DeckModal: React.FC<DeckModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -231,34 +238,20 @@ export const DeckModal: React.FC<DeckModalProps> = ({
             </div>
           </div>
 
-          {/* Quyền riêng tư */}
-          <label className="flex items-center gap-3 p-3 rounded-md border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500/20 border-slate-300"
-            />
-            <div className="text-sm">
-              <span className="font-bold text-slate-900 block">{t('vocab.deck_form.public_share')}</span>
-              <span className="text-xs text-slate-600 font-medium">{t('vocab.deck_form.public_desc')}</span>
-            </div>
-          </label>
-
           {/* Nút hành động */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 rounded-md text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              className="px-4 py-2.5 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
             >
               {t('vocab.actions.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-md text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors shadow-sm disabled:opacity-50"
+              className="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all shadow-sm active:translate-y-0 hover:-translate-y-0.5 disabled:opacity-50"
             >
               {loading ? 'Đang lưu...' : t('vocab.actions.save')}
             </button>

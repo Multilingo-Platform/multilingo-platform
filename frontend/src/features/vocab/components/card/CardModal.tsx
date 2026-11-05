@@ -251,7 +251,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                   <button
                     type="button"
                     onClick={handleSpeak}
-                    className="text-amber-600 hover:text-amber-700 flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md hover:bg-amber-50 transition-colors cursor-pointer"
+                    className="text-orange-600 hover:text-orange-700 flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-md hover:bg-orange-50 transition-colors cursor-pointer"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
                     <span>{t('vocab.card_form.listen_test', 'Nghe phát âm')}</span>
@@ -273,7 +273,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                 className={`w-full px-3.5 py-2 rounded-lg border bg-white text-slate-900 text-sm font-bold focus:outline-none focus:ring-2 transition-all placeholder:text-slate-400 ${
                   fieldErrors.word
                     ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
-                    : 'border-slate-300 focus:border-amber-500 focus:ring-amber-500/20'
+                    : 'border-slate-300 focus:border-orange-500 focus:ring-orange-500/20'
                 }`}
               />
               {fieldErrors.word && (
@@ -295,7 +295,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                   onChange={(e) => setPhonetic(e.target.value)}
                   placeholder={t('vocab.card_form.phonetic_placeholder', "VD: /juːˈbɪk.wɪ.təs/")}
                   maxLength={100}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder:text-slate-400"
+                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 placeholder:text-slate-400"
                 />
               </div>
 
@@ -306,7 +306,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                 <select
                   value={pos}
                   onChange={(e) => setPos(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 cursor-pointer"
                 >
                   <option value="">{t('vocab.card_form.pos_select', '-- Chọn loại từ --')}</option>
                   {POS_OPTIONS.filter((item) => item.value !== '').map((item) => (
@@ -336,7 +336,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                 className={`w-full px-3.5 py-2 rounded-lg border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all resize-none placeholder:text-slate-400 ${
                   fieldErrors.meaning
                     ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
-                    : 'border-slate-300 focus:border-amber-500 focus:ring-amber-500/20'
+                    : 'border-slate-300 focus:border-orange-500 focus:ring-orange-500/20'
                 }`}
               />
               {fieldErrors.meaning && (
@@ -356,7 +356,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                 onChange={(e) => setExampleSentence(e.target.value)}
                 placeholder={t('vocab.card_form.example_placeholder', 'VD: Smartphones have become ubiquitous in daily life.')}
                 rows={2}
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all resize-none placeholder:text-slate-400"
+                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none placeholder:text-slate-400"
               />
             </div>
 
@@ -370,7 +370,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                 value={customImageUrl}
                 onChange={(e) => setCustomImageUrl(e.target.value)}
                 placeholder="https://images.unsplash.com/... hoặc link ảnh online"
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all placeholder:text-slate-400"
+                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -384,11 +384,11 @@ export const CardModal: React.FC<CardModalProps> = ({
             {/* Thẻ Preview mini */}
             <div
               onClick={() => setPreviewSide((prev) => (prev === 'FRONT' ? 'BACK' : 'FRONT'))}
-              className="w-full aspect-[4/3] rounded-2xl bg-white border border-slate-200 hover:border-amber-400 p-6 flex flex-col items-center justify-center text-center cursor-pointer shadow-xs hover:shadow-md transition-all select-none relative overflow-hidden group"
+              className="w-full aspect-[4/3] rounded-2xl bg-white border border-slate-200 hover:border-orange-400 p-6 flex flex-col items-center justify-center text-center cursor-pointer shadow-xs hover:shadow-md transition-all select-none relative overflow-hidden group"
               title="Nhấp để lật xem mặt trước hoặc mặt sau"
             >
               {/* Nhãn nhỏ chỉ báo mặt trước / mặt sau */}
-              <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 group-hover:bg-amber-50 group-hover:text-amber-700 transition-colors">
+              <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 group-hover:bg-orange-50 group-hover:text-orange-700 transition-colors">
                 {previewSide === 'FRONT' ? 'Mặt trước' : 'Mặt sau'}
               </span>
 
@@ -406,7 +406,7 @@ export const CardModal: React.FC<CardModalProps> = ({
                       />
                     )}
                     <div className="flex items-baseline justify-center gap-1.5 flex-wrap">
-                      <h3 className="text-2xl font-black text-slate-900 group-hover:text-amber-600 transition-colors break-words">
+                      <h3 className="text-2xl font-black text-slate-900 group-hover:text-orange-600 transition-colors break-words">
                         {customWord.trim()}
                       </h3>
                       {pos && (
@@ -462,7 +462,7 @@ export const CardModal: React.FC<CardModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50"
             >
               {loading ? 'Đang lưu...' : t('vocab.actions.save', 'Lưu thẻ')}
             </button>

@@ -55,7 +55,7 @@ public enum ErrorCode {
     // Vocab & Flashcards module (12xx)
     DECK_NAME_REQUIRED(1201, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được để trống"),
     DECK_NAME_TOO_LONG(1202, HttpStatus.UNPROCESSABLE_ENTITY, "Tên bộ thẻ không được vượt quá 200 ký tự"),
-    DECK_DESCRIPTION_TOO_LONG(1203, HttpStatus.UNPROCESSABLE_ENTITY, "Mô tả không được vượt quá 2000 ký tự"),
+    DECK_DESCRIPTION_TOO_LONG(1203, HttpStatus.UNPROCESSABLE_ENTITY, "Mô tả không được vượt quá 1000 ký tự"),
     FLASHCARD_WORD_REQUIRED(1204, HttpStatus.UNPROCESSABLE_ENTITY, "Từ vựng không được để trống"),
     FLASHCARD_WORD_TOO_LONG(1205, HttpStatus.UNPROCESSABLE_ENTITY, "Từ vựng không được vượt quá 150 ký tự"),
     FLASHCARD_MEANING_REQUIRED(1206, HttpStatus.UNPROCESSABLE_ENTITY, "Nghĩa từ vựng không được để trống"),
@@ -82,6 +82,8 @@ public enum ErrorCode {
     VOCAB_TEST_DEADLINE_PASSED(1223, HttpStatus.GONE, "Đã quá thời gian làm bài thi thử"),
     VOCAB_TEST_STILL_IN_PROGRESS(1224, HttpStatus.BAD_REQUEST, "Bài thi đang diễn ra, chưa thể xem lại đáp án"),
     VOCAB_TEST_INSUFFICIENT_CARDS(1225, HttpStatus.UNPROCESSABLE_ENTITY, "Bộ thẻ cần tối thiểu 4 từ vựng để tạo bài thi thử"),
+    DECK_NAME_DUPLICATE(1226, HttpStatus.CONFLICT, "Tên bộ thẻ đã tồn tại trong tài khoản của bạn"),
+    DECK_LANGUAGES_MUST_DIFFER(1227, HttpStatus.BAD_REQUEST, "Ngôn ngữ cần học và ngôn ngữ giải nghĩa không được trùng nhau"),
 
     // Exam Builder Errors (14xx)
     EXAM_NOT_FOUND(1401, HttpStatus.NOT_FOUND, "Không tìm thấy đề thi yêu cầu"),

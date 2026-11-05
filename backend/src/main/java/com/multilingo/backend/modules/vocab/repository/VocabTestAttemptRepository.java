@@ -26,19 +26,6 @@ public interface VocabTestAttemptRepository extends JpaRepository<VocabTestAttem
     @Query("SELECT v FROM VocabTestAttempt v WHERE v.testToken = :testToken")
     Optional<VocabTestAttempt> findForUpdateByTestToken(@Param("testToken") String testToken);
 
-    @Modifying
-    @Query("UPDATE VocabTestAttempt v SET v.answersProgress = :answersJson, v.progressVersion = v.progressVersion + 1, " +
-           "v.progressHash = :progressHash, v.updatedAt = :now " +
-           "WHERE v.testToken = :token AND v.userId = :userId AND v.progressVersion = :expectedVersion " +
-           "AND v.status = 'IN_PROGRESS' AND v.expiresAt >= :validUntil")
-    int updateAnswersProgressCas(@Param("token") String token,
-                                 @Param("userId") Integer userId,
-                                 @Param("expectedVersion") int expectedVersion,
-                                 @Param("answersJson") String answersJson,
-                                 @Param("progressHash") String progressHash,
-                                 @Param("now") Instant now,
-                                 @Param("validUntil") Instant validUntil);
-
     @Query("SELECT v FROM VocabTestAttempt v WHERE v.status = 'IN_PROGRESS' AND v.expiresAt < :deadline")
     List<VocabTestAttempt> findExpiredActiveAttempts(@Param("deadline") Instant deadline, Pageable pageable);
 

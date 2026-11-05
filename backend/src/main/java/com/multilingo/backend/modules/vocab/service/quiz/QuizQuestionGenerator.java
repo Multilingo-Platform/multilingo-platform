@@ -5,6 +5,8 @@ import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.vocab.constant.QuizPracticeConstants;
 import com.multilingo.backend.modules.vocab.dto.response.PracticeOptionDto;
 import com.multilingo.backend.modules.vocab.dto.response.PracticeQuestionSnapshotDto;
+import com.multilingo.backend.modules.vocab.dto.response.VocabTestInternalQuestionDto;
+import com.multilingo.backend.modules.vocab.dto.response.VocabTestOptionDto;
 import com.multilingo.backend.modules.vocab.entity.UserFlashcard;
 import lombok.extern.slf4j.Slf4j;
 
@@ -139,5 +141,97 @@ public class QuizQuestionGenerator {
                     && (card.getStatus() == null || !com.multilingo.backend.modules.vocab.constant.VocabStudyConstants.STATUS_MASTERED.equalsIgnoreCase(card.getStatus()));
         }
         return card.getStatus() != null && card.getStatus().equalsIgnoreCase(filterStatus);
+    }
+
+    /**
+     * Sinh bộ câu hỏi trắc nghiệm nội bộ cho bài Thi thử (Vocab Mock Test),
+     * gồm cả đáp án đúng (correctKey) và giải thích để lưu vào snapshot bài thi.
+     */
+    public List<VocabTestInternalQuestionDto> generateTestQuestions(
+            List<UserFlashcard> allDeckCards,
+            int limit,
+            Random random
+    ) {
+        if (allDeckCards == null || allDeckCards.size() < 4) {
+            throw new AppException(ErrorCode.VOCAB_TEST_INSUFFICIENT_CARDS);
+        }
+
+        long distinctMeanings = allDeckCards.stream()
+                .map(UserFlashcard::getCustomMeaning)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .distinct()
+                .count();
+
+        if (distinctMeanings < 4) {
+            log.warn("Bộ thẻ không đủ 4 nghĩa phân biệt (hiện có {})", distinctMeanings);
+            throw new AppException(ErrorCode.VOCAB_TEST_INSUFFICIENT_CARDS);
+        }
+
+        int targetCount = Math.clamp(limit, 4, 20);
+        List<UserFlashcard> pool = new ArrayList<>(allDeckCards);
+        Collections.shuffle(pool, random);
+        List<UserFlashcard> selectedCards = pool.subList(0, Math.min(targetCount, pool.size()));
+
+        List<VocabTestInternalQuestionDto> internalQuestions = new ArrayList<>(selectedCards.size());
+        String[] optionKeys = QuizPracticeConstants.OPTION_KEYS;
+
+        for (int i = 0; i < selectedCards.size(); i++) {
+            UserFlashcard card = selectedCards.get(i);
+            String correctMeaning = card.getCustomMeaning() != null ? card.getCustomMeaning().trim() : "";
+            String word = card.getCustomWord() != null ? card.getCustomWord().trim() : "";
+
+            List<String> distractorMeanings = allDeckCards.stream()
+                    .map(UserFlashcard::getCustomMeaning)
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(m -> !m.equalsIgnoreCase(correctMeaning))
+                    .distinct()
+                    .toList();
+
+            List<String> shuffledDistractors = new ArrayList<>(distractorMeanings);
+            Collections.shuffle(shuffledDistractors, random);
+            List<String> pickedDistractors = shuffledDistractors.subList(0, Math.min(3, shuffledDistractors.size()));
+
+            List<String> fourMeanings = new ArrayList<>(pickedDistractors);
+            fourMeanings.add(correctMeaning);
+            Collections.shuffle(fourMeanings, random);
+
+            List<VocabTestOptionDto> options = new ArrayList<>();
+            String correctKey = "A";
+
+            for (int k = 0; k < fourMeanings.size(); k++) {
+                String key = (k < optionKeys.length) ? optionKeys[k] : String.valueOf((char) ('A' + k));
+                String text = fourMeanings.get(k);
+                options.add(VocabTestOptionDto.builder().key(key).text(text).build());
+                if (text.equalsIgnoreCase(correctMeaning)) {
+                    correctKey = key;
+                }
+            }
+
+            String phonetic = (card.getWord() != null) ? card.getWord().getPhonetic() : null;
+            String pos = (card.getWord() != null) ? card.getWord().getPos() : null;
+            String sentence = card.getExampleSentence();
+
+            String explanation = word + (pos != null ? " (" + pos + ")" : "") + ": " + correctMeaning
+                    + (sentence != null ? ". Ví dụ: " + sentence : "");
+
+            VocabTestInternalQuestionDto internalQ = VocabTestInternalQuestionDto.builder()
+                    .questionNumber(i + 1)
+                    .cardId(card.getId())
+                    .word(word)
+                    .phonetic(phonetic)
+                    .pos(pos)
+                    .sentence(sentence)
+                    .options(options)
+                    .correctKey(correctKey)
+                    .explanation(explanation)
+                    .build();
+
+            internalQuestions.add(internalQ);
+        }
+
+        return internalQuestions;
     }
 }

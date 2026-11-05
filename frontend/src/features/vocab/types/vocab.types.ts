@@ -44,21 +44,6 @@ export interface Flashcard {
   createdAt?: string;
 }
 
-export interface DeckDetail {
-  id: number;
-  userId: number;
-  name: string;
-  description?: string;
-  targetLanguage: string;
-  sourceLanguage: string;
-  isPublic: boolean;
-  clonesCount: number;
-  totalCards: number;
-  cards: Flashcard[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface DeckResponse {
   id: number;
   userId: number;

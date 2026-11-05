@@ -4,7 +4,6 @@ import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.vocab.dto.request.CreateDeckRequest;
 import com.multilingo.backend.modules.vocab.dto.request.UpdateDeckRequest;
-import com.multilingo.backend.modules.vocab.dto.response.DeckDetailResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckStatsProjection;
 import com.multilingo.backend.modules.vocab.dto.response.DeckSummaryResponse;
@@ -78,7 +77,7 @@ public class FlashcardDeckServiceImpl implements FlashcardDeckService {
      *   mới được phép xem thông tin chi tiết. Nếu không thỏa mãn, ném lỗi 403 FORBIDDEN.
      */
     @Override
-    public DeckDetailResponse getDeckDetail(Integer deckId, Integer userId) {
+    public DeckSummaryResponse getDeckDetail(Integer deckId, Integer userId) {
         // 1. Kiểm tra sự tồn tại của bộ thẻ
         FlashcardDeck deck = flashcardDeckRepository.findById(deckId)
                 .orElseThrow(() -> new AppException(ErrorCode.FLASHCARD_DECK_NOT_FOUND));
@@ -93,7 +92,7 @@ public class FlashcardDeckServiceImpl implements FlashcardDeckService {
         DeckStatsProjection stats = userFlashcardRepository.countStatsByDeckId(deckId, Instant.now()).orElse(null);
 
         // 4. Trả về DTO thông qua MapStruct Mapper
-        return flashcardDeckMapper.toDetailResponse(deck, stats);
+        return flashcardDeckMapper.toSummaryResponse(deck, stats);
     }
 
     /**
@@ -107,31 +106,33 @@ public class FlashcardDeckServiceImpl implements FlashcardDeckService {
     @Override
     @Transactional
     public DeckResponse createDeck(CreateDeckRequest request, Integer userId) {
-        // 1. Dùng MapStruct chuyển đổi request sang entity và gán userId
+        // 1. Chuẩn hóa tên bộ thẻ (trim)
+        String trimmedName = request.getName().trim();
+
+        // 2. Chống trùng lặp tên bộ thẻ trong cùng một tài khoản
+        if (flashcardDeckRepository.existsByUserIdAndNameIgnoreCase(userId, trimmedName)) {
+            throw new AppException(ErrorCode.DECK_NAME_DUPLICATE);
+        }
+
+        // 3. Chuẩn hóa cặp ngôn ngữ và kiểm tra hợp lệ
+        String targetLang = normalizeLanguage(request.getTargetLanguage(), "en");
+        String sourceLang = normalizeLanguage(request.getSourceLanguage(), "vi");
+        if (targetLang.equalsIgnoreCase(sourceLang)) {
+            throw new AppException(ErrorCode.DECK_LANGUAGES_MUST_DIFFER);
+        }
+
+        // 4. Chuyển đổi sang entity và gán thông tin
         FlashcardDeck deck = flashcardDeckMapper.toEntity(request, userId);
+        deck.setName(trimmedName);
+        deck.setTargetLanguage(targetLang);
+        deck.setSourceLanguage(sourceLang);
 
-        // 2. Chuẩn hóa tên bộ thẻ (trim)
-        deck.setName(request.getName().trim());
-
-        // 3. Xử lý cặp ngôn ngữ (Target Language & Source Language)
-        if (request.getTargetLanguage() != null && !request.getTargetLanguage().trim().isEmpty()) {
-            deck.setTargetLanguage(request.getTargetLanguage().trim().toLowerCase());
-        } else if (deck.getTargetLanguage() == null) {
-            deck.setTargetLanguage("en");
-        }
-
-        if (request.getSourceLanguage() != null && !request.getSourceLanguage().trim().isEmpty()) {
-            deck.setSourceLanguage(request.getSourceLanguage().trim().toLowerCase());
-        } else if (deck.getSourceLanguage() == null) {
-            deck.setSourceLanguage("vi");
-        }
-
-        // 4. Lưu vào cơ sở dữ liệu
+        // 5. Lưu vào cơ sở dữ liệu
         FlashcardDeck saved = flashcardDeckRepository.save(deck);
         log.info("Tạo thành công bộ thẻ mới: id={}, name='{}', targetLang='{}', sourceLang='{}', userId={}", 
                 saved.getId(), saved.getName(), saved.getTargetLanguage(), saved.getSourceLanguage(), userId);
 
-        // 5. Trả về Response DTO qua Mapper
+        // 6. Trả về Response DTO qua Mapper
         return flashcardDeckMapper.toDeckResponse(saved);
     }
 
@@ -155,24 +156,48 @@ public class FlashcardDeckServiceImpl implements FlashcardDeckService {
             throw new AppException(ErrorCode.FORBIDDEN);
         }
 
-        // 3. Cập nhật các trường thông tin có thay đổi
-        deck.setName(request.getName().trim());
+        // 3. Chuẩn hóa tên và kiểm tra trùng lặp với các bộ thẻ khác của cùng user
+        String trimmedName = request.getName().trim();
+        if (flashcardDeckRepository.existsByUserIdAndNameIgnoreCaseAndIdNot(userId, trimmedName, deckId)) {
+            throw new AppException(ErrorCode.DECK_NAME_DUPLICATE);
+        }
+
+        // 4. Chuẩn hóa cặp ngôn ngữ và kiểm tra hợp lệ
+        String targetLang = request.getTargetLanguage() != null && !request.getTargetLanguage().trim().isEmpty()
+                ? normalizeLanguage(request.getTargetLanguage(), deck.getTargetLanguage())
+                : deck.getTargetLanguage();
+        String sourceLang = request.getSourceLanguage() != null && !request.getSourceLanguage().trim().isEmpty()
+                ? normalizeLanguage(request.getSourceLanguage(), deck.getSourceLanguage())
+                : deck.getSourceLanguage();
+
+        if (targetLang.equalsIgnoreCase(sourceLang)) {
+            throw new AppException(ErrorCode.DECK_LANGUAGES_MUST_DIFFER);
+        }
+
+        // 5. Cập nhật các trường thông tin có thay đổi
+        deck.setName(trimmedName);
         deck.setDescription(request.getDescription());
+        deck.setTargetLanguage(targetLang);
+        deck.setSourceLanguage(sourceLang);
         if (request.getIsPublic() != null) {
             deck.setIsPublic(request.getIsPublic());
         }
-        if (request.getTargetLanguage() != null && !request.getTargetLanguage().trim().isEmpty()) {
-            deck.setTargetLanguage(request.getTargetLanguage().trim().toLowerCase());
-        }
-        if (request.getSourceLanguage() != null && !request.getSourceLanguage().trim().isEmpty()) {
-            deck.setSourceLanguage(request.getSourceLanguage().trim().toLowerCase());
-        }
 
-        // 4. Lưu lại bản ghi đã cập nhật
+        // 6. Lưu lại bản ghi đã cập nhật
         FlashcardDeck updated = flashcardDeckRepository.save(deck);
         log.info("Cập nhật thành công bộ thẻ: id={}, userId={}", updated.getId(), userId);
 
         return flashcardDeckMapper.toDeckResponse(updated);
+    }
+
+    /**
+     * Chuẩn hóa mã ngôn ngữ (trim và lowercase), fallback giá trị mặc định nếu rỗng.
+     */
+    private String normalizeLanguage(String lang, String defaultLang) {
+        if (lang != null && !lang.trim().isEmpty()) {
+            return lang.trim().toLowerCase();
+        }
+        return defaultLang;
     }
 
     /**

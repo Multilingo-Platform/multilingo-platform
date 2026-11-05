@@ -3,6 +3,7 @@ package com.multilingo.backend.modules.vocab.service;
 import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.vocab.dto.response.PracticeQuestionSnapshotDto;
+import com.multilingo.backend.modules.vocab.dto.response.VocabTestInternalQuestionDto;
 import com.multilingo.backend.modules.vocab.entity.UserFlashcard;
 import com.multilingo.backend.modules.vocab.service.quiz.QuizQuestionGenerator;
 import org.junit.jupiter.api.BeforeEach;
@@ -109,6 +110,45 @@ class QuizQuestionGeneratorTest {
         assertThatThrownBy(() -> generator.generatePracticeQuestions(cardsWithMastered, "DUE", 10, new Random(42)))
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.QUIZ_INSUFFICIENT_CONTENT);
+    }
+
+    @Test
+    @DisplayName("TC_GEN_06: Sinh câu hỏi thi thử thành công với 4 lựa chọn, có correctKey và explanation")
+    void testGenerateTestQuestions_success() {
+        List<VocabTestInternalQuestionDto> testQuestions = generator.generateTestQuestions(dummyCards, 5, new Random(42));
+
+        assertThat(testQuestions).hasSize(5);
+        for (VocabTestInternalQuestionDto q : testQuestions) {
+            assertThat(q.getOptions()).hasSize(4);
+            assertThat(q.getCorrectKey()).isNotBlank();
+            assertThat(q.getExplanation()).isNotBlank();
+            boolean correctFound = q.getOptions().stream()
+                    .anyMatch(opt -> opt.getKey().equalsIgnoreCase(q.getCorrectKey()));
+            assertThat(correctFound).isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("TC_GEN_07: Thi thử không đủ 4 thẻ -> Ném VOCAB_TEST_INSUFFICIENT_CARDS")
+    void testGenerateTestQuestions_insufficientCards() {
+        List<UserFlashcard> fewCards = dummyCards.subList(0, 3);
+        assertThatThrownBy(() -> generator.generateTestQuestions(fewCards, 10, new Random(42)))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.VOCAB_TEST_INSUFFICIENT_CARDS);
+    }
+
+    @Test
+    @DisplayName("TC_GEN_08: Thi thử không đủ 4 nghĩa phân biệt -> Ném VOCAB_TEST_INSUFFICIENT_CARDS")
+    void testGenerateTestQuestions_insufficientDistinctMeanings() {
+        List<UserFlashcard> duplicateMeaningCards = new ArrayList<>();
+        duplicateMeaningCards.add(UserFlashcard.builder().userId(1).customWord("apple").customMeaning("quả táo").status("NEW").build());
+        duplicateMeaningCards.add(UserFlashcard.builder().userId(1).customWord("pomme").customMeaning("quả táo").status("NEW").build());
+        duplicateMeaningCards.add(UserFlashcard.builder().userId(1).customWord("banana").customMeaning("quả chuối").status("NEW").build());
+        duplicateMeaningCards.add(UserFlashcard.builder().userId(1).customWord("orange").customMeaning("quả cam").status("NEW").build());
+
+        assertThatThrownBy(() -> generator.generateTestQuestions(duplicateMeaningCards, 4, new Random(42)))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.VOCAB_TEST_INSUFFICIENT_CARDS);
     }
 }
 

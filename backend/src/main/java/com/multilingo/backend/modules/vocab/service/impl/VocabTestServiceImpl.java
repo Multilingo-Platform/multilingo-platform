@@ -20,8 +20,8 @@ import com.multilingo.backend.modules.vocab.repository.FlashcardDeckRepository;
 import com.multilingo.backend.modules.vocab.repository.UserFlashcardRepository;
 import com.multilingo.backend.modules.vocab.repository.VocabTestAttemptRepository;
 import com.multilingo.backend.modules.vocab.service.VocabTestService;
-import com.multilingo.backend.modules.vocab.service.quiz.TestProgressHasher;
-import lombok.*;
+import com.multilingo.backend.modules.vocab.service.quiz.QuizQuestionGenerator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +33,16 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Cài đặt Dịch vụ Quản lý Thi thử Từ vựng (Vocabulary CBT Mock Test Service).
+ *
+ * NGHIỆP VỤ TINH GỌN (REFACTORED):
+ * 1. Sinh đề thi: Sử dụng QuizQuestionGenerator để tạo câu hỏi trắc nghiệm 4 đáp án.
+ * 2. Khôi phục bài thi (Resume): Tải lại đề thi và tiến độ câu trả lời đã lưu.
+ * 3. Tự động lưu tiến độ (Autosave): Cập nhật trực tiếp answersProgress vào DB, không băm SHA-256 gây 409 conflict.
+ * 4. Nộp bài & Chấm điểm: Chấm điểm thang 100, cộng 20 XP và lưu vĩnh viễn qua StudyActivityService.
+ * 5. Xem lại bài làm: Trả về câu hỏi, đáp án đã chọn, đáp án đúng và lời giải thích chi tiết.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -41,12 +51,10 @@ public class VocabTestServiceImpl implements VocabTestService {
     private final VocabTestAttemptRepository vocabTestAttemptRepository;
     private final FlashcardDeckRepository flashcardDeckRepository;
     private final UserFlashcardRepository userFlashcardRepository;
+    private final QuizQuestionGenerator quizQuestionGenerator;
     private final VocabTestProperties vocabTestProperties;
-    private final TestProgressHasher testProgressHasher;
     private final StudyActivityService studyActivityService;
     private final ObjectMapper objectMapper;
-
-    private static final List<String> OPTION_KEYS = List.of("A", "B", "C", "D");
 
     @Override
     @Transactional
@@ -55,106 +63,32 @@ public class VocabTestServiceImpl implements VocabTestService {
                 .orElseThrow(() -> new AppException(ErrorCode.FLASHCARD_DECK_NOT_FOUND));
 
         List<UserFlashcard> allCards = userFlashcardRepository.findAllByDeckIdAndUserIdOrderByCreatedAtDesc(deckId, userId);
-        if (allCards == null || allCards.size() < 4) {
-            throw new AppException(ErrorCode.VOCAB_TEST_INSUFFICIENT_CARDS);
-        }
-
-        long distinctMeanings = allCards.stream()
-                .map(UserFlashcard::getCustomMeaning)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .map(String::toLowerCase)
-                .distinct()
-                .count();
-
-        if (distinctMeanings < 4) {
-            log.warn("Bộ thẻ #{} không đủ 4 nghĩa phân biệt (hiện có {})", deckId, distinctMeanings);
-            throw new AppException(ErrorCode.VOCAB_TEST_INSUFFICIENT_CARDS);
-        }
-
         int limit = (request != null && request.getLimit() != null)
                 ? Math.clamp(request.getLimit(), 4, 20)
                 : 10;
 
-        List<UserFlashcard> pool = new ArrayList<>(allCards);
-        Collections.shuffle(pool, new Random());
-        List<UserFlashcard> selectedCards = pool.subList(0, Math.min(limit, pool.size()));
+        // Sinh danh sách câu hỏi trắc nghiệm nội bộ dùng chung generator
+        List<VocabTestInternalQuestionDto> internalQuestions = quizQuestionGenerator.generateTestQuestions(
+                allCards, limit, new Random());
 
-        List<InternalQuestionSnapshot> internalQuestions = new ArrayList<>();
-        List<VocabTestQuestionDto> publicQuestions = new ArrayList<>();
-
-        Random random = new Random();
-        int questionNumber = 1;
-
-        for (UserFlashcard card : selectedCards) {
-            String correctMeaning = card.getCustomMeaning() != null ? card.getCustomMeaning().trim() : "";
-            String word = card.getCustomWord() != null ? card.getCustomWord().trim() : "";
-
-            // Chọn 3 phương án nhiễu có nghĩa khác nghĩa đúng
-            List<String> distractorMeanings = allCards.stream()
-                    .map(UserFlashcard::getCustomMeaning)
-                    .filter(Objects::nonNull)
-                    .map(String::trim)
-                    .filter(m -> !m.equalsIgnoreCase(correctMeaning))
-                    .distinct()
-                    .collect(Collectors.toList());
-
-            Collections.shuffle(distractorMeanings, random);
-            List<String> pickedDistractors = distractorMeanings.subList(0, Math.min(3, distractorMeanings.size()));
-
-            List<String> fourMeanings = new ArrayList<>(pickedDistractors);
-            fourMeanings.add(correctMeaning);
-            Collections.shuffle(fourMeanings, random);
-
-            List<VocabTestOptionDto> options = new ArrayList<>();
-            String correctKey = "A";
-
-            for (int i = 0; i < fourMeanings.size(); i++) {
-                String key = OPTION_KEYS.get(i);
-                String text = fourMeanings.get(i);
-                options.add(VocabTestOptionDto.builder().key(key).text(text).build());
-                if (text.equalsIgnoreCase(correctMeaning)) {
-                    correctKey = key;
-                }
-            }
-
-            String phonetic = (card.getWord() != null) ? card.getWord().getPhonetic() : null;
-            String pos = (card.getWord() != null) ? card.getWord().getPos() : null;
-            String sentence = card.getExampleSentence();
-
-            String explanation = word + (pos != null ? " (" + pos + ")" : "") + ": " + correctMeaning
-                    + (sentence != null ? ". Ví dụ: " + sentence : "");
-
-            InternalQuestionSnapshot internalQ = InternalQuestionSnapshot.builder()
-                    .questionNumber(questionNumber)
-                    .cardId(card.getId())
-                    .word(word)
-                    .phonetic(phonetic)
-                    .pos(pos)
-                    .sentence(sentence)
-                    .options(options)
-                    .correctKey(correctKey)
-                    .explanation(explanation)
-                    .build();
-
-            internalQuestions.add(internalQ);
-
-            // DTO gửi cho thí sinh: KHÔNG có correctKey và KHÔNG có explanation
-            publicQuestions.add(VocabTestQuestionDto.builder()
-                    .questionNumber(questionNumber)
-                    .cardId(card.getId())
-                    .word(word)
-                    .phonetic(phonetic)
-                    .pos(pos)
-                    .sentence(sentence)
-                    .options(options)
-                    .build());
-
-            questionNumber++;
-        }
+        // DTO gửi cho thí sinh: KHÔNG chứa correctKey và explanation
+        List<VocabTestQuestionDto> publicQuestions = internalQuestions.stream()
+                .map(q -> VocabTestQuestionDto.builder()
+                        .questionNumber(q.getQuestionNumber())
+                        .cardId(q.getCardId())
+                        .word(q.getWord())
+                        .phonetic(q.getPhonetic())
+                        .pos(q.getPos())
+                        .sentence(q.getSentence())
+                        .options(q.getOptions())
+                        .build())
+                .toList();
 
         Instant now = Instant.now();
-        int timeLimitSeconds = internalQuestions.size() * vocabTestProperties.getSecondsPerQuestion();
+        int secondsPerQuestion = vocabTestProperties != null && vocabTestProperties.getSecondsPerQuestion() > 0
+                ? vocabTestProperties.getSecondsPerQuestion()
+                : 30;
+        int timeLimitSeconds = internalQuestions.size() * secondsPerQuestion;
         Instant expiresAt = now.plusSeconds(timeLimitSeconds);
         String testToken = "test-" + UUID.randomUUID();
 
@@ -176,8 +110,8 @@ public class VocabTestServiceImpl implements VocabTestService {
 
             vocabTestAttemptRepository.save(attempt);
         } catch (Exception e) {
-            log.error("Lỗi khi serialize câu hỏi bài thi thử:", e);
-            throw new IllegalStateException("Không thể lưu cấu trúc bài thi thử", e);
+            log.error("Lỗi khi lưu đề thi thử: {}", e.getMessage());
+            throw new IllegalStateException("Không thể lưu cấu trúc đề thi thử", e);
         }
 
         return VocabTestExamDto.builder()
@@ -196,17 +130,13 @@ public class VocabTestServiceImpl implements VocabTestService {
     @Override
     @Transactional(readOnly = true)
     public VocabTestResumeResponse resumeTest(String testToken, Integer userId) {
-        VocabTestAttempt attempt = vocabTestAttemptRepository.findByTestToken(testToken)
-                .orElseThrow(() -> new AppException(ErrorCode.VOCAB_TEST_NOT_FOUND));
-
-        if (!attempt.getUserId().equals(userId)) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
-        }
+        VocabTestAttempt attempt = findOwnedAttempt(testToken, userId);
 
         Instant now = Instant.now();
-        boolean deadlinePassed = now.isAfter(attempt.getExpiresAt().plusSeconds(vocabTestProperties.getSubmissionGraceSeconds()));
+        int graceSeconds = vocabTestProperties != null ? vocabTestProperties.getSubmissionGraceSeconds() : 15;
+        boolean deadlinePassed = now.isAfter(attempt.getExpiresAt().plusSeconds(graceSeconds));
 
-        List<InternalQuestionSnapshot> internalQuestions = parseInternalQuestions(attempt.getQuestionsSnapshot());
+        List<VocabTestInternalQuestionDto> internalQuestions = parseInternalQuestions(attempt.getQuestionsSnapshot());
         List<VocabTestQuestionDto> publicQuestions = internalQuestions.stream()
                 .map(q -> VocabTestQuestionDto.builder()
                         .questionNumber(q.getQuestionNumber())
@@ -227,7 +157,7 @@ public class VocabTestServiceImpl implements VocabTestService {
                 .deckId(attempt.getDeckId())
                 .deckName(attempt.getDeckNameSnapshot())
                 .status(attempt.getStatus())
-                .progressVersion(attempt.getProgressVersion())
+                .progressVersion(attempt.getProgressVersion() != null ? attempt.getProgressVersion() : 0)
                 .timeLimitSeconds(attempt.getTimeLimitSeconds())
                 .totalQuestions(attempt.getTotalQuestions())
                 .startedAt(attempt.getStartedAt())
@@ -243,63 +173,35 @@ public class VocabTestServiceImpl implements VocabTestService {
     @Override
     @Transactional
     public AutoSaveProgressResponse saveProgress(String testToken, Integer userId, AutoSaveProgressRequest request) {
-        if (request == null || request.getExpectedVersion() == null) {
-            throw new AppException(ErrorCode.VOCAB_TEST_VERSION_CONFLICT);
-        }
-
-        String canonicalHash = testProgressHasher.computeCanonicalHash(request.getExpectedVersion(), request.getAnswers());
-        Instant now = Instant.now();
-        Instant validUntil = now.minusSeconds(vocabTestProperties.getSubmissionGraceSeconds());
-
-        String answersJson;
-        try {
-            answersJson = objectMapper.writeValueAsString(request.getAnswers() != null ? request.getAnswers() : List.of());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Payload answers không hợp lệ", e);
-        }
-
-        int rows = vocabTestAttemptRepository.updateAnswersProgressCas(
-                testToken,
-                userId,
-                request.getExpectedVersion(),
-                answersJson,
-                canonicalHash,
-                now,
-                validUntil
-        );
-
-        if (rows == 1) {
-            return AutoSaveProgressResponse.builder()
-                    .progressVersion(request.getExpectedVersion() + 1)
-                    .build();
-        }
-
-        // Không cập nhật được dòng nào -> Phân tích nguyên nhân xung đột
-        VocabTestAttempt attempt = vocabTestAttemptRepository.findByTestToken(testToken)
-                .orElseThrow(() -> new AppException(ErrorCode.VOCAB_TEST_NOT_FOUND));
-
-        if (!attempt.getUserId().equals(userId)) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
-        }
+        VocabTestAttempt attempt = findOwnedAttempt(testToken, userId);
 
         if (!"IN_PROGRESS".equalsIgnoreCase(attempt.getStatus())) {
             throw new AppException(ErrorCode.VOCAB_TEST_ALREADY_FINISHED);
         }
 
-        if (now.isAfter(attempt.getExpiresAt().plusSeconds(vocabTestProperties.getSubmissionGraceSeconds()))) {
+        Instant now = Instant.now();
+        int graceSeconds = vocabTestProperties != null ? vocabTestProperties.getSubmissionGraceSeconds() : 15;
+        if (now.isAfter(attempt.getExpiresAt().plusSeconds(graceSeconds))) {
             throw new AppException(ErrorCode.VOCAB_TEST_DEADLINE_PASSED);
         }
 
-        // Kiểm tra Replay khi mạng lag: cùng expectedVersion và hash trùng khớp
-        if (attempt.getProgressVersion() == request.getExpectedVersion() + 1
-                && canonicalHash.equals(attempt.getProgressHash())) {
-            log.info("Replay idempotency autosave cho testToken={}", testToken);
-            return AutoSaveProgressResponse.builder()
-                    .progressVersion(attempt.getProgressVersion())
-                    .build();
+        int nextVersion = (attempt.getProgressVersion() != null ? attempt.getProgressVersion() : 0) + 1;
+        try {
+            List<VocabTestAnswerItemDto> answers = request != null && request.getAnswers() != null
+                    ? request.getAnswers()
+                    : List.of();
+            attempt.setAnswersProgress(objectMapper.writeValueAsString(answers));
+            attempt.setProgressVersion(nextVersion);
+            attempt.setUpdatedAt(now);
+            vocabTestAttemptRepository.save(attempt);
+        } catch (Exception e) {
+            log.error("Lỗi khi lưu tiến độ bài thi: {}", e.getMessage());
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
         }
 
-        throw new AppException(ErrorCode.VOCAB_TEST_VERSION_CONFLICT);
+        return AutoSaveProgressResponse.builder()
+                .progressVersion(nextVersion)
+                .build();
     }
 
     @Override
@@ -312,22 +214,22 @@ public class VocabTestServiceImpl implements VocabTestService {
             throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
         }
 
-        // Nếu bài thi đã ở trạng thái kết thúc -> Trả về kết quả đã lưu (Idempotency)
+        // Idempotency: Nếu bài thi đã kết thúc -> trả về kết quả đã lưu
         if (!"IN_PROGRESS".equalsIgnoreCase(attempt.getStatus())) {
             return parseResultSummary(attempt.getResultSummary());
         }
 
         Instant now = Instant.now();
-        boolean isExpired = now.isAfter(attempt.getExpiresAt().plusSeconds(vocabTestProperties.getSubmissionGraceSeconds()));
+        int graceSeconds = vocabTestProperties != null ? vocabTestProperties.getSubmissionGraceSeconds() : 15;
+        boolean isExpired = now.isAfter(attempt.getExpiresAt().plusSeconds(graceSeconds));
 
         List<VocabTestAnswerItemDto> answersToGrade;
         if (!isExpired) {
-            if (request != null && !attempt.getProgressVersion().equals(request.getExpectedVersion())) {
-                throw new AppException(ErrorCode.VOCAB_TEST_VERSION_CONFLICT);
-            }
-            answersToGrade = request != null && request.getAnswers() != null ? request.getAnswers() : List.of();
+            answersToGrade = request != null && request.getAnswers() != null && !request.getAnswers().isEmpty()
+                    ? request.getAnswers()
+                    : parseSavedAnswers(attempt.getAnswersProgress());
         } else {
-            // Quá hạn: Bỏ qua payload request, chỉ chấm các câu đã lưu trong tiến độ
+            // Quá hạn: chấm theo tiến độ đã lưu trước đó
             answersToGrade = parseSavedAnswers(attempt.getAnswersProgress());
         }
 
@@ -343,113 +245,26 @@ public class VocabTestServiceImpl implements VocabTestService {
         }
 
         Instant now = Instant.now();
-        if (now.isBefore(attempt.getExpiresAt().plusSeconds(vocabTestProperties.getSubmissionGraceSeconds()))) {
+        int graceSeconds = vocabTestProperties != null ? vocabTestProperties.getSubmissionGraceSeconds() : 15;
+        if (now.isBefore(attempt.getExpiresAt().plusSeconds(graceSeconds))) {
             return;
         }
 
         List<VocabTestAnswerItemDto> savedAnswers = parseSavedAnswers(attempt.getAnswersProgress());
         finalizeAttempt(attempt, savedAnswers, "TIMED_OUT", now);
-        log.info("Scheduler tự động thu bài quá hạn thành công cho testToken={}", testToken);
-    }
-
-    private VocabTestResultResponse finalizeAttempt(VocabTestAttempt attempt,
-                                                    List<VocabTestAnswerItemDto> answers,
-                                                    String targetStatus,
-                                                    Instant now) {
-        List<InternalQuestionSnapshot> questions = parseInternalQuestions(attempt.getQuestionsSnapshot());
-        Map<Integer, String> answerMap = answers.stream()
-                .filter(a -> a.getQuestionNumber() != null && a.getSelectedKey() != null)
-                .collect(Collectors.toMap(
-                        VocabTestAnswerItemDto::getQuestionNumber,
-                        a -> a.getSelectedKey().trim(),
-                        (first, second) -> first
-                ));
-
-        int correctCount = 0;
-        int answeredCount = 0;
-
-        for (InternalQuestionSnapshot q : questions) {
-            String selected = answerMap.get(q.getQuestionNumber());
-            if (selected != null && !selected.isBlank()) {
-                answeredCount++;
-                if (selected.equalsIgnoreCase(q.getCorrectKey())) {
-                    correctCount++;
-                }
-            }
-        }
-
-        int totalQuestions = attempt.getTotalQuestions() > 0 ? attempt.getTotalQuestions() : questions.size();
-        int score = (int) Math.round(((double) correctCount / totalQuestions) * 100);
-
-        int timeSpent = (int) Math.min(
-                attempt.getTimeLimitSeconds(),
-                Math.max(0, Duration.between(attempt.getStartedAt(), now).toSeconds())
-        );
-
-        // Quy tắc thưởng XP & Streak: Chỉ nhận khi có >= 1 lựa chọn hợp lệ
-        int xpEarned = answeredCount > 0 ? 20 : 0;
-        boolean qualifiesForStreak = answeredCount > 0;
-
-        StudyActivityRecord activity = StudyActivityRecord.builder()
-                .userId(attempt.getUserId())
-                .studyMinutes(timeSpent / 60)
-                .cardsReviewed(0)
-                .xpEarned(xpEarned)
-                .activityType("VOCAB_TEST")
-                .questionsAnswered(totalQuestions)
-                .correctAnswers(correctCount)
-                .qualifiesForStreak(qualifiesForStreak)
-                .build();
-
-        StudyActivitySummary studySummary = studyActivityService.recordActivity(activity);
-
-        VocabTestResultResponse resultResponse = VocabTestResultResponse.builder()
-                .testToken(attempt.getTestToken())
-                .status(targetStatus)
-                .score(score)
-                .correctCount(correctCount)
-                .totalQuestions(totalQuestions)
-                .xpEarned(xpEarned)
-                .timeSpentSeconds(timeSpent)
-                .currentStreak(studySummary != null ? studySummary.getCurrentStreak() : 0)
-                .streakIncremented(studySummary != null && studySummary.getStreakIncrement() > 0)
-                .submittedAt(now)
-                .build();
-
-        try {
-            attempt.setStatus(targetStatus);
-            attempt.setScore(score);
-            attempt.setCorrectCount(correctCount);
-            attempt.setXpEarned(xpEarned);
-            attempt.setTimeSpentSeconds(timeSpent);
-            attempt.setSubmittedAt(now);
-            attempt.setAnswersProgress(objectMapper.writeValueAsString(answers));
-            attempt.setResultSummary(objectMapper.writeValueAsString(resultResponse));
-
-            vocabTestAttemptRepository.save(attempt);
-        } catch (Exception e) {
-            log.error("Lỗi khi lưu kết quả bài thi thử:", e);
-            throw new IllegalStateException("Không thể lưu kết quả bài thi", e);
-        }
-
-        return resultResponse;
+        log.info("Thu bài quá hạn thành công cho testToken={}", testToken);
     }
 
     @Override
     @Transactional(readOnly = true)
     public VocabTestReviewDetailDto reviewAnswers(String testToken, Integer userId) {
-        VocabTestAttempt attempt = vocabTestAttemptRepository.findByTestToken(testToken)
-                .orElseThrow(() -> new AppException(ErrorCode.VOCAB_TEST_NOT_FOUND));
-
-        if (!attempt.getUserId().equals(userId)) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
-        }
+        VocabTestAttempt attempt = findOwnedAttempt(testToken, userId);
 
         if ("IN_PROGRESS".equalsIgnoreCase(attempt.getStatus())) {
             throw new AppException(ErrorCode.VOCAB_TEST_STILL_IN_PROGRESS);
         }
 
-        List<InternalQuestionSnapshot> questions = parseInternalQuestions(attempt.getQuestionsSnapshot());
+        List<VocabTestInternalQuestionDto> questions = parseInternalQuestions(attempt.getQuestionsSnapshot());
         List<VocabTestAnswerItemDto> answers = parseSavedAnswers(attempt.getAnswersProgress());
 
         Map<Integer, String> selectedMap = answers.stream()
@@ -461,7 +276,7 @@ public class VocabTestServiceImpl implements VocabTestService {
                 ));
 
         List<VocabTestReviewItemDto> reviewItems = new ArrayList<>();
-        for (InternalQuestionSnapshot q : questions) {
+        for (VocabTestInternalQuestionDto q : questions) {
             String selected = selectedMap.get(q.getQuestionNumber());
             boolean isCorrect = selected != null && selected.equalsIgnoreCase(q.getCorrectKey());
 
@@ -519,12 +334,106 @@ public class VocabTestServiceImpl implements VocabTestService {
                 .build());
     }
 
-    private List<InternalQuestionSnapshot> parseInternalQuestions(String json) {
+    private VocabTestResultResponse finalizeAttempt(VocabTestAttempt attempt,
+                                                    List<VocabTestAnswerItemDto> answers,
+                                                    String targetStatus,
+                                                    Instant now) {
+        List<VocabTestInternalQuestionDto> questions = parseInternalQuestions(attempt.getQuestionsSnapshot());
+        Map<Integer, String> answerMap = answers.stream()
+                .filter(a -> a.getQuestionNumber() != null && a.getSelectedKey() != null)
+                .collect(Collectors.toMap(
+                        VocabTestAnswerItemDto::getQuestionNumber,
+                        a -> a.getSelectedKey().trim(),
+                        (first, second) -> first
+                ));
+
+        int correctCount = 0;
+        int answeredCount = 0;
+
+        for (VocabTestInternalQuestionDto q : questions) {
+            String selected = answerMap.get(q.getQuestionNumber());
+            if (selected != null && !selected.isBlank()) {
+                answeredCount++;
+                if (selected.equalsIgnoreCase(q.getCorrectKey())) {
+                    correctCount++;
+                }
+            }
+        }
+
+        int totalQuestions = attempt.getTotalQuestions() != null && attempt.getTotalQuestions() > 0
+                ? attempt.getTotalQuestions()
+                : questions.size();
+        int score = totalQuestions > 0 ? (int) Math.round(((double) correctCount / totalQuestions) * 100) : 0;
+
+        int timeSpent = (int) Math.min(
+                attempt.getTimeLimitSeconds() != null ? attempt.getTimeLimitSeconds() : 0,
+                Math.max(0, Duration.between(attempt.getStartedAt(), now).toSeconds())
+        );
+
+        // Quy tắc thưởng XP & Streak: +20 XP khi có >= 1 câu trả lời
+        int xpEarned = answeredCount > 0 ? 20 : 0;
+        boolean qualifiesForStreak = answeredCount > 0;
+
+        StudyActivityRecord activity = StudyActivityRecord.builder()
+                .userId(attempt.getUserId())
+                .studyMinutes(Math.max(1, timeSpent / 60))
+                .cardsReviewed(0)
+                .xpEarned(xpEarned)
+                .activityType("VOCAB_TEST")
+                .questionsAnswered(totalQuestions)
+                .correctAnswers(correctCount)
+                .qualifiesForStreak(qualifiesForStreak)
+                .build();
+
+        StudyActivitySummary studySummary = studyActivityService.recordActivity(activity);
+
+        VocabTestResultResponse resultResponse = VocabTestResultResponse.builder()
+                .testToken(attempt.getTestToken())
+                .status(targetStatus)
+                .score(score)
+                .correctCount(correctCount)
+                .totalQuestions(totalQuestions)
+                .xpEarned(xpEarned)
+                .timeSpentSeconds(timeSpent)
+                .currentStreak(studySummary != null ? studySummary.getCurrentStreak() : 0)
+                .streakIncremented(studySummary != null && studySummary.getStreakIncrement() > 0)
+                .submittedAt(now)
+                .build();
+
+        try {
+            attempt.setStatus(targetStatus);
+            attempt.setScore(score);
+            attempt.setCorrectCount(correctCount);
+            attempt.setXpEarned(xpEarned);
+            attempt.setTimeSpentSeconds(timeSpent);
+            attempt.setSubmittedAt(now);
+            attempt.setAnswersProgress(objectMapper.writeValueAsString(answers));
+            attempt.setResultSummary(objectMapper.writeValueAsString(resultResponse));
+
+            vocabTestAttemptRepository.save(attempt);
+        } catch (Exception e) {
+            log.error("Lỗi khi lưu kết quả bài thi: {}", e.getMessage());
+            throw new IllegalStateException("Không thể lưu kết quả bài thi", e);
+        }
+
+        return resultResponse;
+    }
+
+    private VocabTestAttempt findOwnedAttempt(String testToken, Integer userId) {
+        VocabTestAttempt attempt = vocabTestAttemptRepository.findByTestToken(testToken)
+                .orElseThrow(() -> new AppException(ErrorCode.VOCAB_TEST_NOT_FOUND));
+        if (!attempt.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED_ACCESS);
+        }
+        return attempt;
+    }
+
+    private List<VocabTestInternalQuestionDto> parseInternalQuestions(String json) {
         if (json == null || json.isBlank()) return List.of();
         try {
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
-            log.error("Lỗi khi parse snapshot câu hỏi bài thi:", e);
+            log.error("Lỗi khi parse snapshot câu hỏi: {}", e.getMessage());
             return List.of();
         }
     }
@@ -534,7 +443,7 @@ public class VocabTestServiceImpl implements VocabTestService {
         try {
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
-            log.error("Lỗi khi parse snapshot tiến độ trả lời:", e);
+            log.error("Lỗi khi parse snapshot tiến độ: {}", e.getMessage());
             return List.of();
         }
     }
@@ -544,25 +453,8 @@ public class VocabTestServiceImpl implements VocabTestService {
         try {
             return objectMapper.readValue(json, VocabTestResultResponse.class);
         } catch (Exception e) {
-            log.error("Lỗi khi parse result_summary JSON:", e);
+            log.error("Lỗi khi parse result_summary: {}", e.getMessage());
             return null;
         }
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class InternalQuestionSnapshot {
-        private Integer questionNumber;
-        private Integer cardId;
-        private String word;
-        private String phonetic;
-        private String pos;
-        private String sentence;
-        private List<VocabTestOptionDto> options;
-        private String correctKey;
-        private String explanation;
     }
 }

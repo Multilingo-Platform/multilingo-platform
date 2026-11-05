@@ -41,7 +41,7 @@ export const QuizOptionButton: React.FC<QuizOptionButtonProps> = ({
 
   if (!isAnswered) {
     containerStyle +=
-      ' border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/30 text-slate-800 active:scale-[0.99] cursor-pointer shadow-2xs';
+      ' border-slate-200 bg-white hover:border-orange-400 hover:bg-orange-50/30 text-slate-800 active:scale-[0.99] cursor-pointer shadow-2xs';
   } else if (isCorrect) {
     containerStyle +=
       ' border-emerald-500 bg-emerald-50/80 text-emerald-950 shadow-2xs cursor-default';
@@ -59,7 +59,7 @@ export const QuizOptionButton: React.FC<QuizOptionButtonProps> = ({
 
   if (!isAnswered) {
     badgeStyle +=
-      ' bg-slate-100 text-slate-600 group-hover:bg-amber-100 group-hover:text-amber-800';
+      ' bg-slate-100 text-slate-600 group-hover:bg-orange-100 group-hover:text-orange-800';
   } else if (isCorrect) {
     badgeStyle += ' bg-emerald-600 text-white';
   } else if (isSelected) {

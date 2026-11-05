@@ -14,6 +14,6 @@ import lombok.Setter;
 @Builder
 public class ReviewCardRequest {
 
-    @NotBlank(message = "Mức độ đánh giá không được để trống")
+    @NotBlank(message = "INVALID_SRS_RATING")
     private String rating;
 }
