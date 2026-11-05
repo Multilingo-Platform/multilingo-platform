@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  Search, 
+  Search,
+  History as HistoryIcon, 
   Play, 
   Clock, 
   BookOpen, 
@@ -490,6 +491,16 @@ const ExamLibrary: React.FC = () => {
               >
                 {t('library.target_banner.view_goal_tests', 'Xem đề mục tiêu')}
               </button>
+              <button
+                type="button"
+                className="exam-library-target-banner-btn"
+                style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.35)', marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                onClick={() => navigate('/student/history')}
+                title="Xem các bài thi đã làm trong Lịch sử làm bài"
+              >
+                <HistoryIcon size={14} />
+                <span>{t('library.target_banner.view_history', 'Lịch sử làm bài')}</span>
+              </button>
             </div>
           )}
 
@@ -700,7 +711,15 @@ const ExamLibrary: React.FC = () => {
                     {/* Top Floating Badges */}
                     <div className="exam-card-badges-top">
                       {exam.isAttempted ? (
-                        <span className="exam-card-attempt-badge attempted">
+                        <span
+                          className="exam-card-attempt-badge attempted"
+                          title="Bấm để xem lịch sử làm đề này"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/student/history?search=${encodeURIComponent(exam.title)}`);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <CheckCircle2 size={12} />
                           <span>{t('library.card.attempted_count', { count: exam.userAttemptsCount || 1, defaultValue: `Đã làm (${exam.userAttemptsCount || 1} lần)` })} {exam.userHighestScore !== null && exam.userHighestScore !== undefined ? `• ${formatScore(exam.userHighestScore, exam.type)}` : ''}</span>
                         </span>

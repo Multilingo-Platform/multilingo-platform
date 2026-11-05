@@ -411,6 +411,44 @@ describe('ExamManagement', () => {
     expect(screen.getByText('NLTV-6F15F7')).toBeInTheDocument();
     expect(screen.getByText('NLTV-B06E84')).toBeInTheDocument();
   });
+
+  it('renders exam table with fluid responsive layout without forcing global nowrap', async () => {
+    vi.mocked(axiosClient.get).mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: 1,
+          code: 'TOEIC-C61F25',
+          title: 'TOEIC Writing Test 1 - Part 1: Write a Sentence Based on a Picture with Very Long Detailed Description',
+          type: 'TOEIC_WRITING',
+          isPublished: true,
+          parts: 1,
+          questions: 5,
+          joins: 0,
+          updatedAt: '2026-11-05T14:20:00',
+        },
+      ],
+    } as any);
+
+    const { container } = render(
+      <MemoryRouter>
+        <ExamManagement />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('TOEIC-C61F25')).toBeInTheDocument();
+    });
+
+    const table = container.querySelector('table');
+    expect(table).toBeInTheDocument();
+    // Global table should NOT force nowrap
+    expect(table?.style.whiteSpace).not.toBe('nowrap');
+
+    const titleCell = container.querySelector('td:nth-child(2)') as HTMLElement;
+    expect(titleCell).toBeInTheDocument();
+    expect(titleCell.style.whiteSpace).toBe('normal');
+  });
 });
 
 

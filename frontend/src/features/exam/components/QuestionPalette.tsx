@@ -5,6 +5,11 @@ import type { RootState } from '../../../app/store';
 import type { Question } from '../types/exam.types';
 import { isAnswered } from '../utils/answerUtils';
 import { resolveQuestionNumber } from '../utils/toeicWorkspaceModel';
+import {
+  extractPartQuestions,
+  declaredPartNumber,
+  parseQuestionNumberFromId,
+} from '../utils/examPartUtils';
 
 export interface QuestionPaletteProps {
   allParts?: any[];
@@ -17,37 +22,6 @@ export interface QuestionPaletteProps {
   /** True only for verified TOEIC snapshots; other exams keep their own question numbering. */
   isToeicExam?: boolean;
   onNavigate: ((partId: number, questionId: string) => void) | ((questionId: string) => void);
-}
-
-/**
- * Questions of a Part, preferring the flat list and otherwise walking the nested groups in
- * server order (camelCase, snake_case or wrapped in `content`).
- */
-function extractQuestions(part: any): any[] {
-  if (Array.isArray(part?.questions) && part.questions.length > 0) return part.questions;
-  const groups =
-    part?.questionGroups ??
-    part?.question_groups ??
-    part?.content?.questionGroups ??
-    part?.content?.question_groups;
-  if (Array.isArray(groups)) {
-    return groups.flatMap(group => (Array.isArray(group?.questions) ? group.questions : []));
-  }
-  return [];
-}
-
-function declaredPartNumber(part: any): number | null {
-  const raw = part?.part_number ?? part?.partNumber;
-  return typeof raw === 'number' && Number.isSafeInteger(raw) && raw > 0 ? raw : null;
-}
-
-function parseQuestionNumberFromId(questionId: unknown): number | null {
-  if (typeof questionId !== 'string') return null;
-  const trimmed = questionId.trim();
-  const match = /(\d+)$/.exec(trimmed);
-  if (!match) return null;
-  const num = parseInt(match[1], 10);
-  return Number.isSafeInteger(num) && num > 0 ? num : null;
 }
 
 /**
@@ -129,7 +103,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
   normalizedParts.forEach((p: any) => {
     const pId = p.part_id ?? p.id;
-    const qList = extractQuestions(p);
+    const qList = extractPartQuestions(p);
 
     total += qList.length;
 
@@ -221,7 +195,7 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
         {normalizedParts.map((p: any, index: number) => {
           const pId = p.part_id ?? p.id;
           const pNumber = declaredPartNumber(p);
-          const qList = extractQuestions(p);
+          const qList = extractPartQuestions(p);
           if (qList.length === 0) return null;
 
           const isPartLocked = lockedPartIds instanceof Set
@@ -235,8 +209,11 @@ const QuestionPalette: React.FC<QuestionPaletteProps> = ({
           return (
             <div key={pId}>
               {normalizedParts.length > 1 && (
-                <div style={{ fontSize: '0.85rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)', color: '#1f2937', marginBottom: '8px' }}>
-                  {p.title || p.content?.part_title || `Part ${pNumber ?? index + 1}`}
+                <div style={{ fontSize: '0.85rem', fontWeight: 'bold', fontFamily: 'var(--font-heading)', color: '#1f2937', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{p.title || p.content?.part_title || `Part ${pNumber ?? index + 1}`}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#6b7280' }}>
+                    {qList.length} {em("câu")}
+                  </span>
                 </div>
               )}
               <nav

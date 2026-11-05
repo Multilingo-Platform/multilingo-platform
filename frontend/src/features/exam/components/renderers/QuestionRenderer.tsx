@@ -33,7 +33,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
       return (
         <SingleChoiceRenderer
           options={options ?? []}
-          value={currentAnswer as string | null}
+          value={Array.isArray(currentAnswer) ? (currentAnswer[0] ?? null) : (currentAnswer as string | null)}
           onChange={onChange}
           questionId={question.question_id}
         />
@@ -64,7 +64,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           options={normalizedOptions}
           value={(currentAnswer as string[] | null) ?? []}
           onChange={onChange}
-          maxSelections={type === 'MULTIPLE_CHOICE_MULTI' ? 2 : undefined}
+          maxSelections={type === 'MULTIPLE_CHOICE_MULTI' ? 2 : 1}
         />
       );
     }

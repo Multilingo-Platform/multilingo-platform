@@ -2,6 +2,7 @@ import { examErrorMessage as ee } from '../i18n/examMessages';
 import { examMessage as em, useExamLocale } from '../i18n/examMessages';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, History } from 'lucide-react';
 import ScopeModePicker from '../components/ScopeModePicker';
 import { createAttempt } from '../api/attemptApi';
 import { getExamStructure } from '../api/examApi';
@@ -137,13 +138,40 @@ const ExamStartPage: React.FC = () => {
 
   const totalSections = structure?.sections?.length || 0;
   const totalParts = structure?.sections?.reduce((acc, s) => acc + (s.parts?.length || 0), 0) || 0;
+  const fixedDuration = (() => {
+    const norm = structure?.type?.trim().toUpperCase();
+    if (norm === 'IELTS_ACADEMIC' || norm === 'IELTS_GENERAL_TRAINING') return 150;
+    if (norm === 'TOEIC_LR') return 120;
+    return null;
+  })();
+  const sectionsDuration = (structure?.sections && structure.sections.length > 0 && structure.sections.every(s => Number.isSafeInteger(s.durationMinutes) && !!s.durationMinutes && s.durationMinutes > 0))
+    ? structure.sections.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0)
+    : null;
+  const overviewDuration = structure?.durationMinutes ?? fixedDuration ?? sectionsDuration;
 
   return (
     <div className="w-full bg-slate-50 min-h-screen pt-8">
       {/* Main Form Container */}
       <main className="max-w-6xl mx-auto px-4 pb-12 w-full flex flex-col gap-6">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-amber-600 transition-colors w-fit" style={{ textDecoration: 'none' }}>
-          {em("⬅ Quay lại Trang chủ")}</Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link
+            to="/student/library"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-amber-600 transition-colors w-fit"
+            style={{ textDecoration: 'none' }}
+          >
+            <ArrowLeft size={16} />
+            <span>{em("Quay lại Thư viện đề thi")}</span>
+          </Link>
+          <span className="text-slate-300">|</span>
+          <Link
+            to="/student/history"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-amber-600 transition-colors w-fit"
+            style={{ textDecoration: 'none' }}
+          >
+            <History size={15} />
+            <span>{em("Lịch sử làm bài")}</span>
+          </Link>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Overview & Rules */}
           <div className="lg:col-span-7 space-y-6">
@@ -186,7 +214,7 @@ const ExamStartPage: React.FC = () => {
                 <div>
                   <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>{em("⏱️ Thời lượng")}</div>
                   <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>
-                    {structure?.durationMinutes ? em("{{v0}} phút", { v0: structure.durationMinutes }) : em("Tính theo phạm vi đề")}
+                    {overviewDuration ? em("{{v0}} phút", { v0: overviewDuration }) : em("Tính theo phạm vi đề")}
                   </div>
                 </div>
                 <div>
@@ -195,6 +223,17 @@ const ExamStartPage: React.FC = () => {
                     {totalSections} {em("kỹ năng (")}{totalParts} part)
                   </div>
                 </div>
+                {structure?.title && (
+                  <div style={{ gridColumn: '1 / -1', paddingTop: '0.5rem', borderTop: '1px dashed #e5e7eb' }}>
+                    <Link
+                      to={`/student/history?search=${encodeURIComponent(structure.title)}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline"
+                    >
+                      <History size={14} />
+                      <span>{em("Xem lịch sử các lần thi đề này")}</span>
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {totalSections === 0 && (

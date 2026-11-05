@@ -199,7 +199,7 @@ class TestAttemptServiceTest {
     @Test
     void createAttempt_rejects_full_exam_override_and_invalid_custom_duration() {
         CreateAttemptRequest full = new CreateAttemptRequest();
-        full.setExamId(1); full.setTestScope(TestScope.FULL_EXAM); full.setTestMode(TestMode.PRACTICE); full.setTimeLimitMinutes(60);
+        full.setExamId(1); full.setTestScope(TestScope.FULL_EXAM); full.setTestMode(TestMode.MOCK_TEST); full.setTimeLimitMinutes(60);
         assertThatThrownBy(() -> service.createAttempt(full)).isInstanceOf(AppException.class);
 
         CreateAttemptRequest tooLow = new CreateAttemptRequest();
@@ -209,6 +209,21 @@ class TestAttemptServiceTest {
 
         tooLow.setTimeLimitMinutes(361);
         assertThatThrownBy(() -> service.createAttempt(tooLow)).isInstanceOf(AppException.class);
+    }
+
+    @Test
+    void createAttempt_practice_full_exam_accepts_custom_duration() {
+        CreateAttemptRequest full = new CreateAttemptRequest();
+        full.setExamId(1);
+        full.setTestScope(TestScope.FULL_EXAM);
+        full.setTestMode(TestMode.PRACTICE);
+        full.setTimeLimitMinutes(60);
+
+        WorkspaceResponse response = service.createAttempt(full);
+
+        assertThat(java.time.Duration.between(response.getStartTime(), response.getDeadline()).toSeconds()).isEqualTo(60 * 60L);
+        assertThat(response.getExamSnapshot()).containsEntry("durationMinutes", 60);
+        assertThat(response.getExamSnapshot()).containsEntry("durationSource", "LEARNER_CUSTOM");
     }
 
     @Test

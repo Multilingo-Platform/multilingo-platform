@@ -139,8 +139,21 @@ function normalizeSnapshotAliases(snapshot: unknown): unknown {
 
     const parts = sectionRaw.parts.map(partRaw => {
       if (!isRecord(partRaw)) return partRaw;
-      const part = fillCanonicalAliases(partRaw);
-      const groupsRaw = part.question_groups ?? part.questionGroups;
+      let part = fillCanonicalAliases(partRaw);
+
+      if (Array.isArray(part.questions)) {
+        const flatQuestions = part.questions.map(questionRaw =>
+          isRecord(questionRaw) ? fillCanonicalAliases(questionRaw) : questionRaw
+        );
+        part = { ...part, questions: flatQuestions };
+      }
+
+      const groupsRaw =
+        part.question_groups ??
+        part.questionGroups ??
+        (isRecord(part.contentData) ? ((part.contentData as Record<string, unknown>).question_groups ?? (part.contentData as Record<string, unknown>).questionGroups) : undefined) ??
+        (isRecord(part.content) ? ((part.content as Record<string, unknown>).question_groups ?? (part.content as Record<string, unknown>).questionGroups) : undefined);
+
       if (!Array.isArray(groupsRaw)) return part;
 
       const groups = groupsRaw.map(groupRaw => {

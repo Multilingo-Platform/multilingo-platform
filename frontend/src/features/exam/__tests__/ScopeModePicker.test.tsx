@@ -354,11 +354,11 @@ describe('ScopeModePicker', () => {
     expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ time_limit_minutes: 360 }));
   });
 
-  it('shows fixed full-exam time and drops a previous scoped override', () => {
+  it('shows fixed full-exam time in Mock Test and drops a previous scoped override', () => {
     render(<ScopeModePicker examId={42} examType="IELTS_ACADEMIC" examDurationMinutes={99}
       sections={mockSections} onSubmit={mockSubmit} isLoading={false} error={null} />);
     fireEvent.click(screen.getByText('Một kỹ năng'));
-    fireEvent.click(screen.getByText('Practice'));
+    fireEvent.click(screen.getByText('Mock Test'));
     fireEvent.click(screen.getByRole('button', { name: 'Reading Section' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Thời gian làm bài' }), { target: { value: '30' } });
     fireEvent.click(screen.getByText('Toàn bộ đề'));
@@ -366,5 +366,45 @@ describe('ScopeModePicker', () => {
     expect(screen.getByText('Thời gian cố định: 150 phút')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
     expect(mockSubmit).toHaveBeenCalledWith(expect.not.objectContaining({ time_limit_minutes: expect.anything() }));
+  });
+
+  it('allows customizing time for FULL_EXAM in Practice mode and defaults to fixed 150 minutes for IELTS', () => {
+    render(<ScopeModePicker examId={42} examType="IELTS_ACADEMIC"
+      sections={mockSections} onSubmit={mockSubmit} isLoading={false} error={null} />);
+    fireEvent.click(screen.getByText('Toàn bộ đề'));
+    fireEvent.click(screen.getByText('Practice'));
+
+    // Should show default option with 150 minutes for IELTS
+    expect(screen.getByRole('option', { name: 'Mặc định — 150 phút' })).toBeInTheDocument();
+
+    // User can customize practice time to 60 minutes
+    fireEvent.change(screen.getByRole('combobox', { name: 'Thời gian làm bài' }), { target: { value: '60' } });
+    expect(screen.getByText('Thời gian làm bài: 60 phút')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
+    expect(mockSubmit).toHaveBeenCalledWith({
+      exam_id: 42,
+      test_scope: 'FULL_EXAM',
+      test_mode: 'PRACTICE',
+      section_id: null,
+      part_id: null,
+      time_limit_minutes: 60,
+    });
+  });
+
+  it('submits FULL_EXAM Practice with default 150 minutes without time_limit_minutes override if DEFAULT is selected', () => {
+    render(<ScopeModePicker examId={42} examType="IELTS_ACADEMIC"
+      sections={mockSections} onSubmit={mockSubmit} isLoading={false} error={null} />);
+    fireEvent.click(screen.getByText('Toàn bộ đề'));
+    fireEvent.click(screen.getByText('Practice'));
+
+    fireEvent.click(screen.getByRole('button', { name: /bắt đầu/i }));
+    expect(mockSubmit).toHaveBeenCalledWith({
+      exam_id: 42,
+      test_scope: 'FULL_EXAM',
+      test_mode: 'PRACTICE',
+      section_id: null,
+      part_id: null,
+    });
   });
 });

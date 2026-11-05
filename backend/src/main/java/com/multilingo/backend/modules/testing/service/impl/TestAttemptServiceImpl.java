@@ -705,6 +705,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
      */
     private Integer resolveDuration(ExamFixture exam, CreateAttemptRequest request) {
         if (request.getTestScope() == TestScope.FULL_EXAM) {
+            if (request.getTimeLimitMinutes() != null && request.getTestMode() == TestMode.PRACTICE) {
+                return AttemptDurationPolicy.resolveScopedDuration(null, request.getTimeLimitMinutes());
+            }
             Integer fixedDuration = CertificateExamPolicy.fullExamDurationMinutes(exam.getType());
             return fixedDuration != null ? fixedDuration : exam.getDurationMinutes();
         }
@@ -765,7 +768,9 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Custom time limit must be an integer from 1 to 360 minutes");
         }
         if (request.getTestScope() == TestScope.FULL_EXAM && request.getTimeLimitMinutes() != null) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Full exam time limit is fixed by certificate policy");
+            if (request.getTestMode() != TestMode.PRACTICE) {
+                throw new AppException(ErrorCode.INVALID_REQUEST, "Full exam time limit is fixed by certificate policy");
+            }
         }
         if (request.getTestScope() == TestScope.MULTI_PART) {
             if (request.getTargetSectionId() != null || request.getTargetPartId() != null) {

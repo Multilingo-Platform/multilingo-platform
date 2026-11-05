@@ -220,6 +220,10 @@ export const router = createBrowserRouter([
         element: <WorkspacePage />,
       },
       {
+        path: "/attempts/:attemptId/workspace",
+        element: <WorkspacePage />,
+      },
+      {
         path: "/attempts/:attemptId/result",
         element: <UserLayout />,
         children: [{ index: true, element: <ExamResultPage /> }],

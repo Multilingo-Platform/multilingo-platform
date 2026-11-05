@@ -214,6 +214,30 @@ export function WritingHintsPanel({
               {state.data && (
                 <p className="break-words">{em("Chưa tạo được bộ gợi ý mới. Đang hiển thị bộ trước.")}</p>
               )}
+              {state.error.kind === 'quota' && (
+                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50/90 p-3 text-amber-950">
+                  <div className="flex items-start gap-2.5">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                    <div className="space-y-1.5">
+                      <p className="font-semibold text-xs text-amber-900 uppercase tracking-wide">
+                        {em("Mở rộng hạn mức cùng gói Hội viên VIP")}
+                      </p>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        {em("Gói Hội viên Premium cung cấp 20 lượt gợi ý AI mỗi ngày, hỗ trợ bạn bứt phá kỹ năng Writing nhanh chóng.")}
+                      </p>
+                      <a
+                        href="/student/premium"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 transition-colors"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>{em("Nâng cấp gói Premium")}</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
               {(state.error.kind === 'pending' || state.error.kind === 'rate-limited') && (
                 <p className="break-words">
                   {state.error.kind === 'pending'

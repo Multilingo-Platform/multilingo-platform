@@ -44,10 +44,12 @@ const SingleChoiceRenderer: React.FC<Props> = ({
     };
   });
 
+  const normalizedValue = Array.isArray(value) ? (value[0] ?? null) : value;
+
   return (
     <div role="radiogroup" className="space-y-2.5 my-2">
       {normalizedOptions.map((opt, idx) => {
-        const isChecked = value === opt.id || (Boolean(opt.text) && value === opt.text);
+        const isChecked = normalizedValue === opt.id || (Boolean(opt.text) && normalizedValue === opt.text);
         const letter = opt.id || String.fromCharCode(65 + idx);
         const hasText = typeof opt.text === 'string' && opt.text.trim().length > 0;
         const showText = hasText && (!labelOnly || revealText);

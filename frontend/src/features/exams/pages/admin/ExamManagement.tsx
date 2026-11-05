@@ -267,27 +267,27 @@ const ExamManagement = () => {
       </div>
 
       {/* Quick Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
         {stats.map((stat, idx) => (
-          <div key={idx} className="ed-card flex-center" style={{ padding: '1.5rem', justifyContent: 'flex-start', gap: '1.25rem', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+          <div key={idx} className="ed-card flex-center" style={{ padding: '1.25rem', justifyContent: 'flex-start', gap: '1rem', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
               {stat.icon}
             </div>
             <div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{stat.value}</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{stat.label}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{stat.value}</div>
+              <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{stat.label}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Main Content Area */}
-      <div className="ed-card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-md)' }}>
+      <div className="ed-card" style={{ padding: '0', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-md)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
 
         {/* Toolbar */}
-        <div className="flex-between" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-secondary)' }}>
-          <div style={{ position: 'relative', width: '320px' }}>
-            <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+        <div className="flex-between" style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-secondary)', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: '360px', minWidth: '200px' }}>
+            <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
               placeholder="Tìm kiếm theo mã, tên đề thi..."
@@ -295,20 +295,20 @@ const ExamManagement = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '0.6rem 1rem 0.6rem 2.5rem',
+                padding: '0.55rem 0.875rem 0.55rem 2.25rem',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-light)',
                 outline: 'none',
-                fontSize: '0.95rem'
+                fontSize: '0.9rem'
               }}
             />
           </div>
-          <div className="flex-center" style={{ gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
             <select 
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               className="input-field" 
-              style={{ width: 'auto', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)' }}>
+              style={{ width: 'auto', padding: '0.55rem 0.875rem', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
               <option value="">Mọi đề thi</option>
               
               <optgroup label="IELTS">
@@ -340,7 +340,7 @@ const ExamManagement = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="input-field" 
-              style={{ width: 'auto', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)' }}>
+              style={{ width: 'auto', padding: '0.55rem 0.875rem', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
               <option value="">Tất cả trạng thái</option>
               <option value="PUBLISHED">Đã xuất bản</option>
               <option value="DRAFT">Bản nháp</option>
@@ -349,48 +349,48 @@ const ExamManagement = () => {
         </div>
 
         {/* Table */}
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ width: '100%', overflowX: 'auto' }}>
           {loading ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Đang tải dữ liệu...</div>
           ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '2px solid var(--border-light)' }}>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>MÃ ĐỀ THI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>TÊN ĐỀ THI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>LOẠI ĐỀ THI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>LƯỢT THI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>TRẠNG THÁI</th>
-                <th style={{ padding: '1rem 1.5rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>THAO TÁC</th>
+                <th style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', width: '130px', whiteSpace: 'nowrap' }}>MÃ ĐỀ THI</th>
+                <th style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', minWidth: '220px' }}>TÊN ĐỀ THI</th>
+                <th style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', width: '160px', whiteSpace: 'nowrap' }}>LOẠI ĐỀ THI</th>
+                <th style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', width: '85px', whiteSpace: 'nowrap' }}>LƯỢT THI</th>
+                <th style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', width: '115px', whiteSpace: 'nowrap' }}>TRẠNG THÁI</th>
+                <th style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', width: '120px', whiteSpace: 'nowrap' }}>THAO TÁC</th>
               </tr>
             </thead>
             <tbody>
               {paginatedExams.map((exam, idx) => (
                 <tr key={exam.id} style={{ borderBottom: '1px solid var(--border-light)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)', transition: 'background-color 0.2s' }} className="hover-bg-tertiary">
-                  <td style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', fontSize: '0.95rem' }}>{exam.code?.toUpperCase()}</div>
+                  <td style={{ padding: '0.875rem 1rem', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', fontSize: '0.9rem' }}>{exam.code?.toUpperCase()}</div>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{exam.title}</div>
+                  <td style={{ padding: '0.875rem 1rem', minWidth: '220px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.2rem', fontSize: '0.925rem', lineHeight: 1.35 }}>{exam.title}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }} title={exam.updatedAt ? new Date(exam.updatedAt).toLocaleString('vi-VN') : ''}>
                       Cập nhật: {formatDateTime(exam.updatedAt)} • {exam.parts} phần • {exam.questions} câu
                     </div>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-dark)', background: 'var(--primary-light)', padding: '0.35rem 0.75rem', borderRadius: '4px' }}>
+                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-dark)', background: 'var(--primary-light)', padding: '0.3rem 0.65rem', borderRadius: '4px', display: 'inline-block' }}>
                       {formatDetailedExamType(getEffectiveExamType(exam))}
                     </span>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{(exam.joins || 0).toLocaleString('vi-VN')}</div>
+                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{(exam.joins || 0).toLocaleString('vi-VN')}</div>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
+                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <span 
                       className="flex-center" 
                       style={{
                         display: 'inline-flex',
-                        gap: '0.35rem',
-                        padding: '0.25rem 0.75rem',
+                        gap: '0.3rem',
+                        padding: '0.25rem 0.65rem',
                         borderRadius: 'var(--radius-full)',
                         fontSize: '0.75rem',
                         fontWeight: 700,
@@ -399,25 +399,25 @@ const ExamManagement = () => {
                         border: `1px solid ${exam.isPublished ? 'var(--success)' : 'var(--warning)'}`
                       }}
                     >
-                      {exam.isPublished ? <CheckCircle size={14} /> : <FileText size={14} />}
+                      {exam.isPublished ? <CheckCircle size={13} /> : <FileText size={13} />}
                       {exam.isPublished ? 'Xuất bản' : 'Bản nháp'}
                     </span>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
-                    <div className="flex-center" style={{ justifyContent: 'center', gap: '0.5rem' }}>
+                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <div className="flex-center" style={{ justifyContent: 'center', gap: '0.4rem' }}>
                       <button 
                         onClick={() => handleToggleStatus(exam.id, exam.isPublished)} 
                         className="btn" 
-                        style={{ padding: '0.5rem', backgroundColor: exam.isPublished ? 'var(--warning-light)' : 'var(--success-light)', color: exam.isPublished ? 'var(--warning)' : 'var(--success)', border: 'none', borderRadius: 'var(--radius-md)' }} 
+                        style={{ padding: '0.45rem', backgroundColor: exam.isPublished ? 'var(--warning-light)' : 'var(--success-light)', color: exam.isPublished ? 'var(--warning)' : 'var(--success)', border: 'none', borderRadius: 'var(--radius-md)' }} 
                         title={exam.isPublished ? "Chuyển về bản nháp" : "Xuất bản"}
                       >
-                        {exam.isPublished ? <FileText size={18} /> : <CheckCircle size={18} />}
+                        {exam.isPublished ? <FileText size={16} /> : <CheckCircle size={16} />}
                       </button>
-                      <button onClick={() => navigate('/admin/exams/edit/' + exam.id)} className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Chỉnh sửa">
-                        <Edit size={18} />
+                      <button onClick={() => navigate('/admin/exams/edit/' + exam.id)} className="btn" style={{ padding: '0.45rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Chỉnh sửa">
+                        <Edit size={16} />
                       </button>
-                      <button onClick={() => handleDelete(exam.id)} className="btn" style={{ padding: '0.5rem', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Xóa">
-                        <Trash2 size={18} />
+                      <button onClick={() => handleDelete(exam.id)} className="btn" style={{ padding: '0.45rem', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', border: 'none', borderRadius: 'var(--radius-md)' }} title="Xóa">
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>

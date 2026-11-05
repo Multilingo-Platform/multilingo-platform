@@ -12,7 +12,10 @@ import com.multilingo.backend.modules.testing.dto.response.StudentHistoryItemRes
 import com.multilingo.backend.modules.testing.dto.response.StudentHistoryStatsResponse;
 import com.multilingo.backend.modules.testing.entity.TestAttempt;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.multilingo.backend.modules.testing.entity.enums.TestMode;
+import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.testing.service.StudentHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +42,7 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
     private final ExamRepository examRepository;
     private final UserStudyStatRepository userStudyStatRepository;
     private final UserTargetRepository userTargetRepository;
+    private final ObjectMapper objectMapper;
 
     private String resolveUserLanguage(Integer userId, String targetLanguage) {
         if (targetLanguage != null && !targetLanguage.trim().isEmpty() && !"ALL".equalsIgnoreCase(targetLanguage.trim())) {
@@ -146,15 +150,18 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
         long targetAchievedCount = 0;
 
         for (Object[] record : recentRows) {
-            TestAttempt attempt = (TestAttempt) record[0];
+            TestAttempt a = (TestAttempt) record[0];
             Exam exam = (Exam) record[1];
-            String title = exam != null ? exam.getTitle() : "Đề thi #" + attempt.getExamId();
+            String title = exam != null ? exam.getTitle() : "Đề thi #" + a.getExamId();
             String examType = exam != null ? exam.getType() : "";
-            String scoreUnit = attempt.getScoreUnit() == null ? "LEGACY_RAW" : attempt.getScoreUnit();
-            Double maxScore = resolveMaxScore(examType, scoreUnit);
+            String scoreUnit = a.getScoreUnit() == null ? "LEGACY_RAW" : a.getScoreUnit();
+            if (a.getTestScope() == TestScope.SINGLE_PART || a.getTestScope() == TestScope.MULTI_PART) {
+                scoreUnit = "RAW_OBJECTIVE";
+            }
+            Double maxScore = resolveMaxScore(examType, scoreUnit, a.getTestScope(), a.getResultSummary());
             String itemCertType = resolveCertType(examType);
 
-            Double score = attempt.getOverallScore() != null ? attempt.getOverallScore().doubleValue() : null;
+            Double score = a.getOverallScore() != null ? a.getOverallScore().doubleValue() : null;
             Double percentage = (score != null && maxScore != null && maxScore > 0)
                     ? Math.min(100.0, (score / maxScore) * 100.0) : null;
 
@@ -164,14 +171,14 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
             }
 
             trends.add(RecentScoreTrendItem.builder()
-                    .attemptId(attempt.getId())
+                    .attemptId(a.getId())
                     .examTitle(title)
                     .certType(itemCertType)
                     .score(score)
                     .maxScore(maxScore)
                     .percentage(percentage == null ? null : Math.round(percentage * 10.0) / 10.0)
                     .scoreUnit(scoreUnit)
-                    .completedAt(attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getCreatedAt())
+                    .completedAt(a.getEndTime() != null ? a.getEndTime() : a.getCreatedAt())
                     .build());
         }
 
@@ -280,7 +287,10 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
             String examLanguage = e != null ? e.getExamLanguage() : "vi";
 
             String scoreUnit = a.getScoreUnit() == null ? "LEGACY_RAW" : a.getScoreUnit();
-            Double maxScore = resolveMaxScore(examType, scoreUnit);
+            if (a.getTestScope() == TestScope.SINGLE_PART || a.getTestScope() == TestScope.MULTI_PART) {
+                scoreUnit = "RAW_OBJECTIVE";
+            }
+            Double maxScore = resolveMaxScore(examType, scoreUnit, a.getTestScope(), a.getResultSummary());
             int durationMinutes = a.getTimeSpentSeconds() != null ? Math.max(1, a.getTimeSpentSeconds() / 60) : 0;
 
             Double score = a.getOverallScore() != null ? a.getOverallScore().doubleValue() : null;
@@ -329,17 +339,71 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
     }
 
     private Double resolveMaxScore(String examType, String scoreUnit) {
+        return resolveMaxScore(examType, scoreUnit, null, null);
+    }
+
+    private Double resolveMaxScore(String examType, String scoreUnit, TestScope testScope, String resultSummaryJson) {
+        if (testScope == TestScope.SINGLE_PART || testScope == TestScope.MULTI_PART
+                || "RAW_OBJECTIVE".equals(scoreUnit) || (scoreUnit != null && scoreUnit.endsWith("RAW"))) {
+            Double objectiveTotal = parseTotalObjectiveCount(resultSummaryJson);
+            if (objectiveTotal != null && objectiveTotal > 0) {
+                return objectiveTotal;
+            }
+            return null;
+        }
+
         if ("IELTS_BAND".equals(scoreUnit)) return 9.0;
-        if ("TOEIC_SCALED".equals(scoreUnit)) return 990.0;
+
+        if ("TOEIC_SCALED".equals(scoreUnit)) {
+            if (testScope == TestScope.SINGLE_SKILL || isToeicSingleSkillExam(examType)) {
+                return 450.0;
+            }
+            return 990.0;
+        }
+
         if ("TOEIC_WRITING".equals(scoreUnit) || "PRACTICE_0_200".equals(scoreUnit)) return 200.0;
-        if (scoreUnit == null || "RAW_OBJECTIVE".equals(scoreUnit) || scoreUnit.endsWith("RAW")) return null;
+        if (scoreUnit == null) return null;
+
         if (examType == null) return 100.0;
         String upper = examType.toUpperCase();
         if (upper.startsWith("IELTS")) return 9.0;
         if (upper.contains("WRITING") || upper.startsWith("TW")) return 200.0;
-        if (upper.startsWith("TOEIC")) return 990.0;
+        if (upper.startsWith("TOEIC")) {
+            if (testScope == TestScope.SINGLE_SKILL || isToeicSingleSkillExam(examType)) {
+                return 450.0;
+            }
+            return 990.0;
+        }
         if (upper.startsWith("NLTV")) return 10.0;
         return 100.0;
+    }
+
+    private boolean isToeicSingleSkillExam(String examType) {
+        if (examType == null) return false;
+        String upper = examType.toUpperCase();
+        return upper.contains("LISTENING") || upper.contains("READING");
+    }
+
+    private Double parseTotalObjectiveCount(String resultSummaryJson) {
+        if (resultSummaryJson == null || resultSummaryJson.isBlank()) {
+            return null;
+        }
+        ObjectMapper mapper = (this.objectMapper != null) ? this.objectMapper : new ObjectMapper();
+        try {
+            JsonNode root = mapper.readTree(resultSummaryJson);
+            if (root.hasNonNull("totalObjectiveCount")) {
+                return root.get("totalObjectiveCount").asDouble();
+            }
+            if (root.has("objective") && root.get("objective").hasNonNull("total")) {
+                return root.get("objective").get("total").asDouble();
+            }
+            if (root.hasNonNull("totalQuestions")) {
+                return root.get("totalQuestions").asDouble();
+            }
+        } catch (Exception e) {
+            log.debug("Failed to parse totalObjectiveCount from resultSummary: {}", e.getMessage());
+        }
+        return null;
     }
 
     private boolean targetScoreCertMatches(String targetCert, String resultCert) {

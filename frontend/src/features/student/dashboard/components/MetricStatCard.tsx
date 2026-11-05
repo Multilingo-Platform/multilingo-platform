@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, FileText, BookOpen, Trophy, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ExamStats, StreakStats, VocabStats } from '../types/dashboard.types';
@@ -11,6 +12,7 @@ interface MetricStatCardProps {
 
 export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStats, vocabStats }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const numberLocale = i18n.language === 'en' ? 'en-US' : 'vi-VN';
 
   return (
@@ -61,7 +63,11 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStat
       </div>
 
       {/* 3. Card Năng lực thi thử */}
-      <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs hover:border-slate-300 transition-colors">
+      <div
+        className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer"
+        onClick={() => navigate('/student/history')}
+        title="Bấm để xem chi tiết trong Lịch sử làm bài"
+      >
         <div className="flex items-center justify-between">
           <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500">
             {t('dashboard.metrics.exams_taken', 'Thi thử & Đánh giá')}

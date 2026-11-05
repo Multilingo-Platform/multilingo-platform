@@ -29,7 +29,14 @@ import { DEFAULT_HIGHLIGHT_COLOR, type HighlightColor } from '../utils/highlight
 import { useReadingHighlights } from '../hooks/useReadingHighlights';
 import { useWorkspaceAnnotations, WorkspaceAnnotationsContext } from '../hooks/useWorkspaceAnnotations';
 import { isAnswered } from '../utils/answerUtils';
-import { extractMinWords, getPartHeaderInfo } from '../utils/examPartUtils';
+import {
+  extractMinWords,
+  getPartHeaderInfo,
+  extractPartQuestions,
+  declaredPartNumber,
+  parseQuestionNumberFromId,
+  isMultiChoicePair,
+} from '../utils/examPartUtils';
 import { usePracticeFeedback } from '../hooks/usePracticeFeedback';
 import { usePracticeRetry } from '../hooks/usePracticeRetry';
 import { PracticeQuestionFeedback } from '../components/practice/PracticeQuestionFeedback';
@@ -39,7 +46,7 @@ import { WritingHintsPanel } from '../components/practice/WritingHintsPanel';
 import { PracticeDictionaryPopover } from '../components/practice/PracticeDictionaryPopover';
 import { usePracticeDictionary } from '../hooks/usePracticeDictionary';
 import { selectRetryQuestionIds, filterRetryGroups } from '../utils/practiceRetry';
-import { isToeicExamSnapshot, buildToeicWorkspaceModel } from '../utils/toeicWorkspaceModel';
+import { isToeicExamSnapshot, buildToeicWorkspaceModel, resolveQuestionNumber } from '../utils/toeicWorkspaceModel';
 import ToeicWorkspace from '../components/workspace/ToeicWorkspace';
 import ReferencePane, { type ReferenceDoc } from '../components/workspace/ReferencePane';
 import ReadingPartContent, {
@@ -245,6 +252,7 @@ const WorkspacePage: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [showTimeUp, setShowTimeUp] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
   const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
   const [hasLocalDraft, setHasLocalDraft] = useState<boolean>(false);
   const [confirmedLocks, setConfirmedLocks] = useState<{ attemptId: number; sectionIds: number[] }>({
@@ -392,6 +400,8 @@ const WorkspacePage: React.FC = () => {
     return sections.flatMap(s => s.parts ?? []);
   }, [sections]);
 
+  const isToeicExam = isToeicExamSnapshot((activeWorkspace as any)?.exam_snapshot);
+
   const lockedPartIds = useMemo(() => {
     if (activeWorkspace?.test_mode !== 'MOCK_TEST' || lockedSections.length === 0) {
       return new Set<number>();
@@ -459,8 +469,14 @@ const WorkspacePage: React.FC = () => {
   const currentSkill = currentSection?.skill_type || ((currentSection as any)?.name?.toUpperCase() as any) || 'READING';
 
   const partHeaderInfo = useMemo(() => {
-    return getPartHeaderInfo(currentSkill, currentPart, currentSection?.parts, allParts);
-  }, [currentSkill, currentPart, currentSection, allParts]);
+    return getPartHeaderInfo(
+      currentSkill,
+      currentPart,
+      currentSection?.parts,
+      allParts,
+      activeWorkspace?.exam_snapshot?.type ?? (activeWorkspace as any)?.exam_snapshot?.examType
+    );
+  }, [currentSkill, currentPart, currentSection, allParts, activeWorkspace]);
 
   const currentPartQuestionGroups = useMemo(() => {
     if (!currentPart) return [];
@@ -485,15 +501,8 @@ const WorkspacePage: React.FC = () => {
 
   // Prefer grouped canonical data; PartFixture.questions is a flat compatibility view.
   const currentPartQuestions = useMemo(() => {
-    if (!currentPart) return [];
-    if (currentPartQuestionGroups.length > 0) {
-      return currentPartQuestionGroups.flatMap((group: any) => group.questions ?? []);
-    }
-    if (Array.isArray((currentPart as any).questions) && (currentPart as any).questions.length > 0) {
-      return (currentPart as any).questions;
-    }
-    return [];
-  }, [currentPart, currentPartQuestionGroups]);
+    return extractPartQuestions(currentPart);
+  }, [currentPart]);
 
   const partId = (currentPart as any)?.id ?? (currentPart as any)?.part_id ?? 1;
 
@@ -543,10 +552,23 @@ const WorkspacePage: React.FC = () => {
 
     const normalizedOptions = normalizeOptionsList(rawOptions);
 
+    let resolvedNum = q.question_number ?? q.questionNumber;
+    if (typeof resolvedNum !== 'number' || !Number.isSafeInteger(resolvedNum) || resolvedNum <= 0) {
+      if (isToeicExam) {
+        resolvedNum = resolveQuestionNumber(q, declaredPartNumber(currentPart)).number;
+      }
+      if (typeof resolvedNum !== 'number' || !Number.isSafeInteger(resolvedNum) || resolvedNum <= 0) {
+        resolvedNum = parseQuestionNumberFromId(q.question_id ?? q.id);
+      }
+      if (typeof resolvedNum !== 'number' || !Number.isSafeInteger(resolvedNum) || resolvedNum <= 0) {
+        resolvedNum = fallbackQuestionNumber;
+      }
+    }
+
     return {
       ...q,
       question_id: q.question_id ?? q.questionId ?? String(q.id),
-      question_number: q.question_number ?? q.questionNumber ?? q.id ?? fallbackQuestionNumber,
+      question_number: resolvedNum,
       type: q.type === 'MCQ' ? 'SINGLE_CHOICE' : q.type === 'FILL_IN' ? 'FILL_IN_THE_BLANK' : q.type,
       question_text: q.question_text || q.prompt || q.text || q.content || '',
       options: normalizedOptions,
@@ -558,7 +580,15 @@ const WorkspacePage: React.FC = () => {
     const groups = currentPartQuestionGroups.length > 0
       ? currentPartQuestionGroups
       : [{ group_id: `legacy-part-${partId}`, instruction: null, questions: currentPartQuestions }];
-    let nextQuestionNumber = 1;
+
+    let cumulativeQuestionOffset = 0;
+    const currentPartIndex = allParts.findIndex(p => ((p as any).part_id ?? p.id) === partId);
+    if (currentPartIndex > 0) {
+      for (let i = 0; i < currentPartIndex; i++) {
+        cumulativeQuestionOffset += extractPartQuestions(allParts[i]).length;
+      }
+    }
+    let nextQuestionNumber = cumulativeQuestionOffset + 1;
 
     return groups.map((group: any) => ({
       ...group,
@@ -566,7 +596,7 @@ const WorkspacePage: React.FC = () => {
         normalizeQuestion(question, nextQuestionNumber++, group)
       ),
     }));
-  }, [currentPartQuestionGroups, currentPartQuestions, partId, currentPart]);
+  }, [currentPartQuestionGroups, currentPartQuestions, partId, currentPart, allParts, isToeicExam]);
 
   const partQuestions: Question[] = useMemo(
     () => partQuestionGroups.flatMap((group: any) => group.questions),
@@ -644,12 +674,7 @@ const WorkspacePage: React.FC = () => {
 
   // Compute unanswered questions across the entire exam
   const allQuestions = useMemo(() => {
-    return allParts.flatMap((p: any) => {
-      if (Array.isArray(p.questions) && p.questions.length > 0) {
-        return p.questions;
-      }
-      return p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) ?? [];
-    });
+    return allParts.flatMap((p: any) => extractPartQuestions(p));
   }, [allParts]);
 
   const unansweredCount = useMemo(() => {
@@ -733,7 +758,6 @@ const WorkspacePage: React.FC = () => {
     currentSectionId != null &&
     lockedSections.includes(currentSectionId)
   );
-  const isToeicExam = isToeicExamSnapshot((activeWorkspace as any)?.exam_snapshot);
   const isToeicReading = currentSkill === 'READING' && isToeicExam;
   const highlightEnabled = ['READING', 'LISTENING', 'WRITING'].includes(currentSkill) &&
     (activeWorkspace?.test_mode === 'PRACTICE' || activeWorkspace?.test_mode === 'MOCK_TEST');
@@ -1060,7 +1084,7 @@ const WorkspacePage: React.FC = () => {
           ...reduxAnswers
         };
 
-        const qs = Array.isArray(p.questions) ? p.questions : (p.content?.question_groups?.flatMap((g: any) => g.questions ?? []) || []);
+        const qs = extractPartQuestions(p);
         for (const q of qs) {
           const qId = q.question_id ?? q.id;
           if (!isAnswered(q, mergedAnswers[qId])) {
@@ -1242,6 +1266,16 @@ const WorkspacePage: React.FC = () => {
           <LanguageSwitcher />
           <SaveStatusBadge onReload={handleReload} />
           <TimerDisplay displayTime={displayTime} isExpired={isExpired} isPractice={isPractice} />
+          <button
+            type="button"
+            data-testid="btn-exit-workspace"
+            onClick={() => setShowExitModal(true)}
+            className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+            title={em("Tạm dừng và rời khỏi bài thi")}
+          >
+            <span>🚪</span>
+            <span className="hidden sm:inline">{em("Rời bài thi")}</span>
+          </button>
         </div>
       </header>
 
@@ -1611,17 +1645,16 @@ const WorkspacePage: React.FC = () => {
                       />
                     )}
                     {group.questions.map((q: Question, qIdx: number) => {
-                      const isSecondaryMulti = qIdx > 0 &&
-                        q.type === 'MULTIPLE_CHOICE_MULTI' &&
-                        group.questions[qIdx - 1]?.type === 'MULTIPLE_CHOICE_MULTI';
+                      const prevQ = qIdx > 0 ? group.questions[qIdx - 1] : null;
+                      const nextQCandidate = qIdx + 1 < group.questions.length ? group.questions[qIdx + 1] : null;
 
+                      const isSecondaryMulti = isMultiChoicePair(prevQ, q);
                       if (isSecondaryMulti) {
-                        return null; // Combined with primary question above
+                        return null; // Combined with primary question above (avoids duplicate question display)
                       }
 
-                      const isPrimaryMulti = q.type === 'MULTIPLE_CHOICE_MULTI' &&
-                        group.questions[qIdx + 1]?.type === 'MULTIPLE_CHOICE_MULTI';
-                      const nextQ = isPrimaryMulti ? group.questions[qIdx + 1] : null;
+                      const isPrimaryMulti = isMultiChoicePair(q, nextQCandidate);
+                      const nextQ = isPrimaryMulti ? nextQCandidate : null;
                       const nextQId = nextQ?.question_id;
 
                       const qId = q.question_id;
@@ -1705,7 +1738,7 @@ const WorkspacePage: React.FC = () => {
                             )}
                             <fieldset disabled={isCurrentSectionLocked || submission.isLocked()} className="m-0 min-w-0 border-0 p-0">
                               <QuestionRenderer
-                                question={q}
+                                question={isPrimaryMulti ? { ...q, type: 'MULTIPLE_CHOICE_MULTI' } : q}
                                 partId={partId}
                                 currentAnswer={currentVal}
                                 minWords={minWords}
@@ -1715,8 +1748,11 @@ const WorkspacePage: React.FC = () => {
                                   if (!isCurrentSectionLocked && !submission.isLocked()) {
                                     if (isPrimaryMulti && nextQId) {
                                       const selected = Array.isArray(val) ? val : (val ? [String(val)] : []);
-                                      dispatch(setAnswer({ partId, questionId: qId, value: selected[0] ? [selected[0]] : [] }));
-                                      dispatch(setAnswer({ partId, questionId: nextQId, value: selected[1] ? [selected[1]] : [] }));
+                                      const isSingle = q.type === 'SINGLE_CHOICE';
+                                      const v0 = selected[0] ? (isSingle ? selected[0] : [selected[0]]) : (isSingle ? null : []);
+                                      const v1 = selected[1] ? (isSingle ? selected[1] : [selected[1]]) : (isSingle ? null : []);
+                                      dispatch(setAnswer({ partId, questionId: qId, value: v0 }));
+                                      dispatch(setAnswer({ partId, questionId: nextQId, value: v1 }));
                                     } else {
                                       dispatch(setAnswer({ partId, questionId: qId, value: val }));
                                     }
@@ -1727,7 +1763,7 @@ const WorkspacePage: React.FC = () => {
                             {isPracticeMode && (!isWritingHintsPart || q.type !== 'ESSAY') && (
                               <PracticeQuestionFeedback
                                 questionId={qId}
-                                questionNumber={q.question_number}
+                                questionNumber={isPrimaryMulti && nextQ ? `${q.question_number} - ${nextQ.question_number}` : q.question_number}
                                 questionType={q.type}
                                 feedback={practiceFeedback.getFeedback(qId)}
                                 onCheck={practiceFeedback.check}
@@ -1808,9 +1844,8 @@ const WorkspacePage: React.FC = () => {
                     const pId = (p as any).part_id ?? p.id;
                     const isActive = pId === partId;
                     const pIndex = allParts.findIndex(item => ((item as any).part_id ?? item.id) === pId) + 1;
-                    const qCount = Array.isArray(p.questions)
-                      ? p.questions.length
-                      : p.content?.question_groups?.flatMap((g: any) => g.questions ?? []).length ?? 0;
+                    const partQs = extractPartQuestions(p);
+                    const qCount = partQs.length;
                     const targetSection = sections.find(s => (s.parts || []).some((part: any) => (part.part_id ?? part.id) === pId));
                     const targetSId = (targetSection as any)?.section_id ?? targetSection?.id;
                     const isSectionLocked = isMockFull && lockedSections.includes(targetSId);
@@ -1975,6 +2010,67 @@ const WorkspacePage: React.FC = () => {
         onRetry={() => { writingHints.suspend(); void submission.retry(); }}
         onClose={() => setShowOverlay(false)}
       />
+
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="exit-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4"
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0">
+                ⏸️
+              </div>
+              <div>
+                <h3 id="exit-modal-title" className="font-heading font-bold text-slate-900 text-lg">
+                  {em("Tạm dừng & Rời khỏi bài thi?")}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {em("Tiến độ làm bài của bạn được tự động lưu")}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              {em("Bài làm của bạn đã được hệ thống tự động lưu trên máy chủ. Bạn có thể quay lại làm tiếp bất kỳ lúc nào tại mục Lịch sử làm bài.")}
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                data-testid="exit-to-history-btn"
+                onClick={() => {
+                  setShowExitModal(false);
+                  navigate('/student/history');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl font-heading font-bold text-sm bg-amber-600 hover:bg-amber-700 text-white transition-colors cursor-pointer shadow-xs"
+              >
+                {em("Về Lịch sử làm bài")}
+              </button>
+              <button
+                type="button"
+                data-testid="exit-to-library-btn"
+                onClick={() => {
+                  setShowExitModal(false);
+                  navigate('/student/library');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl font-heading font-semibold text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+              >
+                {em("Về Thư viện đề thi")}
+              </button>
+              <button
+                type="button"
+                data-testid="exit-cancel-btn"
+                onClick={() => setShowExitModal(false)}
+                className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                {em("Tiếp tục làm bài")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

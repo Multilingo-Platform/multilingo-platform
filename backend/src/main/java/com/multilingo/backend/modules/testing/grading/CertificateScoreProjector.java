@@ -31,9 +31,32 @@ public final class CertificateScoreProjector {
             6.0, 30, 31, 6.5, 32, 33, 7.0, 34, 35, 7.5, 36, 36,
             8.0, 37, 38, 8.5, 39, 39, 9.0, 40, 40);
 
-    private static final int[] TOEIC_RAW = {0, 6, 20, 30, 40, 50, 60, 70, 80, 90, 93, 95, 97, 100};
-    private static final BigDecimal[] TOEIC_LISTENING = decimals(5, 5, 60, 110, 167.5, 237.5, 302.5, 367.5, 427.5, 482.5, 495, 495, 495, 495);
-    private static final BigDecimal[] TOEIC_READING = decimals(5, 5, 45, 90, 142.5, 202.5, 262.5, 332.5, 392.5, 452.5, 470, 485, 490, 495);
+    // Bảng quy đổi chuẩn 100 câu TOEIC Listening (tương ứng từ 0 đến 100 câu đúng)
+    private static final int[] TOEIC_LISTENING_TABLE = {
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, // 0..17 câu: 5đ
+        10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, // 18..29 câu
+        80, 85, 90, 95, 100, 105, 115, 125, // 30..37 câu
+        135, 140, 150, 160, 170, 175, 180, 190, 200, 205, // 38..47 câu
+        215, 220, 225, 230, 235, 245, 255, 260, 265, 275, 285, // 48..58 câu
+        290, 295, 300, 310, 320, 325, 330, 335, 340, 345, 350, 355, // 59..70 câu
+        360, 365, 370, 375, 385, 395, 400, 405, 415, // 71..79 câu
+        420, 425, 430, 435, 440, 445, 455, 460, 465, 475, 480, // 80..90 câu
+        485, 490, 495, 495, 495, 495, 495, 495, 495, 495 // 91..100 câu
+    };
+
+    // Bảng quy đổi chuẩn 100 câu TOEIC Reading (tương ứng từ 0 đến 100 câu đúng)
+    private static final int[] TOEIC_READING_TABLE = {
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, // 0..17 câu: 5đ
+        5, 5, 5, 5, // 18..21 câu: 5đ
+        10, 15, 20, 25, 30, 35, 40, 45, // 22..29 câu
+        55, 60, 65, 70, 75, 80, 85, 90, // 30..37 câu
+        95, 105, 115, 120, 125, 130, 135, 140, 145, 155, // 38..47 câu
+        160, 170, 175, 185, 195, 205, 210, 215, 220, 230, 240, // 48..58 câu
+        245, 250, 255, 260, 270, 275, 280, 285, 290, 295, 295, 300, // 59..70 câu
+        310, 315, 320, 325, 330, 335, 340, 345, 355, // 71..79 câu
+        360, 370, 375, 385, 390, 395, 405, 415, 420, 425, 435, // 80..90 câu
+        440, 450, 455, 460, 470, 475, 485, 485, 490, 495 // 91..100 câu
+    };
 
     public enum ToeicSkill { LISTENING, READING }
 
@@ -131,19 +154,9 @@ public final class CertificateScoreProjector {
     }
 
     public static Optional<BigDecimal> toeicScaledScore(int correct, int total, ToeicSkill skill) {
-        if (skill == null || total != 100 || correct < 0 || correct > total) return Optional.empty();
-        BigDecimal[] scores = skill == ToeicSkill.LISTENING ? TOEIC_LISTENING : TOEIC_READING;
-        int right = 1;
-        while (right < TOEIC_RAW.length && correct > TOEIC_RAW[right]) right++;
-        if (correct == TOEIC_RAW[right - 1]) return Optional.of(scores[right - 1]);
-        int leftRaw = TOEIC_RAW[right - 1];
-        int rightRaw = TOEIC_RAW[right];
-        BigDecimal fraction = BigDecimal.valueOf(correct - leftRaw)
-                .divide(BigDecimal.valueOf(rightRaw - leftRaw), 12, RoundingMode.HALF_UP);
-        BigDecimal interpolated = scores[right - 1].add(scores[right].subtract(scores[right - 1]).multiply(fraction));
-        BigDecimal rounded = interpolated.divide(BigDecimal.valueOf(5), 0, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(5));
-        return Optional.of(rounded.max(BigDecimal.valueOf(5)).min(BigDecimal.valueOf(495)));
+        if (skill == null || total != 100 || correct < 0 || correct > 100) return Optional.empty();
+        int[] table = skill == ToeicSkill.LISTENING ? TOEIC_LISTENING_TABLE : TOEIC_READING_TABLE;
+        return Optional.of(BigDecimal.valueOf(table[correct]));
     }
 
     private CertificateSkillScore ieltsSkill(SkillObjectiveStats stats, String skill, boolean generalTraining) {

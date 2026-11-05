@@ -392,40 +392,97 @@ export const QUESTION_TYPES = [
 ];
 
 export const EXAM_TYPE_OPTIONS: Record<string, string> = {
+  // Core standard types
   'IELTS_ACADEMIC': 'IELTS Academic',
   'TOEIC_LR': 'TOEIC (Listening & Reading)',
   'TOEIC_WRITING': 'TOEIC Writing',
   'NLTV': 'Đánh giá Năng lực Tiếng Việt (NLTV)',
   'LANGUAGE_PRACTICE': 'Luyện ngôn ngữ',
-  'OTHER': 'Khác (Other)'
+  'OTHER': 'Khác (Other)',
+
+  // TOEIC granular skills & parts
+  'TOEIC_LISTENING': 'TOEIC Listening',
+  'TOEIC_READING': 'TOEIC Reading',
+  'TOEIC_P1': 'TOEIC Listening Part 1',
+  'TOEIC_P2': 'TOEIC Listening Part 2',
+  'TOEIC_P3': 'TOEIC Listening Part 3',
+  'TOEIC_P4': 'TOEIC Listening Part 4',
+  'TOEIC_P5': 'TOEIC Reading Part 5',
+  'TOEIC_P6': 'TOEIC Reading Part 6',
+  'TOEIC_P7': 'TOEIC Reading Part 7',
+  'TW_P1': 'TOEIC Writing Part 1',
+  'TW_P2': 'TOEIC Writing Part 2',
+  'TW_P3': 'TOEIC Writing Part 3',
+
+  // NLTV granular skills & parts
+  'NLTV_LISTENING': 'NLTV Nghe',
+  'NLTV_READING': 'NLTV Đọc',
+  'NLTV_WRITING': 'NLTV Viết',
+  'NLTV_L1': 'NLTV Nghe - Phần 1',
+  'NLTV_L2': 'NLTV Nghe - Phần 2',
+  'NLTV_L3': 'NLTV Nghe - Phần 3',
+  'NLTV_L4': 'NLTV Nghe - Phần 4',
+  'NLTV_R1': 'NLTV Đọc - Phần 1',
+  'NLTV_R2': 'NLTV Đọc - Phần 2',
+  'NLTV_W1': 'NLTV Viết - Phần 1 (Chính tả)',
+  'NLTV_W2': 'NLTV Viết - Phần 2 (Thư/Email)',
+  'NLTV_W3': 'NLTV Viết - Phần 3 (Bài luận)',
+
+  // IELTS granular skills & parts
+  'IELTS_LISTENING': 'IELTS Listening',
+  'IELTS_READING': 'IELTS Reading',
+  'IELTS_WRITING': 'IELTS Writing',
+  'IELTS_L1': 'IELTS Listening Part 1',
+  'IELTS_L2': 'IELTS Listening Part 2',
+  'IELTS_L3': 'IELTS Listening Part 3',
+  'IELTS_L4': 'IELTS Listening Part 4',
+  'IELTS_R1': 'IELTS Reading Passage 1',
+  'IELTS_R2': 'IELTS Reading Passage 2',
+  'IELTS_R3': 'IELTS Reading Passage 3',
+  'IELTS_W1': 'IELTS Writing Task 1',
+  'IELTS_W2': 'IELTS Writing Task 2'
 };
 
 export const normalizeExamType = (raw: string): string => {
   if (!raw) return 'IELTS_ACADEMIC';
   const clean = raw.trim().toUpperCase();
-  if (
-    clean === 'TOEIC' ||
-    clean === 'TOEIC_LR' ||
-    clean === 'TOEIC_LISTENING_READING' ||
-    clean.includes('TOEIC (LISTENING & READING)') ||
-    clean.includes('LISTENING & READING') ||
-    clean.includes('L&R')
-  ) {
+
+  // Exact part codes
+  if (['TW_P1', 'TW_PART1'].includes(clean)) return 'TW_P1';
+  if (['TW_P2', 'TW_PART2'].includes(clean)) return 'TW_P2';
+  if (['TW_P3', 'TW_PART3'].includes(clean)) return 'TW_P3';
+  if (['TOEIC_P1', 'TOEIC_P2', 'TOEIC_P3', 'TOEIC_P4', 'TOEIC_P5', 'TOEIC_P6', 'TOEIC_P7'].includes(clean)) return clean;
+  if (['NLTV_L1', 'NLTV_L2', 'NLTV_L3', 'NLTV_L4', 'NLTV_R1', 'NLTV_R2', 'NLTV_W1', 'NLTV_W2', 'NLTV_W3'].includes(clean)) return clean;
+  if (['IELTS_L1', 'IELTS_L2', 'IELTS_L3', 'IELTS_L4', 'IELTS_R1', 'IELTS_R2', 'IELTS_R3', 'IELTS_W1', 'IELTS_W2'].includes(clean)) return clean;
+
+  // Specific skills
+  if (clean === 'TOEIC_LISTENING') return 'TOEIC_LISTENING';
+  if (clean === 'TOEIC_READING') return 'TOEIC_READING';
+  if (clean === 'TOEIC_WRITING' || clean === 'TW' || clean === 'TOEIC_W') return 'TOEIC_WRITING';
+  if (clean === 'NLTV_LISTENING' || clean === 'NLTV_L') return 'NLTV_LISTENING';
+  if (clean === 'NLTV_READING' || clean === 'NLTV_R') return 'NLTV_READING';
+  if (clean === 'NLTV_WRITING' || clean === 'NLTV_W') return 'NLTV_WRITING';
+  if (clean === 'IELTS_LISTENING') return 'IELTS_LISTENING';
+  if (clean === 'IELTS_READING') return 'IELTS_READING';
+  if (clean === 'IELTS_WRITING') return 'IELTS_WRITING';
+  if (clean === 'IELTS_ACADEMIC') return 'IELTS_ACADEMIC';
+
+  // TOEIC text descriptions / synonyms
+  if (clean.includes('TOEIC') || clean.includes('TW_')) {
+    if (clean.includes('TW_P1') || (clean.includes('PART 1') && (clean.includes('WRITING') || clean.includes('VIẾT') || clean.includes('VIET')))) return 'TW_P1';
+    if (clean.includes('TW_P2') || (clean.includes('PART 2') && (clean.includes('WRITING') || clean.includes('VIẾT') || clean.includes('VIET')))) return 'TW_P2';
+    if (clean.includes('TW_P3') || (clean.includes('PART 3') && (clean.includes('WRITING') || clean.includes('VIẾT') || clean.includes('VIET')))) return 'TW_P3';
+    if (clean.includes('WRITING') || clean.includes('VIẾT') || clean.includes('VIET')) return 'TOEIC_WRITING';
+    if ((clean.includes('LISTENING') || clean.includes('NGHE')) && !clean.includes('READING') && !clean.includes('ĐỌC') && !clean.includes('DOC')) {
+      return 'TOEIC_LISTENING';
+    }
+    if ((clean.includes('READING') || clean.includes('ĐỌC') || clean.includes('DOC')) && !clean.includes('LISTENING') && !clean.includes('NGHE')) {
+      return 'TOEIC_READING';
+    }
     return 'TOEIC_LR';
   }
-  if (clean === 'TW_P1' || clean === 'TW_PART1' || clean.includes('TW_P1')) return 'TW_P1';
-  if (clean === 'TW_P2' || clean === 'TW_PART2' || clean.includes('TW_P2')) return 'TW_P2';
-  if (clean === 'TW_P3' || clean === 'TW_PART3' || clean.includes('TW_P3')) return 'TW_P3';
-  if (clean === 'TOEIC_WRITING' || clean.includes('TOEIC WRITING') || clean === 'TW') {
-    return 'TOEIC_WRITING';
-  }
-  if (clean === 'IELTS_GENERAL' || clean.includes('GENERAL') || clean === 'IELTS' || clean === 'IELTS_ACADEMIC' || clean.includes('ACADEMIC')) {
-    return 'IELTS_ACADEMIC';
-  }
-  if (clean === 'NLTV_READING' || clean === 'NLTV_R') return 'NLTV_READING';
-  if (clean === 'NLTV_LISTENING' || clean === 'NLTV_L') return 'NLTV_LISTENING';
-  if (clean === 'NLTV_WRITING' || clean === 'NLTV_W') return 'NLTV_WRITING';
-  if (['NLTV_L1','NLTV_L2','NLTV_L3','NLTV_L4','NLTV_R1','NLTV_R2','NLTV_W1','NLTV_W2','NLTV_W3'].includes(clean)) return clean;
+
+  // NLTV text descriptions / synonyms
   if (
     clean === 'NLTV' ||
     clean === 'NLTV_B1_C1' ||
@@ -438,8 +495,20 @@ export const normalizeExamType = (raw: string): string => {
     clean.includes('TIẾNG VIỆT') ||
     clean.includes('TIENG VIET')
   ) {
+    if (clean.includes('NGHE') || clean.includes('LISTENING')) return 'NLTV_LISTENING';
+    if (clean.includes('ĐỌC') || clean.includes('DOC') || clean.includes('READING')) return 'NLTV_READING';
+    if (clean.includes('VIẾT') || clean.includes('VIET') || clean.includes('WRITING')) return 'NLTV_WRITING';
     return 'NLTV';
   }
+
+  // IELTS text descriptions / synonyms
+  if (clean.includes('IELTS')) {
+    if (clean.includes('LISTENING') || clean.includes('NGHE')) return 'IELTS_LISTENING';
+    if (clean.includes('READING') || clean.includes('ĐỌC')) return 'IELTS_READING';
+    if (clean.includes('WRITING') || clean.includes('VIẾT')) return 'IELTS_WRITING';
+    return 'IELTS_ACADEMIC';
+  }
+
   if (clean === 'LANGUAGE_PRACTICE') return 'LANGUAGE_PRACTICE';
   if (clean === 'OTHER') return 'OTHER';
   return clean;
@@ -1143,7 +1212,36 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
     if (initialData) {
       setExamTitle(initialData.title || 'Đề thi Mới');
       setExamLanguage(initialData.examLanguage || initialData.exam_language || 'en');
-      const rawType = initialData.type || 'IELTS_ACADEMIC';
+      let rawType = initialData.type || 'IELTS_ACADEMIC';
+
+      // Infer granular skill type if generic type was returned for single skill exam
+      if (rawType === 'NLTV' || rawType === 'NLTV_A1_A2' || rawType === 'NLTV_B1_C1') {
+        const titleLower = (initialData.title || '').toLowerCase();
+        const sectionSkills = (initialData.sections || []).map((s: any) => (s.skillType || s.skill_type || '').toUpperCase());
+        if (sectionSkills.length === 1) {
+          if (sectionSkills[0] === 'READING') rawType = 'NLTV_READING';
+          else if (sectionSkills[0] === 'LISTENING') rawType = 'NLTV_LISTENING';
+          else if (sectionSkills[0] === 'WRITING') rawType = 'NLTV_WRITING';
+        } else if (titleLower.includes('đọc hiểu') || titleLower.includes('kỹ năng đọc') || titleLower.includes('reading')) {
+          rawType = 'NLTV_READING';
+        } else if (titleLower.includes('nghe hiểu') || titleLower.includes('kỹ năng nghe') || titleLower.includes('listening')) {
+          rawType = 'NLTV_LISTENING';
+        } else if (titleLower.includes('kỹ năng viết') || titleLower.includes('writing')) {
+          rawType = 'NLTV_WRITING';
+        }
+      } else if (rawType === 'TOEIC' || rawType === 'TOEIC_LR' || rawType === 'TOEIC_LISTENING_READING') {
+        const titleLower = (initialData.title || '').toLowerCase();
+        const sectionSkills = (initialData.sections || []).map((s: any) => (s.skillType || s.skill_type || '').toUpperCase());
+        if (sectionSkills.length === 1) {
+          if (sectionSkills[0] === 'READING') rawType = 'TOEIC_READING';
+          else if (sectionSkills[0] === 'LISTENING') rawType = 'TOEIC_LISTENING';
+        } else if ((titleLower.includes('listening') || titleLower.includes('nghe')) && !titleLower.includes('reading') && !titleLower.includes('đọc')) {
+          rawType = 'TOEIC_LISTENING';
+        } else if ((titleLower.includes('reading') || titleLower.includes('đọc')) && !titleLower.includes('listening') && !titleLower.includes('nghe')) {
+          rawType = 'TOEIC_READING';
+        }
+      }
+
       const normalizedType = normalizeExamType(rawType);
       setExamType(normalizedType);
       
@@ -1151,7 +1249,10 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       setIsPublished(publishedState !== false);
       if (normalizedType === 'TOEIC_LR' || normalizedType === 'IELTS_ACADEMIC'
         || normalizedType === 'LANGUAGE_PRACTICE' || normalizedType === 'NLTV'
-        || normalizedType.startsWith('NLTV')) {
+        || normalizedType.startsWith('NLTV')
+        || normalizedType.startsWith('TOEIC')
+        || normalizedType.startsWith('TW_')
+        || normalizedType.startsWith('IELTS')) {
         const mapped = toEditorParts(initialData);
         setParts(mapped);
         if (mapped.length) setWizardMode('BUILDER');
@@ -2664,6 +2765,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         const fileNameLower = (file.name || '').toLowerCase();
         const allTitlesLower = tempParts.map(p => p.part_title.toLowerCase()).join(' ');
 
+        const isToeicWriting = fileNameLower.includes('writing') || allTitlesLower.includes('write a sentence') || allTitlesLower.includes('written request') || allTitlesLower.includes('opinion essay');
+        const isToeicListeningOnly = (fileNameLower.includes('listening') || fileNameLower.includes('nghe') || /part\s*[1-4]\b/.test(allTitlesLower) || allTitlesLower.includes('photographs') || allTitlesLower.includes('question-response') || allTitlesLower.includes('conversations') || allTitlesLower.includes('talks'))
+          && !(fileNameLower.includes('reading') || fileNameLower.includes('đọc') || /part\s*[5-7]\b/.test(allTitlesLower) || allTitlesLower.includes('incomplete sentences') || allTitlesLower.includes('text completion'));
+        const isToeicReadingOnly = (fileNameLower.includes('reading') || fileNameLower.includes('đọc') || /part\s*[5-7]\b/.test(allTitlesLower) || allTitlesLower.includes('incomplete sentences') || allTitlesLower.includes('text completion'))
+          && !(fileNameLower.includes('listening') || fileNameLower.includes('nghe') || /part\s*[1-4]\b/.test(allTitlesLower) || allTitlesLower.includes('photographs') || allTitlesLower.includes('question-response'));
+
         if (
           fileNameLower.includes('toeic') ||
           allTitlesLower.includes('toeic') ||
@@ -2677,8 +2784,12 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           (/part\s*[5-7]\b/.test(allTitlesLower) && !allTitlesLower.includes('passage')) ||
           (tempParts.length >= 7 && /part\s*1\b/.test(allTitlesLower))
         ) {
-          if (fileNameLower.includes('writing') || allTitlesLower.includes('write a sentence') || allTitlesLower.includes('written request') || allTitlesLower.includes('opinion essay')) {
+          if (isToeicWriting) {
             detectedType = 'TOEIC_WRITING';
+          } else if (isToeicListeningOnly) {
+            detectedType = 'TOEIC_LISTENING';
+          } else if (isToeicReadingOnly) {
+            detectedType = 'TOEIC_READING';
           } else {
             detectedType = 'TOEIC_LR';
           }
@@ -2690,7 +2801,15 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
           allTitlesLower.includes('tiếng việt') ||
           (allTitlesLower.includes('kỹ năng') && (allTitlesLower.includes('nghe') || allTitlesLower.includes('đọc') || allTitlesLower.includes('viết')))
         ) {
-          detectedType = 'NLTV';
+          if (fileNameLower.includes('đọc') || allTitlesLower.includes('đọc hiểu') || allTitlesLower.includes('kỹ năng đọc') || (tempParts.length === 2 && !allTitlesLower.includes('nghe'))) {
+            detectedType = 'NLTV_READING';
+          } else if (fileNameLower.includes('nghe') || allTitlesLower.includes('nghe hiểu') || allTitlesLower.includes('kỹ năng nghe') || (tempParts.length === 4 && !allTitlesLower.includes('đọc'))) {
+            detectedType = 'NLTV_LISTENING';
+          } else if (fileNameLower.includes('viết') || allTitlesLower.includes('kỹ năng viết') || (tempParts.length === 3 && !allTitlesLower.includes('đọc') && !allTitlesLower.includes('nghe'))) {
+            detectedType = 'NLTV_WRITING';
+          } else {
+            detectedType = 'NLTV';
+          }
         } else {
           detectedType = 'IELTS_ACADEMIC';
         }
@@ -2705,6 +2824,32 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         } else if (pTitle.includes('part 3') || pTitle.includes('essay') || pTitle.includes('opinion')) {
           detectedType = 'TW_P3';
         }
+      } else if (detectedType === 'TOEIC_LISTENING' && tempParts.length === 1) {
+        const pTitle = (tempParts[0]?.part_title || '').toLowerCase();
+        if (pTitle.includes('part 1') || pTitle.includes('photographs')) detectedType = 'TOEIC_P1';
+        else if (pTitle.includes('part 2') || pTitle.includes('question-response')) detectedType = 'TOEIC_P2';
+        else if (pTitle.includes('part 3') || pTitle.includes('conversations')) detectedType = 'TOEIC_P3';
+        else if (pTitle.includes('part 4') || pTitle.includes('talks')) detectedType = 'TOEIC_P4';
+      } else if (detectedType === 'TOEIC_READING' && tempParts.length === 1) {
+        const pTitle = (tempParts[0]?.part_title || '').toLowerCase();
+        if (pTitle.includes('part 5') || pTitle.includes('incomplete sentences')) detectedType = 'TOEIC_P5';
+        else if (pTitle.includes('part 6') || pTitle.includes('text completion')) detectedType = 'TOEIC_P6';
+        else if (pTitle.includes('part 7') || pTitle.includes('reading comprehension')) detectedType = 'TOEIC_P7';
+      } else if (detectedType === 'NLTV_READING' && tempParts.length === 1) {
+        const pTitle = (tempParts[0]?.part_title || '').toLowerCase();
+        if (pTitle.includes('phần 1') || pTitle.includes('part 1')) detectedType = 'NLTV_R1';
+        else if (pTitle.includes('phần 2') || pTitle.includes('part 2')) detectedType = 'NLTV_R2';
+      } else if (detectedType === 'NLTV_LISTENING' && tempParts.length === 1) {
+        const pTitle = (tempParts[0]?.part_title || '').toLowerCase();
+        if (pTitle.includes('phần 1') || pTitle.includes('part 1')) detectedType = 'NLTV_L1';
+        else if (pTitle.includes('phần 2') || pTitle.includes('part 2')) detectedType = 'NLTV_L2';
+        else if (pTitle.includes('phần 3') || pTitle.includes('part 3')) detectedType = 'NLTV_L3';
+        else if (pTitle.includes('phần 4') || pTitle.includes('part 4')) detectedType = 'NLTV_L4';
+      } else if (detectedType === 'NLTV_WRITING' && tempParts.length === 1) {
+        const pTitle = (tempParts[0]?.part_title || '').toLowerCase();
+        if (pTitle.includes('phần 1') || pTitle.includes('chính tả') || pTitle.includes('part 1')) detectedType = 'NLTV_W1';
+        else if (pTitle.includes('phần 2') || pTitle.includes('thư') || pTitle.includes('email') || pTitle.includes('part 2')) detectedType = 'NLTV_W2';
+        else if (pTitle.includes('phần 3') || pTitle.includes('luận') || pTitle.includes('essay') || pTitle.includes('part 3')) detectedType = 'NLTV_W3';
       }
 
       setExamType(detectedType);
@@ -2716,9 +2861,16 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               : detectedType === 'TW_P2' ? 'TOEIC Writing Part 2: Respond to Request'
               : detectedType === 'TW_P3' ? 'TOEIC Writing Part 3: Write an Opinion Essay'
               : detectedType === 'TOEIC_WRITING' ? 'TOEIC Writing Test'
+              : detectedType === 'TOEIC_LISTENING' ? 'TOEIC Listening Test'
+              : detectedType === 'TOEIC_READING' ? 'TOEIC Reading Test'
+              : detectedType.startsWith('TOEIC_P') ? `TOEIC ${detectedType.replace('_', ' ')}`
               : 'TOEIC L&R Test')
             : (detectedType.startsWith('NLTV')
-                ? 'Đánh giá Năng lực Tiếng Việt (NLTV)'
+                ? (detectedType === 'NLTV_READING' ? 'NLTV - Kỹ năng Đọc'
+                  : detectedType === 'NLTV_LISTENING' ? 'NLTV - Kỹ năng Nghe'
+                  : detectedType === 'NLTV_WRITING' ? 'NLTV - Kỹ năng Viết'
+                  : detectedType.startsWith('NLTV_') ? `NLTV ${detectedType.replace('_', ' ')}`
+                  : 'Đánh giá Năng lực Tiếng Việt (NLTV)')
                 : 'IELTS Academic Mock Test'));
 
       setExamTitle(finalExamTitle);
@@ -2782,12 +2934,14 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       const isGeneral = (legacyType || '').toLowerCase().includes('general')
         || fileNameLower.includes('general');
       const isClientImport = isGeneral
-        || ['TOEIC_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)
+        || ['TOEIC_WRITING', 'TOEIC_LISTENING', 'TOEIC_READING', 'NLTV_READING', 'NLTV_LISTENING', 'NLTV_WRITING', 'NLTV_A1_A2', 'NLTV_B1_C1', 'OTHER'].includes(legacyType)
         || legacyType.includes('WRITING')
         || legacyType.startsWith('TW_')
+        || legacyType.startsWith('TOEIC_P')
+        || legacyType.startsWith('NLTV_')
         || (fileNameLower.includes('writing') && !fileNameLower.includes('ielts_academic'));
       if (isClientImport) {
-        await handleImportOtherExcel(file);
+        await handleImportOtherExcel(file, legacyType);
         setIsPublished(false);
         return;
       }
@@ -2799,7 +2953,18 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
         if (!response.success || !response.data?.request?.sections || !Array.isArray(response.data.issues)) throw new Error('Invalid preview');
         const preview = response.data;
         setExamTitle(preview.request.title);
-        setExamType(normalizeExamType(preview.request.type));
+        let previewType = normalizeExamType(preview.request.type || legacyType);
+        if (previewType === 'NLTV' && preview.request.sections?.length === 1) {
+          const s = preview.request.sections[0].skillType;
+          if (s === 'READING') previewType = 'NLTV_READING';
+          else if (s === 'LISTENING') previewType = 'NLTV_LISTENING';
+          else if (s === 'WRITING') previewType = 'NLTV_WRITING';
+        } else if ((previewType === 'TOEIC_LR' || previewType === 'TOEIC') && preview.request.sections?.length === 1) {
+          const s = preview.request.sections[0].skillType;
+          if (s === 'READING') previewType = 'TOEIC_READING';
+          else if (s === 'LISTENING') previewType = 'TOEIC_LISTENING';
+        }
+        setExamType(previewType);
         setIsPublished(false);
         setParts(toEditorParts(preview.request));
         setImportIssues(preview.issues);
@@ -2808,7 +2973,7 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
       } catch (backendErr) {
         if (controller.signal.aborted) return;
         // Fallback to client-side parser so ANY valid Excel file (including TOEIC templates or custom formats) can be imported
-        await handleImportOtherExcel(file);
+        await handleImportOtherExcel(file, legacyType);
         setIsPublished(false);
         return;
       }
@@ -3091,14 +3256,51 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loại chứng chỉ</label>
             <select className="input-field" value={examType} onChange={e => setExamType(e.target.value)} style={{ padding: '0.75rem 1rem', fontSize: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
               <optgroup label="IELTS">
-                <option value="IELTS_ACADEMIC">IELTS Academic</option>
+                <option value="IELTS_ACADEMIC">Full IELTS Academic</option>
+                <option value="IELTS_GENERAL">Full IELTS General</option>
+                <option value="IELTS_LISTENING">IELTS Listening</option>
+                <option value="IELTS_READING">IELTS Reading</option>
+                <option value="IELTS_WRITING">IELTS Writing</option>
+                <option value="IELTS_L1">IELTS Listening Part 1</option>
+                <option value="IELTS_L2">IELTS Listening Part 2</option>
+                <option value="IELTS_L3">IELTS Listening Part 3</option>
+                <option value="IELTS_L4">IELTS Listening Part 4</option>
+                <option value="IELTS_R1">IELTS Reading Passage 1</option>
+                <option value="IELTS_R2">IELTS Reading Passage 2</option>
+                <option value="IELTS_R3">IELTS Reading Passage 3</option>
+                <option value="IELTS_W1">IELTS Writing Task 1</option>
+                <option value="IELTS_W2">IELTS Writing Task 2</option>
               </optgroup>
               <optgroup label="TOEIC">
-                <option value="TOEIC_LR">TOEIC (Listening & Reading)</option>
+                <option value="TOEIC_LR">Full TOEIC (Listening & Reading)</option>
+                <option value="TOEIC_LISTENING">TOEIC Listening</option>
+                <option value="TOEIC_READING">TOEIC Reading</option>
                 <option value="TOEIC_WRITING">TOEIC Writing</option>
+                <option value="TOEIC_P1">TOEIC Listening Part 1</option>
+                <option value="TOEIC_P2">TOEIC Listening Part 2</option>
+                <option value="TOEIC_P3">TOEIC Listening Part 3</option>
+                <option value="TOEIC_P4">TOEIC Listening Part 4</option>
+                <option value="TOEIC_P5">TOEIC Reading Part 5</option>
+                <option value="TOEIC_P6">TOEIC Reading Part 6</option>
+                <option value="TOEIC_P7">TOEIC Reading Part 7</option>
+                <option value="TW_P1">TOEIC Writing Part 1</option>
+                <option value="TW_P2">TOEIC Writing Part 2</option>
+                <option value="TW_P3">TOEIC Writing Part 3</option>
               </optgroup>
-              <optgroup label="Năng Lực Tiếng Việt">
+              <optgroup label="Năng Lực Tiếng Việt (NLTV)">
                 <option value="NLTV">Đánh giá Năng lực Tiếng Việt (NLTV)</option>
+                <option value="NLTV_LISTENING">NLTV Nghe</option>
+                <option value="NLTV_READING">NLTV Đọc</option>
+                <option value="NLTV_WRITING">NLTV Viết</option>
+                <option value="NLTV_L1">NLTV Nghe - Phần 1</option>
+                <option value="NLTV_L2">NLTV Nghe - Phần 2</option>
+                <option value="NLTV_L3">NLTV Nghe - Phần 3</option>
+                <option value="NLTV_L4">NLTV Nghe - Phần 4</option>
+                <option value="NLTV_R1">NLTV Đọc - Phần 1</option>
+                <option value="NLTV_R2">NLTV Đọc - Phần 2</option>
+                <option value="NLTV_W1">NLTV Viết - Phần 1 (Chính tả)</option>
+                <option value="NLTV_W2">NLTV Viết - Phần 2 (Thư/Email)</option>
+                <option value="NLTV_W3">NLTV Viết - Phần 3 (Bài luận)</option>
               </optgroup>
               <optgroup label={em('Luyện ngôn ngữ')}>
                 <option value="LANGUAGE_PRACTICE">{em('Luyện ngôn ngữ')}</option>
@@ -3106,6 +3308,9 @@ const ExamBuilder = ({ initialData, onSave, onCancel }: { initialData?: any, onS
               <optgroup label="Khác">
                 <option value="OTHER">Khác (Other)</option>
               </optgroup>
+              {!Object.keys(EXAM_TYPE_OPTIONS).includes(examType) && (
+                <option value={examType}>{examType}</option>
+              )}
             </select>
           </div>
           {examType === 'LANGUAGE_PRACTICE' && (

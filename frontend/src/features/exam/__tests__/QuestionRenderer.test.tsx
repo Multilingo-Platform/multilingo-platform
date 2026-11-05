@@ -84,22 +84,31 @@ describe('QuestionRenderer', () => {
     expect(onChange).toHaveBeenCalledWith('A');
   });
 
-  it('MULTIPLE_CHOICE adds to array on check', () => {
+  it('MULTIPLE_CHOICE single select replaces selection when another option is checked', () => {
     const onChange = vi.fn();
     render(
       <QuestionRenderer question={makeQuestion('MULTIPLE_CHOICE', opts)} partId={1} currentAnswer={['B']} onChange={onChange} />
     );
     fireEvent.click(screen.getByLabelText('Option C'));
-    expect(onChange).toHaveBeenCalledWith(expect.arrayContaining(['B', 'C']));
+    expect(onChange).toHaveBeenCalledWith(['C']);
   });
 
   it('MULTIPLE_CHOICE removes from array on uncheck', () => {
     const onChange = vi.fn();
     render(
-      <QuestionRenderer question={makeQuestion('MULTIPLE_CHOICE', opts)} partId={1} currentAnswer={['B', 'C']} onChange={onChange} />
+      <QuestionRenderer question={makeQuestion('MULTIPLE_CHOICE', opts)} partId={1} currentAnswer={['B']} onChange={onChange} />
     );
     fireEvent.click(screen.getByLabelText('Option B'));
-    expect(onChange).toHaveBeenCalledWith(['C']);
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it('MULTIPLE_CHOICE_MULTI allows selecting multiple answers up to 2', () => {
+    const onChange = vi.fn();
+    render(
+      <QuestionRenderer question={makeQuestion('MULTIPLE_CHOICE_MULTI', opts)} partId={1} currentAnswer={['B']} onChange={onChange} />
+    );
+    fireEvent.click(screen.getByLabelText('Option C'));
+    expect(onChange).toHaveBeenCalledWith(expect.arrayContaining(['B', 'C']));
   });
 
   it('MAP_LABELING uses stable question ids to isolate radio groups', () => {

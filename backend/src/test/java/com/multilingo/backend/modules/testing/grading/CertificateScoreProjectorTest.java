@@ -52,10 +52,10 @@ class CertificateScoreProjectorTest {
     @Test
     void toeicInterpolationMatchesAnchorsAndRoundsToFivePointSteps() {
         assertEquals(0, new BigDecimal("5").compareTo(CertificateScoreProjector.toeicScaledScore(0, 100, CertificateScoreProjector.ToeicSkill.LISTENING).orElseThrow()));
-        assertEquals(new BigDecimal("60"), CertificateScoreProjector.toeicScaledScore(20, 100, CertificateScoreProjector.ToeicSkill.LISTENING).orElseThrow());
-        assertEquals(new BigDecimal("45"), CertificateScoreProjector.toeicScaledScore(20, 100, CertificateScoreProjector.ToeicSkill.READING).orElseThrow());
+        assertEquals(new BigDecimal("20"), CertificateScoreProjector.toeicScaledScore(20, 100, CertificateScoreProjector.ToeicSkill.LISTENING).orElseThrow());
+        assertEquals(new BigDecimal("5"), CertificateScoreProjector.toeicScaledScore(20, 100, CertificateScoreProjector.ToeicSkill.READING).orElseThrow());
         assertEquals(new BigDecimal("495"), CertificateScoreProjector.toeicScaledScore(100, 100, CertificateScoreProjector.ToeicSkill.READING).orElseThrow());
-        assertTrue(CertificateScoreProjector.toeicScaledScore(99, 100, CertificateScoreProjector.ToeicSkill.LISTENING).orElseThrow().remainder(BigDecimal.valueOf(5)).signum() == 0);
+        assertEquals(new BigDecimal("495"), CertificateScoreProjector.toeicScaledScore(99, 100, CertificateScoreProjector.ToeicSkill.LISTENING).orElseThrow());
     }
 
     @Test
@@ -78,8 +78,9 @@ class CertificateScoreProjectorTest {
         var partial = projector.project("TOEIC_LR", List.of(skill("LISTENING", 80, 100)), List.of()).orElseThrow();
         assertNull(partial.getOverallScore());
         var complete = projector.project("TOEIC_LR", List.of(skill("LISTENING", 80, 100), skill("READING", 90, 100)), List.of()).orElseThrow();
-        assertEquals(new BigDecimal("430"), complete.getSkillScores().get("LISTENING").getScore());
-        assertEquals(new BigDecimal("885"), complete.getOverallScore());
+        assertEquals(new BigDecimal("420"), complete.getSkillScores().get("LISTENING").getScore());
+        assertEquals(new BigDecimal("435"), complete.getSkillScores().get("READING").getScore());
+        assertEquals(new BigDecimal("855"), complete.getOverallScore());
     }
 
     @Test

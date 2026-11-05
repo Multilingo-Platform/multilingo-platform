@@ -250,4 +250,85 @@ class AdminExamServiceImplTest {
         assertThat(summary.getQuestions()).isEqualTo(5);
         assertThat(summary.getJoins()).isEqualTo(15);
     }
+
+    @Test
+    void getAllExams_InfersToeicListeningAndReadingWhenSingleSection() {
+        Exam toeicLis = new Exam();
+        toeicLis.setId(10);
+        toeicLis.setCode("TOEIC-LIS-01");
+        toeicLis.setTitle("TOEIC Listening Test");
+        toeicLis.setType("TOEIC_LR");
+        toeicLis.setIsPublished(true);
+
+        ExamSection lisSection = new ExamSection();
+        lisSection.setId(101);
+        lisSection.setExam(toeicLis);
+        lisSection.setSkillType("LISTENING");
+
+        Exam toeicRead = new Exam();
+        toeicRead.setId(20);
+        toeicRead.setCode("TOEIC-READ-01");
+        toeicRead.setTitle("TOEIC Reading Test");
+        toeicRead.setType("TOEIC_LR");
+        toeicRead.setIsPublished(true);
+
+        ExamSection readSection = new ExamSection();
+        readSection.setId(201);
+        readSection.setExam(toeicRead);
+        readSection.setSkillType("READING");
+
+        when(examRepository.findAll()).thenReturn(List.of(toeicLis, toeicRead));
+        when(sectionRepository.findByExam_Id(10)).thenReturn(List.of(lisSection));
+        when(sectionRepository.findByExam_Id(20)).thenReturn(List.of(readSection));
+        when(partRepository.findBySection_Id(101)).thenReturn(List.of());
+        when(partRepository.findBySection_Id(201)).thenReturn(List.of());
+        when(testAttemptRepository.countAttemptsGroupByExamId()).thenReturn(List.of());
+
+        List<com.multilingo.backend.modules.exam.dto.response.ExamSummaryResponse> results = examService.getAllExams();
+
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).getType()).isEqualTo("TOEIC_LISTENING");
+        assertThat(results.get(1).getType()).isEqualTo("TOEIC_READING");
+    }
+
+    @Test
+    void getExamDetail_InfersSkillTypeForSingleSectionToeicAndNltv() {
+        Exam toeicExam = new Exam();
+        toeicExam.setId(30);
+        toeicExam.setCode("TOEIC-L01");
+        toeicExam.setTitle("TOEIC Listening Practice");
+        toeicExam.setType("TOEIC_LR");
+        toeicExam.setIsPublished(true);
+
+        ExamSection toeicSection = new ExamSection();
+        toeicSection.setId(301);
+        toeicSection.setSkillType("LISTENING");
+        toeicSection.setOrderIndex(1);
+
+        when(examRepository.findById(30)).thenReturn(Optional.of(toeicExam));
+        when(sectionRepository.findByExam_Id(30)).thenReturn(List.of(toeicSection));
+        when(partRepository.findBySection_Id(301)).thenReturn(List.of());
+
+        ExamBuilderRequest toeicDetail = examService.getExamDetail(30);
+        assertThat(toeicDetail.getType()).isEqualTo("TOEIC_LISTENING");
+
+        Exam nltvExam = new Exam();
+        nltvExam.setId(40);
+        nltvExam.setCode("NLTV-R01");
+        nltvExam.setTitle("NLTV Đọc hiểu");
+        nltvExam.setType("NLTV");
+        nltvExam.setIsPublished(true);
+
+        ExamSection nltvSection = new ExamSection();
+        nltvSection.setId(401);
+        nltvSection.setSkillType("READING");
+        nltvSection.setOrderIndex(1);
+
+        when(examRepository.findById(40)).thenReturn(Optional.of(nltvExam));
+        when(sectionRepository.findByExam_Id(40)).thenReturn(List.of(nltvSection));
+        when(partRepository.findBySection_Id(401)).thenReturn(List.of());
+
+        ExamBuilderRequest nltvDetail = examService.getExamDetail(40);
+        assertThat(nltvDetail.getType()).isEqualTo("NLTV_READING");
+    }
 }

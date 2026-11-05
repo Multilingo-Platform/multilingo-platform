@@ -131,6 +131,9 @@ describe('WritingHintsPanel (TV3-19-04, AC-03–05, AC-07)', () => {
     fireEvent.click(create);
     expect(onGenerate).not.toHaveBeenCalled();
     expect(onRetry).not.toHaveBeenCalled();
+    const ctaLink = screen.getByRole('link', { name: /nâng cấp gói premium/i });
+    expect(ctaLink).toBeInTheDocument();
+    expect(ctaLink).toHaveAttribute('href', '/student/premium');
   });
 
   it.each([1607, 1608])('announces the classified language reason %s with prior hints and requires confirmation', async (code) => {
