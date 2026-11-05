@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   BookOpen,
-  MessageSquare,
   PenTool,
   Save,
 } from 'lucide-react';
@@ -82,12 +81,6 @@ export const QuotaSettingsPage = () => {
       name: 'Tra Cứu Từ Điển & Ngữ Cảnh AI (Dictionary Lookup)',
       description: 'Sinh ví dụ song ngữ, giải thích nghĩa chuyên sâu và phát âm bằng AI.',
       icon: <BookOpen size={20} className="text-blue-600" />,
-    },
-    {
-      code: 'CHAT_TUTOR',
-      name: 'Gia Sư Đàm Thoại AI (Chat Tutor)',
-      description: 'Hội thoại phản xạ tình huống trực tiếp với gia sư ảo bằng tiếng Anh/Việt.',
-      icon: <MessageSquare size={20} className="text-emerald-600" />,
     },
   ];
 

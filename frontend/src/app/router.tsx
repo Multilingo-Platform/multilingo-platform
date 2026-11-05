@@ -172,7 +172,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "settings",
-            element: <QuotaSettingsPage />,
+            element: <Navigate to="/admin/quotas" replace />,
           },
           {
             path: "audit",
