@@ -46,7 +46,13 @@ public final class VocabStudyConstants {
     /** Khoảng thời gian ôn lại lần thứ hai sau khi thuộc liên tiếp (3 ngày) */
     public static final int SECOND_INTERVAL_DAYS = 3;
 
-    /** Ngưỡng ngày ôn tập để được công nhận từ vựng đã thành thạo (21 ngày) */
+    /** Ngưỡng số lần nhớ liên tiếp để công nhận từ vựng đã thành thạo (3 lần) */
+    public static final int MASTERY_REVIEW_COUNT_THRESHOLD = 3;
+
+    /** Khoảng thời gian ôn lại khi đã đạt mốc thành thạo (7 ngày) */
+    public static final int MASTERED_INTERVAL_DAYS = 7;
+
+    /** Ngưỡng ngày ôn tập để được công nhận từ vựng đã thành thạo (legacy fallback: 21 ngày) */
     public static final int MASTERED_INTERVAL_THRESHOLD_DAYS = 21;
 
     /** Hệ số dễ mặc định khi khởi tạo thẻ từ vựng (Ease Factor = 2.50) */
