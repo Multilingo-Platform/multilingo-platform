@@ -4,97 +4,25 @@ import {
   X,
   BookOpen,
   History,
-  Award,
   Clock,
   Calendar,
-  Layers,
-  FileCheck2,
-  CheckCircle2,
-  AlertTriangle,
   Loader2,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import type { UserExamSummary, UserAttemptDetail } from '../../types/adminTypes';
+import {
+  formatAttemptStatusBadge,
+  formatAttemptScore,
+  getAttemptScoreText,
+  formatTestModeBadge,
+  formatDuration,
+} from '../utils/trackingFormatters';
 
 interface UserExamTrackingDrawerProps {
   userId: number | null;
   isOpen: boolean;
   onClose: () => void;
 }
-
-const formatDuration = (seconds?: number) => {
-  if (!seconds || seconds <= 0) return '0 giây';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  if (m === 0) return `${s} giây`;
-  if (s === 0) return `${m} phút`;
-  return `${m} phút ${s} giây`;
-};
-
-const getStatusBadge = (status?: string) => {
-  switch (status) {
-    case 'COMPLETED':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-full">
-          <CheckCircle2 size={12} />
-          Đã hoàn thành
-        </span>
-      );
-    case 'IN_PROGRESS':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-full">
-          <Clock size={12} />
-          Đang làm bài
-        </span>
-      );
-    case 'EXPIRED':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-full">
-          <AlertTriangle size={12} />
-          Quá hạn / Hết giờ
-        </span>
-      );
-    case 'SUBMITTED':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/70 px-2 py-0.5 rounded-full">
-          Đã nộp bài
-        </span>
-      );
-    case 'AI_GRADING':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200/70 px-2 py-0.5 rounded-full">
-          AI đang chấm
-        </span>
-      );
-    case 'AI_GRADING_QUEUED':
-      return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2 py-0.5 rounded-full">
-          Chờ chấm AI
-        </span>
-      );
-    default:
-      return (
-        <span className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-          {status || 'Chưa xác định'}
-        </span>
-      );
-  }
-};
-
-const getTestModeBadge = (mode?: string) => {
-  if (mode === 'MOCK_TEST') {
-    return (
-      <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded">
-        Thi thử
-      </span>
-    );
-  }
-  return (
-    <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200/60 px-2 py-0.5 rounded">
-      Luyện tập
-    </span>
-  );
-};
 
 export const UserExamTrackingDrawer: React.FC<UserExamTrackingDrawerProps> = ({
   userId,
@@ -261,7 +189,7 @@ export const UserExamTrackingDrawer: React.FC<UserExamTrackingDrawerProps> = ({
                             <span className="text-[10px] text-gray-500 block">Điểm cao nhất</span>
                             <span className="font-bold text-emerald-700 text-sm">
                               {exam.highestScore !== null && exam.highestScore !== undefined
-                                ? `${exam.highestScore} đ`
+                                ? getAttemptScoreText(exam.highestScore, null, exam.examType)
                                 : 'Chưa có'}
                             </span>
                           </div>
@@ -270,7 +198,7 @@ export const UserExamTrackingDrawer: React.FC<UserExamTrackingDrawerProps> = ({
                             <span className="text-[10px] text-gray-500 block">Điểm gần nhất</span>
                             <span className="font-bold text-blue-700 text-sm">
                               {exam.latestScore !== null && exam.latestScore !== undefined
-                                ? `${exam.latestScore} đ`
+                                ? getAttemptScoreText(exam.latestScore, null, exam.examType)
                                 : 'Chưa có'}
                             </span>
                           </div>
@@ -319,14 +247,14 @@ export const UserExamTrackingDrawer: React.FC<UserExamTrackingDrawerProps> = ({
                                 <span className="font-mono text-xs font-semibold text-gray-700">
                                   {att.examCode}
                                 </span>
-                                {getTestModeBadge(att.testMode)}
+                                {formatTestModeBadge(att.testMode)}
                               </div>
                               <h5 className="text-xs font-semibold text-gray-900 mt-1 line-clamp-1">
                                 {att.examTitle}
                               </h5>
                             </div>
 
-                            <div className="shrink-0">{getStatusBadge(att.status)}</div>
+                            <div className="shrink-0">{formatAttemptStatusBadge(att.status)}</div>
                           </div>
 
                           {/* Attempt Metrics */}
@@ -354,12 +282,10 @@ export const UserExamTrackingDrawer: React.FC<UserExamTrackingDrawerProps> = ({
                             <div>
                               <span className="text-[11px] text-gray-500 mr-1.5">Kết quả:</span>
                               <span className="text-xs font-bold text-gray-900">
-                                {att.overallScore !== null && att.overallScore !== undefined ? (
-                                  <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-bold">
-                                    {att.overallScore} {att.scoreUnit || 'đ'}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400 italic">Chưa nộp / Chưa có</span>
+                                {formatAttemptScore(
+                                  att.overallScore,
+                                  att.scoreUnit,
+                                  att.examType || att.examCode
                                 )}
                               </span>
                             </div>

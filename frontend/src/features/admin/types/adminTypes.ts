@@ -93,6 +93,7 @@ export interface UserAttemptDetail {
   examId: number;
   examCode: string;
   examTitle: string;
+  examType?: string;
   testMode?: string;
   testScope?: string;
   status?: string;
@@ -121,6 +122,7 @@ export interface ExamAttemptUser {
   email: string;
   subscriptionTier: string;
   attemptNumber: number;
+  examType?: string;
   testMode?: string;
   status?: string;
   startTime: string;

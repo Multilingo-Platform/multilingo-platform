@@ -75,6 +75,18 @@ describe('TrackingAnalyticsPage - User & Exam Detail Drawers', () => {
           overallScore: 850,
           scoreUnit: 'Điểm',
         },
+        {
+          attemptId: 502,
+          examId: 202,
+          examCode: 'NLTV-AEAF2E',
+          examTitle: 'Đề thi Đánh giá Năng lực Tiếng Việt (NLTV)',
+          testMode: 'PRACTICE',
+          status: 'GRADING_FAILED',
+          startTime: '2026-11-05T14:36:00Z',
+          timeSpentSeconds: 301,
+          overallScore: 3,
+          scoreUnit: 'RAW_OBJECTIVE',
+        },
       ],
     } as never);
 
@@ -101,7 +113,15 @@ describe('TrackingAnalyticsPage - User & Exam Detail Drawers', () => {
     expect(await screen.findByText('Chi Tiết Tiến Trình & Lịch Sử Bài Làm')).toBeInTheDocument();
     expect(await screen.findByText('ETS 2024 Test 1')).toBeInTheDocument();
     expect(screen.getByText('5 lượt làm')).toBeInTheDocument();
-    expect(screen.getByText('850 đ')).toBeInTheDocument();
+    expect(screen.getByText('850 điểm')).toBeInTheDocument();
+
+    // Switch to attempts tab
+    const historyTab = screen.getByText(/Lịch Sử Chi Tiết Từng Lần/);
+    fireEvent.click(historyTab);
+
+    // Verify friendly format instead of raw GRADING_FAILED and RAW_OBJECTIVE
+    expect(await screen.findByText('Lỗi chấm điểm')).toBeInTheDocument();
+    expect(screen.getByText('3 câu đúng')).toBeInTheDocument();
   });
 
   it('switches to exam tab and opens ExamAttemptsTrackingDrawer when an exam row is clicked', async () => {
@@ -170,8 +190,9 @@ describe('TrackingAnalyticsPage - User & Exam Detail Drawers', () => {
 
     // Verify ExamAttemptsTrackingDrawer opens
     expect(await screen.findByText('Lần 1')).toBeInTheDocument();
-    expect(screen.getByText('Đã nộp bài')).toBeInTheDocument();
-    expect(screen.getByText('5.5 Điểm')).toBeInTheDocument();
+    expect(screen.getByText('Đã hoàn thành')).toBeInTheDocument();
+    expect(screen.getByText('5.5 điểm')).toBeInTheDocument();
+    expect(screen.getByText('Lỗi chấm')).toBeInTheDocument();
   });
 });
 
