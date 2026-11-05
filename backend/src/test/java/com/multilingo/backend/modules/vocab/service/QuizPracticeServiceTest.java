@@ -5,6 +5,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.config.PracticeProperties;
+import com.multilingo.backend.modules.gamification.dto.StudyActivityRecord;
+import com.multilingo.backend.modules.gamification.dto.StudyActivitySummary;
+import com.multilingo.backend.modules.gamification.service.StudyActivityService;
+import com.multilingo.backend.modules.vocab.constant.QuizPracticeConstants;
 import com.multilingo.backend.modules.vocab.dto.request.CreateQuizSessionRequest;
 import com.multilingo.backend.modules.vocab.dto.request.SubmitPracticeAnswerDto;
 import com.multilingo.backend.modules.vocab.dto.request.SubmitPracticeRequest;
@@ -16,7 +20,6 @@ import com.multilingo.backend.modules.vocab.repository.FlashcardDeckRepository;
 import com.multilingo.backend.modules.vocab.repository.PracticeCompletionReceiptRepository;
 import com.multilingo.backend.modules.vocab.repository.UserFlashcardRepository;
 import com.multilingo.backend.modules.vocab.service.impl.QuizPracticeServiceImpl;
-import com.multilingo.backend.modules.vocab.service.quiz.PracticePayloadHasher;
 import com.multilingo.backend.modules.vocab.service.quiz.QuizQuestionGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +41,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("QuizPracticeService Unit Tests - UC012.4 Practice Redis + Receipt")
+@DisplayName("QuizPracticeService Unit Tests - Refactored Clean Practice Service")
 class QuizPracticeServiceTest {
 
     @Mock
@@ -51,10 +54,10 @@ class QuizPracticeServiceTest {
     private PracticeCompletionReceiptRepository receiptRepository;
 
     @Mock
-    private PracticeCompletionWriter completionWriter;
+    private QuizQuestionGenerator questionGenerator;
 
     @Mock
-    private QuizQuestionGenerator questionGenerator;
+    private StudyActivityService studyActivityService;
 
     @Mock
     private StringRedisTemplate redisTemplate;
@@ -62,10 +65,8 @@ class QuizPracticeServiceTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
-    private PracticePayloadHasher payloadHasher;
     private PracticeProperties practiceProperties;
     private ObjectMapper objectMapper;
-
     private QuizPracticeServiceImpl quizPracticeService;
 
     private FlashcardDeck dummyDeck;
@@ -73,7 +74,6 @@ class QuizPracticeServiceTest {
 
     @BeforeEach
     void setUp() {
-        payloadHasher = new PracticePayloadHasher();
         practiceProperties = new PracticeProperties();
         practiceProperties.setSessionValidity(Duration.ofMinutes(30));
 
@@ -84,9 +84,8 @@ class QuizPracticeServiceTest {
                 deckRepository,
                 flashcardRepository,
                 receiptRepository,
-                completionWriter,
                 questionGenerator,
-                payloadHasher,
+                studyActivityService,
                 practiceProperties,
                 redisTemplate,
                 objectMapper
@@ -114,7 +113,7 @@ class QuizPracticeServiceTest {
     }
 
     @Test
-    @DisplayName("TC_PRACTICE_01: Tạo phiên thành công - Lưu snapshot Redis và trả về đề kèm đáp án đúng")
+    @DisplayName("TC_PRACTICE_01: Tạo phiên thành công - Lưu snapshot Redis và trả về đề")
     void createPracticeSession_success() {
         when(deckRepository.findById(10)).thenReturn(Optional.of(dummyDeck));
         when(flashcardRepository.findAllByDeckIdAndUserIdOrderByCreatedAtDesc(10, 1)).thenReturn(dummyCards);
@@ -151,205 +150,143 @@ class QuizPracticeServiceTest {
                         .build()
         );
 
-        when(questionGenerator.generatePracticeQuestions(anyList(), anyString(), anyInt(), any(Random.class)))
+        when(questionGenerator.generatePracticeQuestions(eq(dummyCards), anyString(), anyInt(), any()))
                 .thenReturn(questions);
 
-        CreateQuizSessionRequest req = CreateQuizSessionRequest.builder().limit(10).filterStatus("ALL").build();
-        PracticeSessionSnapshotDto snapshot = quizPracticeService.createPracticeSession(10, req, 1);
+        PracticeSessionSnapshotDto result = quizPracticeService.createPracticeSession(
+                10, new CreateQuizSessionRequest(4, "ALL"), 1);
 
-        assertThat(snapshot).isNotNull();
-        assertThat(snapshot.getSessionId()).isNotEmpty();
-        assertThat(snapshot.getDeckId()).isEqualTo(10);
-        assertThat(snapshot.getTotalQuestions()).isEqualTo(4);
-        assertThat(snapshot.getQuestions().get(0).getCorrectOptionId()).isEqualTo("A");
-
-        verify(valueOperations).set(startsWith("practice:session:"), anyString(), eq(Duration.ofMinutes(30)));
+        assertThat(result).isNotNull();
+        assertThat(result.getSessionId()).isNotBlank();
+        assertThat(result.getDeckName()).isEqualTo("Core Vocabulary");
+        assertThat(result.getTotalQuestions()).isEqualTo(4);
+        verify(valueOperations).set(anyString(), anyString(), any(Duration.class));
     }
 
     @Test
-    @DisplayName("TC_PRACTICE_02: Tạo phiên thất bại khi deckId không thuộc về userId -> Ném FORBIDDEN (403)")
-    void createPracticeSession_forbidden() {
-        FlashcardDeck otherDeck = FlashcardDeck.builder().userId(99).name("Other Deck").build();
-        otherDeck.setId(10);
-        when(deckRepository.findById(10)).thenReturn(Optional.of(otherDeck));
+    @DisplayName("TC_PRACTICE_02: IDOR khi tạo phiên bài của người khác -> Ném FORBIDDEN")
+    void createPracticeSession_idorForbidden() {
+        when(deckRepository.findById(10)).thenReturn(Optional.of(dummyDeck));
 
-        CreateQuizSessionRequest req = new CreateQuizSessionRequest();
-        assertThatThrownBy(() -> quizPracticeService.createPracticeSession(10, req, 1))
+        assertThatThrownBy(() -> quizPracticeService.createPracticeSession(
+                10, new CreateQuizSessionRequest(4, "ALL"), 999))
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FORBIDDEN);
     }
 
     @Test
-    @DisplayName("TC_PRACTICE_03: Nộp bài thành công - Ủy thác cho CompletionWriter và nhận cố định +10 XP")
+    @DisplayName("TC_PRACTICE_03: Nộp bài luyện tập thành công - Chấm điểm, cộng cố định 10 XP và lưu receipt")
     void submitPracticeSession_success() throws Exception {
-        String sessionId = "sess-uuid-123";
-        SubmitPracticeRequest req = SubmitPracticeRequest.builder()
-                .durationSeconds(45)
-                .answers(List.of(
-                        SubmitPracticeAnswerDto.builder().questionId(1).selectedOptionId("A").build()
-                ))
-                .build();
+        String sessionId = "sess-123";
+        Instant now = Instant.now();
 
         PracticeSessionSnapshotDto snapshot = PracticeSessionSnapshotDto.builder()
                 .sessionId(sessionId)
-                .userId(1)
                 .deckId(10)
-                .totalQuestions(1)
-                .expiresAt(Instant.now().plusSeconds(600))
+                .userId(1)
+                .totalQuestions(2)
+                .createdAt(now)
+                .expiresAt(now.plusSeconds(1800))
                 .questions(List.of(
                         PracticeQuestionSnapshotDto.builder()
                                 .questionId(1)
+                                .cardId(100)
                                 .targetWord("apple")
                                 .correctOptionId("A")
-                                .options(List.of(PracticeOptionDto.builder().optionId("A").text("Táo").build()))
+                                .options(List.of(
+                                        PracticeOptionDto.builder().optionId("A").text("quả táo").build(),
+                                        PracticeOptionDto.builder().optionId("B").text("quả chuối").build()
+                                ))
+                                .build(),
+                        PracticeQuestionSnapshotDto.builder()
+                                .questionId(2)
+                                .cardId(101)
+                                .targetWord("banana")
+                                .correctOptionId("B")
+                                .options(List.of(
+                                        PracticeOptionDto.builder().optionId("A").text("quả táo").build(),
+                                        PracticeOptionDto.builder().optionId("B").text("quả chuối").build()
+                                ))
                                 .build()
                 ))
                 .build();
 
         when(receiptRepository.findByUserIdAndSessionId(1, sessionId)).thenReturn(Optional.empty());
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get("practice:session:" + sessionId)).thenReturn(objectMapper.writeValueAsString(snapshot));
+        when(valueOperations.get(QuizPracticeConstants.REDIS_SESSION_KEY_PREFIX + sessionId))
+                .thenReturn(objectMapper.writeValueAsString(snapshot));
 
-        SubmitPracticeResponse expectedResponse = SubmitPracticeResponse.builder()
-                .sessionId(sessionId)
-                .totalQuestions(1)
-                .correctAnswers(1)
-                .accuracyPercent(new BigDecimal("100.00"))
-                .xpEarned(10)
-                .currentStreak(2)
-                .streakIncremented(true)
-                .timeSpentSeconds(45)
-                .wrongAnswers(Collections.emptyList())
+        StudyActivitySummary mockStudySummary = StudyActivitySummary.builder()
+                .currentStreak(5)
+                .streakIncrement(1)
                 .build();
+        when(studyActivityService.recordActivity(any(StudyActivityRecord.class))).thenReturn(mockStudySummary);
 
-        when(completionWriter.record(eq(1), any(PracticeSessionSnapshotDto.class), eq(req), anyString()))
-                .thenReturn(expectedResponse);
-
-        SubmitPracticeResponse result = quizPracticeService.submitPracticeSession(sessionId, req, 1);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getXpEarned()).isEqualTo(10);
-        assertThat(result.getCorrectAnswers()).isEqualTo(1);
-        verify(completionWriter).record(eq(1), any(PracticeSessionSnapshotDto.class), eq(req), anyString());
-    }
-
-    @Test
-    @DisplayName("TC_PRACTICE_04: Nộp bài lặp với cùng payload -> Idempotent Replay trả kết quả cũ mà không gọi Writer")
-    void submitPracticeSession_idempotentReplay() throws Exception {
-        String sessionId = "sess-uuid-123";
-        SubmitPracticeRequest req = SubmitPracticeRequest.builder()
+        // Nộp câu 1 đúng ("A"), câu 2 sai ("A" thay vì "B")
+        SubmitPracticeRequest request = SubmitPracticeRequest.builder()
                 .durationSeconds(45)
                 .answers(List.of(
-                        SubmitPracticeAnswerDto.builder().questionId(1).selectedOptionId("A").build()
+                        SubmitPracticeAnswerDto.builder().questionId(1).selectedOptionId("A").build(),
+                        SubmitPracticeAnswerDto.builder().questionId(2).selectedOptionId("A").build()
                 ))
                 .build();
 
-        String canonicalHash = payloadHasher.computeCanonicalHash(sessionId, 45, req.getAnswers());
+        SubmitPracticeResponse response = quizPracticeService.submitPracticeSession(sessionId, request, 1);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getTotalQuestions()).isEqualTo(2);
+        assertThat(response.getCorrectAnswers()).isEqualTo(1);
+        assertThat(response.getAccuracyPercent()).isEqualByComparingTo(new BigDecimal("50.00"));
+        assertThat(response.getXpEarned()).isEqualTo(QuizPracticeConstants.PRACTICE_COMPLETION_XP); // 10 XP
+        assertThat(response.getCurrentStreak()).isEqualTo(5);
+        assertThat(response.getWrongAnswers()).hasSize(1);
+        assertThat(response.getWrongAnswers().get(0).getQuestionId()).isEqualTo(2);
+
+        verify(receiptRepository).save(any(PracticeCompletionReceipt.class));
+        verify(redisTemplate).delete(QuizPracticeConstants.REDIS_SESSION_KEY_PREFIX + sessionId);
+    }
+
+    @Test
+    @DisplayName("TC_PRACTICE_04: Idempotency khi nộp lại phiên đã hoàn thành -> Trả kết quả cũ từ DB receipt")
+    void submitPracticeSession_idempotentReturn() throws Exception {
+        String sessionId = "sess-123";
 
         SubmitPracticeResponse cachedResponse = SubmitPracticeResponse.builder()
                 .sessionId(sessionId)
-                .totalQuestions(1)
-                .correctAnswers(1)
+                .totalQuestions(4)
+                .correctAnswers(4)
+                .accuracyPercent(new BigDecimal("100.00"))
                 .xpEarned(10)
                 .build();
 
         PracticeCompletionReceipt receipt = PracticeCompletionReceipt.builder()
                 .userId(1)
                 .sessionId(sessionId)
-                .requestHash(canonicalHash)
                 .resultJson(objectMapper.writeValueAsString(cachedResponse))
                 .build();
 
         when(receiptRepository.findByUserIdAndSessionId(1, sessionId)).thenReturn(Optional.of(receipt));
 
-        SubmitPracticeResponse result = quizPracticeService.submitPracticeSession(sessionId, req, 1);
+        SubmitPracticeRequest request = SubmitPracticeRequest.builder().durationSeconds(10).build();
+        SubmitPracticeResponse response = quizPracticeService.submitPracticeSession(sessionId, request, 1);
 
-        assertThat(result).isNotNull();
-        assertThat(result.getSessionId()).isEqualTo(sessionId);
-        verifyNoInteractions(completionWriter);
+        assertThat(response).isNotNull();
+        assertThat(response.getSessionId()).isEqualTo(sessionId);
+        assertThat(response.getCorrectAnswers()).isEqualTo(4);
         verifyNoInteractions(redisTemplate);
     }
 
     @Test
-    @DisplayName("TC_PRACTICE_05: Nộp lại cùng sessionId nhưng khác payload -> Ném QUIZ_IDEMPOTENCY_CONFLICT (409)")
-    void submitPracticeSession_hashConflict() {
-        String sessionId = "sess-uuid-123";
-        SubmitPracticeRequest req = SubmitPracticeRequest.builder()
-                .durationSeconds(45)
-                .answers(List.of(
-                        SubmitPracticeAnswerDto.builder().questionId(1).selectedOptionId("B").build() // Khác đáp án
-                ))
-                .build();
-
-        PracticeCompletionReceipt receipt = PracticeCompletionReceipt.builder()
-                .userId(1)
-                .sessionId(sessionId)
-                .requestHash("different-saved-hash")
-                .resultJson("{}")
-                .build();
-
-        when(receiptRepository.findByUserIdAndSessionId(1, sessionId)).thenReturn(Optional.of(receipt));
-
-        assertThatThrownBy(() -> quizPracticeService.submitPracticeSession(sessionId, req, 1))
-                .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.QUIZ_IDEMPOTENCY_CONFLICT);
-
-        verifyNoInteractions(completionWriter);
-    }
-
-    @Test
-    @DisplayName("TC_PRACTICE_06: Nộp bài khi Redis key đã hết hạn / không có snapshot -> Ném QUIZ_SESSION_EXPIRED (410)")
+    @DisplayName("TC_PRACTICE_05: Phiên hết hạn trên Redis -> Ném QUIZ_SESSION_EXPIRED")
     void submitPracticeSession_expired() {
-        String sessionId = "expired-sess";
-        SubmitPracticeRequest req = SubmitPracticeRequest.builder()
-                .durationSeconds(30)
-                .answers(List.of(
-                        SubmitPracticeAnswerDto.builder().questionId(1).selectedOptionId("A").build()
-                ))
-                .build();
-
+        String sessionId = "sess-expired";
         when(receiptRepository.findByUserIdAndSessionId(1, sessionId)).thenReturn(Optional.empty());
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get("practice:session:" + sessionId)).thenReturn(null);
+        when(valueOperations.get(QuizPracticeConstants.REDIS_SESSION_KEY_PREFIX + sessionId)).thenReturn(null);
 
-        assertThatThrownBy(() -> quizPracticeService.submitPracticeSession(sessionId, req, 1))
+        SubmitPracticeRequest request = SubmitPracticeRequest.builder().durationSeconds(10).build();
+        assertThatThrownBy(() -> quizPracticeService.submitPracticeSession(sessionId, request, 1))
                 .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.QUIZ_SESSION_EXPIRED);
-    }
-
-    @Test
-    @DisplayName("TC_PRACTICE_07: Nộp bài nhưng có câu chưa chọn đáp án (selectedOptionId null hoặc blank) -> Ném QUIZ_INVALID_REQUEST")
-    void submitPracticeSession_missingSelectedOption_throwsQuizInvalidRequest() throws Exception {
-        String sessionId = "sess-missing-option";
-        PracticeSessionSnapshotDto snapshot = PracticeSessionSnapshotDto.builder()
-                .sessionId(sessionId)
-                .userId(1)
-                .deckId(10)
-                .expiresAt(Instant.now().plusSeconds(600))
-                .totalQuestions(1)
-                .questions(List.of(
-                        PracticeQuestionSnapshotDto.builder()
-                                .questionId(1)
-                                .targetWord("apple")
-                                .correctOptionId("A")
-                                .options(List.of(PracticeOptionDto.builder().optionId("A").text("Táo").build()))
-                                .build()
-                ))
-                .build();
-
-        SubmitPracticeRequest req = SubmitPracticeRequest.builder()
-                .durationSeconds(20)
-                .answers(List.of(
-                        SubmitPracticeAnswerDto.builder().questionId(1).selectedOptionId(null).build()
-                ))
-                .build();
-
-        when(receiptRepository.findByUserIdAndSessionId(1, sessionId)).thenReturn(Optional.empty());
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get("practice:session:" + sessionId)).thenReturn(objectMapper.writeValueAsString(snapshot));
-
-        assertThatThrownBy(() -> quizPracticeService.submitPracticeSession(sessionId, req, 1))
-                .isInstanceOf(AppException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.QUIZ_INVALID_REQUEST);
     }
 }

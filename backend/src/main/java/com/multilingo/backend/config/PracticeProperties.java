@@ -13,8 +13,4 @@ import java.time.Duration;
 @Setter
 public class PracticeProperties {
     private Duration sessionValidity = Duration.ofMinutes(30);
-    private Duration receiptRetention = Duration.ofHours(24);
-    private Duration completionTransactionTimeout = Duration.ofSeconds(30);
-    private Duration cleanupSafetyMargin = Duration.ofMinutes(1);
-    private String cleanupCron = "0 0 */6 * * *";
 }
