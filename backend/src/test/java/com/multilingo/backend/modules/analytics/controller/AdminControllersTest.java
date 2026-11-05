@@ -106,4 +106,36 @@ class AdminControllersTest {
         assertThat(res.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(res.getBody().getData().getItems()).hasSize(1);
     }
+
+    @Test
+    @DisplayName("AdminTrackingController - getUserExamTrackingDetail returns success")
+    void testGetUserExamTrackingDetail() {
+        UserExamTrackingDetailResponse detail = UserExamTrackingDetailResponse.builder()
+                .userId(1)
+                .fullName("Test User")
+                .totalExamsAttempted(3L)
+                .build();
+        when(analyticsService.getUserExamTrackingDetail(1)).thenReturn(detail);
+
+        var res = adminTrackingController.getUserExamTrackingDetail(1);
+        assertThat(res.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(res.getBody().getData().getUserId()).isEqualTo(1);
+        assertThat(res.getBody().getData().getTotalExamsAttempted()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("AdminTrackingController - getExamTrackingDetail returns success")
+    void testGetExamTrackingDetail() {
+        ExamTrackingDetailResponse detail = ExamTrackingDetailResponse.builder()
+                .examId(5)
+                .code("TEST-01")
+                .totalAttempts(10L)
+                .build();
+        when(analyticsService.getExamTrackingDetail(5)).thenReturn(detail);
+
+        var res = adminTrackingController.getExamTrackingDetail(5);
+        assertThat(res.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(res.getBody().getData().getExamId()).isEqualTo(5);
+        assertThat(res.getBody().getData().getTotalAttempts()).isEqualTo(10L);
+    }
 }

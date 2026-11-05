@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -30,7 +31,25 @@ public class DbExamCatalogAdapter implements ExamCatalogAdapter {
                         .code(e.getCode())
                         .type(e.getType())
                         .isPublished(e.getIsPublished())
+                        .durationMinutes(e.getDurationMinutes())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ExamSummaryInfo> findExamById(Integer examId) {
+        if (examRepository == null || examId == null) {
+            return Optional.empty();
+        }
+        return examRepository.findById(examId)
+                .map(e -> ExamSummaryInfo.builder()
+                        .id(e.getId())
+                        .title(e.getTitle())
+                        .code(e.getCode())
+                        .type(e.getType())
+                        .isPublished(e.getIsPublished())
+                        .durationMinutes(e.getDurationMinutes())
+                        .build());
     }
 }

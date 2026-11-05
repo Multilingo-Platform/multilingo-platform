@@ -16,22 +16,11 @@ import {
 import { adminApi } from '../../api/adminApi';
 import { StatCard } from '../components/StatCard';
 import { RevenueChart } from '../components/RevenueChart';
-
-const ATTEMPT_STATUS_CONFIG: Record<
-  string,
-  { label: string; dotColor: string }
-> = {
-  COMPLETED: { label: 'Đã hoàn thành', dotColor: 'bg-emerald-400' },
-  IN_PROGRESS: { label: 'Đang làm bài', dotColor: 'bg-amber-400' },
-  EXPIRED: { label: 'Quá hạn / Hết giờ', dotColor: 'bg-rose-400' },
-  SUBMITTED: { label: 'Đã nộp bài', dotColor: 'bg-blue-400' },
-  AI_GRADING: { label: 'AI đang chấm điểm', dotColor: 'bg-purple-400' },
-  AI_GRADING_QUEUED: { label: 'Chờ hàng đợi AI', dotColor: 'bg-indigo-400' },
-  GRADING_FAILED: { label: 'Lỗi chấm điểm', dotColor: 'bg-red-400' },
-};
+import { AttemptsStatusModal } from '../components/AttemptsStatusModal';
 
 export const AdminDashboardPage = () => {
   const [period, setPeriod] = useState<string>('7d');
+  const [isAttemptsModalOpen, setIsAttemptsModalOpen] = useState(false);
 
   const {
     data: stats,
@@ -49,40 +38,6 @@ export const AdminDashboardPage = () => {
     queryKey: ['adminRevenueChart', period],
     queryFn: () => adminApi.getRevenueChart(period),
   });
-
-  const renderAttemptsTooltip = () => {
-    const statusMap = stats?.attemptsByStatus || {};
-    const totalValid = stats?.totalExamsAttempted ?? 0;
-
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between border-b border-gray-750 pb-1.5 font-semibold text-gray-200">
-          <span>Chi tiết trạng thái bài làm</span>
-          <span className="text-[10px] text-emerald-400 bg-emerald-950/70 border border-emerald-800/40 px-1.5 py-0.5 rounded font-normal">
-            Đề chưa xóa
-          </span>
-        </div>
-        <div className="space-y-1">
-          {Object.entries(ATTEMPT_STATUS_CONFIG).map(([key, config]) => {
-            const count = statusMap[key] ?? 0;
-            return (
-              <div key={key} className="flex items-center justify-between text-[11px] py-0.5">
-                <div className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${config.dotColor}`} />
-                  <span className="text-gray-300">{config.label}</span>
-                </div>
-                <span className="font-semibold text-white">{count.toLocaleString()}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="border-t border-gray-750 pt-1.5 flex items-center justify-between text-[11px] text-gray-400">
-          <span>Tổng số lượt hợp lệ:</span>
-          <span className="font-bold text-amber-400">{totalValid.toLocaleString()}</span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -159,7 +114,8 @@ export const AdminDashboardPage = () => {
           icon={<FileCheck2 size={20} />}
           trend="Hệ thống CBT"
           trendPositive={true}
-          tooltipContent={renderAttemptsTooltip()}
+          onClick={() => setIsAttemptsModalOpen(true)}
+          clickableHint="Xem chi tiết &rarr;"
         />
       </div>
 
@@ -264,6 +220,13 @@ export const AdminDashboardPage = () => {
           </div>
         </Link>
       </div>
+
+      <AttemptsStatusModal
+        isOpen={isAttemptsModalOpen}
+        onClose={() => setIsAttemptsModalOpen(false)}
+        statusMap={stats?.attemptsByStatus}
+        totalValid={stats?.totalExamsAttempted}
+      />
     </div>
   );
 };

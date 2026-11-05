@@ -5,6 +5,8 @@ import type {
   UpdateUserStatusPayload,
   UserTrackingItem,
   ExamTrackingItem,
+  UserExamTrackingDetail,
+  ExamTrackingDetail,
   UserQuotaItem,
   UpdateQuotaPayload,
   AuditLogItem,
@@ -70,6 +72,16 @@ export const adminApi = {
 
   getExamTracking: async (): Promise<ExamTrackingItem[]> => {
     const res = (await axiosClient.get('/admin/tracking/exams')) as unknown as ApiResponse<ExamTrackingItem[]>;
+    return res.data;
+  },
+
+  getUserExamTrackingDetail: async (userId: number): Promise<UserExamTrackingDetail> => {
+    const res = (await axiosClient.get(`/admin/tracking/users/${userId}/attempts`)) as unknown as ApiResponse<UserExamTrackingDetail>;
+    return res.data;
+  },
+
+  getExamTrackingDetail: async (examId: number): Promise<ExamTrackingDetail> => {
+    const res = (await axiosClient.get(`/admin/tracking/exams/${examId}/attempts`)) as unknown as ApiResponse<ExamTrackingDetail>;
     return res.data;
   },
 

@@ -70,4 +70,22 @@ public class DbExamTrackingAdapter implements ExamTrackingAdapter {
     public Double findAverageScoreByExamId(Integer examId) {
         return testAttemptRepository != null ? testAttemptRepository.findAverageScoreByExamId(examId) : null;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Object[]> findValidAttemptsWithExamByUserId(Integer userId) {
+        if (testAttemptRepository == null || userId == null) {
+            return Collections.emptyList();
+        }
+        return testAttemptRepository.findValidAttemptsWithExamByUserId(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.multilingo.backend.modules.testing.entity.TestAttempt> findAttemptsByExamId(Integer examId) {
+        if (testAttemptRepository == null || examId == null) {
+            return Collections.emptyList();
+        }
+        return testAttemptRepository.findByExamIdOrderByStartTimeDesc(examId);
+    }
 }

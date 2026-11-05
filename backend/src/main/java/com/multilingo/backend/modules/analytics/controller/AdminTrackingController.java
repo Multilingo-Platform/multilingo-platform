@@ -2,7 +2,9 @@ package com.multilingo.backend.modules.analytics.controller;
 
 import com.multilingo.backend.common.dto.ApiResponse;
 import com.multilingo.backend.common.dto.PageResponse;
+import com.multilingo.backend.modules.analytics.dto.response.ExamTrackingDetailResponse;
 import com.multilingo.backend.modules.analytics.dto.response.ExamTrackingResponse;
+import com.multilingo.backend.modules.analytics.dto.response.UserExamTrackingDetailResponse;
 import com.multilingo.backend.modules.analytics.dto.response.UserTrackingResponse;
 import com.multilingo.backend.modules.analytics.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,22 @@ public class AdminTrackingController {
     @GetMapping("/exams")
     public ResponseEntity<ApiResponse<List<ExamTrackingResponse>>> getExamTracking() {
         List<ExamTrackingResponse> result = analyticsService.getExamTracking();
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @GetMapping("/users/{userId}/attempts")
+    public ResponseEntity<ApiResponse<UserExamTrackingDetailResponse>> getUserExamTrackingDetail(
+            @PathVariable Integer userId
+    ) {
+        UserExamTrackingDetailResponse result = analyticsService.getUserExamTrackingDetail(userId);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @GetMapping("/exams/{examId}/attempts")
+    public ResponseEntity<ApiResponse<ExamTrackingDetailResponse>> getExamTrackingDetail(
+            @PathVariable Integer examId
+    ) {
+        ExamTrackingDetailResponse result = analyticsService.getExamTrackingDetail(examId);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 }

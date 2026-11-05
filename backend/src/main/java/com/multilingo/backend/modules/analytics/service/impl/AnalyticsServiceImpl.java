@@ -1,6 +1,8 @@
 package com.multilingo.backend.modules.analytics.service.impl;
 
 import com.multilingo.backend.common.dto.PageResponse;
+import com.multilingo.backend.common.exception.AppException;
+import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.analytics.adapter.BillingTransactionAdapter;
 import com.multilingo.backend.modules.analytics.adapter.ExamCatalogAdapter;
 import com.multilingo.backend.modules.analytics.adapter.ExamTrackingAdapter;
@@ -11,10 +13,14 @@ import com.multilingo.backend.modules.analytics.adapter.dto.TransactionInfo;
 import com.multilingo.backend.modules.analytics.adapter.dto.UserAccountInfo;
 import com.multilingo.backend.modules.analytics.adapter.dto.UserStudyStatInfo;
 import com.multilingo.backend.modules.analytics.dto.response.DashboardStatsResponse;
+import com.multilingo.backend.modules.analytics.dto.response.ExamTrackingDetailResponse;
 import com.multilingo.backend.modules.analytics.dto.response.ExamTrackingResponse;
 import com.multilingo.backend.modules.analytics.dto.response.RevenueChartResponse;
+import com.multilingo.backend.modules.analytics.dto.response.UserExamTrackingDetailResponse;
 import com.multilingo.backend.modules.analytics.dto.response.UserTrackingResponse;
 import com.multilingo.backend.modules.analytics.service.AnalyticsService;
+import com.multilingo.backend.modules.exam.entity.Exam;
+import com.multilingo.backend.modules.testing.entity.TestAttempt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -181,5 +187,150 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     .averageScore(avgScore != null ? Math.round(avgScore * 10.0) / 10.0 : null)
                     .build();
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserExamTrackingDetailResponse getUserExamTrackingDetail(Integer userId) {
+        if (userId == null) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+        UserAccountInfo user = userAccountAdapter.findUserById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        List<Object[]> rows = examTrackingAdapter.findValidAttemptsWithExamByUserId(userId);
+        List<UserExamTrackingDetailResponse.UserAttemptDetailDto> attemptDtos = new ArrayList<>();
+        Map<Integer, UserExamTrackingDetailResponse.UserExamSummaryDto> examSummaryMap = new LinkedHashMap<>();
+
+        for (Object[] row : rows) {
+            if (row == null || row.length < 2) continue;
+            TestAttempt a = (TestAttempt) row[0];
+            Exam e = (Exam) row[1];
+
+            Double overallScore = a.getOverallScore() != null ? a.getOverallScore().doubleValue() : null;
+
+            attemptDtos.add(UserExamTrackingDetailResponse.UserAttemptDetailDto.builder()
+                    .attemptId(a.getId())
+                    .examId(e.getId())
+                    .examCode(e.getCode())
+                    .examTitle(e.getTitle())
+                    .testMode(a.getTestMode() != null ? a.getTestMode().name() : null)
+                    .testScope(a.getTestScope() != null ? a.getTestScope().name() : null)
+                    .status(a.getStatus() != null ? a.getStatus().name() : null)
+                    .startTime(a.getStartTime())
+                    .endTime(a.getEndTime())
+                    .timeSpentSeconds(a.getTimeSpentSeconds())
+                    .overallScore(overallScore)
+                    .scoreUnit(a.getScoreUnit())
+                    .build());
+
+            UserExamTrackingDetailResponse.UserExamSummaryDto summary = examSummaryMap.computeIfAbsent(e.getId(), id ->
+                    UserExamTrackingDetailResponse.UserExamSummaryDto.builder()
+                            .examId(e.getId())
+                            .examCode(e.getCode())
+                            .examTitle(e.getTitle())
+                            .examType(e.getType())
+                            .attemptCount(0L)
+                            .highestScore(null)
+                            .latestScore(null)
+                            .latestAttemptAt(a.getStartTime())
+                            .build()
+            );
+
+            summary.setAttemptCount(summary.getAttemptCount() + 1);
+            if (overallScore != null) {
+                if (summary.getHighestScore() == null || overallScore > summary.getHighestScore()) {
+                    summary.setHighestScore(overallScore);
+                }
+                if (summary.getLatestScore() == null) {
+                    summary.setLatestScore(overallScore);
+                }
+            }
+        }
+
+        long totalAttempts = attemptDtos.size();
+        Double avgScore = examTrackingAdapter.findAverageScoreByUserId(userId);
+
+        return UserExamTrackingDetailResponse.builder()
+                .userId(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .subscriptionTier(user.getSubscriptionTier())
+                .totalExamsAttempted(totalAttempts)
+                .averageScore(avgScore != null ? Math.round(avgScore * 10.0) / 10.0 : null)
+                .examSummaries(new ArrayList<>(examSummaryMap.values()))
+                .attempts(attemptDtos)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ExamTrackingDetailResponse getExamTrackingDetail(Integer examId) {
+        if (examId == null) {
+            throw new AppException(ErrorCode.EXAM_NOT_FOUND);
+        }
+        ExamSummaryInfo exam = examCatalogAdapter.findExamById(examId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        List<TestAttempt> rawAttempts = examTrackingAdapter.findAttemptsByExamId(examId);
+
+        Set<Integer> userIds = rawAttempts.stream()
+                .map(TestAttempt::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Integer, UserAccountInfo> userMap = userAccountAdapter.findUsersByIds(userIds);
+
+        Map<Integer, List<TestAttempt>> userAttemptsAsc = rawAttempts.stream()
+                .sorted(Comparator.comparing(TestAttempt::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.groupingBy(TestAttempt::getUserId));
+
+        Map<Integer, Integer> attemptToNumberMap = new HashMap<>();
+        for (List<TestAttempt> list : userAttemptsAsc.values()) {
+            for (int i = 0; i < list.size(); i++) {
+                attemptToNumberMap.put(list.get(i).getId(), i + 1);
+            }
+        }
+
+        List<ExamTrackingDetailResponse.ExamAttemptUserDto> attemptDtos = rawAttempts.stream().map(a -> {
+            UserAccountInfo u = userMap.get(a.getUserId());
+            Double overallScore = a.getOverallScore() != null ? a.getOverallScore().doubleValue() : null;
+
+            return ExamTrackingDetailResponse.ExamAttemptUserDto.builder()
+                    .attemptId(a.getId())
+                    .userId(a.getUserId())
+                    .fullName(u != null ? u.getFullName() : "Học viên #" + a.getUserId())
+                    .email(u != null ? u.getEmail() : "")
+                    .subscriptionTier(u != null ? u.getSubscriptionTier() : "FREE")
+                    .attemptNumber(attemptToNumberMap.getOrDefault(a.getId(), 1))
+                    .testMode(a.getTestMode() != null ? a.getTestMode().name() : null)
+                    .status(a.getStatus() != null ? a.getStatus().name() : null)
+                    .startTime(a.getStartTime())
+                    .endTime(a.getEndTime())
+                    .timeSpentSeconds(a.getTimeSpentSeconds())
+                    .overallScore(overallScore)
+                    .scoreUnit(a.getScoreUnit())
+                    .build();
+        }).collect(Collectors.toList());
+
+        long totalAttempts = attemptDtos.size();
+        long completedAttempts = attemptDtos.stream().filter(a -> "COMPLETED".equals(a.getStatus())).count();
+        double completionRate = totalAttempts > 0
+                ? Math.round(((double) completedAttempts / totalAttempts) * 1000.0) / 10.0
+                : 0.0;
+        Double avgScore = examTrackingAdapter.findAverageScoreByExamId(examId);
+
+        return ExamTrackingDetailResponse.builder()
+                .examId(exam.getId())
+                .code(exam.getCode())
+                .title(exam.getTitle())
+                .type(exam.getType())
+                .durationMinutes(exam.getDurationMinutes())
+                .totalAttempts(totalAttempts)
+                .completedAttempts(completedAttempts)
+                .completionRate(completionRate)
+                .averageScore(avgScore != null ? Math.round(avgScore * 10.0) / 10.0 : null)
+                .attempts(attemptDtos)
+                .build();
     }
 }
