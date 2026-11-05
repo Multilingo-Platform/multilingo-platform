@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,6 +58,7 @@ class AnalyticsServiceTest {
         when(billingTransactionAdapter.getSuccessfulRevenueSince(any(Instant.class)))
                 .thenReturn(BigDecimal.valueOf(1500000));
         when(examTrackingAdapter.countTotalAttempts()).thenReturn(150L);
+        when(examTrackingAdapter.countAttemptsByStatus()).thenReturn(Map.of("COMPLETED", 120L, "IN_PROGRESS", 30L));
 
         DashboardStatsResponse stats = analyticsService.getDashboardStats();
 
@@ -68,6 +70,7 @@ class AnalyticsServiceTest {
         assertThat(stats.getTotalRevenue()).isEqualByComparingTo(BigDecimal.valueOf(5000000));
         assertThat(stats.getMonthlyRevenue()).isEqualByComparingTo(BigDecimal.valueOf(1500000));
         assertThat(stats.getTotalExamsAttempted()).isEqualTo(150L);
+        assertThat(stats.getAttemptsByStatus()).containsEntry("COMPLETED", 120L).containsEntry("IN_PROGRESS", 30L);
     }
 
     @Test

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 @Data
 @Builder
@@ -21,4 +22,5 @@ public class DashboardStatsResponse {
     private BigDecimal totalRevenue;
     private BigDecimal monthlyRevenue;
     private long totalExamsAttempted;
+    private Map<String, Long> attemptsByStatus;
 }

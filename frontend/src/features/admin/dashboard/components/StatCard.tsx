@@ -7,6 +7,7 @@ interface StatCardProps {
   icon: React.ReactNode;
   trend?: string;
   trendPositive?: boolean;
+  tooltipContent?: React.ReactNode;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -16,9 +17,10 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   trend,
   trendPositive = true,
+  tooltipContent,
 }) => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-xs hover:shadow-md transition-shadow">
+    <div className="relative group bg-white rounded-xl border border-gray-200 p-5 shadow-xs hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
           {title}
@@ -43,6 +45,13 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
       {subValue && (
         <p className="text-xs text-gray-500 mt-2 font-normal">{subValue}</p>
+      )}
+
+      {tooltipContent && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] hidden group-hover:block z-50 w-72 p-3.5 bg-gray-900/95 backdrop-blur-xs text-white text-xs rounded-xl shadow-2xl pointer-events-none transition-all">
+          {tooltipContent}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900/95" />
+        </div>
       )}
     </div>
   );
