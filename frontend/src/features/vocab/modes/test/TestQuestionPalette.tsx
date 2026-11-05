@@ -40,14 +40,14 @@ export const TestQuestionPalette: React.FC<TestQuestionPaletteProps> = ({
           Danh sách câu hỏi
         </h3>
         <span className="text-sm font-medium text-slate-600">
-          <strong className="text-amber-600 font-bold">{answeredCount}</strong>/{totalQuestions} đã làm
+          <strong className="text-orange-600 font-bold">{answeredCount}</strong>/{totalQuestions} đã làm
         </span>
       </div>
 
       {/* Chú giải trạng thái */}
       <div className="flex flex-wrap items-center gap-3.5 text-sm text-slate-700 mb-4 font-medium">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+          <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
           <span>Đang chọn</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -77,7 +77,7 @@ export const TestQuestionPalette: React.FC<TestQuestionPaletteProps> = ({
             'relative h-9 rounded font-bold text-sm flex items-center justify-center transition-colors cursor-pointer select-none';
 
           if (isCurrent) {
-            btnStyle += ' bg-amber-500 text-white shadow-2xs ring-2 ring-amber-300 ring-offset-1';
+            btnStyle += ' bg-orange-500 text-white shadow-2xs ring-2 ring-orange-300 ring-offset-1';
           } else if (isFlagged && isAnswered) {
             btnStyle += ' bg-amber-50 text-amber-900 border border-amber-400 hover:bg-amber-100';
           } else if (isFlagged) {

@@ -107,9 +107,6 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
   const [totalElapsedTime, setTotalElapsedTime] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Đóng băng payload khi submit (chống đổi hash gây 409 conflict khi retry)
-  const frozenPayloadRef = useRef<SubmitPracticeRequest | null>(null);
-
   // --- Trạng thái nộp bài & Kết quả ---
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submissionResult, setSubmissionResult] = useState<SubmitPracticeResponse | null>(null);
@@ -164,7 +161,6 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
         setSubmissionResult(null);
         setTotalElapsedTime(0);
         setQuestionStartTime(Date.now());
-        frozenPayloadRef.current = null;
 
         // Lưu phiên active vào LocalStorage
         quizSessionStore.saveActiveSession(deck.id, {
@@ -266,29 +262,22 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
     try {
       setIsSubmitting(true);
 
-      let payloadToSubmit: SubmitPracticeRequest;
-      if (frozenPayloadRef.current) {
-        // Tái sử dụng đúng frozen payload khi retry do rớt mạng/timeout để đảm bảo hash không đổi, tránh lỗi 409 Conflict
-        payloadToSubmit = frozenPayloadRef.current;
-      } else {
-        const answerDtos: SubmitPracticeAnswerDto[] = session.questions.map((q) => {
-          const recorded = selectedAnswers[q.questionId];
-          return {
-            questionId: q.questionId,
-            selectedOptionId: recorded ? recorded.selectedOptionId : undefined,
-          };
-        });
-        payloadToSubmit = {
-          durationSeconds: totalElapsedTime,
-          answers: answerDtos,
+      const answerDtos: SubmitPracticeAnswerDto[] = session.questions.map((q) => {
+        const recorded = selectedAnswers[q.questionId];
+        return {
+          questionId: q.questionId,
+          selectedOptionId: recorded ? recorded.selectedOptionId : undefined,
         };
-        frozenPayloadRef.current = payloadToSubmit;
-      }
+      });
+
+      const payloadToSubmit: SubmitPracticeRequest = {
+        durationSeconds: totalElapsedTime,
+        answers: answerDtos,
+      };
 
       const result = await vocabApi.submitPracticeSession(session.sessionId, payloadToSubmit);
 
       setSubmissionResult(result);
-      frozenPayloadRef.current = null;
       quizSessionStore.clearActiveSession(deck.id);
       quizSessionStore.clearProgress(session.sessionId);
       playVictorySound();
@@ -413,7 +402,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
   if (loadingSession) {
     return (
       <div className="fixed inset-0 z-[200] bg-slate-100/90 backdrop-blur-xs flex flex-col items-center justify-center gap-3 text-slate-600 font-semibold select-none">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-sm sm:text-base">Đang chuẩn bị bài luyện tập từ vựng...</p>
       </div>
     );
@@ -429,8 +418,8 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
       {
         label: 'Chuỗi Streak',
         value: `${submissionResult.currentStreak} ngày`,
-        icon: <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />,
-        colorClass: 'text-amber-600',
+        icon: <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />,
+        colorClass: 'text-orange-600',
       },
       {
         label: 'Thời gian làm bài',
@@ -468,7 +457,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowMistakes((prev) => !prev)}
-                  className="w-full flex items-center justify-between text-xs sm:text-sm font-bold text-slate-700 hover:text-amber-600 transition-colors py-1 cursor-pointer"
+                  className="w-full flex items-center justify-between text-xs sm:text-sm font-bold text-slate-700 hover:text-orange-600 transition-colors py-1 cursor-pointer"
                 >
                   <span>
                     {UI_TEXT.reviewMistakesTitle} ({wrongQuestions.length})
@@ -606,7 +595,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
 
           {/* Giải thích sau khi chọn (nếu có) */}
           {isAnsweredCurrent && currentQ.explanation && (
-            <div className="mb-4 p-3 rounded-md bg-amber-50/60 border border-amber-200/80 text-xs sm:text-sm text-amber-900 animate-in fade-in duration-150">
+            <div className="mb-4 p-3 rounded-md bg-orange-50/60 border border-orange-200/80 text-xs sm:text-sm text-orange-900 animate-in fade-in duration-150">
               <span className="font-bold">Giải thích: </span>
               <span>{currentQ.explanation}</span>
             </div>
@@ -622,7 +611,7 @@ export const QuizPracticeView: React.FC<QuizPracticeViewProps> = ({
                 type="button"
                 onClick={handleNext}
                 disabled={isSubmitting}
-                className="px-5 py-2.5 rounded-md bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 rounded-md bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white font-bold text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <span>
                   {currentIndex + 1 < session.questions.length

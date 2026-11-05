@@ -310,7 +310,7 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
               <button
                 type="button"
                 onClick={initializeTest}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded transition-colors cursor-pointer"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded transition-colors cursor-pointer"
               >
                 Thử lại
               </button>
@@ -322,7 +322,7 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
 
     return (
       <div className="fixed inset-0 z-[200] bg-slate-100 flex flex-col items-center justify-center p-4 select-none">
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-slate-600 font-semibold text-sm">Đang chuẩn bị đề thi thử...</p>
       </div>
     );
@@ -397,7 +397,7 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
               type="button"
               onClick={handleConfirmSubmit}
               disabled={stage === 'SUBMITTING'}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
               <span>Nộp bài ({answeredCount}/{exam.totalQuestions})</span>
@@ -422,12 +422,12 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
                 onClick={() => toggleFlag(currentQuestion.questionNumber)}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-sm font-semibold transition-colors cursor-pointer ${
                   isFlagged
-                    ? 'bg-amber-100 text-amber-800'
+                    ? 'bg-orange-100 text-orange-800'
                     : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                 }`}
                 title="Gắn cờ để kiểm tra lại trước khi nộp (Phím tắt: F)"
               >
-                <Flag className={`w-3.5 h-3.5 ${isFlagged ? 'fill-amber-600 text-amber-600' : ''}`} />
+                <Flag className={`w-3.5 h-3.5 ${isFlagged ? 'fill-orange-600 text-orange-600' : ''}`} />
                 <span>{isFlagged ? 'Đã gắn cờ' : 'Gắn cờ'}</span>
               </button>
             </div>
@@ -473,10 +473,10 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
 
                 if (isSelected) {
                   btnStyle +=
-                    'border-amber-500 bg-amber-50/70 text-slate-900 font-semibold shadow-2xs';
+                    'border-orange-500 bg-orange-50/70 text-slate-900 font-semibold shadow-2xs';
                 } else {
                   btnStyle +=
-                    'border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/20 text-slate-800 font-medium';
+                    'border-slate-200 bg-white hover:border-orange-400 hover:bg-orange-50/20 text-slate-800 font-medium';
                 }
 
                 return (
@@ -489,7 +489,7 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
                     <span
                       className={`w-7 h-7 rounded flex items-center justify-center text-sm font-bold shrink-0 transition-colors ${
                         isSelected
-                          ? 'bg-amber-500 text-white'
+                          ? 'bg-orange-500 text-white'
                           : 'bg-slate-100 text-slate-600'
                       }`}
                     >
@@ -527,7 +527,7 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmSubmit}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-xs transition-colors cursor-pointer"
               >
                 <span>Nộp bài ngay</span>
                 <Send className="w-4 h-4" />
@@ -549,7 +549,7 @@ export const VocabTestView: React.FC<VocabTestViewProps> = ({
             {/* Mẹo phím tắt */}
             <div className="bg-slate-50 rounded-md border border-slate-200 p-3.5 text-sm text-slate-700 space-y-1.5">
               <div className="font-bold text-slate-800 flex items-center gap-1.5 mb-1 text-sm">
-                <HelpCircle className="w-4 h-4 text-amber-500" />
+                <HelpCircle className="w-4 h-4 text-orange-500" />
                 <span>Phím tắt thao tác</span>
               </div>
               <p>• Phím <strong>1, 2, 3, 4</strong> (hoặc <strong>A, B, C, D</strong>): Chọn đáp án</p>
