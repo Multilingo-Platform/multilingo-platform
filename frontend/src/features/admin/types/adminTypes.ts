@@ -80,7 +80,7 @@ export interface ExamTrackingItem {
 // Quota Types
 export interface UserQuotaItem {
   id?: number;
-  feature: 'AI_WRITING_HINTS' | 'AI_WRITING_GRADING' | 'DICTIONARY_LOOKUP' | 'CHAT_TUTOR' | string;
+  feature: 'AI_WRITING_HINTS' | 'AI_WRITING_GRADING' | 'DICTIONARY_LOOKUP' | string;
   tier: 'FREE' | 'VIP' | string;
   dailyLimit: number;
   resetCycle: string;
