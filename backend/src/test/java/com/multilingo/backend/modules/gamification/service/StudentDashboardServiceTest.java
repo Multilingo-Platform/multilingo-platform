@@ -20,6 +20,7 @@ import com.multilingo.backend.modules.testing.entity.enums.TestMode;
 import com.multilingo.backend.modules.testing.entity.enums.TestScope;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.vocab.dto.response.UserVocabStatsProjection;
+import com.multilingo.backend.modules.vocab.repository.FlashcardDeckRepository;
 import com.multilingo.backend.modules.vocab.repository.UserFlashcardRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -59,6 +60,9 @@ class StudentDashboardServiceTest {
 
     @Mock
     private UserFlashcardRepository userFlashcardRepository;
+
+    @Mock
+    private FlashcardDeckRepository flashcardDeckRepository;
 
     @Mock
     private ExamRepository examRepository;

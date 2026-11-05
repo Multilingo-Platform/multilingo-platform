@@ -664,7 +664,9 @@
       "subtitle": "Hôm nay bạn muốn học kỹ năng gì? Hãy cùng duy trì chuỗi học tập nhé!",
       "learning": "Đang học:",
       "lang_en": "Tiếng Anh",
-      "lang_vi": "Tiếng Việt"
+      "lang_vi": "Tiếng Việt",
+      "streak_reminder": "Duy trì chuỗi học tập mỗi ngày",
+      "banner_alt": "Học tiếng Anh mỗi ngày"
     },
     "time_range": {
       "this_week": "Tuần này",
@@ -707,10 +709,12 @@
       "vocab_badge": "Từ vựng",
       "vocab_title": "Ôn tập từ vựng hôm nay",
       "vocab_desc": "Củng cố trí nhớ dài hạn bằng phương pháp lặp lại ngắt quãng (SRS) cho các thẻ từ vựng của bạn.",
+      "vocab_hint": "Lặp lại ngắt quãng SRS thông minh",
       "vocab_btn": "Ôn tập ngay",
       "exam_badge": "Luyện tập",
       "exam_title": "Luyện đề thi thử tiếp theo",
       "exam_desc": "Cải thiện kỹ năng làm bài, duy trì phản xạ phòng thi và đánh giá sự tiến bộ qua từng bộ đề.",
+      "exam_hint": "Rèn luyện phản xạ phòng thi thực tế",
       "exam_btn": "Vào thư viện đề"
     },
     "metrics": {
@@ -725,6 +729,9 @@
       "latest_exam": "Gần nhất: {{title}}",
       "no_exams": "Chưa hoàn thành đề thi nào",
       "vocab_handbook": "Sổ tay từ vựng",
+      "vocab_decks": "Bộ thẻ từ vựng",
+      "decks_unit": "bộ thẻ",
+      "decks_desc": "Tạo mới & ôn tập từ vựng",
       "words_saved": "từ đã lưu",
       "mastery_rate": "Thuộc {{percent}}%",
       "words_due": "⚡ Có {{count}} từ đến hạn ôn",

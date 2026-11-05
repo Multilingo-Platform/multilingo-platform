@@ -13,4 +13,5 @@ public class VocabStatsDto {
     private Long learningWords;
     private Double masteryRate;
     private Long dueTodayCount;
+    private Long totalDecks;
 }

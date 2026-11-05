@@ -12,6 +12,8 @@ public interface FlashcardDeckRepository extends JpaRepository<FlashcardDeck, In
 
     List<FlashcardDeck> findAllByUserIdOrderByCreatedAtDesc(Integer userId);
 
+    long countByUserId(Integer userId);
+
     Optional<FlashcardDeck> findByIdAndUserId(Integer id, Integer userId);
 
     boolean existsByIdAndUserId(Integer id, Integer userId);

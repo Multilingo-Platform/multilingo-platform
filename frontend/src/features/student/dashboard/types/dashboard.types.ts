@@ -28,6 +28,7 @@ export interface VocabStats {
   learningWords: number;
   masteryRate: number;
   dueTodayCount: number;
+  totalDecks?: number;
 }
 
 export interface HeatmapDataPoint {

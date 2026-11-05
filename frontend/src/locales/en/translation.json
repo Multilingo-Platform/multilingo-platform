@@ -664,7 +664,9 @@
       "subtitle": "What skills would you like to master today? Let's keep your study streak alive!",
       "learning": "Learning:",
       "lang_en": "English",
-      "lang_vi": "Vietnamese"
+      "lang_vi": "Vietnamese",
+      "streak_reminder": "Keep your study streak alive every day",
+      "banner_alt": "Learn English every day"
     },
     "time_range": {
       "this_week": "This Week",
@@ -707,10 +709,12 @@
       "vocab_badge": "Vocabulary",
       "vocab_title": "Review vocabulary today",
       "vocab_desc": "Consolidate long-term memory using spaced repetition (SRS) for your vocabulary flashcards.",
+      "vocab_hint": "Smart SRS spaced repetition",
       "vocab_btn": "Review now",
       "exam_badge": "Practice",
       "exam_title": "Practice the next exam",
       "exam_desc": "Improve test-taking skills, maintain exam reflexes, and assess progress across test sets.",
+      "exam_hint": "Train real exam reflexes",
       "exam_btn": "Explore library"
     },
     "metrics": {
@@ -725,6 +729,9 @@
       "latest_exam": "Latest: {{title}}",
       "no_exams": "No tests completed yet",
       "vocab_handbook": "Vocabulary Notebook",
+      "vocab_decks": "Flashcard Decks",
+      "decks_unit": "decks",
+      "decks_desc": "Create & practice vocabulary",
       "words_saved": "saved words",
       "mastery_rate": "Mastered {{percent}}%",
       "words_due": "⚡ {{count}} words due today",
