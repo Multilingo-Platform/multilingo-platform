@@ -61,6 +61,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         BigDecimal monthlyRevenue = billingTransactionAdapter.getSuccessfulRevenueSince(thirtyDaysAgo);
 
         long totalAttempts = examTrackingAdapter.countTotalAttempts();
+        Map<String, Long> attemptsByStatus = examTrackingAdapter.countAttemptsByStatus();
 
         return DashboardStatsResponse.builder()
                 .dau(dau)
@@ -71,6 +72,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .totalRevenue(totalRevenue)
                 .monthlyRevenue(monthlyRevenue)
                 .totalExamsAttempted(totalAttempts)
+                .attemptsByStatus(attemptsByStatus)
                 .build();
     }
 
