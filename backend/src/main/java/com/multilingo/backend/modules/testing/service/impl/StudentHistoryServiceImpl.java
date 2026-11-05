@@ -144,7 +144,7 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
                 .orElse(0);
 
         List<Object[]> recentRows = testAttemptRepository.findRecentAttemptsWithExam(
-                userId, AttemptStatus.COMPLETED, resolvedLang, hasLang, certPrefix, hasCert, PageRequest.of(0, 10)
+                userId, AttemptStatus.COMPLETED, resolvedLang, hasLang, certPrefix, hasCert, PageRequest.of(0, 50)
         );
         List<RecentScoreTrendItem> trends = new java.util.ArrayList<>();
         long targetAchievedCount = 0;
@@ -170,16 +170,21 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
                 targetAchievedCount++;
             }
 
-            trends.add(RecentScoreTrendItem.builder()
-                    .attemptId(a.getId())
-                    .examTitle(title)
-                    .certType(itemCertType)
-                    .score(score)
-                    .maxScore(maxScore)
-                    .percentage(percentage == null ? null : Math.round(percentage * 10.0) / 10.0)
-                    .scoreUnit(scoreUnit)
-                    .completedAt(a.getEndTime() != null ? a.getEndTime() : a.getCreatedAt())
-                    .build());
+            // Biểu đồ tiến độ điểm số chỉ dùng điểm của các bài thi full đề (cả mock test và practice)
+            if (isFullExamAttempt(a, exam) && trends.size() < 10) {
+                trends.add(RecentScoreTrendItem.builder()
+                        .attemptId(a.getId())
+                        .examTitle(title)
+                        .certType(itemCertType)
+                        .score(score)
+                        .maxScore(maxScore)
+                        .percentage(percentage == null ? null : Math.round(percentage * 10.0) / 10.0)
+                        .scoreUnit(scoreUnit)
+                        .testMode(a.getTestMode() != null ? a.getTestMode().name() : null)
+                        .testScope(a.getTestScope() != null ? a.getTestScope().name() : "FULL_EXAM")
+                        .completedAt(a.getEndTime() != null ? a.getEndTime() : a.getCreatedAt())
+                        .build());
+            }
         }
 
         // Đảo lại thứ tự thời gian tăng dần để vẽ biểu đồ trực quan từ quá khứ đến hiện tại
@@ -418,5 +423,63 @@ public class StudentHistoryServiceImpl implements StudentHistoryService {
         if (upper.startsWith("TOEIC")) return "TOEIC_LR";
         if (upper.startsWith("NLTV")) return "NLTV";
         return "OTHER";
+    }
+
+    private boolean isFullExamAttempt(TestAttempt a, Exam exam) {
+        if (a == null) return false;
+
+        // 1. Phải là lượt làm bài full đề (không phải luyện tập lẻ kỹ năng hay part)
+        if (a.getTestScope() == TestScope.SINGLE_PART
+                || a.getTestScope() == TestScope.MULTI_PART
+                || a.getTestScope() == TestScope.SINGLE_SKILL) {
+            return false;
+        }
+
+        if (exam == null) {
+            return !"RAW_OBJECTIVE".equals(a.getScoreUnit()) && !"LEGACY_RAW".equals(a.getScoreUnit());
+        }
+
+        String type = exam.getType() != null ? exam.getType().trim().toUpperCase() : "";
+        String titleLower = exam.getTitle() != null ? exam.getTitle().toLowerCase() : "";
+
+        // 2. Không phải đề thi part lẻ
+        boolean isPartCode = type.matches("^(IELTS_L[1-4]|IELTS_R[1-3]|IELTS_W[1-2])$")
+                || type.matches("^TOEIC_P[1-7]$")
+                || type.matches("^(TW_P[1-3]|TOEIC_W[1-3])$")
+                || type.matches("^NLTV_(L[1-4]|R[1-2]|W[1-3])$");
+
+        boolean hasPartTitle = titleLower.contains("passage ")
+                || titleLower.contains("phần ")
+                || titleLower.contains("part ");
+
+        if (isPartCode || hasPartTitle) {
+            return false;
+        }
+
+        // 3. Không phải đề thi 1 kỹ năng đơn lẻ
+        boolean isSkillCode = type.equals("IELTS_LISTENING") || type.equals("IELTS_READING") || type.equals("IELTS_WRITING")
+                || type.equals("TOEIC_LISTENING") || type.equals("TOEIC_READING")
+                || type.equals("NLTV_LISTENING") || type.equals("NLTV_READING") || type.equals("NLTV_WRITING")
+                || type.equals("NLTV_L") || type.equals("NLTV_R") || type.equals("NLTV_W");
+
+        boolean hasSkillInTitle = titleLower.contains(" - listening")
+                || titleLower.contains(" - reading")
+                || titleLower.contains(" - writing")
+                || titleLower.contains(" - nghe")
+                || titleLower.contains(" - đọc")
+                || titleLower.contains(" - viết");
+
+        if (isSkillCode || hasSkillInTitle) {
+            return false;
+        }
+
+        // 4. Nếu là TOEIC LR, đề thi phải là full đề (không phải lẻ listening hay reading)
+        if (type.startsWith("TOEIC") && !type.contains("WRITING") && !type.startsWith("TW")) {
+            if (isToeicSingleSkillExam(type)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
