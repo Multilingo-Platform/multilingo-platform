@@ -2,7 +2,6 @@ import axiosClient from '../../../core/api/axiosClient';
 import type {
   ApiResponse,
   DeckSummary,
-  DeckDetail,
   DeckResponse,
   Flashcard,
   CreateDeckRequest,
@@ -25,8 +24,8 @@ export const vocabApi = {
     return res.data;
   },
 
-  getDeckDetail: async (deckId: number): Promise<DeckDetail> => {
-    const res = (await axiosClient.get(`/v1/vocab/decks/${deckId}`)) as unknown as ApiResponse<DeckDetail>;
+  getDeckDetail: async (deckId: number): Promise<DeckSummary> => {
+    const res = (await axiosClient.get(`/v1/vocab/decks/${deckId}`)) as unknown as ApiResponse<DeckSummary>;
     return res.data;
   },
 

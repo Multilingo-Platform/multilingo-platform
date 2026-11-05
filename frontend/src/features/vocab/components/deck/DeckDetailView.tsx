@@ -16,8 +16,6 @@ import {
   Sparkles,
   Flame,
   GraduationCap,
-  Globe,
-  Lock,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { DeckSummary, Flashcard } from '../../types/vocab.types';
@@ -251,19 +249,6 @@ export const DeckDetailView: React.FC<DeckDetailViewProps> = ({
             <span className="inline-flex items-center px-3 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
               {t('vocab.cards_count', { count: deck.totalCards })}
             </span>
-
-            {/* Tag Quyền xem Công khai / Riêng tư */}
-            {deck.isPublic ? (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
-                <Globe className="w-3.5 h-3.5" />
-                <span>{t('vocab.deck_detail.public')}</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200">
-                <Lock className="w-3.5 h-3.5" />
-                <span>{t('vocab.deck_detail.private')}</span>
-              </span>
-            )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">

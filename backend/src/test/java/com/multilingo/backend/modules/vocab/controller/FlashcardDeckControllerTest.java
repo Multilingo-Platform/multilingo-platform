@@ -6,7 +6,6 @@ import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.common.exception.GlobalExceptionHandler;
 import com.multilingo.backend.modules.vocab.dto.request.CreateDeckRequest;
 import com.multilingo.backend.modules.vocab.dto.request.UpdateDeckRequest;
-import com.multilingo.backend.modules.vocab.dto.response.DeckDetailResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckSummaryResponse;
 import com.multilingo.backend.modules.vocab.service.FlashcardDeckService;
@@ -146,7 +145,7 @@ class FlashcardDeckControllerTest {
     @Test
     @DisplayName("TC_VOCAB_DECK_01: GET /api/v1/vocab/decks/{id} - Lấy chi tiết bộ thẻ thành công 200 OK")
     void getDeckDetail_success() throws Exception {
-        DeckDetailResponse detail = DeckDetailResponse.builder()
+        DeckSummaryResponse detail = DeckSummaryResponse.builder()
                 .id(10)
                 .userId(1)
                 .name("IELTS Core")

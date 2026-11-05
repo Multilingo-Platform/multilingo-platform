@@ -3,7 +3,6 @@ package com.multilingo.backend.modules.vocab.controller;
 import com.multilingo.backend.common.dto.ApiResponse;
 import com.multilingo.backend.modules.vocab.dto.request.CreateDeckRequest;
 import com.multilingo.backend.modules.vocab.dto.request.UpdateDeckRequest;
-import com.multilingo.backend.modules.vocab.dto.response.DeckDetailResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckSummaryResponse;
 import com.multilingo.backend.modules.vocab.security.VocabIdentityResolver;
@@ -67,15 +66,15 @@ public class FlashcardDeckController {
      * Lấy thông tin chi tiết một bộ thẻ kèm thống kê và cấu hình cặp ngôn ngữ.
      *
      * @param id ID của bộ thẻ cần xem
-     * @return DeckDetailResponse
+     * @return DeckSummaryResponse
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<DeckDetailResponse>> getDeckDetail(
+    public ResponseEntity<ApiResponse<DeckSummaryResponse>> getDeckDetail(
             @PathVariable("id") Integer id
     ) {
         Integer userId = identityResolver.requireUserId();
         log.info("API: Lấy chi tiết bộ thẻ id={} cho userId={}", id, userId);
-        DeckDetailResponse response = flashcardDeckService.getDeckDetail(id, userId);
+        DeckSummaryResponse response = flashcardDeckService.getDeckDetail(id, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

@@ -327,7 +327,8 @@
   },
   "vocab": {
     "my_decks": "Bộ thẻ từ vựng",
-    "my_decks_subtitle": "Quản lý và ghi nhớ từ vựng hiệu quả mỗi ngày",
+    "my_decks_subtitle": "Khám phá 4 cách học từ vựng thú vị: ghi nhớ với Flashcard, luyện tập kiến thức, thử thách bản thân với bài thi và ghép từ đầy thú vị.",
+    "my_decks_supplement": "Tự do tạo lập các bộ thẻ cá nhân theo từng chủ đề hoặc luyện tập theo lộ trình thông minh để ghi nhớ sâu sắc và gia tăng vốn từ nhanh chóng.",
     "create_deck": "Tạo bộ thẻ",
     "edit_deck": "Chỉnh sửa bộ thẻ",
     "delete_deck": "Xóa bộ thẻ",
@@ -343,15 +344,13 @@
     "deck_form": {
       "title_create": "Tạo bộ thẻ từ vựng",
       "title_edit": "Chỉnh sửa bộ thẻ",
-      "subtitle": "Cấu hình tên, ngôn ngữ mục tiêu và phạm vi hiển thị của bộ thẻ",
+      "subtitle": "Cấu hình tên và cặp ngôn ngữ học tập cho bộ thẻ",
       "name_label": "Tên bộ thẻ",
       "name_placeholder": "VD: IELTS Academic 3000 từ, Từ vựng TOEIC 800+...",
       "desc_label": "Mô tả bộ thẻ",
       "desc_placeholder": "Mô tả mục tiêu học tập, nguồn tài liệu hoặc cấp độ...",
       "target_lang": "Ngôn ngữ cần học",
       "source_lang": "Ngôn ngữ giải nghĩa",
-      "public_share": "Chia sẻ công khai",
-      "public_desc": "Cho phép học viên khác trong cộng đồng tìm thấy và sao chép bộ thẻ này",
       "validation_name_required": "Vui lòng nhập tên bộ thẻ từ vựng"
     },
     "card_form": {

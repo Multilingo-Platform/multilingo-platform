@@ -388,7 +388,7 @@ const UserLayout = () => {
       />
 
       {/* Main Content */}
-      <main className="slide-up" style={{ flex: 1, padding: (location.pathname.includes('/library') || location.pathname.includes('/history')) ? '0' : isPaymentResultPage ? '0.5rem 0' : '2rem 0', display: 'flex', flexDirection: 'column', justifyContent: isPaymentResultPage ? 'center' : 'flex-start' }}>
+      <main className="slide-up" style={{ flex: 1, padding: (location.pathname.includes('/library') || location.pathname.includes('/history') || location.pathname.includes('/flashcards')) ? '0' : isPaymentResultPage ? '0.5rem 0' : '2rem 0', display: 'flex', flexDirection: 'column', justifyContent: isPaymentResultPage ? 'center' : 'flex-start' }}>
         <Outlet />
       </main>
 

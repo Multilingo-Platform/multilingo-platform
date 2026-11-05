@@ -327,7 +327,8 @@
   },
   "vocab": {
     "my_decks": "Vocabulary Decks",
-    "my_decks_subtitle": "Manage and study vocabulary efficiently every day",
+    "my_decks_subtitle": "Explore 4 engaging ways to master vocabulary: memorize with Flashcards, practice key concepts, test your mastery, and enjoy interactive word matching.",
+    "my_decks_supplement": "Freely create customized flashcard decks by topic or study along smart spaced repetition paths to deepen recall and expand vocabulary quickly.",
     "create_deck": "Create Deck",
     "edit_deck": "Edit Deck",
     "delete_deck": "Delete Deck",
@@ -343,15 +344,13 @@
     "deck_form": {
       "title_create": "Create Vocabulary Deck",
       "title_edit": "Edit Vocabulary Deck",
-      "subtitle": "Configure deck name, study languages, and visibility scope",
+      "subtitle": "Configure deck name and language pair for learning",
       "name_label": "Deck Name",
       "name_placeholder": "E.g.: IELTS Academic 3000 words, TOEIC 800+...",
       "desc_label": "Description",
       "desc_placeholder": "Describe your learning goals, resource origins, or exam level...",
       "target_lang": "Target Language (To learn)",
       "source_lang": "Source Language (Meaning)",
-      "public_share": "Share Publicly",
-      "public_desc": "Allow other community learners to discover and clone this deck",
       "validation_name_required": "Please enter a deck name"
     },
     "card_form": {

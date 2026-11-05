@@ -4,7 +4,6 @@ import com.multilingo.backend.common.exception.AppException;
 import com.multilingo.backend.common.exception.ErrorCode;
 import com.multilingo.backend.modules.vocab.dto.request.CreateDeckRequest;
 import com.multilingo.backend.modules.vocab.dto.request.UpdateDeckRequest;
-import com.multilingo.backend.modules.vocab.dto.response.DeckDetailResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckResponse;
 import com.multilingo.backend.modules.vocab.dto.response.DeckStatsProjection;
 import com.multilingo.backend.modules.vocab.dto.response.DeckSummaryResponse;
@@ -178,7 +177,7 @@ class FlashcardDeckServiceTest {
         when(userFlashcardRepository.countStatsByDeckId(eq(10), any(Instant.class)))
                 .thenReturn(Optional.of(mockStats));
 
-        DeckDetailResponse res = flashcardDeckService.getDeckDetail(10, userId);
+        DeckSummaryResponse res = flashcardDeckService.getDeckDetail(10, userId);
 
         assertNotNull(res);
         assertEquals(10, res.getId());
