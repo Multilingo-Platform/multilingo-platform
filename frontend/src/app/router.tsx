@@ -26,6 +26,7 @@ import TrackingAnalyticsPage from "../features/admin/tracking/pages/TrackingAnal
 import QuotaSettingsPage from "../features/admin/quotas/pages/QuotaSettingsPage";
 import AuditLogPage from "../features/admin/audit/pages/AuditLogPage";
 import TransactionReconciliationPage from "../features/admin/transactions/pages/TransactionReconciliationPage";
+import AdminVocabDeckPage from "../features/admin/vocab/pages/AdminVocabDeckPage";
 
 import LandingPage from "../features/public/pages/LandingPage";
 import LoginPage from "../features/auth/pages/LoginPage";
@@ -197,6 +198,10 @@ export const router = createBrowserRouter([
           {
             path: "premium",
             element: <AdminPremiumPage />,
+          },
+          {
+            path: "vocab",
+            element: <AdminVocabDeckPage />,
           },
         ],
       },

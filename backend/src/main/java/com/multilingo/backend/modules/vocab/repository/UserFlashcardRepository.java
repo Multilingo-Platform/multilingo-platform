@@ -28,6 +28,14 @@ public interface UserFlashcardRepository extends JpaRepository<UserFlashcard, In
         @Param("userId") Integer userId
     );
 
+    @Query("""
+        SELECT u FROM UserFlashcard u
+        LEFT JOIN FETCH u.word
+        WHERE u.deck.id = :deckId
+        ORDER BY u.createdAt DESC
+    """)
+    List<UserFlashcard> findAllByDeckIdOrderByCreatedAtDesc(@Param("deckId") Integer deckId);
+
     Optional<UserFlashcard> findByIdAndUserId(Integer id, Integer userId);
 
     boolean existsByDeckIdAndCustomWordIgnoreCase(Integer deckId, String customWord);

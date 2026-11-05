@@ -758,5 +758,17 @@
       "tooltip_min": "{{count}} min studied",
       "tooltip_questions": "{{count}} questions completed"
     }
+  },
+  "adminVocab": {
+    "title": "Flashcard Decks Management",
+    "subtitle": "Manage system vocabulary repository, publish status, edit deck details and child flashcards.",
+    "createNew": "Create New Deck",
+    "editDeck": "Edit Deck",
+    "totalDecks": "Total {{count}} decks",
+    "searchPlaceholder": "Search by deck name, description...",
+    "allLanguages": "All languages",
+    "allStatuses": "All statuses",
+    "public": "Public",
+    "private": "Private"
   }
 }

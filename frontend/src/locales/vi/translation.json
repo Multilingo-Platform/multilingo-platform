@@ -758,5 +758,17 @@
       "tooltip_min": "{{count}} phút học",
       "tooltip_questions": "{{count}} câu hỏi hoàn thành"
     }
+  },
+  "adminVocab": {
+    "title": "Quản Trị Bộ Thẻ Từ Vựng",
+    "subtitle": "Quản lý kho học liệu từ vựng hệ thống, phân quyền công khai, chỉnh sửa thông tin và quản lý danh sách từ vựng con.",
+    "createNew": "Tạo Bộ Thẻ Mới",
+    "editDeck": "Chỉnh Sửa Bộ Thẻ",
+    "totalDecks": "Tổng cộng {{count}} bộ thẻ",
+    "searchPlaceholder": "Tìm kiếm theo tên bộ thẻ, mô tả...",
+    "allLanguages": "Tất cả ngôn ngữ",
+    "allStatuses": "Tất cả trạng thái",
+    "public": "Công khai (Public)",
+    "private": "Riêng tư (Private)"
   }
 }

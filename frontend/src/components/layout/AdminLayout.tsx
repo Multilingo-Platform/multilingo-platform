@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, LogOut, ShieldAlert, Crown, Menu, X, Activity, Receipt, Bot, User, KeyRound, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ShieldAlert, Crown, Menu, X, Activity, Receipt, Bot, User, KeyRound, ChevronDown, BookOpen } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMutation } from '@tanstack/react-query';
 import type { RootState } from '../../app/store';
@@ -136,6 +136,10 @@ const AdminLayout = () => {
           <NavLink to="/admin/exams" title="Quản lý Đề thi" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <FileText size={20} className="admin-nav-icon" />
             <span className="admin-nav-text">Quản lý Đề thi</span>
+          </NavLink>
+          <NavLink to="/admin/vocab" title="Quản lý Bộ thẻ Từ vựng" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+            <BookOpen size={20} className="admin-nav-icon" />
+            <span className="admin-nav-text">Bộ thẻ Từ vựng</span>
           </NavLink>
           <NavLink to="/admin/premium" title="Quản lý Gói Premium" onClick={closeSidebar} className={({isActive}) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <Crown size={20} className="admin-nav-icon" />
