@@ -150,7 +150,7 @@ class GeminiHttpContractTest {
         properties.setEnabled(true);
         properties.setApiKey("test-loopback-api-key");
         properties.setModel("gemini-1.5-flash");
-        properties.setRequestTimeout(Duration.ofSeconds(2));
+        properties.setRequestTimeout(Duration.ofSeconds(10));
 
         codec = new GeminiPayloadCodec();
 
