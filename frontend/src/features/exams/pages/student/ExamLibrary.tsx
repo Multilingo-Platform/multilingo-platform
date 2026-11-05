@@ -174,8 +174,6 @@ const ExamLibrary: React.FC = () => {
   
   // Pagination
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
 
   // Target certificate category
   const targetCategory = useMemo(() => {
@@ -255,10 +253,10 @@ const ExamLibrary: React.FC = () => {
     return '';
   }, [activeTab, targetCategory]);
 
-  const fetchExams = useCallback(async (targetPage: number) => {
+  const fetchExams = useCallback(async () => {
     try {
       setLoading(true);
-      const params: any = { page: targetPage, size: 12, sort: sortParam };
+      const params: any = { page: 0, size: 1000, sort: sortParam };
       if (searchTerm.trim()) params.search = searchTerm.trim();
 
       // Luôn lọc theo ngôn ngữ mục tiêu của người dùng để loại bỏ các đề không cùng ngôn ngữ
@@ -355,8 +353,6 @@ const ExamLibrary: React.FC = () => {
       const res = await axiosClient.get<any, any>('/v1/student/exams', { params });
       if (res.success && res.data) {
         setExams(res.data.items || []);
-        setTotalPages(res.data.totalPages || 0);
-        setTotalElements(res.data.totalElements || 0);
       }
     } catch (err) {
       console.error('Lỗi khi tải đề thi:', err);
@@ -367,13 +363,13 @@ const ExamLibrary: React.FC = () => {
 
   useEffect(() => {
     setPage(0);
-    fetchExams(0);
+    fetchExams();
   }, [fetchExams]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(0);
-    fetchExams(0);
+    fetchExams();
   };
 
   const handleClearSearch = () => {
@@ -391,8 +387,8 @@ const ExamLibrary: React.FC = () => {
     setPage(0);
   };
 
-  // Filter exams client-side: enforce target language, target certificate, scope, and attempt status
-  const displayedExams = useMemo(() => {
+  // 1. FILTER FIRST: Lọc danh sách đề thi theo toàn bộ tiêu chí (ngôn ngữ, mục tiêu, scope, trạng thái, từ khóa)
+  const filteredExams = useMemo(() => {
     let list = exams;
 
     // 1. Loại bỏ các đề không cùng ngôn ngữ mục tiêu của học viên
@@ -417,8 +413,33 @@ const ExamLibrary: React.FC = () => {
       list = list.filter(e => !e.isAttempted);
     }
 
+    // 5. Tìm kiếm từ khóa theo title hoặc code (hỗ trợ lọc tức thì)
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      list = list.filter(e =>
+        (e.title && e.title.toLowerCase().includes(term)) ||
+        (e.code && e.code.toLowerCase().includes(term))
+      );
+    }
+
+    // 6. Sắp xếp client-side đồng bộ
+    if (sortParam === 'popular') {
+      list = [...list].sort((a, b) => (b.joins || 0) - (a.joins || 0));
+    }
+
     return list;
-  }, [exams, userTargetLanguage, activeTab, userTarget, selectedScope, selectedAttemptStatus]);
+  }, [exams, userTargetLanguage, activeTab, userTarget, selectedScope, selectedAttemptStatus, searchTerm, sortParam]);
+
+  // 2. PAGINATE SECOND: Phân trang trên toàn bộ kết quả đã lọc thành công
+  const PAGE_SIZE = 12;
+  const totalElements = filteredExams.length;
+  const totalPages = Math.max(1, Math.ceil(totalElements / PAGE_SIZE));
+  const validPage = Math.min(page, Math.max(0, totalPages - 1));
+
+  const displayedExams = useMemo(() => {
+    const start = validPage * PAGE_SIZE;
+    return filteredExams.slice(start, start + PAGE_SIZE);
+  }, [filteredExams, validPage]);
 
   const formatScore = (score: number | null | undefined, type: string) => {
     if (score === null || score === undefined) return '';
@@ -796,26 +817,22 @@ const ExamLibrary: React.FC = () => {
           <div className="exam-library-pagination">
             <button
               type="button"
-              disabled={page === 0}
+              disabled={validPage === 0}
               onClick={() => {
-                const prev = page - 1;
-                setPage(prev);
-                fetchExams(prev);
+                setPage((prev) => Math.max(0, prev - 1));
               }}
               className="exam-library-page-btn"
             >
               {t('library.pagination.prev', 'Trang trước')}
             </button>
             <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>
-              {t('library.pagination.page', 'Trang')} {page + 1} / {totalPages}
+              {t('library.pagination.page', 'Trang')} {validPage + 1} / {totalPages}
             </span>
             <button
               type="button"
-              disabled={page >= totalPages - 1}
+              disabled={validPage >= totalPages - 1}
               onClick={() => {
-                const next = page + 1;
-                setPage(next);
-                fetchExams(next);
+                setPage((prev) => Math.min(totalPages - 1, prev + 1));
               }}
               className="exam-library-page-btn"
             >
