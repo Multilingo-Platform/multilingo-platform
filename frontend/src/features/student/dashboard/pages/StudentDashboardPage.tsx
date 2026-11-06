@@ -75,8 +75,8 @@ export const StudentDashboardPage: React.FC = () => {
   const regularActions = suggestedActions.filter((a) => a.type !== 'PLACEMENT_TEST');
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
-      {/* 1. Header & Greeting */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+      {/* 1. Header & Greeting (Compact Sleek Orange Card) */}
       <GreetingHeader userProfile={userProfile} />
 
       {/* 2. New User Welcome Card (Bắt đầu hành trình ngoại ngữ - if Cold Start) */}
@@ -89,22 +89,22 @@ export const StudentDashboardPage: React.FC = () => {
         <GoalProgressTrackerCard goalProgress={goalProgress} />
       )}
 
-      {/* 3. Suggested Actions for Active Users */}
+      {/* 4. Suggested Actions for Active Users */}
       {!isNewUser && regularActions.length > 0 && (
         <SuggestedActionCard actions={regularActions} />
       )}
 
-      {/* 4. Metric Stats Grid */}
+      {/* 5. Metric Stats Grid */}
       <MetricStatCard streak={streak} examStats={examStats} vocabStats={vocabStats} />
 
-      {/* 5. Study Activity Heatmap (GitHub Style) */}
+      {/* 6. Study Activity Heatmap (GitHub Style) */}
       <StudyActivityHeatmap
         heatmap={activityHeatmap}
         selectedYear={selectedYear}
         onYearChange={setSelectedYear}
       />
 
-      {/* 6. Progress Timeline Chart */}
+      {/* 7. Progress Timeline Chart */}
       <ProgressChart
         progressChart={progressChart}
         timeRange={timeRange}

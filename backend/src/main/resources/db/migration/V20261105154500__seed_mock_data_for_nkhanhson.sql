@@ -5,6 +5,27 @@
 -- Resiliency: 100% dynamic exam & part resolution, fail-safe against schema ID variance across environments
 -- =============================================================================
 
+-- Đảm bảo clones_count có DEFAULT 0 nếu database ban đầu chưa cấu hình default
+UPDATE flashcard_decks SET clones_count = 0 WHERE clones_count IS NULL;
+ALTER TABLE flashcard_decks ALTER COLUMN clones_count SET DEFAULT 0;
+
+-- Đảm bảo attempt_answers sạch dữ liệu trùng lặp và có unique constraint nếu khả dụng
+DELETE FROM attempt_answers a USING attempt_answers b
+WHERE a.id < b.id AND a.attempt_id = b.attempt_id AND a.part_id = b.part_id;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'attempt_answers_attempt_id_part_id_key'
+    ) THEN
+        BEGIN
+            ALTER TABLE attempt_answers ADD CONSTRAINT attempt_answers_attempt_id_part_id_key UNIQUE (attempt_id, part_id);
+        EXCEPTION WHEN OTHERS THEN
+            NULL;
+        END;
+    END IF;
+END $$;
+
 DO $$
 DECLARE
     v_user_id INT;
@@ -174,15 +195,15 @@ BEGIN
     -- 8. Flashcard Decks
     SELECT id INTO v_deck_ielts_id FROM flashcard_decks WHERE user_id = v_user_id AND name = 'IELTS Academic Core 7.5+';
     IF v_deck_ielts_id IS NULL THEN
-        INSERT INTO flashcard_decks (user_id, name, description, is_public, target_language, source_language, created_at, updated_at)
-        VALUES (v_user_id, 'IELTS Academic Core 7.5+', 'Từ vựng trọng tâm target Band 7.5+ IELTS Academic', false, 'en', 'vi', CURRENT_TIMESTAMP - INTERVAL '25 days', CURRENT_TIMESTAMP)
+        INSERT INTO flashcard_decks (user_id, name, description, is_public, clones_count, target_language, source_language, created_at, updated_at)
+        VALUES (v_user_id, 'IELTS Academic Core 7.5+', 'Từ vựng trọng tâm target Band 7.5+ IELTS Academic', false, 0, 'en', 'vi', CURRENT_TIMESTAMP - INTERVAL '25 days', CURRENT_TIMESTAMP)
         RETURNING id INTO v_deck_ielts_id;
     END IF;
 
     SELECT id INTO v_deck_toeic_id FROM flashcard_decks WHERE user_id = v_user_id AND name = 'TOEIC 850+ Business Master';
     IF v_deck_toeic_id IS NULL THEN
-        INSERT INTO flashcard_decks (user_id, name, description, is_public, target_language, source_language, created_at, updated_at)
-        VALUES (v_user_id, 'TOEIC 850+ Business Master', 'Từ vựng văn phòng, hợp đồng và thương mại quốc tế', false, 'en', 'vi', CURRENT_TIMESTAMP - INTERVAL '20 days', CURRENT_TIMESTAMP)
+        INSERT INTO flashcard_decks (user_id, name, description, is_public, clones_count, target_language, source_language, created_at, updated_at)
+        VALUES (v_user_id, 'TOEIC 850+ Business Master', 'Từ vựng văn phòng, hợp đồng và thương mại quốc tế', false, 0, 'en', 'vi', CURRENT_TIMESTAMP - INTERVAL '20 days', CURRENT_TIMESTAMP)
         RETURNING id INTO v_deck_toeic_id;
     END IF;
 
@@ -310,6 +331,7 @@ BEGIN
         SELECT p.id INTO v_writing_part2_id FROM exam_parts p JOIN exam_sections s ON p.section_id = s.id WHERE s.exam_id = v_exam_ielts_write_id AND p.part_number = 2 LIMIT 1;
 
         IF v_writing_att_id IS NOT NULL AND v_writing_part1_id IS NOT NULL THEN
+            DELETE FROM attempt_answers WHERE attempt_id = v_writing_att_id AND part_id = v_writing_part1_id;
             INSERT INTO attempt_answers (attempt_id, part_id, user_answers, is_correct_flags, earned_score, ai_feedback, created_at, updated_at)
             VALUES (
                 v_writing_att_id, v_writing_part1_id,
@@ -331,11 +353,11 @@ BEGIN
                         )
                     )
                 ), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-            ) ON CONFLICT (attempt_id, part_id) DO UPDATE SET
-                user_answers = EXCLUDED.user_answers, is_correct_flags = EXCLUDED.is_correct_flags, earned_score = EXCLUDED.earned_score, ai_feedback = EXCLUDED.ai_feedback, updated_at = CURRENT_TIMESTAMP;
+            );
         END IF;
 
         IF v_writing_att_id IS NOT NULL AND v_writing_part2_id IS NOT NULL THEN
+            DELETE FROM attempt_answers WHERE attempt_id = v_writing_att_id AND part_id = v_writing_part2_id;
             INSERT INTO attempt_answers (attempt_id, part_id, user_answers, is_correct_flags, earned_score, ai_feedback, created_at, updated_at)
             VALUES (
                 v_writing_att_id, v_writing_part2_id,
@@ -357,8 +379,7 @@ BEGIN
                         )
                     )
                 ), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-            ) ON CONFLICT (attempt_id, part_id) DO UPDATE SET
-                user_answers = EXCLUDED.user_answers, is_correct_flags = EXCLUDED.is_correct_flags, earned_score = EXCLUDED.earned_score, ai_feedback = EXCLUDED.ai_feedback, updated_at = CURRENT_TIMESTAMP;
+            );
         END IF;
     END IF;
 
@@ -533,13 +554,9 @@ BEGIN
                         v_earned := ROUND((v_correct_count::numeric / v_q_count::numeric) * 100.0, 1);
                     END IF;
 
+                    DELETE FROM attempt_answers WHERE attempt_id = v_att.id AND part_id = v_part.part_id;
                     INSERT INTO attempt_answers (attempt_id, part_id, user_answers, is_correct_flags, earned_score, created_at, updated_at)
-                    VALUES (v_att.id, v_part.part_id, v_user_answers, v_flags, v_earned, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                    ON CONFLICT (attempt_id, part_id) DO UPDATE SET
-                        user_answers = EXCLUDED.user_answers,
-                        is_correct_flags = EXCLUDED.is_correct_flags,
-                        earned_score = EXCLUDED.earned_score,
-                        updated_at = CURRENT_TIMESTAMP;
+                    VALUES (v_att.id, v_part.part_id, v_user_answers, v_flags, v_earned, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
                 END IF;
             END IF;
         END LOOP;

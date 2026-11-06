@@ -19,6 +19,7 @@ import com.multilingo.backend.modules.testing.entity.TestAttempt;
 import com.multilingo.backend.modules.testing.entity.enums.AttemptStatus;
 import com.multilingo.backend.modules.testing.repository.TestAttemptRepository;
 import com.multilingo.backend.modules.vocab.dto.response.UserVocabStatsProjection;
+import com.multilingo.backend.modules.vocab.repository.FlashcardDeckRepository;
 import com.multilingo.backend.modules.vocab.repository.UserFlashcardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,7 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
         private final DailyStudyLogRepository dailyStudyLogRepository;
         private final TestAttemptRepository testAttemptRepository;
         private final UserFlashcardRepository userFlashcardRepository;
+        private final FlashcardDeckRepository flashcardDeckRepository;
         private final ExamRepository examRepository;
         private final UserTargetRepository userTargetRepository;
 
@@ -124,6 +126,7 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
                                 : 0L;
                 double masteryRate = totalWords > 0 ? Math.round((masteredWords * 100.0 / totalWords) * 10.0) / 10.0
                                 : 0.0;
+                long totalDecks = flashcardDeckRepository.countByUserId(userId);
 
                 VocabStatsDto vocabStats = VocabStatsDto.builder()
                                 .totalWords(totalWords)
@@ -131,6 +134,7 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
                                 .learningWords(learningWords)
                                 .masteryRate(masteryRate)
                                 .dueTodayCount(dueToday)
+                                .totalDecks(totalDecks)
                                 .build();
 
                 // 5. Xác định Tân học viên (Cold Start)

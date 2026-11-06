@@ -18,12 +18,12 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStat
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* 1. Card Thời lượng học */}
-      <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs hover:border-slate-300 transition-colors">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-colors">
         <div className="flex items-center justify-between">
           <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500">
             {t('dashboard.metrics.study_time', 'Thời lượng học')}
           </span>
-          <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+          <div className="p-2 rounded-xl bg-orange-50 text-orange-600">
             <Clock className="w-5 h-5" />
           </div>
         </div>
@@ -33,7 +33,7 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStat
             <span className="text-sm md:text-base font-medium text-slate-500">{t('dashboard.metrics.minutes', 'phút')}</span>
           </div>
           <div className="mt-2.5 text-sm text-slate-600 flex items-center gap-1.5 font-medium">
-            <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
+            <Trophy className="w-4 h-4 text-orange-500 shrink-0" />
             <span className="truncate">
               {t('dashboard.metrics.record_days', { days: streak.highestStreak })}
             </span>
@@ -42,19 +42,19 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStat
       </div>
 
       {/* 2. Card Tích lũy XP */}
-      <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs hover:border-slate-300 transition-colors">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:border-slate-300 transition-colors">
         <div className="flex items-center justify-between">
           <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500">
             {t('dashboard.metrics.xp_accumulated', 'Tích lũy XP')}
           </span>
-          <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+          <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
             <Sparkles className="w-5 h-5" />
           </div>
         </div>
         <div className="mt-3">
           <div className="text-3xl md:text-4xl font-extrabold text-slate-900 flex items-baseline gap-1.5">
             <span>{streak.totalXp.toLocaleString(numberLocale)}</span>
-            <span className="text-sm md:text-base font-semibold text-indigo-600">XP</span>
+            <span className="text-sm md:text-base font-semibold text-amber-600">XP</span>
           </div>
           <div className="mt-2.5 text-sm text-slate-600 font-medium truncate">
             <span>{t('dashboard.metrics.xp_desc', 'Điểm kinh nghiệm học tập')}</span>
@@ -64,7 +64,7 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStat
 
       {/* 3. Card Năng lực thi thử */}
       <div
-        className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer"
+        className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer group"
         onClick={() => navigate('/student/history')}
         title="Bấm để xem chi tiết trong Lịch sử làm bài"
       >
@@ -72,7 +72,7 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStat
           <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500">
             {t('dashboard.metrics.exams_taken', 'Thi thử & Đánh giá')}
           </span>
-          <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+          <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
             <FileText className="w-5 h-5" />
           </div>
         </div>
@@ -96,39 +96,32 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({ streak, examStat
         </div>
       </div>
 
-      {/* 4. Card Vốn từ vựng */}
-      <div className="bg-white border border-slate-200/90 rounded-xl p-5 shadow-xs hover:border-slate-300 transition-colors">
+      {/* 4. Card Bộ thẻ từ vựng (chỉ hiển thị số bộ thẻ, gọn gàng, không nhiễu) */}
+      <div
+        className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs hover:border-orange-300 hover:shadow-xs transition-all cursor-pointer group"
+        onClick={() => navigate('/student/flashcards')}
+        title="Bấm để xem danh sách bộ thẻ từ vựng"
+      >
         <div className="flex items-center justify-between">
           <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-500">
-            {t('dashboard.metrics.vocab_handbook', 'Sổ tay từ vựng')}
+            {t('dashboard.metrics.vocab_decks', 'Bộ thẻ từ vựng')}
           </span>
-          <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
+          <div className="p-2 rounded-xl bg-orange-50 text-orange-600 group-hover:scale-105 transition-transform">
             <BookOpen className="w-5 h-5" />
           </div>
         </div>
         <div className="mt-3">
           <div className="text-3xl md:text-4xl font-extrabold text-slate-900 flex items-baseline gap-1.5 flex-wrap">
-            <span>{vocabStats.totalWords}</span>
-            <span className="text-sm md:text-base font-medium text-slate-500">{t('dashboard.metrics.words_saved', 'từ đã lưu')}</span>
-            {vocabStats.totalWords > 0 && (
-              <span className="text-xs md:text-sm font-semibold px-2 py-0.5 rounded-md bg-purple-100/80 text-purple-800 ml-1">
-                {t('dashboard.metrics.mastery_rate', { percent: vocabStats.masteryRate })}
-              </span>
-            )}
+            <span>{vocabStats.totalDecks ?? 0}</span>
+            <span className="text-sm md:text-base font-medium text-slate-500">
+              {t('dashboard.metrics.decks_unit', 'bộ thẻ')}
+            </span>
           </div>
           <div className="mt-2.5 text-sm text-slate-600 font-medium truncate">
-            {vocabStats.dueTodayCount > 0 ? (
-              <span className="text-amber-700 font-semibold">
-                {t('dashboard.metrics.words_due', { count: vocabStats.dueTodayCount })}
-              </span>
-            ) : (
-              <span>{t('dashboard.metrics.all_cards_done', 'Đã hoàn thành toàn bộ thẻ')}</span>
-            )}
+            <span>{t('dashboard.metrics.decks_desc', 'Tạo mới & ôn tập từ vựng')}</span>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
-
